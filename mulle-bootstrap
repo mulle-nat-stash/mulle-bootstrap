@@ -1,0 +1,132 @@
+#! /bin/sh
+#
+#   Copyright (c) 2015 Nat! - Mulle kybernetiK
+#   All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+#   Neither the name of Mulle kybernetiK nor the names of its contributors
+#   may be used to endorse or promote products derived from this software
+#   without specific prior written permission.
+#
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+#   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#   POSSIBILITY OF SUCH DAMAGE.
+
+
+#
+# This is the main user interface to mulle-bootstrap
+# sorta like git
+#
+BOOTSTRAP_SUBDIR=.bootstrap
+
+PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
+export PATH
+
+command=${1:-"bootstrap"}
+shift
+
+. mulle-bootstrap-warn-scripts.sh
+
+
+bootstrap()
+{
+   if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
+   then
+      echo "there is no ${BOOTSTRAP_SUBDIR} here, can't continue" >&2
+      exit 1
+   fi
+
+   #
+   # this is run when checking mulle-project itself out
+   #
+   if [ -f mulle-bootstrap-local-environment.sh -a -x install.sh ]
+   then
+      . install.sh "$@"
+      export MULLE_BOOTSTRAP=mulle-bootstrap
+   fi
+
+   #
+   # should run a script, where we test the project.pbxproj for
+   # script phases too
+   #
+   warn_scripts "${BOOTSTRAP_SUBDIR}" "." || exit 1
+
+   if [ "${DONT_RECURSE}" = "" ]
+   then
+      mulle-bootstrap-fetch.sh "$@" || exit 1
+   else
+      mulle-bootstrap-fetch.sh nonrecursive "$@" || exit 1
+   fi
+   mulle-bootstrap-build.sh "$@" || exit 1
+}
+
+
+case "${command}" in
+   bootstrap)
+      bootstrap "$@" || exit 1
+      ;;
+
+   nomagic)
+      DONT_RECURSE=YES bootstrap "$@" || exit 1
+      ;;
+
+   build)
+      mulle-bootstrap-build.sh "$@" || exit 1
+      ;;
+
+   clean)
+      mulle-bootstrap-clean.sh "$@" || exit 1
+      ;;
+
+   fetch)
+      mulle-bootstrap-fetch.sh "$@" || exit 1
+      ;;
+
+   init)
+      mulle-bootstrap-init.sh "$@" || exit 1
+      ;;
+
+   setup-xcode)
+      mulle-bootstrap-setup-xcode.sh "$@"|| exit 1
+      ;;
+
+   tag)
+      mulle-bootstrap-tag.sh "$@" || exit 1
+      ;;
+   *)
+      echo "usage: mulle-bootstrap [command]" >&2
+      echo "version 0.0" >&2
+      echo    " Common user commands:" >&2
+      echo    "   bootstrap : does fetch and build recursively [default]" >&2
+      echo    "   nomagic   : does fetch and build, but not recursively" >&2
+      echo    "" >& 2
+      echo    " Common maintainer commands:" >&2
+      echo    "   init      : initializes a bootstrap project" >&2
+      echo    "   setup-xcode : sets up the xcodeproj settings" >&2
+      echo    "   tag       : tag this project and fetched repositories" >&2
+      echo    "" >& 2
+      echo    " Specialized commands:" >&2
+      echo    "   build     : builds fetched repositories" >&2
+      echo    "   fetch [o] : fetches required repositories recursively." >&2
+      echo    "               whith [o=:nonrecursive] fetches non recursively." >&2
+      echo    "   clean [o] : cleans intermediate build files." >&2
+      echo    "               with [o=dist] cleans clones and dependencies too." >&2
+      exit 1
+esac

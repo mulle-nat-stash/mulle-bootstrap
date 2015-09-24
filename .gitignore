@@ -1,0 +1,6 @@
+.DS_Store
+*.chk
+build/
+.repos/
+.bootstrap.auto/
+dependencies/

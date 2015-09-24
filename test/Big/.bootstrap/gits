@@ -1,0 +1,7 @@
+# A configure project
+git://git.savannah.gnu.org/readline.git
+# A cmake project
+https://github.com/madler/zlib
+# An Xcode project
+git@github.com:zoul/Finch.git
+
