@@ -42,7 +42,7 @@ fail()
 internal_fail()
 {
    fail "**** mulle-bootstrap internal error ****
-" "$@"
+$*"
 }
 
 
@@ -50,7 +50,7 @@ is_yes()
 {
    local s
 
-   s="`echo \"${1}\" | tr '[:lower:]' '[:upper:]'`"
+   s=`echo "${1}" | tr '[:lower:]' '[:upper:]'`
    case "${s}" in
       YES|Y|1)
          return 0
@@ -104,7 +104,7 @@ path_depth()
          depth=`expr $depth + 1`
       done
    fi
-   echo $depth
+   echo "$depth"
 }
 
 
@@ -127,6 +127,23 @@ compute_relative()
       done
    fi
    echo "${relative}"
+}
+
+
+remove_absolute_path_prefix_up_to()
+{
+   local s
+   local prefix
+
+   s="$1"
+   prefix="$2"
+
+   if [ "`basename "${s}"`" = "${prefix}" ]
+   then
+      return 0
+   fi
+
+   echo "${s}" | sed "s|^.*/${prefix}/\(.*\)*|\1|g"
 }
 
 
@@ -171,7 +188,7 @@ fetch_brew_if_needed()
 
    last_update="${HOME}/.mulle-bootstrap/brew-update"
 
-   binary="`which brew`"
+   binary=`which brew`
    if [ "${binary}" = "" ]
    then
       user_say_yes "Brew isn't installed on this system.
@@ -187,7 +204,7 @@ Install brew now (Linux or OS X should work) ? "
          ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/linuxbrew/go/install)" || exit 1
       fi
 
-      mkdir -p "`dirname \"${last_update}\"`" 2> /dev/null
+      mkdir -p "`dirname "${last_update}"`" 2> /dev/null
       touch "${last_update}"
       return 1
    fi
@@ -249,6 +266,17 @@ warn_user_setting()
 }
 
 
+warn_local_setting()
+{
+   local name
+
+   name="$1"
+   if [ "${DONT_WARN_RECURSION}" = "" -a "`DONT_WARN_RECURSION=YES read_local_setting \"dont_warn_local_setting\"`" = "" ]
+   then
+      echo "Using ${BOOTSTRAP_SUBDIR}.local/${name}" >& 2
+   fi
+}
+
 #
 # this knows intentionally no default, you cant have an empty
 # local setting
@@ -294,6 +322,8 @@ read_local_setting()
    local value
    local default
 
+   [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
+
    name="$1"
    default="$2"
 
@@ -303,90 +333,6 @@ read_local_setting()
       value="${default}"
    fi
 
-   echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-
-read_sane_local_path_setting()
-{
-   local name
-   local value
-   local default
-
-   name="$1"
-   default="$2"
-
-   value=`_read_local_setting "${name}"`
-   if [ "$?" -ne 0 ]
-   then
-      case "${value}"  in
-         \$*|~/.|..|./|../|/*)
-            echo "refuse unsafe path ${value} for ${name}" >&2
-            exit 1
-         ;;
-      esac
-   else
-      if [ "$value" = "" ]
-      then
-         value="${default}"
-      fi
-   fi
-
-   echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-
-warn_local_setting()
-{
-   local name
-
-   name="$1"
-   if [ "${DONT_WARN_RECURSION}" = "" -a "`DONT_WARN_RECURSION=YES read_local_setting \"dont_warn_local_setting\"`" = "" ]
-   then
-      echo "Using ${BOOTSTRAP_SUBDIR}.local/${name}" >& 2
-   fi
-}
-
-
-# "auto" after base
-read_repo_setting()
-{
-   local name
-   local value
-   local default
-
-   package="$1"
-   name="$2"
-   default="$3"
-
-   [ "$name" = "" -o "$package" = "" ] && internal_fail "missing parameters in read_repo_setting"
-
-   value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}.local/settings/${package}/${name}" 2> /dev/null`
-   if [ $? -gt 1 ]
-   then
-      value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}/settings/${package}/${name}" 2> /dev/null`
-      if [ $? -gt 1 ]
-      then
-         value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}.auto/settings/${package}/${name}" 2> /dev/null`
-         if [ $? -gt 1 ]
-         then
-            if [ $# -eq 2 ]
-            then
-               return 2
-            fi
-
-            value="${default}"
-         fi
-      fi
-   else
-      warn_local_setting "${name}"
-   fi
    echo "$value"
 
    [ "${value}" = "${default}" ]
@@ -412,6 +358,7 @@ _read_bootstrap_setting()
    suffix3="$4"
    default="$5"
 
+   [ $# -lt 4 -o $# -gt 5 ] && internal_fail "parameterization error"
    [ "$name" = "" ] && internal_fail "missing parameters in _read_bootstrap_setting"
 
    value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}${suffix1}/${name}" 2> /dev/null`
@@ -423,19 +370,31 @@ _read_bootstrap_setting()
          value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}${suffix3}/${name}" 2> /dev/null`
          if [ $? -gt 1 ]
          then
-            if [ $# -eq 1 ]
+            if [ $# -eq 4 ]
             then
                return 2
             fi
             value="${default}"
          else
-            [ "$suffix1" = ".local" ] && warn_local_setting "${name}"
+            case "$1" in
+               .local*)
+                  warn_local_setting "${name}"
+               ;;
+            esac
          fi
       else
-         [ "$suffix1" = ".local" ] && warn_local_setting "${name}"
+         case "$1" in
+            .local*)
+               warn_local_setting "${name}"
+            ;;
+         esac
       fi
    else
-      [ "$suffix1" = ".local" ] && warn_local_setting "${name}"
+      case "$1" in
+         .local*)
+            warn_local_setting "${name}"
+         ;;
+      esac
    fi
 
    echo "$value"
@@ -444,14 +403,69 @@ _read_bootstrap_setting()
    return $?
 }
 
+
+read_repo_setting()
+{
+   local name
+   local value
+   local default
+   local value
+
+   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
+
+   package="$1"
+   name="$2"
+   default="$3"
+
+   [ "$name" = "" -o "$package" = "" ] && internal_fail "missing parameters in read_repo_setting"
+
+   # need to conserve return value 2 if empty
+   if [ $# -eq 2 ]
+   then
+      _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto"
+   else
+      _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto" "${default}"
+   fi
+}
+
+
 #
 # the default
 #
-_read_build_setting()
+read_config_setting()
 {
-   _read_bootstrap_setting "$1" ".local" "" ".auto" "$2"
+   local name
+   local value
+   local default
+
+   [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
+
+   name="$1"
+   default="$2"
+
+   value=`_read_bootstrap_setting "${name}" ".local/config" "config" ".auto/config"`
+   if [ "${value}" = "" ]
+   then
+      value=`read_local_setting "${name}" "${default}"`
+   fi
+
+   echo "$value"
+
+   [ "${value}" = "${default}" ]
+   return $?
 }
 
+
+read_fetch_setting()
+{
+   _read_bootstrap_setting "$1" ".auto" ".local" "" "$2"
+}
+
+
+_read_build_setting()
+{
+   _read_bootstrap_setting "$1" ".local/settings" "/settings" ".auto/settings" "$2"
+}
 
 
 read_build_setting()
@@ -464,7 +478,8 @@ read_build_setting()
    name="$2"
    default="$3"
 
-   [ "$name" = "" -o "$package" = "" ] && internal_fail "missing parameters in read_build_setting"
+   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
+   [ "$name" = "" -o "$package" = "" ] && internal_fail "empty parameters in read_build_setting"
 
    value=`read_repo_setting "${package}" "${name}"`
    if [ $? -gt 1 ]
@@ -490,13 +505,7 @@ read_build_setting()
 
 read_build_root_setting()
 {
-   _read_bootstrap_setting "$1" ".local" "" ".auto" "$2"
-}
-
-
-read_fetch_setting()
-{
-   _read_bootstrap_setting "$1" ".auto" ".local" "" "$2"
+   _read_build_setting "$@"
 }
 
 
@@ -504,8 +513,40 @@ read_yes_no_build_setting()
 {
    local value
 
-   value="`read_build_setting \"$1\" \"$2\" \"$3\"`"
+   value=`read_build_setting "$1" "$2" "$3"`
    is_yes "$value" "$1/$2"
+}
+
+
+read_sane_config_path_setting()
+{
+   local name
+   local value
+   local default
+
+   name="$1"
+   default="$2"
+
+   value=`read_config_setting "${name}"`
+   if [ "$?" -ne 0 ]
+   then
+      case "${value}"  in
+         \$*|~/.|..|./|../|/*)
+            echo "refuse unsafe path ${value} for ${name}" >&2
+            exit 1
+         ;;
+      esac
+   else
+      if [ "$value" = "" ]
+      then
+         value="${default}"
+      fi
+   fi
+
+   echo "$value"
+
+   [ "${value}" = "${default}" ]
+   return $?
 }
 
 

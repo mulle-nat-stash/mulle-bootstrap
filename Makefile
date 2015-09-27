@@ -11,7 +11,7 @@ mulle-bootstrap-tag.sh \
 mulle-bootstrap-warn-scripts.sh
 
 CHECKSTAMPS=$(SCRIPTS:.sh=.chk)
-SHELLFLAGS=-e SC2006 -s sh
+SHELLFLAGS=-x -e SC2164,SC2166,SC2006 -s sh
 
 .PHONY: all
 .PHONY: clean

@@ -33,11 +33,10 @@
 .  mulle-bootstrap-gcc.sh
 
 
-CLEAN_BEFORE_BUILD=`read_local_setting "clean"`
-HEADER_PATH=`read_local_setting "header_path" "/include"`
-LIBRARY_PATH=`read_local_setting "library_path" "/lib"`
-FRAMEWORK_PATH=`read_local_setting "frameworks_path" "/Frameworks"`
-
+CLEAN_BEFORE_BUILD=`read_config_setting "clean"`
+HEADER_PATH=`read_config_setting "header_path" "/include"`
+LIBRARY_PATH=`read_config_setting "library_path" "/lib"`
+FRAMEWORK_PATH=`read_config_setting "frameworks_path" "/Frameworks"`
 
 #
 # move stuff produced my cmake and configure to places
@@ -117,15 +116,15 @@ enforce_build_sanity()
 
 determine_suffix()
 {
-   local mode
+   local configuration
    local sdk
    local suffix
    local hackish
 
-   mode="$1"
+   configuration="$1"
    sdk="$2"
 
-   suffix="/${mode}"
+   suffix="/${configuration}"
    if [ "${sdk}" != "Default" ]
    then
       hackish=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
@@ -139,7 +138,7 @@ cmake_sdk_parameter()
 {
    local sdkpath
 
-   sdkpath="`gcc_sdk_parameter \"$1\" \"$2\"`"
+   sdkpath=`gcc_sdk_parameter "$1"`
    if [ "${sdkpath}" != "" ]
    then
       echo '-DCMAKE_OSX_SYSROOT='"${sdkpath}"
@@ -148,13 +147,13 @@ cmake_sdk_parameter()
 
 #
 # remove old builddir, create a new one
-# depending on mode cmake with flags
+# depending on configuration cmake with flags
 # build stuff into dependencies
 #
 #
 build_cmake()
 {
-   local mode
+   local configuration
    local srcdir
    local builddir
    local relative
@@ -162,7 +161,7 @@ build_cmake()
    local sdk
    local mapped
 
-   mode="$1"
+   configuration="$1"
    srcdir="$2"
    builddir="$3"
    relative="$4"
@@ -171,9 +170,9 @@ build_cmake()
 
    enforce_build_sanity
 
-   mapped=`read_build_setting "$name" "cmake-${mode}.map" "${mode}"`
-   suffix=`determine_suffix "${mode}" "${sdk}"`
-   sdk=`cmake_sdk_parameter "${mode}" "${sdk}" "${suffix}"`
+   mapped=`read_build_setting "$name" "cmake-${configuration}.map" "${configuration}"`
+   suffix=`determine_suffix "${configuration}" "${sdk}"`
+   sdk=`cmake_sdk_parameter "${sdk}"`
 
    local other_cflags
    local other_cppflags
@@ -186,7 +185,7 @@ build_cmake()
    owd="${PWD}"
    # to avoid warning make sure directories are all there
    mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" 2> /dev/null
-   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode}" 2> /dev/null
+   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" 2> /dev/null
    mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" 2> /dev/null
 
    mkdir -p "${builddir}" 2> /dev/null
@@ -194,7 +193,7 @@ build_cmake()
 
       # check that relative ise right
       [ -d "${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" ] || exit 1
-      [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode}" ] || exit 1
+      [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" ] || exit 1
       [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
 
       #
@@ -207,23 +206,23 @@ build_cmake()
 "-DCMAKE_C_FLAGS=\
 -I${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
+-F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
 ${other_cflags} \
 ${sdk}" \
 "-DCMAKE_CXX_FLAGS=\
 -I${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
+-F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
 ${other_cppflags} \
 ${sdk}" \
 "-DCMAKE_LD_FLAGS=\
 -L${relative}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}${suffix} \
--L${relative}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mode} \
+-L${relative}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${configuration} \
 -L${relative}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
+-F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
 ${other_ldflags} \
 ${sdk}" \
@@ -243,13 +242,13 @@ ${sdk}" \
 
 #
 # remove old builddir, create a new one
-# depending on mode cmake with flags
+# depending on configuration cmake with flags
 # build stuff into dependencies
 #
 #
 build_configure()
 {
-   local mode
+   local configuration
    local srcdir
    local builddir
    local relative
@@ -257,7 +256,7 @@ build_configure()
    local sdk
    local mapped
 
-   mode="$1"
+   configuration="$1"
    srcdir="$2"
    builddir="$3"
    relative="$4"
@@ -266,9 +265,9 @@ build_configure()
 
    enforce_build_sanity
 
-   mapped=`read_build_setting "$name" "configure-${mode}.map" "${mode}"`
-   suffix=`determine_suffix "${mode}" "${sdk}"`
-   sdk=`gcc_sdk_parameter "${mode}" "${sdk}" "${suffix}"`
+   mapped=`read_build_setting "$name" "configure-${configuration}.map" "${configuration}"`
+   suffix=`determine_suffix "${configuration}" "${sdk}"`
+   sdk=`gcc_sdk_parameter "${sdk}"`
 
    local other_cflags
    local other_cppflags
@@ -281,7 +280,7 @@ build_configure()
    owd="${PWD}"
    # to avoid warning make sure directories are all there
    mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" 2> /dev/null
-   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode}" 2> /dev/null
+   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" 2> /dev/null
    mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" 2> /dev/null
 
    mkdir -p "${builddir}" 2> /dev/null
@@ -289,7 +288,7 @@ build_configure()
 
       # check that relative ise right
       [ -d "${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" ] || exit 1
-      [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode}" ] || exit 1
+      [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" ] || exit 1
       [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
 
       set -f
@@ -299,27 +298,26 @@ build_configure()
       CFLAGS="\
 -I${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
+-F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
 ${other_cflags} \
 ${sdk}" \
       CPPFLAGS="\
 -I${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
+-F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
 ${other_cppflags} \
 ${sdk}" \
       LDFLAGS="\
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
+-F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
 -L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}${suffix} \
--L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mode} \
+-L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${configuration} \
 -L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH} \
 ${other_ldflags} \
 ${sdk}" \
-
       "${owd}/${srcdir}/configure" --prefix "${owd}/${DEPENDENCY_SUBDIR}/tmp" 1>&2  || exit 1
 
       make all install 1>&2 || exit 1
@@ -345,7 +343,7 @@ xcode_get_setting()
    configuration="$1"
    shift
 
-   xcodebuild -showBuildSettings -configuration "${configuration}" "$@" | \
+   xcodebuild -showBuildSettings -configuration "${configuration}" $* | \
    egrep "^[ ]*${key}" | \
    sed 's/^[^=]*=[ ]*\(.*\)/\1/' || \
    exit 1
@@ -354,68 +352,50 @@ xcode_get_setting()
 
 build_xcodebuild()
 {
-   local mode
+   local configuration
    local srcdir
    local builddir
    local relative
    local name
    local sdk
    local project
+   local schemename
+   local targetname
 
-   mode="$1"
+   configuration="$1"
    srcdir="$2"
    builddir="$3"
    relative="$4"
    name="$5"
    sdk="$6"
    project="$7"
+   schemename="$8"
+   targetname="$9"
 
-   if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" != "" ]
-   then
-      rm -rf "${builddir}"
-   fi
+   [ -z "${configuration}" ] && internal_fail "configuration is empty"
+   [ -z "${srcdir}" ]      && internal_fail "srcdir is empty"
+   [ -z "${builddir}" ]    && internal_fail "builddir is empty"
+   [ -z "${relative}" ]    && internal_fail "relative is empty"
+   [ -z "${name}" ]        && internal_fail "name is empty"
+   [ -z "${sdk}" ]         && internal_fail "sdk is empty"
+   [ -z "${project}" ]     && internal_fail "project is empty"
 
-   local project
    local projectname
 
-   # always pass project directly
-   projectname=`read_repo_setting "${name}" "project"`
-   if [ "${projectname}" != "" ]
-   then
-      project="-project ${projectname}"
-   else
-      project="-project ${project}"
-   fi
-
-   local scheme
-   local schemename
-
-   scheme=
-   schemename=`read_repo_setting "${name}" "scheme"`
-   if [ "$schemename" != "" ]
-   then
-      scheme="-scheme ${schemename}"
-   fi
-
-   local target
-   local targetname
-
-   target=
-   targetname=`read_repo_setting "${name}" "target"`
-   if [ "$targetname" != "" ]
-   then
-      target="-target ${targetname}"
-   fi
+    # always pass project directly
+   projectname=`read_repo_setting "${name}" "project" "${project}"`
+   project="-project ${projectname}"
 
    local mapped
 
-   mapped=`read_build_setting "${name}" "${mode}.map" "${mode}"`
+   mapped=`read_build_setting "${name}" "${configuration}.map" "${configuration}"`
+   [ -z "${mapped}" ] && internal_fail "mapped configuration is empty"
 
    local hackish
    local targetname
    local suffix
 
-   suffix="/${mode}"
+   suffix="/${configuration}"
    if [ "${sdk}" != "Default" ]
    then
       hackish=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
@@ -429,29 +409,16 @@ build_xcodebuild()
    local skip_install
 
    skip_install=
-   proper_skip_install=`read_repo_setting "${name}" "proper_skip_install" "NO"`
+   proper_skip_install=`read_build_setting "${name}" "proper_skip_install" "NO"`
    if [ "$proper_skip_install" != "YES" ]
    then
       skip_install="SKIP_INSTALL=NO"
    fi
 
-   local public_headers
-   local private_headers_subdir
-   local header_name
-
-   header_name="`read_build_setting  \"{name}\" \"header_subdir\" \"${name}\"`"
-   if read_yes_no_build_setting "${name}" "mangle_header_dash"
-   then
-      header_name="`echo \"${header_name}\" | tr '-' '_'`"
-   fi
-
-   public_headers=`read_repo_setting "${name}" "public_headers" "${HEADER_PATH}/${header_name}"`
-   private_headers_subdir=`read_repo_setting "${name}" "private_headers_subdir" "private"`
-
    local xcodebuild
    local binary
 
-   xcodebuild=`read_local_setting "xcodebuild" "xcodebuild"`
+   xcodebuild=`read_config_setting "xcodebuild" "xcodebuild"`
    binary=`which "${xcodebuild}"`
    if [ "${binary}"  = "" ]
    then
@@ -471,11 +438,15 @@ build_xcodebuild()
    then
       xcconfig="-xcconfig ${xcconfigname}"
    fi
+
    #
    # xctool needs schemes, these are often autocreated, which xctool cant do
    # xcodebuild can just use a target
    # xctool is by and large useless fluff IMO
    #
+   local target
+   local scheme
+
    if [ "$xcodebuild" = "xctool"  -a "${schemename}" = ""  ]
    then
       if [ "$targetname" != "" ]
@@ -488,7 +459,16 @@ build_xcodebuild()
          echo "Or just delete ${HOME}/.mulle-bootstrap/xcodebuild and use xcodebuild (preferred)" >& 2
          exit 1
       fi
-   fi
+   else
+     if [ "${schemename}" != "" ]
+     then
+        scheme="-scheme ${schemename}"
+     fi
+     if [ "${targetname}" != "" ]
+     then
+        target="-target ${targetname}"
+     fi
+  fi
 
    local key
    local aux
@@ -516,6 +496,44 @@ build_xcodebuild()
 
    owd=`pwd`
    cd "${srcdir}" || exit 1
+
+      #
+      # headers are complicated, the preference is to get it uniform into
+      # dependencies/include/libraryname/..
+      #
+      local public_headers
+      local private_headers
+      local public_header_name
+      local private_header_name
+
+      public_headers=`xcode_get_setting PUBLIC_HEADERS_FOLDER_PATH "${mapped}" "${project}" "${scheme}" "${target}"`
+      private_headers=`xcode_get_setting PRIVATE_HEADERS_FOLDER_PATH "${mapped}" "${project}" "${scheme}" "${target}"`
+
+      read_yes_no_build_setting "${name}" "keep_xcode_header_settings"
+      if [ $? -ne 0 ]
+      then
+         public_header_name=`remove_absolute_path_prefix_up_to "${public_headers}" "include"`
+         private_header_name=`remove_absolute_path_prefix_up_to "${private_headers}" "include"`
+
+         if read_yes_no_build_setting "${name}" "mangle_header_dash"
+         then
+            public_header_name=`echo "${public_header_name}" | tr '-' '_'`"
+            private_header_name=`echo "${private_header_name}" | tr '-' '_'`"
+         fi
+
+         if [ "${public_header_name}" != "" ]
+         then
+            public_header_name="/${public_header_name}"
+         fi
+         if [ "${private_header_name}" != "" ]
+         then
+            private_header_name="/${private_header_name}"
+         fi
+
+         public_headers=`read_repo_setting "${name}" "public_headers" "${HEADER_PATH}${public_header_name}"`
+         private_headers=`read_repo_setting "${name}" "private_headers" "${HEADER_PATH}${private_header_name}"`
+      fi
+
 
       # manually point xcode to our headers and libs
       # this is like manually doing xcode-setup
@@ -550,9 +568,8 @@ ${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
 ${inherited}"
 
       set -f
-      set -x
+      set +x
 
-      echo "${BOOTSTRAP_SUBDIR}" >&2
       # if it doesn't install, probably SKIP_INSTALL is set
       $xcodebuild $command $project $sdk $scheme $target -configuration "${mapped}" \
       ${xcflags} \
@@ -563,7 +580,7 @@ ${inherited}"
       "DSTROOT=${owd}/${DEPENDENCY_SUBDIR}" \
       "INSTALL_PATH=${LIBRARY_PATH}${suffix}" \
       "PUBLIC_HEADERS_FOLDER_PATH=${public_headers}" \
-      "PRIVATE_HEADERS_FOLDER_PATH=${public_headers}/${private_headers_subdir}" \
+      "PRIVATE_HEADERS_FOLDER_PATH=${private_headers}" \
       SYMROOT="${owd}/${builddir}/" \
       OBJROOT="${owd}/${builddir}/obj" \
       ONLY_ACTIVE_ARCH=NO \
@@ -577,6 +594,44 @@ ${inherited}"
       set +f
 
    cd "${owd}"
+}
+
+
+build_xcodebuild_schemes_or_target()
+{
+   local builddir
+   local name
+
+   builddir="$3"
+   name="$5"
+
+   if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" != "" ]
+   then
+      rm -rf "${builddir}"
+   fi
+
+   local scheme
+   local schemes
+
+   schemes=`read_repo_setting "${name}" "schemes"`
+   for scheme in $schemes
+   do
+      build_xcodebuild "$@" "${scheme}" ""
+   done
+
+   local target
+   local targets
+
+   targets=`read_repo_setting "${name}" "targets"`
+   for target in $targets
+   do
+      build_xcodebuild "$@" "" "${target}"
+   done
+
+   if [ "${targets}" = "" -a "${schemes}" = "" ]
+   then
+      build_xcodebuild "$@"
+   fi
 }
 
 
@@ -601,27 +656,20 @@ build()
    local cmake
    local xcodebuild
 
-   preferences=`read_local_setting "preferences"`
-   if [ "$preferences" = "" ]
-   then
-      preferences=`read_build_root_setting "preferences" "script
+   preferences=`read_config_setting "build_preferences" "script
 xcodebuild
 cmake
 configure"`
-   fi
 
-   configurations=`read_local_setting "configurations"`
-   if [ "$configurations" = "" ]
-   then
-      configurations=`read_build_root_setting "configurations" "Debug
+   configurations=`read_build_root_setting "configurations" "Debug
 Release"`
-   fi
 
    xcodebuild=`which "xcodebuild"`
    cmake=`which "cmake"`
 
    # need uniform SDK for our builds
    sdks=`read_build_root_setting "sdks" "Default"`
+   [ -z "${sdks}" ] && fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
    for sdk in ${sdks}
    do
@@ -656,7 +704,7 @@ Release"`
 
                if [ "$project" != "" ]
                then
-                  build_xcodebuild "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" "${project}"  || exit 1
+                  build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" "${project}"  || exit 1
                   built=yes
                   break
                fi

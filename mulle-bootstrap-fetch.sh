@@ -1,4 +1,4 @@
- #! /bin/sh
+#! /bin/sh
 #
 #   Copyright (c) 2015 Nat! - Mulle kybernetiK
 #   All rights reserved.
@@ -105,7 +105,7 @@ ask_symlink_it()
       echo "You need to check out ${clone} yourself, as it's not there." >&2 || exit 1
    fi
 
-   SYMLINK_FORBIDDEN=`read_local_setting "symlink_forbidden"`
+   SYMLINK_FORBIDDEN=`read_config_setting "symlink_forbidden"`
 
    # check if checked out
    if [ -d "${clone}"/.git ]
@@ -165,7 +165,7 @@ checkout()
    local found
 
    srcname="${clone}"
-   script=`read_repo_setting "${name1}/bin" "${cmd}.sh"`
+   script=`read_repo_setting "${name1}" bin/"${cmd}.sh"`
    operation="git_command"
 
    # simplify this crap copy/paste code
@@ -233,7 +233,7 @@ Use it instead of cloning ${clone} ?"
        warn_scripts "${dstname}/.bootstrap" "${dstname}" || exit 1 # sic
    fi
 
-   script=`read_repo_setting "${name1}/bin" "post-${cmd}.sh"`
+   script=`read_repo_setting "${name1}" "bin/post-${cmd}.sh"`
    if [ -x "${script}" ]
    then
       "${script}" || exit 1
@@ -266,7 +266,7 @@ update()
          git_command "${clone}" "${dstname}" "${tag}" || exit 1
       fi
 
-      script=`read_repo_setting "${name}/bin" "post-${cmd}.sh"`
+      script=`read_repo_setting "${name}" "bin/post-${cmd}.sh"`
       if [ -x "${script}" ]
       then
          "${script}" || exit 1
@@ -299,7 +299,7 @@ git_command()
       then
          echo "Checkout failed, moving ${dst} to ${dst}.failed" >&2
          echo "You need to fix this manually and them move it back." >&2
-         echo "Hint: check ${BOOTSTRAP_SUBDIR}/`basename \"${dst}\"`/TAG" >&2
+         echo "Hint: check ${BOOTSTRAP_SUBDIR}/`basename "${dst}"`/TAG" >&2
 
          rm -rf "${dst}.failed" 2> /dev/null
          mv "${dst}" "${dst}.failed"
@@ -309,15 +309,18 @@ git_command()
 }
 
 
-COPYSETTINGS="taps brews gits pips gems buildorder buildignore"
+INHERIT_SETTINGS="taps brews gits pips gems buildorder buildignore"
 
 
 bootstrap_recurse()
 {
    local dst
+   local name
 
    dst="$1"
-   [ "${PWD}" = "${dst}" ] && echo "configuration error" >&2 && exit 1
+   [ "${PWD}" != "${dst}" ] || fail "configuration error"
+
+   name=`basename "${dst}"`
 
    # contains own bootstrap ? and not a symlink
    if [ ! -d "${dst}/.bootstrap" ] # -a ! -L "${dst}" ]
@@ -325,12 +328,13 @@ bootstrap_recurse()
       return 1
    fi
 
+   # prepare auto folder if it doesn't exist yet
    if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
-      echo "Found a .bootstrap folder for `basename \"${dst}\"` will set up ${BOOTSTRAP_SUBDIR}.auto" >&2
+      echo "Found a .bootstrap folder for `basename "${dst}"` will set up ${BOOTSTRAP_SUBDIR}.auto" >&2
 
       mkdir -p "${BOOTSTRAP_SUBDIR}.auto/settings"
-      for i in $COPYSETTINGS
+      for i in $INHERIT_SETTINGS
       do
          if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
          then
@@ -345,11 +349,10 @@ bootstrap_recurse()
    fi
 
    #
-   # we don't copy "other" settings, yet
    # prepend new contents to old contents
    # of a few select and known files
    #
-   for i in $COPYSETTINGS
+   for i in $INHERIT_SETTINGS
    do
       if [ -f "${dst}/.bootstrap/${i}" ]
       then
@@ -365,20 +368,22 @@ bootstrap_recurse()
    done
 
    #
-   # link up settings
+   # link up other non-inheriting settings
    #
-   if [ -f "${dst}/.bootstrap/gits" ]
+   if dir_has_files "${dst}/.bootstrap/settings"
    then
+      local relative
 
-      # symlink folders (settings)
-      if dir_has_files "${dst}/.bootstrap"
-      then
-         local relative
+      mkdir -p "${BOOTSTRAP_SUBDIR}.auto/settings/${name}" 2> /dev/null
+      relative=`compute_relative "${BOOTSTRAP_SUBDIR}"`
+      find "${dst}/.bootstrap/settings" -type f -depth 1 -print0 | \
+      xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
-         relative=`compute_relative "${BOOTSTRAP_SUBDIR}"`
-         find "${dst}/.bootstrap"/* -depth 1 -type 'd' -print0 | xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings/"
-      fi
+      # flatten folders into our own settings
+      find "${dst}/.bootstrap/settings" -type d -depth 1 -print0 | \
+      xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
+
 
    return 0
 }
@@ -426,7 +431,7 @@ clone_repositories()
          do
             name1=`basename "${clone}" .git`
             name2=`basename "${clone}"`
-            tag=`read_repo_setting "${name1}" "tag"`
+            tag=`read_repo_setting "${name1}" "tag"` #repo (sic)
 
             dstname="${CLONES_FETCH_SUBDIR}/${name1}"
 
@@ -485,7 +490,7 @@ brew_update_if_needed()
    then
    	brew update
 
-	   mkdir -p "`dirname \"${last_update}\"`" 2> /dev/null
+	   mkdir -p "`dirname "${last_update}"`" 2> /dev/null
    	touch "${last_update}"
    fi
 }
@@ -526,7 +531,7 @@ install_brews()
       brew_update_if_needed
       for brew in ${brews}
       do
-         if [ "${cmd}" != "install" -o "`which \"${brew}\"`" = "" ]
+         if [ "${cmd}" != "install" -o "`which "${brew}"`" = "" ]
          then
             brew "$cmd" "${brew}" || exit 1
          fi
@@ -548,7 +553,7 @@ install_gems()
       for gem in ${gems}
       do
          echo "gem needs sudo to install ${gem}" >&2
-         sudo gem install ${gem} || exit 1
+         sudo gem install "${gem}" || exit 1
       done
    fi
 }
@@ -567,7 +572,7 @@ install_pips()
       for pip in ${pips}
       do
          echo "pip needs sudo to install ${pip}" >&2
-         sudo pip install ${pip} || exit 1
+         sudo pip install "${pip}" || exit 1
       done
    fi
 }

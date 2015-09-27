@@ -31,19 +31,16 @@
 
 gcc_sdk_parameter()
 {
-   local mode
    local sdk
    local sdkpath
 
-
-   mode="$1"
-   sdk="$2"
+   sdk="$1"
 
    if [ "`uname`" = "Darwin" ]
    then
       if [ "${sdk}" != "Default" ]
       then
-         sdkpath="`xcrun --sdk macosx --show-sdk-path`"
+         sdkpath=`xcrun --sdk macosx --show-sdk-path`
          if [ "${sdkpath}" = "" ]
          then
             fail "SDK \"${sdk}\" is not installed"
@@ -64,15 +61,16 @@ gcc_cflags_value()
    local value
    local result
    local name
+   local i
 
    name="${1}"
 
    result=`get_build_setting "${name}" "OTHER_CFLAGS"`
    value=`get_build_setting "${name}"  "WARNING_CFLAGS"`
-   result="`concat  \"$result\" \"$value\"`"
-   for i  in `get_build_setting "${name}" "GCC_PREPROCESSOR_DEFINITIONS"`
+   result=`concat "$result" "$value"`
+   for i in `get_build_setting "${name}" "GCC_PREPROCESSOR_DEFINITIONS"`
    do
-      result="`concat \"$result\" \"-D${value}\"`"
+      result=`concat "$result" "-D${i}"`
    done
 
    echo "${result}"
@@ -89,7 +87,7 @@ gcc_cppflags_value()
 
    result=`get_build_setting "${name}" "OTHER_CPPFLAGS"`
    value=`gcc_cflags_value "${name}"`
-   result="`concat  \"$result\" \"$value\"`"
+   result=`concat "$result" "$value"`
 
    echo "${result}"
 }

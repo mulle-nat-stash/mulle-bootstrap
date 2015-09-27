@@ -54,23 +54,23 @@ fi
 #
 
 
-CLONES_SUBDIR_IS_CLEANABLE=`read_local_setting clean_repos_folder`
-CLONES_SUBDIR=`read_sane_local_path_setting "repos_foldername" ".repos"`
+CLONES_SUBDIR_IS_CLEANABLE=`read_config_setting clean_repos_folder`
+CLONES_SUBDIR=`read_sane_config_path_setting "repos_foldername" ".repos"`
 if [ $? -eq 0 -a "${CLONES_SUBDIR_IS_CLEANABLE}" = "" ]
 then
    CLONES_SUBDIR_IS_CLEANABLE="YES"
 fi
 
 
-CLONESBUILD_SUBDIR_IS_CLEANABLE=`read_local_setting clean_build_folder`
-CLONESBUILD_SUBDIR=`read_sane_local_path_setting "build_foldername" "build/.repos"`
+CLONESBUILD_SUBDIR_IS_CLEANABLE=`read_config_setting clean_build_folder`
+CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "build/.repos"`
 if [ $? -eq 0 -a "${CLONESBUILD_SUBDIR_IS_CLEANABLE}" = "" ]
 then
    CLONESBUILD_SUBDIR_IS_CLEANABLE="YES"
 fi
 
-DEPENDENCY_SUBDIR_IS_DIST_CLEANABLE=`read_local_setting clean_output_folder`
-DEPENDENCY_SUBDIR=`read_sane_local_path_setting "output_foldername" "dependencies"`
+DEPENDENCY_SUBDIR_IS_DIST_CLEANABLE=`read_config_setting clean_output_folder`
+DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "dependencies"`
 if [ $? -eq 0 -a "${DEPENDENCY_SUBDIR_IS_DIST_CLEANABLE}" = "" ]
 then
    DEPENDENCY_SUBDIR_IS_DIST_CLEANABLE="YES"
@@ -81,7 +81,6 @@ if [ "${CLONES_FETCH_SUBDIR}" = "" ]
 then
    CLONES_FETCH_SUBDIR="${CLONES_SUBDIR}"
 fi
-
 
 #
 #
@@ -95,3 +94,14 @@ if [ "${CLONES_RELATIVE}" = "" ]
 then
    CLONES_RELATIVE=`compute_relative "${CLONES_SUBDIR}"`
 fi
+
+#
+# some checks
+#
+[ -z "${BOOTSTRAP_SUBDIR}" ]     && internal_fail "variable BOOTSTRAP_SUBDIR is empty"
+[ -z "${CLONES_SUBDIR}" ]        && internal_fail "variable CLONES_SUBDIR is empty"
+[ -z "${CLONESBUILD_SUBDIR}" ]   && internal_fail "variable CLONESBUILD_SUBDIR is empty"
+[ -z "${DEPENDENCY_SUBDIR}" ]    && internal_fail "variable DEPENDENCY_SUBDIR is empty"
+[ -z "${CLONES_RELATIVE}" ]      && internal_fail "variable CLONES_RELATIVE is empty"
+[ -z "${CLONESBUILD_RELATIVE}" ] && internal_fail "CLONESBUILD_RELATIVE is empty"
+

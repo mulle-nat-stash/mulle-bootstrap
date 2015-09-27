@@ -10,9 +10,9 @@ shift
 
 . mulle-bootstrap-local-environment.sh
 
-HEADER_PATH=`read_local_setting "header_path" "/include"`
-LIBRARY_PATH=`read_local_setting "library_path" "/lib"`
-FRAMEWORK_PATH=`read_local_setting "framework_path" "/Frameworks"`
+HEADER_PATH=`read_config_setting "header_path" "/include"`
+LIBRARY_PATH=`read_config_setting "library_path" "/lib"`
+FRAMEWORK_PATH=`read_config_setting "framework_path" "/Frameworks"`
 
 case "$COMMAND" in
    add)
@@ -192,7 +192,7 @@ patch_xcode_project()
       fail "no xcodeproj found"
    fi
 
-   projectname="`basename \"${project}\"`"
+   projectname="`basename "${project}"`"
 
    #     012345678901234567890123456789012345678901234567890123456789
    echo "This operation will not destroy any existing settings." >&2

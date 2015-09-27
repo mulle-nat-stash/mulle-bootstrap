@@ -29,6 +29,7 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+
 private_dir_has_files()
 {
    local empty
@@ -95,7 +96,7 @@ warn_scripts()
             echo "brew install ack ; ack -A1 \"shellPath|shellScript\"" >&2
             echo "$phases" >&2
          else
-            ack -A1 "shellPath|shellScript" `echo "$phases" | tr '\n' ' '` >&2
+            ack -A1 "shellPath|shellScript" `echo $phases | tr '\n' ' '` >&2
          fi
          echo "" >&2
       fi

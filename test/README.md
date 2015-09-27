@@ -42,7 +42,8 @@ if not present and to use cmake as the only build tool:
 cd C
 mulle-bootstrap clean    # throw away results from "Using xcodebuild"
 echo "cmake" >> .bootstrap/brews
-echo "cmake" >> .bootstrap/preferences
+mkdir -p .bootstrap/settings
+echo "cmake" >> .bootstrap/settings/build_preferences
 mulle-bootstrap
 ```
 

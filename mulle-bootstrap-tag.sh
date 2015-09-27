@@ -51,11 +51,12 @@ then
    fi
 fi
 
+
 TAG=${1:-${AGVTAG}}
 shift
-VENDOR_PREFIX=${1:-`basename "${PWD}"`}
+VENDOR_PREFIX="${1:-${name}}"
 shift
-REPO=${1:-.}
+REPO=${1:-"."}
 shift
 
 if [ "$TAG" = "" ]
@@ -91,6 +92,7 @@ git_must_be_clean()
       fail "repository $name is tainted"
    fi
 }
+
 
 ensure_repos_clean()
 {
@@ -130,36 +132,28 @@ pretag_script()
 tag()
 {
    local i
+   local script
 
-   #
-   # Tag repos
-   #
-   script=`read_repo_setting "bin/pre-tag.sh"`
-   if [ -x "${script}" ]
+   script=`read_fetch_setting "bin/tag.sh"`
+   if [ -x "$script" ]
    then
-      "${script}" || exit 1
-   fi
+      "$script" "${TAG}" "${REPO}" || exit 1
+   else
+      ( cd "${REPO}" ; git tag "${TAG}" ) || exit 1
 
-   ( cd "${REPO}" ; git tag "${TAG}" ) || exit 1
-
-   if  dir_has_files "${CLONES_SUBDIR}"
-   then
-      for i in "${CLONES_SUBDIR}"/*
-      do
-         if [ -d "$i" ]
-         then
-            if [ -d "${i}/.git" -o -d "${i}/refs" ]
+      if  dir_has_files "${CLONES_SUBDIR}"
+      then
+         for i in "${CLONES_SUBDIR}"/*
+         do
+            if [ -d "$i" ]
             then
-               (cd "$i" ; git tag "${OUR_VENDOR_TAG}" ) || exit 1
+               if [ -d "${i}/.git" -o -d "${i}/refs" ]
+               then
+                  (cd "$i" ; git tag "${OUR_VENDOR_TAG}" ) || exit 1
+               fi
             fi
-         fi
-      done
-   fi
-
-   script=`read_repo_setting "bin/post-tag.sh"`
-   if [ -x "${script}" ]
-   then
-      "${script}" || exit 1
+         done
+      fi
    fi
 }
 
