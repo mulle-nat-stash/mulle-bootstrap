@@ -3,10 +3,22 @@
 # (c) 2015, coded by Nat!, Mulle KybernetiK
 #
 
+# Escape sequence and resets
+C_RESET="\033[0m"
+
+# Foreground colours
+C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
+C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
+C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
+
 #
 # restore colors if stuff gets wonky
 #
-trap 'echo "\033[0m"' TERM EXIT
+trap 'echo "${C_RESET}"' TERM EXIT
+
+#
+# https://github.com/hoelzro/useful-scripts/blob/master/decolorize.pl
+#
 
 prefix=${1:-"/usr/local"}
 shift
@@ -23,14 +35,14 @@ then
    exit 1
 fi
 
-echo "\033[0;37m"
+echo "${C_WHITE}"
 
 for i in mulle*bootstrap
 do
    mkdir -p "${bin}" 2> /dev/null
    sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
    chmod "${mode}" "${bin}/${i}" || exit 1
-   echo "installed $bin/$i" >&2
+   echo "install: ${C_MAGENTA}$bin/$i${C_WHITE}" >&2
 done
 
 
@@ -43,8 +55,8 @@ done
 if [ -d "test" ]
 then
    # use attractive colors :)
-   echo "\033[0;32mIf you are new to mulle-bootstrap I would suggest checking out" >&2
-   echo "the \033[0;33mREADME.md\033[0;32m in \033[0;36m`pwd`/test\033[0;32m and doing the examples." >&2
+   echo "${C_GREEN}If you are new to mulle-bootstrap I would suggest checking out" >&2
+   echo "the ${C_YELLOW}README.md${C_GREEN} in ${C_CYAN}./test${C_GREEN} and doing the examples." >&2
 fi
 
 # for people who source us

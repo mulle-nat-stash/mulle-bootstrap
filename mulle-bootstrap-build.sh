@@ -30,6 +30,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 
 .  mulle-bootstrap-local-environment.sh
+.  mulle-bootstrap-gcc.sh
 
 
 CLEAN_BEFORE_BUILD=`read_local_setting "clean"`
@@ -134,32 +135,16 @@ determine_suffix()
 }
 
 
-gcc_sdk_parameter()
+cmake_sdk_parameter()
 {
-   local mode
-   local sdk
-   local suffix
    local sdkpath
 
-
-   mode="$1"
-   sdk="$2"
-   suffix="$2"
-
-   if [ "`uname`" = "Darwin" ]
+   sdkpath="`gcc_sdk_parameter \"$1\" \"$2\"`"
+   if [ "${sdkpath}" != "" ]
    then
-      if [ "${sdk}" != "Default" ]
-      then
-         sdkpath="`xcrun --sdk macosx --show-sdk-path`"
-         if [ "${sdkpath}" = "" ]
-         then
-            fail "SDK \"${sdk}\" is not installed"
-         fi
-         echo '-DCMAKE_OSX_SYSROOT='"${sdkpath}"
-      fi
+      echo '-DCMAKE_OSX_SYSROOT='"${sdkpath}"
    fi
 }
-
 
 #
 # remove old builddir, create a new one
@@ -188,7 +173,15 @@ build_cmake()
 
    mapped=`read_build_setting "$name" "cmake-${mode}.map" "${mode}"`
    suffix=`determine_suffix "${mode}" "${sdk}"`
-   sdk=`gcc_sdk_parameter "${mode}" "${sdk}" "${suffix}"`
+   sdk=`cmake_sdk_parameter "${mode}" "${sdk}" "${suffix}"`
+
+   local other_cflags
+   local other_cppflags
+   local other_ldflags
+
+   other_cflags=`gcc_cflags_value "${name}"`
+   other_cppflags=`gcc_cppflags_value "${name}"`
+   other_ldflags=`gcc_ldflags_value "${name}"`
 
    owd="${PWD}"
    # to avoid warning make sure directories are all there
@@ -204,7 +197,6 @@ build_cmake()
       [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode}" ] || exit 1
       [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
 
-
       #
       # cmake doesn't seem to "get" CMAKE_CXX_FLAGS or -INCLUDE
       #
@@ -217,12 +209,15 @@ build_cmake()
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+${other_cflags} \
 ${sdk}" \
 "-DCMAKE_CXX_FLAGS=\
 -I${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
--F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}" \
+-F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+${other_cppflags} \
+${sdk}" \
 "-DCMAKE_LD_FLAGS=\
 -L${relative}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}${suffix} \
 -L${relative}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mode} \
@@ -230,6 +225,7 @@ ${sdk}" \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
 -F${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+${other_ldflags} \
 ${sdk}" \
 "${relative}/${srcdir}" 1>&2  || exit 1
 
@@ -274,6 +270,14 @@ build_configure()
    suffix=`determine_suffix "${mode}" "${sdk}"`
    sdk=`gcc_sdk_parameter "${mode}" "${sdk}" "${suffix}"`
 
+   local other_cflags
+   local other_cppflags
+   local other_ldflags
+
+   other_cflags=`gcc_cflags_value "${name}"`
+   other_cppflags=`gcc_cppflags_value "${name}"`
+   other_ldflags=`gcc_ldflags_value "${name}"`
+
    owd="${PWD}"
    # to avoid warning make sure directories are all there
    mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" 2> /dev/null
@@ -297,12 +301,14 @@ build_configure()
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+${other_cflags} \
 ${sdk}" \
       CPPFLAGS="\
 -I${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mode} \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+${other_cppflags} \
 ${sdk}" \
       LDFLAGS="\
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
@@ -310,7 +316,10 @@ ${sdk}" \
 -F${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
 -L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}${suffix} \
 -L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mode} \
--L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}" \
+-L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH} \
+${other_ldflags} \
+${sdk}" \
+
       "${owd}/${srcdir}/configure" --prefix "${owd}/${DEPENDENCY_SUBDIR}/tmp" 1>&2  || exit 1
 
       make all install 1>&2 || exit 1
@@ -336,7 +345,10 @@ xcode_get_setting()
    configuration="$1"
    shift
 
-   xcodebuild -showBuildSettings -configuration "${configuration}" "$@" | egrep "^[ ]*${key}" | sed 's/^[^=]*=[ ]*\(.*\)/\1/' || exit 1
+   xcodebuild -showBuildSettings -configuration "${configuration}" "$@" | \
+   egrep "^[ ]*${key}" | \
+   sed 's/^[^=]*=[ ]*\(.*\)/\1/' || \
+   exit 1
 }
 
 
@@ -425,8 +437,15 @@ build_xcodebuild()
 
    local public_headers
    local private_headers_subdir
+   local header_name
 
-   public_headers=`read_repo_setting "${name}" "public_headers" "${HEADER_PATH}/${name}"`
+   header_name="`read_build_setting  \"{name}\" \"header_subdir\" \"${name}\"`"
+   if read_yes_no_build_setting "${name}" "mangle_header_dash"
+   then
+      header_name="`echo \"${header_name}\" | tr '-' '_'`"
+   fi
+
+   public_headers=`read_repo_setting "${name}" "public_headers" "${HEADER_PATH}/${header_name}"`
    private_headers_subdir=`read_repo_setting "${name}" "private_headers_subdir" "private"`
 
    local xcodebuild

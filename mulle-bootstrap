@@ -103,8 +103,8 @@ case "${command}" in
       mulle-bootstrap-init.sh "$@" || exit 1
       ;;
 
-   setup-xcode)
-      mulle-bootstrap-setup-xcode.sh "$@"|| exit 1
+   setup-xcode|xcode)
+      mulle-bootstrap-xcode.sh "$@"|| exit 1
       ;;
 
    tag)
@@ -119,13 +119,14 @@ case "${command}" in
       echo    "" >& 2
       echo    " Common maintainer commands:" >&2
       echo    "   init      : initializes a bootstrap project" >&2
-      echo    "   setup-xcode : sets up the xcodeproj settings" >&2
+      echo    "   xcode [o] : sets up the xcodeproj settings" >&2
+      echo    "               with [o=remove] removes settings again." >&2
       echo    "   tag       : tag this project and fetched repositories" >&2
       echo    "" >& 2
       echo    " Specialized commands:" >&2
       echo    "   build     : builds fetched repositories" >&2
       echo    "   fetch [o] : fetches required repositories recursively." >&2
-      echo    "               whith [o=:nonrecursive] fetches non recursively." >&2
+      echo    "               whith [o=nonrecursive] fetches non recursively." >&2
       echo    "   clean [o] : cleans intermediate build files." >&2
       echo    "               with [o=dist] cleans clones and dependencies too." >&2
       exit 1

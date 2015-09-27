@@ -46,6 +46,48 @@ internal_fail()
 }
 
 
+is_yes()
+{
+   local s
+
+   s="`echo \"${1}\" | tr '[:lower:]' '[:upper:]'`"
+   case "${s}" in
+      YES|Y|1)
+         return 0
+      ;;
+      NO|N|0|"")
+         return 1
+      ;;
+
+      *)
+         fail "$2 should contain YES or NO (or be empty)"
+      ;;
+   esac
+}
+
+
+concat()
+{
+   local i
+   local s
+
+   for i in "$@"
+   do
+      if [ "${i}" != "" ]
+      then
+         if [ "${s}" != "" ]
+         then
+            s="${s} ${i}"
+         else
+            s="${i}"
+         fi
+      fi
+   done
+
+   echo "${s}"
+}
+
+
 path_depth()
 {
    local name
@@ -195,6 +237,18 @@ find_xcodeproj()
 }
 
 
+warn_user_setting()
+{
+   local name
+
+   name="$1"
+   if [ "${DONT_WARN_RECURSION}" = "" -a "`DONT_WARN_RECURSION=YES read_local_setting \"dont_warn_user_setting\"`" = "" ]
+   then
+      echo "Using ~/.mulle-bootstrap/${name}" >& 2
+   fi
+}
+
+
 #
 # this knows intentionally no default, you cant have an empty
 # local setting
@@ -221,6 +275,12 @@ _read_local_setting()
       if [ $? -gt 1 ]
       then
          value=`egrep -v '^#|^[ ]*$' "${HOME}/.mulle-bootstrap/${name}" 2> /dev/null`
+         if [ "$value" != "" ]
+         then
+             warn_user_setting "${name}"
+         fi
+      else
+         warn_local_setting "${name}"
       fi
    fi
 
@@ -287,7 +347,7 @@ warn_local_setting()
    local name
 
    name="$1"
-   if [ "`read_local_setting \"dont_warn_local_setting\"`" = "" ]
+   if [ "${DONT_WARN_RECURSION}" = "" -a "`DONT_WARN_RECURSION=YES read_local_setting \"dont_warn_local_setting\"`" = "" ]
    then
       echo "Using ${BOOTSTRAP_SUBDIR}.local/${name}" >& 2
    fi
@@ -437,6 +497,15 @@ read_build_root_setting()
 read_fetch_setting()
 {
    _read_bootstrap_setting "$1" ".auto" ".local" "" "$2"
+}
+
+
+read_yes_no_build_setting()
+{
+   local value
+
+   value="`read_build_setting \"$1\" \"$2\" \"$3\"`"
+   is_yes "$value" "$1/$2"
 }
 
 
