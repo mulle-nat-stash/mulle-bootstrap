@@ -123,55 +123,66 @@ check_for_mod_pbxproj()
 }
 
 
-patch_library_configuration()
+map_configuration()
 {
    local xcode_configurations
+   local configuration
+   local mapped
+   local i
+
+   configurations="$1"
+   xcode_configuration="$2"
+
+   mapped=""
+
+   for i in ${configurations}
+   do
+      if [ "$i" = "$xcode_configuration" ]
+      then
+         mapped="${xcode_configuration}"
+      fi
+   done
+
+   if [ "$mapped" = "" ]
+   then
+   case i in
+      *ebug*)
+         mapped="Debug"
+         ;;
+      *rofile*)
+         mapped="Release"
+         ;;
+      *eleas*)
+         mapped="Release"
+         ;;
+      *)
+         mapped="${default}"
+         ;;
+   esac
+   fi
+   echo "${mapped}"
+}
+
+
+patch_library_configurations()
+{
+   local xcode_configurations
+   local configurations
    local mode
    local i
    local j
    local mapped
 
    xcode_configurations="$1"
-   project="$2"
-   flag="$3"
-   mode="$4"
+   configurations="$2"
+   project="$3"
+   flag="$4"
+   mode="$5"
 
    for i in ${xcode_configurations}
    do
-      mapped=""
-
-      for j in ${configurations}
-      do
-         if [ "$j" = "$i" ]
-         then
-            mapped="${i}"
-         fi
-      done
-
-      if [ "$mapped" = "" ]
-      then
-      case i in
-         *ebug*)
-            mapped="Debug"
-            ;;
-         *rofile*)
-            mapped="Release"
-            ;;
-         *eleas*)
-            mapped="Release"
-            ;;
-         *)
-            mapped="${default}"
-            ;;
-      esac
-      fi
-
-      if [ "${mode}" = "modify" ]
-      then
-         python -m mod_pbxproj -b "${flag}" 'LIBRARY_CONFIGURATION='"${mapped}" "${project}" "${i}" || exit 1
-      else
-         echo "${i}: LIBRARY_CONFIGURATION=${mapped}"
-      fi
+      mapped=`map_configuration "${configurations}" "${i}"`
+      python -m mod_pbxproj -b "${flag}" 'LIBRARY_CONFIGURATION='"${mapped}" "${project}" "${i}" || exit 1
    done
 }
 
@@ -193,11 +204,6 @@ patch_xcode_project()
    fi
 
    projectname="`basename "${project}"`"
-
-   #     012345678901234567890123456789012345678901234567890123456789
-   echo "This operation will not destroy any existing settings." >&2
-   echo "The nearest Xcode project found is:" >&2
-   echo "${project}" >&2
 
    check_for_mod_pbxproj
 
@@ -227,13 +233,13 @@ Release"
       flag="-af"
       #     012345678901234567890123456789012345678901234567890123456789
       echo "Settings will be added to ${projectname} and each contained target." >&2
-      echo  "-----------------------------------------" >&2
+      echo "In the long term it may be more useful to copy/paste the following" >&2
+      echo "xcconfig lines into local .xcconfig files." >&2
    else
       flag="-rf"
       #     012345678901234567890123456789012345678901234567890123456789
       echo "Settings will be removed from ${projectname} and each contained target." >&2
       echo "You may want to check afterwards, that this has worked out OK :)." >&2
-      echo  "-----------------------------------------" >&2
    fi
 
    local dependencies_dir
@@ -263,23 +269,37 @@ Release"
    framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)${FRAMEWORK_PATH}"
    framework_search_paths="${framework_search_paths} \$(inherited)"
 
-   patch_library_configuration "${xcode_configurations}" "${project}" "${flag}" "show"
-
-   prefix=`echo "${xcode_configurations}" | tr '\n' ',' `
-   #     012345678901234567890123456789012345678901234567890123456789
-   echo "${prefix}: DEPENDENCIES_DIR=${dependencies_dir}"
-   echo "${prefix}: HEADER_SEARCH_PATHS=${header_search_paths}"
-   echo "${prefix}: LIBRARY_SEARCH_PATHS=${library_search_paths}"
-   echo "${prefix}: FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
-   echo  "-----------------------------------------" >&2
-
-   # in paths to the dependency folder into xcodeproj
-   # add /usr/local/lib and /usr/local/include for brew stuff
-   #
    local query
 
    if [ "$COMMAND" = "add" ]
    then
+
+      local mapped
+      local i
+
+      echo  "-----------------------------------------------------------"  >&2
+
+      #  make these echos easily grabable by stdout
+      #     012345678901234567890123456789012345678901234567890123456789
+      echo "// Common.xcconfig:"
+      echo "DEPENDENCIES_DIR=${dependencies_dir}"
+      echo "HEADER_SEARCH_PATHS=${header_search_paths}"
+      echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
+      echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
+
+      for i in ${xcode_configurations}
+      do
+         echo ""
+         echo ""
+         mapped=`map_configuration "${configurations}" "${i}"`
+         #     012345678901234567890123456789012345678901234567890123456789
+         echo "// $i.xcconfig:"
+         echo "#include \"Common.xcconfig\""
+         echo "LIBRARY_CONFIGURATION=${mapped}"
+      done
+
+      echo  "-----------------------------------------------------------"  >&2
+
       query="Add \"${DEPENDENCY_SUBDIR}\" to search paths of ${projectname} ?"
    else
       query="Remove \"${DEPENDENCY_SUBDIR}\" from search paths of ${projectname} ?"
@@ -289,7 +309,7 @@ Release"
    [ $? -eq 0 ] || exit 1
 
 
-   patch_library_configuration "${xcode_configurations}" "${project}" "${flag}" "modify"
+   patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${flag}"
 
    python -m mod_pbxproj -b "${flag}" "DEPENDENCIES_DIR=${dependencies_dir}" "${project}" "All" || exit 1
    python -m mod_pbxproj -b "${flag}" "HEADER_SEARCH_PATHS=${header_search_paths}" "${project}" "All" || exit 1
