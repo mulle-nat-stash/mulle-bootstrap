@@ -6,9 +6,10 @@ mulle-bootstrap-functions.sh \
 mulle-bootstrap-gcc.sh \
 mulle-bootstrap-init.sh \
 mulle-bootstrap-local-environment.sh \
-mulle-bootstrap-setup-xcode.sh \
+mulle-bootstrap-settings.sh \
 mulle-bootstrap-tag.sh \
-mulle-bootstrap-warn-scripts.sh
+mulle-bootstrap-warn-scripts.sh \
+mulle-bootstrap-xcode.sh
 
 CHECKSTAMPS=$(SCRIPTS:.sh=.chk)
 SHELLFLAGS=-x -e SC2164,SC2166,SC2006 -s sh

@@ -66,11 +66,11 @@ do
 done
 
 
-mkdir -p "${BOOTSTRAP_SUBDIR}" || exit 1
+exekutor mkdir -p "${BOOTSTRAP_SUBDIR}" || exit 1
 
 if [ "${NO_DEFAULT_FILES}" = "" ]
 then
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"
 # add projects that should be installed by brew
 # e.g.
 # zlib
@@ -83,7 +83,7 @@ EOF
 #EOF
 
 
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/gits"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/gits"
 # add projects that should be cloned with git in order
 # of their inter-dependencies
 #
@@ -99,41 +99,41 @@ fi
 if [ "${NO_EXAMPLE_FILES}" = "" ]
 then
 
-   mkdir -p "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin" || exit 1
+   exekutor mkdir -p "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin" || exit 1
 
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/tag"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/tag"
 # specify a tag or branch for a project named MulleScion
 # leave commented out or delete file for default branch (usually master)
 # v1848.5.p3
 EOF
 
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/Release.map"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/Release.map"
 # map configuration Release in project MulleScion to DebugRelease
 # leave commented out or delete file for no mapping
 # DebugRelease
 EOF
 
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/project"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/project"
 # Specify a xcodeproj to compile in project MulleScion instead of default
 # leave commented out or delete file for default project
 # mulle-scion
 EOF
 
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/scheme"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/scheme"
 # Specify a scheme to compile in project MulleScion instead of default
 # Might bite itself with TARGET, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/target"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/target"
 # Specify a target to compile in project MulleScion instead of default.
 # Might bite itself with SCHEME, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin/post-install.sh"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin/post-install.sh"
 # Run some commands after installing project MulleScion
 # leave commented out or delete file for no action
 # chmod 755 ${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh
@@ -142,7 +142,7 @@ EOF
 EOF
 #chmod 755 "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh"
 
-   cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin/post-update.sh"
+   exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin/post-update.sh"
 # Run some commands after upgrading project MulleScion
 # leave commented out or delete file for no action
 # chmod 755 ${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-update.sh
@@ -157,6 +157,6 @@ echo "${BOOTSTRAP_SUBDIR} folder has been set up. Now add your gits to ${BOOTSTR
 
 if [ "${DONT_OPEN_GITS}" = "" -a "${NO_DEFAULT_FILES}" = "" ]
 then
-    open -e "${BOOTSTRAP_SUBDIR}/gits"
+    exekutor open -e "${BOOTSTRAP_SUBDIR}/gits"
 fi
 

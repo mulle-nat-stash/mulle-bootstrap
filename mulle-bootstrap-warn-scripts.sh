@@ -79,7 +79,7 @@ warn_scripts()
       fi
    fi
 
-   if [ ! -z $2 ]
+   if [ ! -z "$2" ]
    then
       [ -e "$2" ] ||  fail "internal error, expected directory missing"
 

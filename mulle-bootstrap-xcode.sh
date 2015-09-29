@@ -8,6 +8,9 @@
 COMMAND="${1:-add}"
 shift
 
+trap 'echo "${C_RESET}"' TERM EXIT
+
+
 . mulle-bootstrap-local-environment.sh
 
 HEADER_PATH=`read_config_setting "header_path" "/include"`
@@ -37,8 +40,8 @@ list_configurations()
    grep -B100 'Schemes' | \
    egrep -v 'Configurations:|Schemes:' | \
    grep -v 'If no build' | \
-   awk '{ print $1 }' | \
-   sed /^$/d
+   sed 's/^[ \t]*\(.*\)/\1/' | \
+   sed '/^$/d'
 }
 
 
@@ -64,7 +67,7 @@ check_for_python()
       [ $? -eq 0 ] || exit 1
 
       fetch_brew_if_needed
-      brew install python  || exit 1
+      executor brew install python  || exit 1
    fi
 }
 
@@ -82,7 +85,7 @@ check_for_pip()
       [ $? -eq 0 ] || exit 1
 
       fetch_brew_if_needed
-      brew install python || exit 1
+      executor brew install python || exit 1
    fi
 }
 
@@ -116,8 +119,8 @@ check_for_mod_pbxproj()
          [ $? -eq 0 ] || exit 1
 
          echo "pip needs to run as sudo, and may ask you for your password." >&2
-         sudo pip install --upgrade pip setuptools
-         sudo pip install mod_pbxproj
+         executor sudo pip install --upgrade pip setuptools
+         executor sudo pip install mod_pbxproj
       fi
    fi
 }
@@ -125,8 +128,8 @@ check_for_mod_pbxproj()
 
 map_configuration()
 {
-   local xcode_configurations
-   local configuration
+   local xcode_configuration
+   local configurations
    local mapped
    local i
 
@@ -135,6 +138,11 @@ map_configuration()
 
    mapped=""
 
+   local old
+
+   old="${IFS:-" "}"
+   IFS="
+"
    for i in ${configurations}
    do
       if [ "$i" = "$xcode_configuration" ]
@@ -142,6 +150,7 @@ map_configuration()
          mapped="${xcode_configuration}"
       fi
    done
+   IFS="${old}"
 
    if [ "$mapped" = "" ]
    then
@@ -164,26 +173,37 @@ map_configuration()
 }
 
 
+
+
 patch_library_configurations()
 {
    local xcode_configurations
    local configurations
-   local mode
    local i
-   local j
    local mapped
 
    xcode_configurations="$1"
    configurations="$2"
    project="$3"
    flag="$4"
-   mode="$5"
 
+   local old
+
+   old="${IFS:-" "}"
+   IFS="
+"
    for i in ${xcode_configurations}
    do
       mapped=`map_configuration "${configurations}" "${i}"`
-      python -m mod_pbxproj -b "${flag}" 'LIBRARY_CONFIGURATION='"${mapped}" "${project}" "${i}" || exit 1
+      if [ "${i}" = "Debug" -o "${i}" = "Release" ]
+      then
+         exekutor python -m mod_pbxproj -b "${flag}" 'LIBRARY_CONFIGURATION='"${mapped}" "${project}" "${i}" || exit 1
+      else
+         echo "${C_RED}You need to edit ${C_CYAN}LIBRARY_CONFIGURATION=${C_RED} \
+for ${C_CYAN}$i${C_RED} manually, sorry${C_RESET}" 2>&1
+      fi
    done
+   IFS="${old}"
 }
 
 
@@ -205,6 +225,8 @@ patch_xcode_project()
 
    projectname="`basename "${project}"`"
 
+   # mod_pbxproj can only do Debug/Release/All...
+
    check_for_mod_pbxproj
 
    configurations=`read_local_setting "configurations"`
@@ -214,7 +236,7 @@ patch_xcode_project()
 Release"`
    fi
 
-   default=`echo "${configurations}" |  tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//'`
+   default=`echo "${configurations}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//'`
 
    #
    # Add LIBRARY_CONFIGURATION mapping
@@ -232,14 +254,14 @@ Release"
    then
       flag="-af"
       #     012345678901234567890123456789012345678901234567890123456789
-      echo "Settings will be added to ${projectname} and each contained target." >&2
+      echo "${C_WHITE}Settings will be added to ${C_MAGENTA}${projectname}${C_WHITE} and each contained target." >&2
       echo "In the long term it may be more useful to copy/paste the following" >&2
-      echo "xcconfig lines into local .xcconfig files." >&2
+      echo "xcconfig lines into local .xcconfig files.${C_RESET}" >&2
    else
       flag="-rf"
       #     012345678901234567890123456789012345678901234567890123456789
-      echo "Settings will be removed from ${projectname} and each contained target." >&2
-      echo "You may want to check afterwards, that this has worked out OK :)." >&2
+      echo "${C_WHITE}Settings will be removed from ${projectname} and each contained target." >&2
+      echo "You may want to check afterwards, that this has worked out OK :).${C_RESET}" >&2
    fi
 
    local dependencies_dir
@@ -277,7 +299,7 @@ Release"
       local mapped
       local i
 
-      echo  "-----------------------------------------------------------"  >&2
+      echo  "${C_WHITE}-----------------------------------------------------------"  >&2
 
       #  make these echos easily grabable by stdout
       #     012345678901234567890123456789012345678901234567890123456789
@@ -287,22 +309,27 @@ Release"
       echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
       echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
 
+   local old
+
+   old="${IFS:-" "}"
+   IFS="
+"
       for i in ${xcode_configurations}
       do
          echo ""
          echo ""
          mapped=`map_configuration "${configurations}" "${i}"`
          #     012345678901234567890123456789012345678901234567890123456789
-         echo "// $i.xcconfig:"
+         echo "// ${i}.xcconfig:"
          echo "#include \"Common.xcconfig\""
          echo "LIBRARY_CONFIGURATION=${mapped}"
       done
+      IFS="${old}"
+      echo  "-----------------------------------------------------------${C_RESET}"  >&2
 
-      echo  "-----------------------------------------------------------"  >&2
-
-      query="Add \"${DEPENDENCY_SUBDIR}\" to search paths of ${projectname} ?"
+      query="Add ${C_CYAN}\"${DEPENDENCY_SUBDIR}${LIBRARY_PATH}\"${C_YELLOW}  and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    else
-      query="Remove \"${DEPENDENCY_SUBDIR}\" from search paths of ${projectname} ?"
+      query="Remove ${C_CYAN}\"${DEPENDENCY_SUBDIR}${LIBRARY_PATH}\"${C_YELLOW}  and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    fi
 
    user_say_yes "$query"
@@ -311,15 +338,17 @@ Release"
 
    patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${flag}"
 
-   python -m mod_pbxproj -b "${flag}" "DEPENDENCIES_DIR=${dependencies_dir}" "${project}" "All" || exit 1
-   python -m mod_pbxproj -b "${flag}" "HEADER_SEARCH_PATHS=${header_search_paths}" "${project}" "All" || exit 1
-   python -m mod_pbxproj -b "${flag}" "LIBRARY_SEARCH_PATHS=${library_search_paths}" "${project}" "All" || exit 1
-   python -m mod_pbxproj -b "${flag}" "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}" "${project}" "All" || exit 1
+   exekutor python -m mod_pbxproj -b "${flag}" "DEPENDENCIES_DIR=${dependencies_dir}" "${project}" "All" || exit 1
+   exekutor python -m mod_pbxproj -b "${flag}" "HEADER_SEARCH_PATHS=${header_search_paths}" "${project}" "All" || exit 1
+   exekutor python -m mod_pbxproj -b "${flag}" "LIBRARY_SEARCH_PATHS=${library_search_paths}" "${project}" "All" || exit 1
+   exekutor python -m mod_pbxproj -b "${flag}" "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}" "${project}" "All" || exit 1
 
 
    if [ "$COMMAND" = "add" ]
    then
       #     012345678901234567890123456789012345678901234567890123456789
+      echo "${C_WHITE}"
+      echo "Hint:"
       echo "You may want to delete the target settings, which have been" >&2
       echo "(redundantly) added by mod_pbxproj. The project settings suffice." >&2
       echo "" >&2
@@ -328,7 +357,7 @@ Release"
       echo "" >&2
       echo "You can rerun setup-xcode at later times and it should not" >&2
       echo "unduly duplicate setting contents." >&2
-      echo "" >&2
+      echo "${C_RESET}" >&2
    fi
 }
 

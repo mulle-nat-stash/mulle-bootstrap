@@ -124,7 +124,7 @@ pretag_script()
    script=`read_fetch_setting "bin/pre-tag.sh"`
    if [ -x "${script}" ]
    then
-      "${script}" || exit 1
+      executor "${script}" || exit 1
    fi
 }
 
@@ -137,9 +137,9 @@ tag()
    script=`read_fetch_setting "bin/tag.sh"`
    if [ -x "$script" ]
    then
-      "$script" "${TAG}" "${REPO}" || exit 1
+      executor "$script" "${TAG}" "${REPO}" || exit 1
    else
-      ( cd "${REPO}" ; git tag "${TAG}" ) || exit 1
+      ( cd "${REPO}" ; executor git tag "${TAG}" ) || exit 1
 
       if  dir_has_files "${CLONES_SUBDIR}"
       then
@@ -149,7 +149,7 @@ tag()
             then
                if [ -d "${i}/.git" -o -d "${i}/refs" ]
                then
-                  (cd "$i" ; git tag "${OUR_VENDOR_TAG}" ) || exit 1
+                   (cd "$i" ; executor git tag "${OUR_VENDOR_TAG}" ) || exit 1
                fi
             fi
          done
@@ -166,7 +166,7 @@ posttag_script()
    script=`read_fetch_setting "bin/post-tag.sh"`
    if [ -x "${script}" ]
    then
-      "${script}" || exit 1
+      executor "${script}" || exit 1
    fi
 }
 

@@ -39,8 +39,19 @@ BOOTSTRAP_SUBDIR=.bootstrap
 PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
 export PATH
 
+#
+# simple option handling
+#
+if [ "$1" = "-n" ]
+then
+   MULLE_BOOTSTRAP_DRY_RUN=YES
+   export MULLE_BOOTSTRAP_DRY_RUN
+   shift
+fi
+
 command=${1:-"bootstrap"}
 shift
+
 
 . mulle-bootstrap-warn-scripts.sh
 
@@ -107,8 +118,8 @@ case "${command}" in
       mulle-bootstrap-tag.sh "$@" || exit 1
       ;;
    *)
-      echo "usage: mulle-bootstrap [command]" >&2
-      echo "version 0.0" >&2
+      echo "usage: mulle-bootstrap [-n] [command]" >&2
+      echo "version 0.1" >&2
       echo    " Common user commands:" >&2
       echo    "   bootstrap : does fetch and build recursively [default]" >&2
       echo    "   nomagic   : does fetch and build, but not recursively" >&2

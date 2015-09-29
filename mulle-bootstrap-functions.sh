@@ -29,12 +29,24 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
+# Escape sequence and resets
+if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
+then
+   C_RESET="\033[0m"
+
+   # Foreground colours
+   C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
+   C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
+   C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
+fi
+
+
 #
 # some common functions
 #
 fail()
 {
-   echo "\033[0;31m$*\033[0m" >&2
+   echo "${C_RED}$*${C_RESET}" >&2
    exit 1
 }
 
@@ -43,6 +55,34 @@ internal_fail()
 {
    fail "**** mulle-bootstrap internal error ****
 $*"
+}
+
+
+
+eval_exekutor()
+{
+   if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" -o "$MULLE_BOOTSTRAP_TRACE" = "YES" ]
+   then
+      echo "$@" >&2
+   fi
+
+   if [ "$MULLE_BOOTSTRAP_DRY_RUN" != "YES" ]
+   then
+      eval "$@"
+   fi
+}
+
+exekutor()
+{
+   if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" -o "$MULLE_BOOTSTRAP_TRACE" = "YES" ]
+   then
+      echo "$@" >&2
+   fi
+
+   if [ "$MULLE_BOOTSTRAP_DRY_RUN" != "YES" ]
+   then
+      "$@"
+   fi
 }
 
 
@@ -154,7 +194,7 @@ user_say_yes()
   x="nix"
   while [ "$x" != "y" -a "$x" != "n" -a "$x" != "" ]
   do
-     echo "$@" "(y/N)" >&2
+     echo "${C_YELLOW}$* (${C_WHITE}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
      read x
   done
 
@@ -199,13 +239,13 @@ Install brew now (Linux or OS X should work) ? "
       fi
       if [ "`uname`" = 'Darwin' ]
       then
-         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || exit 1
+         exekutor ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || exit 1
       else
-         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/linuxbrew/go/install)" || exit 1
+         exekutor ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/linuxbrew/go/install)" || exit 1
       fi
 
-      mkdir -p "`dirname "${last_update}"`" 2> /dev/null
-      touch "${last_update}"
+      exekutor mkdir -p "`dirname "${last_update}"`" 2> /dev/null
+      exekutor touch "${last_update}"
       return 1
    fi
    return 0
@@ -254,337 +294,35 @@ find_xcodeproj()
 }
 
 
-warn_user_setting()
-{
-   local name
-
-   name="$1"
-   if [ "${DONT_WARN_RECURSION}" = "" -a "`DONT_WARN_RECURSION=YES read_local_setting \"dont_warn_user_setting\"`" = "" ]
-   then
-      echo "Using ~/.mulle-bootstrap/${name}" >& 2
-   fi
-}
-
-
-warn_local_setting()
-{
-   local name
-
-   name="$1"
-   if [ "${DONT_WARN_RECURSION}" = "" -a "`DONT_WARN_RECURSION=YES read_local_setting \"dont_warn_local_setting\"`" = "" ]
-   then
-      echo "Using ${BOOTSTRAP_SUBDIR}.local/${name}" >& 2
-   fi
-}
-
 #
-# this knows intentionally no default, you cant have an empty
-# local setting
+# consider . .. ~ or absolute paths as unsafe
+# anything starting with a $ is probably also bad
+# this just catches some obvious problems, not all
+# when in the environment, clones_subdir may be ..
 #
-_read_local_setting()
+assert_sane_path()
 {
-   local name
-   local value
-   local envname
+   case "$1"  in
+      \$*|~/.|..|./|../|/*)
+         echo "refuse unsafe path $1" >&2
+         exit 1
+      ;;
+   esac
+}
 
-   name="$1"
 
-   [ "$name" = "" ] && internal_fail "missing parameters in _read_local_setting"
 
-   envname=`echo "${name}" | tr '[:lower:]' '[:upper:]'`
-   value=`printenv "MULLE_BOOTSTRAP_${envname}"`
-
-   if [ "${value}" != "" ]
+clean_asserted_folder()
+{
+   if [ -d "$1" ]
    then
-      echo "${value}"
-      return 1
-   else
-      value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}.local/${name}" 2> /dev/null`
-      if [ $? -gt 1 ]
-      then
-         value=`egrep -v '^#|^[ ]*$' "${HOME}/.mulle-bootstrap/${name}" 2> /dev/null`
-         if [ "$value" != "" ]
-         then
-             warn_user_setting "${name}"
-         fi
-      else
-         warn_local_setting "${name}"
-      fi
+      assert_sane_path "$1"
+      exekutor rm -rf "$1"
    fi
-
-   echo "${value}"
+   set +x
 }
 
 
-read_local_setting()
-{
-   local name
-   local value
-   local default
-
-   [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
-
-   name="$1"
-   default="$2"
-
-   value=`_read_local_setting "$name"`
-   if [ "${value}" = "" ]
-   then
-      value="${default}"
-   fi
-
-   echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-
-#
-# this has to be flexible, because fetch and build settings read differently
-#
-_read_bootstrap_setting()
-{
-   local name
-   local value
-   local default
-   local suffix1
-   local suffix2
-   local suffix3
-
-   name="$1"
-   suffix1="$2"
-   suffix2="$3"
-   suffix3="$4"
-   default="$5"
-
-   [ $# -lt 4 -o $# -gt 5 ] && internal_fail "parameterization error"
-   [ "$name" = "" ] && internal_fail "missing parameters in _read_bootstrap_setting"
-
-   value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}${suffix1}/${name}" 2> /dev/null`
-   if [ $? -gt 1 ]
-   then
-      value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}${suffix2}/${name}" 2> /dev/null`
-      if [ $? -gt 1 ]
-      then
-         value=`egrep -v '^#|^[ ]*$' "${BOOTSTRAP_SUBDIR}${suffix3}/${name}" 2> /dev/null`
-         if [ $? -gt 1 ]
-         then
-            if [ $# -eq 4 ]
-            then
-               return 2
-            fi
-            value="${default}"
-         else
-            case "$1" in
-               .local*)
-                  warn_local_setting "${name}"
-               ;;
-            esac
-         fi
-      else
-         case "$1" in
-            .local*)
-               warn_local_setting "${name}"
-            ;;
-         esac
-      fi
-   else
-      case "$1" in
-         .local*)
-            warn_local_setting "${name}"
-         ;;
-      esac
-   fi
-
-   echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-
-read_repo_setting()
-{
-   local name
-   local value
-   local default
-   local value
-
-   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
-
-   package="$1"
-   name="$2"
-   default="$3"
-
-   [ "$name" = "" -o "$package" = "" ] && internal_fail "missing parameters in read_repo_setting"
-
-   # need to conserve return value 2 if empty
-   if [ $# -eq 2 ]
-   then
-      _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto"
-   else
-      _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto" "${default}"
-   fi
-}
-
-
-#
-# the default
-#
-read_config_setting()
-{
-   local name
-   local value
-   local default
-
-   [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
-
-   name="$1"
-   default="$2"
-
-   value=`_read_bootstrap_setting "${name}" ".local/config" "config" ".auto/config"`
-   if [ "${value}" = "" ]
-   then
-      value=`read_local_setting "${name}" "${default}"`
-   fi
-
-   echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-
-read_fetch_setting()
-{
-   _read_bootstrap_setting "$1" ".auto" ".local" "" "$2"
-}
-
-
-_read_build_setting()
-{
-   _read_bootstrap_setting "$1" ".local/settings" "/settings" ".auto/settings" "$2"
-}
-
-
-read_build_setting()
-{
-   local name
-   local value
-   local default
-
-   package="$1"
-   name="$2"
-   default="$3"
-
-   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
-   [ "$name" = "" -o "$package" = "" ] && internal_fail "empty parameters in read_build_setting"
-
-   value=`read_repo_setting "${package}" "${name}"`
-   if [ $? -gt 1 ]
-   then
-      if [ $# -eq 2 ]
-      then
-          value=`_read_build_setting "${name}"`
-      else
-          value=`_read_build_setting "${name}" "${default}"`
-      fi
-
-      if [ $? -gt 1 ]
-      then
-         return 2
-      fi
-   fi
-   echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-
-read_build_root_setting()
-{
-   _read_build_setting "$@"
-}
-
-
-read_yes_no_build_setting()
-{
-   local value
-
-   value=`read_build_setting "$1" "$2" "$3"`
-   is_yes "$value" "$1/$2"
-}
-
-
-read_sane_config_path_setting()
-{
-   local name
-   local value
-   local default
-
-   name="$1"
-   default="$2"
-
-   value=`read_config_setting "${name}"`
-   if [ "$?" -ne 0 ]
-   then
-      case "${value}"  in
-         \$*|~/.|..|./|../|/*)
-            echo "refuse unsafe path ${value} for ${name}" >&2
-            exit 1
-         ;;
-      esac
-   else
-      if [ "$value" = "" ]
-      then
-         value="${default}"
-      fi
-   fi
-
-   echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-
-all_build_flag_keys()
-{
-   local keys1
-   local keys2
-   local keys3
-   local keys4
-   local keys5
-   local keys6
-   local package
-
-   package="$1"
-
-   [ "$package" = "" ] && fail "script error"
-
-   keys1=`(cd "${BOOTSTRAP_SUBDIR}.local/settings/${package}" 2> /dev/null || exit 1; \
-           ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys2=`(cd "${BOOTSTRAP_SUBDIR}/settings/${package}" 2> /dev/null || exit 1 ; \
-           ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys3=`(cd "${BOOTSTRAP_SUBDIR}.auto/settings/${package}" 2> /dev/null || exit 1 ; \
-           ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys4=`(cd "${BOOTSTRAP_SUBDIR}.local" 2> /dev/null || exit 1 ; \
-           ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys5=`(cd "${BOOTSTRAP_SUBDIR}"  2> /dev/null || exit 1 ; \
-           ls -1  | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys6=`(cd "${BOOTSTRAP_SUBDIR}.auto"  2> /dev/null || exit 1 ; \
-           ls -1  | egrep '\b[A-Z][A-Z_0-9]+\b')`
-
-   echo "${keys1}
-${keys2}
-${keys3}
-${keys4}
-${keys5}
-${keys6}" | sort | sort -u | egrep -v '^[ ]*$'
-   return 0
-}
 
 
 # http://askubuntu.com/questions/152001/how-can-i-get-octal-file-permissions-from-command-line
@@ -596,10 +334,45 @@ lso()
 }
 
 
+
+C_WARNING="${C_YELLOW}"
+log_warning()
+{
+   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
+   then
+      echo "${C_WARNING}$*${C_RESET}" >&2
+   fi
+}
+
+C_INFO="${C_GREEN}"
 log_info()
 {
    if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
    then
-      echo "$@" >&2
+      echo "${C_INFO}$*${C_RESET}" >&2
    fi
 }
+
+C_FLUFF="${C_CYAN}"
+log_fluff()
+{
+   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
+   then
+      echo "${C_FLUFF}$*${C_RESET}" >&2
+   fi
+}
+
+C_TRACE="${C_FLUFF}"
+log_trace()
+{
+  echo "${C_TRACE}$*${C_RESET}" >&2
+}
+
+
+C_TRACE2="${C_WHITE}"
+log_trace2()
+{
+  echo "${C_TRACE2}$*${C_RESET}" >&2
+}
+
+

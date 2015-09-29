@@ -58,11 +58,11 @@ collect_and_dispense_product()
       if dir_has_files "${src}"
       then
          dst="${DEPENDENCY_SUBDIR}${HEADER_PATH}"
-         mkdir -p "${dst}" 2> /dev/null
-         find -x "${src}" ! -path "${src}" -depth 1 -type d -exec mv -v -n '{}' "${dst}" \;  2> /dev/null
-         find -x  "${src}" ! -path "${src}" -depth 1 -type f -exec mv -v -n '{}' "${dst}" \;  2> /dev/null
+         exekutor mkdir -p "${dst}" 2> /dev/null
+         exekutor find -x "${src}" ! -path "${src}" -depth 1 -type d -exec mv -v -n '{}' "${dst}" \;  2> /dev/null
+         exekutor find -x  "${src}" ! -path "${src}" -depth 1 -type f -exec mv -v -n '{}' "${dst}" \;  2> /dev/null
       fi
-      rm -rf "${src}"
+      exekutor rm -rf "${src}"
    fi
 
    src="${output}/lib"
@@ -71,10 +71,10 @@ collect_and_dispense_product()
       if dir_has_files "${src}"
       then
          dst="${DEPENDENCY_SUBDIR}${LIBRARY_PATH}${subdir}"
-         mkdir -p "${dst}" 2> /dev/null
-         find -x  "${src}" ! -path "${src}" -depth 1 -exec mv -v '{}' "${dst}" \;  2> /dev/null
+         exekutor mkdir -p "${dst}" 2> /dev/null
+         exekutor find -x  "${src}" ! -path "${src}" -depth 1 -exec mv -v '{}' "${dst}" \;  2> /dev/null
       fi
-      rm -rf "${src}"
+      exekutor rm -rf "${src}"
    fi
 
    src="${output}/Frameworks"
@@ -83,16 +83,16 @@ collect_and_dispense_product()
       if dir_has_files "${src}"
       then
          dst="${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${subdir}"
-         mkdir -p "${dst}" 2> /dev/null
-         find -x "${src}" ! -path "${src}" -depth 1 -exec mv -v '{}' "${dst}" \; 2> /dev/null
+         exekutor mkdir -p "${dst}" 2> /dev/null
+         exekutor find -x "${src}" ! -path "${src}" -depth 1 -exec mv -v '{}' "${dst}" \; 2> /dev/null
       fi
-      rm -rf "${src}"
+      exekutor rm -rf "${src}"
    fi
 
    # now copy over the rest of the output
 
    dst="${DEPENDENCY_SUBDIR}"
-   find -x "${output}" ! -path "${output}" -depth 1 -exec mv -v -n '{}' "${dst}" \;  2> /dev/null
+   exekutor find -x "${output}" ! -path "${output}" -depth 1 -exec mv -v -n '{}' "${dst}" \;  2> /dev/null
 
    return 0
 }
@@ -108,7 +108,7 @@ enforce_build_sanity()
 
    if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" != "" ]
    then
-      rm -rf "${builddir}"
+      exekutor rm -rf "${builddir}"
    fi
 
 }
@@ -124,8 +124,8 @@ determine_suffix()
    configuration="$1"
    sdk="$2"
 
-   [ ! -z $configuration ] || fail "configuration must not be empty"
-   [ ! -z $sdk ] || fail "sdk must not be empty"
+   [ ! -z "$configuration" ] || fail "configuration must not be empty"
+   [ ! -z "$sdk" ] || fail "sdk must not be empty"
 
    suffix="/${configuration}"
    if [ "${sdk}" != "Default" ]
@@ -187,24 +187,24 @@ build_cmake()
 
    owd="${PWD}"
    # to avoid warning make sure directories are all there
-   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" 2> /dev/null
-   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" 2> /dev/null
-   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" 2> /dev/null
+   exekutor mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" 2> /dev/null
+   exekutor mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" 2> /dev/null
+   exekutor mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" 2> /dev/null
 
-   mkdir -p "${builddir}" 2> /dev/null
-   cd "${builddir}" || exit 1
+   exekutor mkdir -p "${builddir}" 2> /dev/null
+   exekutor cd "${builddir}" || exit 1
 
       # check that relative ise right
-      [ -d "${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" ] || exit 1
-      [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" ] || exit 1
-      [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
+      exekutor [ -d "${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" ] || exit 1
+      exekutor [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" ] || exit 1
+      exekutor [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
 
       #
       # cmake doesn't seem to "get" CMAKE_CXX_FLAGS or -INCLUDE
       #
       set -f
-      set -x
-      cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
+
+      exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${DEPENDENCY_SUBDIR}/tmp"  \
 "-DCMAKE_C_FLAGS=\
 -I${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH} \
@@ -231,15 +231,15 @@ ${other_ldflags} \
 ${sdk}" \
 "${relative}/${srcdir}" 1>&2  || exit 1
 
-      make all install 1>&2 || exit 1
-      set +x
+      exekutor make all install 1>&2 || exit 1
+
       set +f
 
-   cd "${owd}"
+   exekutor cd "${owd}"
 
    collect_and_dispense_product "${owd}/${DEPENDENCY_SUBDIR}/tmp" "${suffix}" || exit 1
 
-   rm -rf "${owd}/${DEPENDENCY_SUBDIR}/tmp"
+   exekutor rm -rf "${owd}/${DEPENDENCY_SUBDIR}/tmp"
 }
 
 
@@ -282,20 +282,19 @@ build_configure()
 
    owd="${PWD}"
    # to avoid warning make sure directories are all there
-   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" 2> /dev/null
-   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" 2> /dev/null
-   mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" 2> /dev/null
+   exekutor mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" 2> /dev/null
+   exekutor mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" 2> /dev/null
+   exekutor mkdir -p "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" 2> /dev/null
 
-   mkdir -p "${builddir}" 2> /dev/null
-   cd "${builddir}" || exit 1
+   exekutor mkdir -p "${builddir}" 2> /dev/null
+   exekutor cd "${builddir}" || exit 1
 
       # check that relative ise right
-      [ -d "${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" ] || exit 1
-      [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" ] || exit 1
-      [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
+      exekutor [ -d "${relative}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" ] || exit 1
+      exekutor [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" ] || exit 1
+      exekutor [ -d "${relative}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
 
       set -f
-      set -x
 
       # use absolute paths for configure, safer (and easier to read IMO)
       CFLAGS="\
@@ -321,14 +320,13 @@ ${sdk}" \
 -L${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH} \
 ${other_ldflags} \
 ${sdk}" \
-      "${owd}/${srcdir}/configure" --prefix "${owd}/${DEPENDENCY_SUBDIR}/tmp" 1>&2  || exit 1
+      exekutor "${owd}/${srcdir}/configure" --prefix "${owd}/${DEPENDENCY_SUBDIR}/tmp" 1>&2  || exit 1
 
-      make all install 1>&2 || exit 1
+      exekutor make all install 1>&2 || exit 1
 
-      set +x
       set +f
 
-   cd "${owd}"
+   exekutor cd "${owd}"
 
    collect_and_dispense_product "${owd}/${DEPENDENCY_SUBDIR}/tmp" "${suffix}" || exit 1
 
@@ -339,17 +337,104 @@ ${sdk}" \
 xcode_get_setting()
 {
    local key
-   local configuration
 
    key="$1"
    shift
-   configuration="$1"
-   shift
 
-   xcodebuild -showBuildSettings -configuration "${configuration}" $* | \
+   eval "xcodebuild -showBuildSettings $*" | \
    egrep "^[ ]*${key}" | \
    sed 's/^[^=]*=[ ]*\(.*\)/\1/' || \
    exit 1
+}
+
+
+fixup_header_path()
+{
+   local key
+   local setting_key
+   local default
+   local name
+
+   key="$1"
+   shift
+   setting_key="$1"
+   shift
+   name="$1"
+   shift
+   default="$1"
+   shift
+
+   local headers
+
+   headers=`xcode_get_setting "${key}" $*`
+   log_info "${key} read as \"${headers}\""
+
+   read_yes_no_build_setting "${name}" "keep_xcode_header_settings"
+   if [ $? -ne 0 ]
+   then
+      case "${headers}" in
+         /*)
+         ;;
+
+         ./*|../*)
+            log_warning "relative path \"${headers}\" as header path ???"
+         ;;
+
+         "")
+            headers="${default}"
+         ;;
+
+         *)
+            headers="/${headers}"
+         ;;
+      esac
+
+      local header_name
+
+      header_name=`remove_absolute_path_prefix_up_to "${headers}" "include"`
+
+      if read_yes_no_build_setting "${name}" "mangle_header_dash"
+      then
+         header_name="`echo "${header_name}" | tr '-' '_'`"
+      fi
+
+      if [ ! -z "${header_name}" ]
+      then
+         header_name="/${header_name}"
+      fi
+
+      headers="`read_repo_setting "${name}" "${setting_key}" "${HEADER_PATH}${header_name}"`"
+
+      log_info "${key} set to \"${headers}\""
+   fi
+
+   echo "${headers}"
+}
+
+
+escaped_spaces()
+{
+   echo "$1" | sed 's/ /\\ /g'
+}
+
+
+combined_escaped_search_path()
+{
+   for i in $*
+   do
+      if [ ! -z "$i" ]
+      then
+         i="`escaped_spaces "$i"`"
+         if [ -z "$path" ]
+         then
+            path="$i"
+         else
+            path="$path $i"
+         fi
+      fi
+   done
+
+   echo "${path}"
 }
 
 
@@ -383,13 +468,14 @@ build_xcodebuild()
    [ -z "${sdk}" ]         && internal_fail "sdk is empty"
    [ -z "${project}" ]     && internal_fail "project is empty"
 
-   log_info "Do a xcodebuild for SDK ${sdk}, ${targetname}${schemename}..."
+   log_fluff "Do a xcodebuild ${C_MAGENTA}${configuration}${C_FLUFF} of \
+${C_MAGENTA}${name}${C_FLUFF} for SDK ${C_MAGENTA}${sdk}${C_FLUFF} \
+${C_MAGENTA}${targetname}${schemename}${C_FLUFF} ..."
 
    local projectname
 
     # always pass project directly
    projectname=`read_repo_setting "${name}" "project" "${project}"`
-   project="-project ${projectname}"
 
    local mapped
 
@@ -405,7 +491,6 @@ build_xcodebuild()
    then
       hackish=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
       suffix="${suffix}-${hackish}"
-      sdk="-sdk ${sdk}"
    else
       sdk=
    fi
@@ -431,49 +516,25 @@ build_xcodebuild()
       exit 1
    fi
 
-   local xcflags
-
-   xcflags=`read_build_setting "${name}" "xcodebuild-flags"`
-   local xcconfig
-   local xcconfigname
-
-   xcconfig=
-   xcconfigname=`read_build_setting "${name}" xcconfig`
-   if [ "$xcconfigname" != "" ]
-   then
-      xcconfig="-xcconfig ${xcconfigname}"
-   fi
 
    #
    # xctool needs schemes, these are often autocreated, which xctool cant do
    # xcodebuild can just use a target
    # xctool is by and large useless fluff IMO
    #
-   local target
-   local scheme
-
    if [ "$xcodebuild" = "xctool"  -a "${schemename}" = ""  ]
    then
       if [ "$targetname" != "" ]
       then
-         target=
-         scheme="-scheme ${targetname}"
+         schemename="${targetname}"
+         targetname=
       else
          echo "Please specify a scheme to compile in ${BOOTSTRAP_SUBDIR}/${name}/SCHEME for xctool" >& 2
          echo "and be sure that this scheme exists and is shared." >& 2
          echo "Or just delete ${HOME}/.mulle-bootstrap/xcodebuild and use xcodebuild (preferred)" >& 2
          exit 1
       fi
-   else
-     if [ "${schemename}" != "" ]
-     then
-        scheme="-scheme ${schemename}"
-     fi
-     if [ "${targetname}" != "" ]
-     then
-        target="-target ${targetname}"
-     fi
-  fi
+   fi
 
    local key
    local aux
@@ -502,42 +563,43 @@ build_xcodebuild()
    owd=`pwd`
    cd "${srcdir}" || exit 1
 
+      set -f
+
+      arguments=""
+      if [ ! -z "${projectname}" ]
+      then
+         arguments="${arguments} -project \"${projectname}\""
+      fi
+      if [ ! -z "${sdk}" ]
+      then
+         arguments="${arguments} -sdk \"${sdk}\""
+      fi
+      if [ ! -z "${schemename}" ]
+      then
+         arguments="${arguments} -scheme \"${schemename}\""
+      fi
+      if [ ! -z "${targetname}" ]
+      then
+         arguments="${arguments} -target \"${targetname}\""
+      fi
+      if [ ! -z "${mapped}" ]
+      then
+         arguments="${arguments} -configuration \"${mapped}\""
+      fi
+
+
       #
       # headers are complicated, the preference is to get it uniform into
       # dependencies/include/libraryname/..
       #
+
       local public_headers
       local private_headers
-      local public_header_name
-      local private_header_name
-
-      public_headers=`xcode_get_setting PUBLIC_HEADERS_FOLDER_PATH "${mapped}" "${project}" "${scheme}" "${target}"`
-      private_headers=`xcode_get_setting PRIVATE_HEADERS_FOLDER_PATH "${mapped}" "${project}" "${scheme}" "${target}"`
-
-      read_yes_no_build_setting "${name}" "keep_xcode_header_settings"
-      if [ $? -ne 0 ]
-      then
-         public_header_name=`remove_absolute_path_prefix_up_to "${public_headers}" "include"`
-         private_header_name=`remove_absolute_path_prefix_up_to "${private_headers}" "include"`
-
-         if read_yes_no_build_setting "${name}" "mangle_header_dash"
-         then
-            public_header_name=`echo "${public_header_name}" | tr '-' '_'`"
-            private_header_name=`echo "${private_header_name}" | tr '-' '_'`"
-         fi
-
-         if [ "${public_header_name}" != "" ]
-         then
-            public_header_name="/${public_header_name}"
-         fi
-         if [ "${private_header_name}" != "" ]
-         then
-            private_header_name="/${private_header_name}"
-         fi
-
-         public_headers=`read_repo_setting "${name}" "public_headers" "${HEADER_PATH}${public_header_name}"`
-         private_headers=`read_repo_setting "${name}" "private_headers" "${HEADER_PATH}${private_header_name}"`
-      fi
+      local default
+      default="/include/${name}"
+      public_headers="`fixup_header_path "PUBLIC_HEADERS_FOLDER_PATH" "public_headers" "${name}" "${default}" ${arguments}`"
+      default="/include/${name}/private"
+      private_headers="`fixup_header_path "PRIVATE_HEADERS_FOLDER_PATH" "private_headers" "${name}" "${default}" ${arguments}`"
 
 
       # manually point xcode to our headers and libs
@@ -546,73 +608,74 @@ build_xcodebuild()
       local dependencies_header_search_path
       local dependencies_lib_search_path
       local inherited
+      local path
+      local escaped
 
       #
       # TODO: need to figure out the correct mapping here
       #
-      inherited=`xcode_get_setting HEADER_SEARCH_PATHS "${mapped}" $project $scheme $target`
-      dependencies_header_search_path="HEADER_SEARCH_PATHS="
-      dependencies_header_search_path="${dependencies_header_search_path} \
-         ${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}"
-      dependencies_header_search_path="${dependencies_header_search_path} \
-         /usr/local/include"
-      dependencies_header_search_path="${dependencies_header_search_path} \
-         ${inherited}"
-
-      inherited=`xcode_get_setting LIBRARY_SEARCH_PATHS "${mapped}" $project $scheme $target`
-      dependencies_lib_search_path="LIBRARY_SEARCH_PATHS="
-      if [ ! -z $sdk ]
+      inherited=`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`
+      path=`combined_escaped_search_path \
+"${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" \
+"/usr/local/include"`
+      if [ -z "${inherited}" ]
       then
-         dependencies_lib_search_path="${dependencies_lib_search_path} \
-            ${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}-\$(EFFECTIVE_PLATFORM_NAME)"
+         dependencies_header_search_path="${path}"
+      else
+         dependencies_header_search_path="${path} ${inherited}"
       fi
-      dependencies_lib_search_path="${dependencies_lib_search_path} \
-         ${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}"
-      dependencies_lib_search_path="${dependencies_lib_search_path} \
-         ${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}"
-      dependencies_lib_search_path="${dependencies_lib_search_path} \
-         /usr/local/lib"
-      dependencies_lib_search_path="${dependencies_lib_search_path} \
-         ${inherited}"
 
-      inherited=`xcode_get_setting FRAMEWORK_SEARCH_PATHS "${mapped}" $project $scheme $target`
-      dependencies_framework_search_path="FRAMEWORK_SEARCH_PATHS="
-      if [ ! -z $sdk ]
+      inherited=`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`
+      path=`combined_escaped_search_path \
+"${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}" \
+"${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}" \
+"/usr/local/lib"`
+      if [ ! -z "$sdk" ]
       then
-         dependencies_framework_search_path="${dependencies_framework_search_path} \
-            ${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}-\$(EFFECTIVE_PLATFORM_NAME)"
+         escaped="`escaped_spaces "${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
+         path="${escaped} ${path}" # prepend
       fi
-      dependencies_framework_search_path="${dependencies_framework_search_path} \
-         ${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}"
-      dependencies_framework_search_path="${dependencies_framework_search_path} \
-         ${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}"
-      dependencies_framework_search_path="${dependencies_framework_search_path} \
-         ${inherited}"
+      if [ -z "${inherited}" ]
+      then
+         dependencies_lib_search_path="${path}"
+      else
+         dependencies_lib_search_path="${path} ${inherited}"
+      fi
 
-      set -f
-      set +x
 
+      inherited=`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`
+      path=`combined_escaped_search_path \
+"${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}" \
+"${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}"`
+      if [ ! -z "$sdk" ]
+      then
+         escaped="`escaped_spaces "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
+         path="${escaped} ${path}" # prepend
+      fi
+      if [ -z "${inherited}" ]
+      then
+         dependencies_framework_search_path="${path}"
+      else
+         dependencies_framework_search_path="${path} ${inherited}"
+      fi
       # if it doesn't install, probably SKIP_INSTALL is set
-      $xcodebuild $command $project $sdk $scheme $target -configuration "${mapped}" \
-      ${xcflags} \
-      ${xcconfig} \
-      ${aux} \
-      "ARCHS=\${ARCHS_STANDARD_32_64_BIT}" \
-      "DEPLOYMENT_LOCATION=YES" \
-      "DSTROOT=${owd}/${DEPENDENCY_SUBDIR}" \
-      "INSTALL_PATH=${LIBRARY_PATH}${suffix}" \
-      "PUBLIC_HEADERS_FOLDER_PATH=${public_headers}" \
-      "PRIVATE_HEADERS_FOLDER_PATH=${private_headers}" \
-      SYMROOT="${owd}/${builddir}/" \
-      OBJROOT="${owd}/${builddir}/obj" \
-      ONLY_ACTIVE_ARCH=NO \
-      ${skip_install} \
-      "${dependencies_header_search_path}" \
-      "${dependencies_lib_search_path}" \
-      "${dependencies_framework_search_path} " \
-      1>&2 || exit 1
-   # TODO: why is it ${builddir} and not ../../${builddir} ??
-      set +x
+      cmdline="\"${xcodebuild}\" \"${command}\" ${arguments} \
+ARCHS='\${ARCHS_STANDARD_32_64_BIT}' \
+DEPLOYMENT_LOCATION=YES \
+DSTROOT='${owd}/${DEPENDENCY_SUBDIR}' \
+INSTALL_PATH='${LIBRARY_PATH}${suffix}' \
+PUBLIC_HEADERS_FOLDER_PATH='${public_headers}' \
+PRIVATE_HEADERS_FOLDER_PATH='${private_headers}' \
+SYMROOT='${owd}/${builddir}/' \
+OBJROOT='${owd}/${builddir}/obj' \
+ONLY_ACTIVE_ARCH=NO \
+${skip_install} \
+HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
+LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
+FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
+
+      eval_exekutor "${cmdline}" 1>&2 || exit 1
+
       set +f
 
    cd "${owd}"
@@ -629,26 +692,40 @@ build_xcodebuild_schemes_or_target()
 
    if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" != "" ]
    then
-      rm -rf "${builddir}"
+      exekutor rm -rf "${builddir}"
    fi
 
    local scheme
    local schemes
 
    schemes=`read_repo_setting "${name}" "schemes"`
+
+   local old
+
+   old="${IFS:-" "}"
+   IFS="
+"
    for scheme in $schemes
    do
+      IFS="$old"
       build_xcodebuild "$@" "${scheme}" ""
    done
+   IFS="${old}"
 
    local target
    local targets
 
    targets=`read_repo_setting "${name}" "targets"`
+
+   old="$IFS"
+   IFS="
+"
    for target in $targets
    do
+      IFS="${old}"
       build_xcodebuild "$@" "" "${target}"
    done
+   IFS="${old}"
 
    if [ "${targets}" = "" -a "${schemes}" = "" ]
    then
@@ -659,24 +736,17 @@ build_xcodebuild_schemes_or_target()
 
 build()
 {
-   local clone
-   local name
-   local builddir
-   local relative
    local srcdir
-   local built
-   local sdk
-   local configuration
-   local preference
 
    srcdir="$1"
+
+   local name
+
    name=`basename "${srcdir}"`
+   [ "${name}" != "${CLONES_SUBDIR}" ] || internal_fail "missing repo argument (${srcdir})"
 
    local preferences
    local configurations
-   local sdks
-   local cmake
-   local xcodebuild
 
    preferences=`read_config_setting "build_preferences" "script
 xcodebuild
@@ -686,14 +756,24 @@ configure"`
    configurations=`read_build_root_setting "configurations" "Debug
 Release"`
 
+   local xcodebuild
+   local cmake
+
    xcodebuild=`which "xcodebuild"`
    cmake=`which "cmake"`
+
+   local sdk
+   local sdks
 
    # need uniform SDK for our builds
    sdks=`read_build_root_setting "sdks" "Default"`
    [ -z "${sdks}" ] && fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
-   log_info "building ${srcdir} ..." >&2
+   local builddir
+   local relative
+   local built
+   local configuration
+   local preference
 
    for sdk in ${sdks}
    do
@@ -837,7 +917,7 @@ build_clones()
          fi
       done
 
-      for clone in ${CLONES_SUBDIR}/*
+      for clone in "${CLONES_SUBDIR}"/*
       do
          name=`basename "${clone}"`
 
@@ -847,11 +927,16 @@ build_clones()
          fi
       done
    else
-      for clone in "$@"
+      for name in "$@"
       do
          clone="${CLONES_SUBDIR}/${name}"
 
-         built=`build_if_readable "${clone}" "${name}" "${built}"`
+         if [ -d "${clone}" ]
+         then
+            built=`build_if_readable "${clone}" "${name}" "${built}"`
+         else
+            fail "unknown repo ${name}"
+         fi
       done
    fi
 }

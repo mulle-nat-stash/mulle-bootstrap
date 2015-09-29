@@ -44,43 +44,22 @@ then
    exit 1
 fi
 
-. mulle-bootstrap-functions.sh
-
-#
-# consider . .. ~ or absolute paths as unsafe
-# anything starting with a $ is probably also bad
-# this just catches some obvious problems, not all
-# when in the environment, clones_subdir may be ..
-#
+. mulle-bootstrap-settings.sh
 
 
-CLONES_SUBDIR_IS_CLEANABLE=`read_config_setting clean_repos_folder`
 CLONES_SUBDIR=`read_sane_config_path_setting "repos_foldername" ".repos"`
-if [ $? -eq 0 -a "${CLONES_SUBDIR_IS_CLEANABLE}" = "" ]
-then
-   CLONES_SUBDIR_IS_CLEANABLE="YES"
-fi
-
-
-CLONESBUILD_SUBDIR_IS_CLEANABLE=`read_config_setting clean_build_folder`
 CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "build/.repos"`
-if [ $? -eq 0 -a "${CLONESBUILD_SUBDIR_IS_CLEANABLE}" = "" ]
-then
-   CLONESBUILD_SUBDIR_IS_CLEANABLE="YES"
-fi
-
-DEPENDENCY_SUBDIR_IS_DIST_CLEANABLE=`read_config_setting clean_output_folder`
 DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "dependencies"`
-if [ $? -eq 0 -a "${DEPENDENCY_SUBDIR_IS_DIST_CLEANABLE}" = "" ]
-then
-   DEPENDENCY_SUBDIR_IS_DIST_CLEANABLE="YES"
-fi
-
 
 if [ "${CLONES_FETCH_SUBDIR}" = "" ]
 then
    CLONES_FETCH_SUBDIR="${CLONES_SUBDIR}"
 fi
+
+OBJECTS_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "objects_clean_folders" "${CLONESBUILD_SUBDIR}"`
+BUILD_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "build_clean_folders" "${DEPENDENCY_SUBDIR}"`
+DIST_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
+.bootstrap.auto"`
 
 #
 #

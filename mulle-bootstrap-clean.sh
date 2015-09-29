@@ -2,7 +2,7 @@
 #
 # (c) 2015, coded by Nat!, Mulle KybernetiK
 #
-COMMAND=${1:-"build"}
+COMMAND=${1:-"objs"}
 
 . mulle-bootstrap-local-environment.sh
 
@@ -11,8 +11,10 @@ case "$COMMAND" in
    ;;
    dist)
    ;;
+   objects|objs)
+   ;;
    *)
-   echo "usage: mulle-bootstrap-clean.sh <build|dist>" 2>&1
+   echo "usage: mulle-bootstrap-clean.sh <build|dist|objs>" 2>&1
    exit 1
    ;;
 esac
@@ -22,29 +24,49 @@ esac
 # to have other tools provide stuff besides /include and /lib
 # and sometimes  projects install other stuff into /share
 #
-if [ "${CLONES_SUBDIR_IS_CLEANABLE}" = "YES" ]
-then
-   if [ "${COMMAND}" = "objects" -o "${COMMAND}" = "dist" -o "${COMMAND}" = "build"  ]
+clean()
+{
+   if [ ! -z "$OBJECTS_CLEANABLE_SUBDIRS" ]
    then
-      rm -rf "${CLONESBUILD_SUBDIR}" 2> /dev/null
+      if [ "${COMMAND}" = "objects" -o "${COMMAND}" = "dist" -o "${COMMAND}" = "build"  ]
+      then
+         for dir in ${OBJECTS_CLEANABLE_SUBDIRS}
+         do
+            clean_asserted_folder "${dir}"
+         done
+      fi
    fi
-fi
 
-if [ "${DEPENDENCY_SUBDIR_IS_DIST_CLEANABLE}" = "YES" ]
-then
-   if [ "${COMMAND}" = "dist" -o "${COMMAND}" = "build"  ]
+
+   if [ ! -z "$BUILD_CLEANABLE_SUBDIRS" ]
    then
-      rm -rf "${DEPENDENCY_SUBDIR}" 2> /dev/null
+      if [ "${COMMAND}" = "dist" -o "${COMMAND}" = "build"  ]
+      then
+         for dir in ${BUILD_CLEANABLE_SUBDIRS}
+         do
+            clean_asserted_folder "${dir}"
+         done
+      fi
    fi
-fi
 
 
-if [ "${COMMAND}" = "dist" ]
-then
-   rm -rf "${BOOTSTRAP_SUBDIR}.auto" 2> /dev/null
-
-   if [ "${CLONES_SUBDIR_IS_CLEANABLE}" = "YES" ]
+   if [ ! -z "$DIST_CLEANABLE_SUBDIRS" ]
    then
-      rm -rf "${CLONES_SUBDIR}"  2> /dev/null
+      if [ "${COMMAND}" = "dist" ]
+      then
+         for dir in ${DIST_CLEANABLE_SUBDIRS}
+         do
+            clean_asserted_folder "${dir}"
+         done
+      fi
    fi
-fi
+}
+
+
+main()
+{
+   clean
+}
+
+
+main
