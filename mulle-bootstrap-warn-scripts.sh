@@ -62,8 +62,6 @@ warn_scripts()
    local ack
    local i
 
-   [ $# = 2 ] || echo "internal error" || exit 1
-
    if [ -d "$1" ]
    then
       scripts=`find "$1" -name "*.sh" \( -perm +u+x -o -perm +g+x -o -perm +o+x \) -type f -print`
@@ -81,24 +79,26 @@ warn_scripts()
       fi
    fi
 
-   [ -e "$2" ] ||  fail "internal error, expected directory missing"
-
-
-   if private_dir_has_files "$2"
+   if [ ! -z $2 ]
    then
-      phases=`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}'  \; -print)`
-      if [ "$phases" != "" ]
+      [ -e "$2" ] ||  fail "internal error, expected directory missing"
+
+      if private_dir_has_files "$2"
       then
-         echo "this repository contains xcode projects with shellscript phases" >&2
-         ack=`which ack`
-         if [ "$ack" = "" ]
+         phases=`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}'  \; -print)`
+         if [ "$phases" != "" ]
          then
-            echo "brew install ack ; ack -A1 \"shellPath|shellScript\"" >&2
-            echo "$phases" >&2
-         else
-            ack -A1 "shellPath|shellScript" `echo $phases | tr '\n' ' '` >&2
+            echo "this repository contains xcode projects with shellscript phases" >&2
+            ack=`which ack`
+            if [ "$ack" = "" ]
+            then
+               echo "brew install ack ; ack -A1 \"shellPath|shellScript\"" >&2
+               echo "$phases" >&2
+            else
+               ack -A1 "shellPath|shellScript" `echo $phases | tr '\n' ' '` >&2
+            fi
+            echo "" >&2
          fi
-         echo "" >&2
       fi
    fi
 

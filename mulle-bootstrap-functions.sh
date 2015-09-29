@@ -587,3 +587,19 @@ ${keys6}" | sort | sort -u | egrep -v '^[ ]*$'
 }
 
 
+# http://askubuntu.com/questions/152001/how-can-i-get-octal-file-permissions-from-command-line
+lso()
+{
+   ls -aldG "$@" | \
+   awk '{k=0;for(i=0;i<=8;i++)k+=((substr($1,i+2,1)~/[rwx]/)*2^(8-i));if(k)printf(" %0o ",k);print }' | \
+   awk '{print $1}'
+}
+
+
+log_info()
+{
+   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
+   then
+      echo "$@" >&2
+   fi
+}

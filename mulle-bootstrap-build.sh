@@ -124,6 +124,9 @@ determine_suffix()
    configuration="$1"
    sdk="$2"
 
+   [ ! -z $configuration ] || fail "configuration must not be empty"
+   [ ! -z $sdk ] || fail "sdk must not be empty"
+
    suffix="/${configuration}"
    if [ "${sdk}" != "Default" ]
    then
@@ -380,6 +383,8 @@ build_xcodebuild()
    [ -z "${sdk}" ]         && internal_fail "sdk is empty"
    [ -z "${project}" ]     && internal_fail "project is empty"
 
+   log_info "Do a xcodebuild for SDK ${sdk}, ${targetname}${schemename}..."
+
    local projectname
 
     # always pass project directly
@@ -546,26 +551,43 @@ build_xcodebuild()
       # TODO: need to figure out the correct mapping here
       #
       inherited=`xcode_get_setting HEADER_SEARCH_PATHS "${mapped}" $project $scheme $target`
-      dependencies_header_search_path="HEADER_SEARCH_PATHS=\
-${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH} \
-/usr/local/include \
-${inherited}"
+      dependencies_header_search_path="HEADER_SEARCH_PATHS="
+      dependencies_header_search_path="${dependencies_header_search_path} \
+         ${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}"
+      dependencies_header_search_path="${dependencies_header_search_path} \
+         /usr/local/include"
+      dependencies_header_search_path="${dependencies_header_search_path} \
+         ${inherited}"
 
       inherited=`xcode_get_setting LIBRARY_SEARCH_PATHS "${mapped}" $project $scheme $target`
-      dependencies_lib_search_path="LIBRARY_SEARCH_PATHS=\
-${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}-\$(EFFECTIVE_PLATFORM_NAME) \
-${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped} \
-${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH} \
-/usr/local/lib \
-${inherited}"
+      dependencies_lib_search_path="LIBRARY_SEARCH_PATHS="
+      if [ ! -z $sdk ]
+      then
+         dependencies_lib_search_path="${dependencies_lib_search_path} \
+            ${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}-\$(EFFECTIVE_PLATFORM_NAME)"
+      fi
+      dependencies_lib_search_path="${dependencies_lib_search_path} \
+         ${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}"
+      dependencies_lib_search_path="${dependencies_lib_search_path} \
+         ${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}"
+      dependencies_lib_search_path="${dependencies_lib_search_path} \
+         /usr/local/lib"
+      dependencies_lib_search_path="${dependencies_lib_search_path} \
+         ${inherited}"
 
       inherited=`xcode_get_setting FRAMEWORK_SEARCH_PATHS "${mapped}" $project $scheme $target`
-      dependencies_framework_search_path="FRAMEWORK_SEARCH_PATHS=\
-${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}-\$(EFFECTIVE_PLATFORM_NAME) \
-${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped} \
-${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
-/usr/local/lib \
-${inherited}"
+      dependencies_framework_search_path="FRAMEWORK_SEARCH_PATHS="
+      if [ ! -z $sdk ]
+      then
+         dependencies_framework_search_path="${dependencies_framework_search_path} \
+            ${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}-\$(EFFECTIVE_PLATFORM_NAME)"
+      fi
+      dependencies_framework_search_path="${dependencies_framework_search_path} \
+         ${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}"
+      dependencies_framework_search_path="${dependencies_framework_search_path} \
+         ${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}"
+      dependencies_framework_search_path="${dependencies_framework_search_path} \
+         ${inherited}"
 
       set -f
       set +x
@@ -671,6 +693,8 @@ Release"`
    sdks=`read_build_root_setting "sdks" "Default"`
    [ -z "${sdks}" ] && fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
+   log_info "building ${srcdir} ..." >&2
+
    for sdk in ${sdks}
    do
       for configuration in ${configurations}
@@ -745,6 +769,31 @@ Release"`
 }
 
 
+build_if_readable()
+{
+   local clone
+   local name
+   local xdone
+
+   clone="$1"
+   name="$2"
+   built="$3"
+
+   if [ ! -r "${clone}" ]
+   then
+      echo "ignoring orphaned repo ${name}" >&2
+   else
+      xdone=`/bin/echo "${built}" | grep "${name}"`
+      if [ "$xdone" = "" ]
+      then
+         build "${clone}"
+         echo "${name}
+${built}"
+      fi
+   fi
+}
+
+
 build_clones()
 {
    local clone
@@ -775,19 +824,14 @@ build_clones()
    if [ "$#" -eq 0 ]
    then
       built=`read_build_root_setting "buildignore"`
+
       for name in `read_build_root_setting "buildorder"`
       do
          clone="${CLONES_SUBDIR}/${name}"
 
          if [ -d "${clone}" ]
          then
-            xdone=`/bin/echo "${built}" | grep "${name}"`
-            if [ "$xdone" = "" ]
-            then
-               build "${clone}"
-               built="${name}
-${built}"
-            fi
+            built=`build_if_readable "${clone}" "${name}" "${built}"`
          else
             fail "buildorder contains unknown repo ${name}"
          fi
@@ -799,13 +843,7 @@ ${built}"
 
          if [ -d "${clone}" ]
          then
-            xdone=`/bin/echo "${built}" | grep "${name}"`
-            if [ "$xdone" = "" ]
-            then
-               build "${clone}"
-               built="${name}
-${built}"
-            fi
+            built=`build_if_readable "${clone}" "${name}" "${built}"`
          fi
       done
    else
@@ -813,13 +851,7 @@ ${built}"
       do
          clone="${CLONES_SUBDIR}/${name}"
 
-         xdone=`/bin/echo "${built}" | grep "${name}"`
-         if [ "$xdone" = "" ]
-         then
-            build "${clone}"
-            built="${name}
-${built}"
-         fi
+         built=`build_if_readable "${clone}" "${name}" "${built}"`
       done
    fi
 }

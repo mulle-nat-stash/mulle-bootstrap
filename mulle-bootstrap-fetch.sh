@@ -410,6 +410,18 @@ clone_repositories()
 
    cmd="$1"
 
+   # first mark all repos as stale
+   if dir_has_files "${CLONES_FETCH_SUBDIR}"
+   then
+      for i in `ls -1d "${CLONES_FETCH_SUBDIR}/"*`
+      do
+         if [ -d "${i}" -o -L "${i}" ]
+         then
+            chmod -h 000 "${i}"
+         fi
+      done
+   fi
+
    stop=0
    while [ $stop -eq 0 ]
    do
@@ -434,6 +446,18 @@ clone_repositories()
             tag=`read_repo_setting "${name1}" "tag"` #repo (sic)
 
             dstname="${CLONES_FETCH_SUBDIR}/${name1}"
+
+            local permission
+
+            # mark as alive
+            if [ -d "${dstname}" -o -L "${dstname}" ] && [ ! -r "${dstname}" ]
+            then
+               permission=`lso "${CLONES_FETCH_SUBDIR}"`
+               [ ! -z "$permission" ] || fail "failed to get permission of ${CLONES_FETCH_SUBDIR}"
+               chmod -h "${permission}" "${dstname}"
+            fi
+
+            log_info "Checking ${clone} in ${dstname} ..."
 
             case "${cmd}" in
                install)

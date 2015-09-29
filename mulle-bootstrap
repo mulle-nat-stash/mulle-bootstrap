@@ -60,13 +60,9 @@ bootstrap()
    then
       . install.sh "$@"
       export MULLE_BOOTSTRAP=mulle-bootstrap
+   else
+      warn_scripts "${BOOTSTRAP_SUBDIR}"  || exit 1
    fi
-
-   #
-   # should run a script, where we test the project.pbxproj for
-   # script phases too
-   #
-   warn_scripts "${BOOTSTRAP_SUBDIR}" "." || exit 1
 
    if [ "${DONT_RECURSE}" = "" ]
    then
