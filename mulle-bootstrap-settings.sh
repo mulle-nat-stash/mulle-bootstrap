@@ -34,29 +34,44 @@
 
 warn_user_setting()
 {
-   local name
+   local file
 
    file="$1"
-   if [ "${DONT_WARN_RECURSION}" = "" -a "$MULLE_BOOTSTRAP_WARN_LOCAL_SETTINGS" = "YES" ]
+   if [ "$MULLE_BOOTSTRAP_NO_WARN_USER_SETTINGS" != "YES" ]
    then
-      echo "Using `dirname "${file}"` for `basename "${file}"`" >& 2
+      log_warning "Using `dirname "${file}"` for `basename "${file}"`"
    fi
 }
 
 
 warn_local_setting()
 {
-   local name
+   local file
 
-   name="$1"
-   if [ "${DONT_WARN_RECURSION}" = "" -a "$MULLE_BOOTSTRAP_WARN_LOCAL_SETTINGS" = "YES" ]
+   file="$1"
+   if [ "$MULLE_BOOTSTRAP_NO_WARN_LOCAL_SETTINGS" != "YES" ]
    then
-      echo "Using `dirname "${file}"` for `basename "${file}"`" >& 2
+      log_warning "Using `dirname "${file}"` for `basename "${file}"`"
    fi
 }
 
 
-read_setting()
+warn_environment_setting()
+{
+   local name
+
+   name="$1"
+   if [ "$MULLE_BOOTSTRAP_NO_WARN_ENVIRONMENT_SETTINGS" != "YES" ]
+   then
+      log_warning "Using environment variable \"${name}\""
+   fi
+}
+
+
+#
+# Base functions, not be called outside of this file
+#
+_read_setting()
 {
    local file
    local value
@@ -81,7 +96,7 @@ read_setting()
    then
       log_trace "setting `basename "${file}"` found in `dirname "${file}"` as \"${value}\""
    fi
-   set +x
+
    case "${file}" in
       *.local/*)
          warn_local_setting "${file}"
@@ -96,59 +111,73 @@ read_setting()
 # this knows intentionally no default, you cant have an empty
 # local setting
 #
-_read_local_setting()
+_read_environment_setting()
 {
    local name
    local value
    local envname
 
+   [ $# -ne 1  ] && internal_fail "parameterization error"
+
    name="$1"
 
    [ "$name" = "" ] && internal_fail "missing parameters in _read_local_setting"
 
-   envname=`echo "${name}" | tr '[:lower:]' '[:upper:]'`
-   value=`printenv "MULLE_BOOTSTRAP_${envname}"`
+   envname="MULLE_BOOTSTRAP_`echo "${name}" | tr '[:lower:]' '[:upper:]'`"
 
-   if [ "${value}" != "" ]
+   if [ "$MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS" = "YES" ]
    then
-      echo "${value}"
-      return 1
-   else
-      value="`read_setting "${BOOTSTRAP_SUBDIR}.local/${name}"`"
-      if [ $? -ne 0 ]
-      then
-         value="`read_setting "${HOME}/.mulle-bootstrap/${name}"`"
-         if [ $? -ne 0 ]
-         then
-             warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
-         fi
-      fi
+      log_trace2 "Looking for setting ${name} as environment variable ${envname}"
    fi
+
+   value=`printenv "${envname}"`
+   if [ "${value}" = "" ]
+   then
+      return 2
+   fi
+
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   then
+      log_trace "setting ${name} found in environment variable ${envname} as \"${value}\""
+   fi
+
+   warn_environment_setting "${envname}"
+
    echo "${value}"
+   return 0
 }
 
 
-read_local_setting()
+_read_local_setting()
 {
    local name
    local value
    local default
 
-   [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
+   [ $# -ne 1  ] && internal_fail "parameterization error"
 
    name="$1"
-   default="$2"
 
-   value=`_read_local_setting "$name"`
-   if [ "${value}" = "" ]
+   [ "$name" = "" ] && internal_fail "missing parameters in _read_local_setting"
+
+   if [ "$MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS" = "YES" ]
    then
-      value="${default}"
+      log_trace2 "Looking for setting ${name} in ~/.mulle-bootstrap"
    fi
 
-   echo "$value"
+   value="`_read_setting "${HOME}/.mulle-bootstrap/${name}"`"
+   if [ $? -ne 0 ]
+   then
+      return 2
+   fi
 
-   [ "${value}" = "${default}" ]
-   return $?
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   then
+      log_trace "setting ${name} found in ~/.mulle-bootstrap as \"${value}\""
+   fi
+   warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
+
+   echo "$value"
 }
 
 
@@ -159,7 +188,6 @@ _read_bootstrap_setting()
 {
    local name
    local value
-   local default
    local suffix1
    local suffix2
    local suffix3
@@ -168,63 +196,52 @@ _read_bootstrap_setting()
    suffix1="$2"
    suffix2="$3"
    suffix3="$4"
-   default="$5"
 
-   [ $# -lt 4 -o $# -gt 5 ] && internal_fail "parameterization error"
+   [ $# -ne 4 ] && internal_fail "parameterization error"
    [ "$name" = "" ] && internal_fail "missing parameters in _read_bootstrap_setting"
 
-   value="`read_setting "${BOOTSTRAP_SUBDIR}${suffix1}/${name}"`"
+   value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix1}/${name}"`"
    if [ $? -ne 0 ]
    then
-      value="`read_setting "${BOOTSTRAP_SUBDIR}${suffix2}/${name}"`"
+      value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix2}/${name}"`"
       if [ $? -ne 0 ]
       then
-         value="`read_setting "${BOOTSTRAP_SUBDIR}${suffix3}/${name}"`"
+         value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix3}/${name}"`"
          if [ $? -ne 0 ]
          then
-            if [ $# -eq 4 ]
-            then
-               return 2
-            fi
-            value="${default}"
+            return 2
          fi
       fi
    fi
 
    echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
 }
 
 
-read_repo_setting()
+_read_repo_setting()
 {
    local name
-   local value
-   local default
-   local value
-
-   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
+   local package
 
    package="$1"
    name="$2"
-   default="$3"
 
    [ "$name" = "" -o "$package" = "" ] && internal_fail "missing parameters in read_repo_setting"
 
    # need to conserve return value 2 if empty
-   if [ $# -eq 2 ]
-   then
-      _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto"
-   else
-      _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto" "${default}"
-   fi
+   _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto"
 }
 
 
+_read_build_setting()
+{
+   _read_bootstrap_setting "$1" ".local/settings" "/settings" ".auto/settings"
+}
+
+
+####
 #
-# the default
+# Functions building on _read_ functions
 #
 read_config_setting()
 {
@@ -237,10 +254,97 @@ read_config_setting()
    name="$1"
    default="$2"
 
-   value=`_read_bootstrap_setting "${name}" ".local/config" "config" ".auto/config"`
-   if [ "${value}" = "" ]
+   value="`_read_environment_setting "${name}"`"
+   if [ $? -ne 0 ]
    then
-      value=`read_local_setting "${name}" "${default}"`
+      value=`_read_bootstrap_setting "${name}" ".local/config" "/config" ".auto/config"`
+      if [ $? -ne 0 ]
+      then
+         value=`_read_local_setting "${name}"`
+         if [ $? -ne 0 ]
+         then
+            value="${default}"
+         fi
+      fi
+   fi
+
+   echo "$value"
+
+   [ "${value}" = "${default}" ]
+   return $?
+}
+
+
+read_build_setting()
+{
+   local name
+   local value
+   local default
+   local package
+
+   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
+
+   package="$1"
+   name="$2"
+   default="$3"
+
+   value=`_read_repo_setting "${package}" "${name}"`
+   if [ $? -ne 0 ]
+   then
+      value=`_read_build_setting "${name}"`
+      if [ $? -ne 0 ]
+      then
+         value="${default}"
+      fi
+   fi
+   echo "$value"
+
+   [ "${value}" = "${default}" ]
+   return $?
+}
+
+
+read_repo_setting()
+{
+   local value
+   local name
+   local default
+   local package
+
+   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
+
+   package="$1"
+   name="$2"
+   default="$3"
+
+   value="`_read_repo_setting "${package}" "${name}"`"
+   if [ $? -ne 0 ]
+   then
+      value="${default}"
+   fi
+
+   echo "$value"
+
+   [ "${value}" = "${default}" ]
+   return $?
+}
+
+
+read_build_root_setting()
+{
+   local value
+   local name
+   local default
+
+   [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
+
+   name="$1"
+   default="$2"
+
+   value="`_read_build_setting "${name}" ".auto" ".local" ""`"
+   if [ $? -ne 0 ]
+   then
+      value="${default}"
    fi
 
    echo "$value"
@@ -252,44 +356,19 @@ read_config_setting()
 
 read_fetch_setting()
 {
-   _read_bootstrap_setting "$1" ".auto" ".local" "" "$2"
-}
-
-
-_read_build_setting()
-{
-   _read_bootstrap_setting "$1" ".local/settings" "/settings" ".auto/settings" "$2"
-}
-
-
-read_build_setting()
-{
-   local name
    local value
    local default
+   local name
 
-   package="$1"
-   name="$2"
-   default="$3"
+   name="$1"
+   default="$2"
 
-   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
-   [ "$name" = "" -o "$package" = "" ] && internal_fail "empty parameters in read_build_setting"
-
-   value=`read_repo_setting "${package}" "${name}"`
-   if [ $? -gt 1 ]
+   value="`_read_bootstrap_setting "${name}" ".auto" ".local" ""`"
+   if [ $? -ne 0 ]
    then
-      if [ $# -eq 2 ]
-      then
-          value=`_read_build_setting "${name}"`
-      else
-          value=`_read_build_setting "${name}" "${default}"`
-      fi
-
-      if [ $? -gt 1 ]
-      then
-         return 2
-      fi
+      value="${default}"
    fi
+
    echo "$value"
 
    [ "${value}" = "${default}" ]
@@ -297,12 +376,9 @@ read_build_setting()
 }
 
 
-read_build_root_setting()
-{
-   _read_build_setting "$@"
-}
-
-
+####
+# Functions building on read_ functions
+#
 read_yes_no_build_setting()
 {
    local value
@@ -310,6 +386,8 @@ read_yes_no_build_setting()
    value=`read_build_setting "$1" "$2" "$3"`
    is_yes "$value" "$1/$2"
 }
+
+
 
 read_sane_config_path_setting()
 {
@@ -321,7 +399,7 @@ read_sane_config_path_setting()
    default="$2"
 
    value=`read_config_setting "${name}"`
-   if [ "$?" -ne 0 ]
+   if [ $? -ne 0 ]
    then
       assert_sane_path "${value}"
    else
@@ -336,6 +414,7 @@ read_sane_config_path_setting()
    [ "${value}" = "${default}" ]
    return $?
 }
+
 
 all_build_flag_keys()
 {
@@ -373,3 +452,9 @@ ${keys6}" | sort | sort -u | egrep -v '^[ ]*$'
    return 0
 }
 
+
+# read some config stuff now
+
+MULLE_BOOTSTRAP_NO_WARN_LOCAL_SETTINGS="`read_config_setting "no_warn_local_setting"`"
+MULLE_BOOTSTRAP_NO_WARN_USER_SETTINGS="`read_config_setting "no_warn_user_setting"`"
+MULLE_BOOTSTRAP_NO_WARN_ENVIRONMENT_SETTINGS="`read_config_setting "no_warn_environment_setting"`"

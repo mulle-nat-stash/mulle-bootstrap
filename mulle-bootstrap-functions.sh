@@ -41,12 +41,63 @@ then
 fi
 
 
+C_ERROR="${C_RED}"
+log_error()
+{
+   echo "${C_ERROR}$*${C_RESET}" >&2
+}
+
+
+C_WARNING="${C_YELLOW}"
+log_warning()
+{
+   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
+   then
+      echo "${C_WARNING}$*${C_RESET}" >&2
+   fi
+}
+
+
+C_INFO="${C_CYAN}"
+log_info()
+{
+   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
+   then
+      echo "${C_INFO}$*${C_RESET}" >&2
+   fi
+}
+
+
+C_FLUFF="${C_GREEN}"
+log_fluff()
+{
+   if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
+   then
+      echo "${C_FLUFF}$*${C_RESET}" >&2
+   fi
+}
+
+
+C_TRACE="${C_FLUFF}"
+log_trace()
+{
+  echo "${C_TRACE}$*${C_RESET}" >&2
+}
+
+
+C_TRACE2="${C_WHITE}"
+log_trace2()
+{
+  echo "${C_TRACE2}$*${C_RESET}" >&2
+}
+
+
 #
 # some common functions
 #
 fail()
 {
-   echo "${C_RED}$*${C_RESET}" >&2
+   log_error "$@"
    exit 1
 }
 
@@ -145,6 +196,12 @@ path_depth()
       done
    fi
    echo "$depth"
+}
+
+
+relative_path_between()
+{
+   python -c "import os.path; print os.path.relpath(\'$1\', \'$2\')"
 }
 
 
@@ -304,25 +361,11 @@ assert_sane_path()
 {
    case "$1"  in
       \$*|~/.|..|./|../|/*)
-         echo "refuse unsafe path $1" >&2
+         log_error "refuse unsafe path ${C_WHITE}$1"
          exit 1
       ;;
    esac
 }
-
-
-
-clean_asserted_folder()
-{
-   if [ -d "$1" ]
-   then
-      assert_sane_path "$1"
-      exekutor rm -rf "$1"
-   fi
-   set +x
-}
-
-
 
 
 # http://askubuntu.com/questions/152001/how-can-i-get-octal-file-permissions-from-command-line
@@ -332,47 +375,3 @@ lso()
    awk '{k=0;for(i=0;i<=8;i++)k+=((substr($1,i+2,1)~/[rwx]/)*2^(8-i));if(k)printf(" %0o ",k);print }' | \
    awk '{print $1}'
 }
-
-
-
-C_WARNING="${C_YELLOW}"
-log_warning()
-{
-   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
-   then
-      echo "${C_WARNING}$*${C_RESET}" >&2
-   fi
-}
-
-C_INFO="${C_GREEN}"
-log_info()
-{
-   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
-   then
-      echo "${C_INFO}$*${C_RESET}" >&2
-   fi
-}
-
-C_FLUFF="${C_CYAN}"
-log_fluff()
-{
-   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
-   then
-      echo "${C_FLUFF}$*${C_RESET}" >&2
-   fi
-}
-
-C_TRACE="${C_FLUFF}"
-log_trace()
-{
-  echo "${C_TRACE}$*${C_RESET}" >&2
-}
-
-
-C_TRACE2="${C_WHITE}"
-log_trace2()
-{
-  echo "${C_TRACE2}$*${C_RESET}" >&2
-}
-
-

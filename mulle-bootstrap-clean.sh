@@ -7,17 +7,33 @@ COMMAND=${1:-"objs"}
 . mulle-bootstrap-local-environment.sh
 
 case "$COMMAND" in
-   build)
+   output)
    ;;
    dist)
    ;;
-   objects|objs)
+   intermediate|objs|build)
+   COMMAND="objs"
    ;;
    *)
-   echo "usage: mulle-bootstrap-clean.sh <build|dist|objs>" 2>&1
+   echo "usage: mulle-bootstrap-clean.sh [output|dist]" 2>&1
    exit 1
    ;;
 esac
+
+
+clean_asserted_folder()
+{
+
+   if [ -d "$1" ]
+   then
+      assert_sane_path "$1"
+      log_info "Deleting \"$1\""
+      exekutor rm -rf "$1"
+   else
+      log_fluff "\"$1\" doesn't exist"
+   fi
+}
+
 
 #
 # cleanability is checked, because in some cases its convenient
@@ -26,25 +42,30 @@ esac
 #
 clean()
 {
-   if [ ! -z "$OBJECTS_CLEANABLE_SUBDIRS" ]
+   local flag
+
+   flag="NO"
+   if [ ! -z "$OBJS_CLEANABLE_SUBDIRS" ]
    then
-      if [ "${COMMAND}" = "objects" -o "${COMMAND}" = "dist" -o "${COMMAND}" = "build"  ]
+      if [ "${COMMAND}" = "objs" -o "${COMMAND}" = "dist" -o "${COMMAND}" = "output"  ]
       then
-         for dir in ${OBJECTS_CLEANABLE_SUBDIRS}
+         for dir in ${OBJS_CLEANABLE_SUBDIRS}
          do
             clean_asserted_folder "${dir}"
+            flag="YES"
          done
       fi
    fi
 
 
-   if [ ! -z "$BUILD_CLEANABLE_SUBDIRS" ]
+   if [ ! -z "$OUTPUT_CLEANABLE_SUBDIRS" ]
    then
-      if [ "${COMMAND}" = "dist" -o "${COMMAND}" = "build"  ]
+      if [ "${COMMAND}" = "dist" -o "${COMMAND}" = "output"  ]
       then
-         for dir in ${BUILD_CLEANABLE_SUBDIRS}
+         for dir in ${OUTPUT_CLEANABLE_SUBDIRS}
          do
             clean_asserted_folder "${dir}"
+            flag="YES"
          done
       fi
    fi
@@ -57,14 +78,30 @@ clean()
          for dir in ${DIST_CLEANABLE_SUBDIRS}
          do
             clean_asserted_folder "${dir}"
+            flag="YES"
          done
       fi
+   fi
+
+   if [ "$flag" = "NO" ]
+   then
+      log_info "Nothing configured to clean"
    fi
 }
 
 
 main()
 {
+   #
+   # don't rename these settings anymore, the consequences can be catastrophic
+   # for users of previous versions.
+   # Also don't change the search paths for read_sane_config_path_setting
+   #
+   OBJS_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}"`
+   OUTPUT_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`
+   DIST_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
+.bootstrap.auto"`
+
    clean
 }
 

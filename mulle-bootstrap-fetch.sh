@@ -37,8 +37,8 @@
 #
 COMMAND=${1:-"install"}
 
-. mulle-bootstrap-local-environment.sh
 . mulle-bootstrap-warn-scripts.sh
+. mulle-bootstrap-local-environment.sh
 
 
 if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
@@ -287,6 +287,7 @@ git_command()
 
    if [ "${COMMAND}" = "install" ]
    then
+      log_info "Cloning ${C_WHITE}${src}${C_INFO} ..."
       git clone "${src}" "${dst}" || exit 1
    else
       ( cd "${dst}" ; git pull ) || exit 1
@@ -294,12 +295,14 @@ git_command()
 
    if [ "${tag}" != "" ]
    then
+      log_info "Checking out ${C_MAGENTA}${tag}${C_INFO} ..."
       (cd "${dst}" ; git checkout "${tag}" )
+
       if [ $? -ne 0 ]
       then
-         echo "Checkout failed, moving ${dst} to ${dst}.failed" >&2
-         echo "You need to fix this manually and them move it back." >&2
-         echo "Hint: check ${BOOTSTRAP_SUBDIR}/`basename "${dst}"`/TAG" >&2
+         log_error "Checkout failed, moving ${C_CYAN}${dst}${C_ERROR} to {C_CYAN}${dst}.failed${C_ERROR}"
+         log_error "You need to fix this manually and then move it back."
+         log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename "${dst}"`/TAG" >&2
 
          rm -rf "${dst}.failed" 2> /dev/null
          mv "${dst}" "${dst}.failed"
@@ -325,8 +328,11 @@ bootstrap_recurse()
    # contains own bootstrap ? and not a symlink
    if [ ! -d "${dst}/.bootstrap" ] # -a ! -L "${dst}" ]
    then
+      log_fluff "no .bootstrap folder in ${dst} found"
       return 1
    fi
+
+   log_info "Recursively acquiring ${dstname} .bootstrap settings ..."
 
    # prepare auto folder if it doesn't exist yet
    if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
@@ -457,7 +463,16 @@ clone_repositories()
                chmod -h "${permission}" "${dstname}"
             fi
 
-            log_info "Checking ${clone} in ${dstname} ..."
+            local info
+
+            if [ -L "${clone}" ]
+            then
+               info="symlinked"
+            else
+               info=" "
+            fi
+
+            log_fluff "Checking${info}${clone} in ${dstname} ..."
 
             case "${cmd}" in
                install)

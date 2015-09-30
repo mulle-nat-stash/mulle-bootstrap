@@ -56,11 +56,6 @@ then
    CLONES_FETCH_SUBDIR="${CLONES_SUBDIR}"
 fi
 
-OBJECTS_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "objects_clean_folders" "${CLONESBUILD_SUBDIR}"`
-BUILD_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "build_clean_folders" "${DEPENDENCY_SUBDIR}"`
-DIST_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
-.bootstrap.auto"`
-
 #
 #
 #
@@ -83,4 +78,23 @@ fi
 [ -z "${DEPENDENCY_SUBDIR}" ]    && internal_fail "variable DEPENDENCY_SUBDIR is empty"
 [ -z "${CLONES_RELATIVE}" ]      && internal_fail "variable CLONES_RELATIVE is empty"
 [ -z "${CLONESBUILD_RELATIVE}" ] && internal_fail "CLONESBUILD_RELATIVE is empty"
+
+
+case "${MULLE_BOOTSTRAP_TRACE}" in
+	VERBOSE)
+		MULLE_BOOTSTRAP_VERBOSE="YES"
+	   MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
+	   MULLE_BOOTSTRAP_TRACE="YES"
+	   ;;
+	FULL)
+      MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS="YES"
+	   MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
+		MULLE_BOOTSTRAP_VERBOSE="YES"
+	   MULLE_BOOTSTRAP_TRACE="YES"
+	   ;;
+	1848)
+		set -x
+	   MULLE_BOOTSTRAP_TRACE="YES"
+	   ;;
+esac
 

@@ -38,6 +38,17 @@ dependencies. Optimally this folder is empty or non-existant.
 * Folders in `.bootstrap.auto/repos` are the settings inherited from
 .bootstrap.
 
+### How are multiple values separated ?
+
+Separation is done by newline, not by space.
+
+```console
+mkdir -p  ".bootstrap/settings" 2> /dev/null
+echo "Debug Release" > .bootstrap/settings/configurations # WRONG
+echo "Debug
+Release" > .bootstrap/settings/configurations # RIGHT
+```
+
 
 ### The default target/scheme is not the one I want ?
 
@@ -168,6 +179,32 @@ the dependency library are in `dependencies/usr/local/include`. What now ?
 
 **mulle-bootstrap*+ can't manage xcodebuild dependencies, so you have to help
 it. Specify the targets you want to build.
+
+
+### I build an aggregate target and the headers end up in the wrong place
+
+mulle_bootstrap has problems with aggregate targets. Built the subtargets
+individually by enumerating them in ".bootstrap/settings/{reponame}/targets"
+
+
+```console
+mkdir -p  ".bootstrap/settings/MulleScion" 2> /dev/null
+echo "MulleScion (iOS Library)
+MulleScion (iOS Framework)" > .bootstrap/settings/MulleScion/targets"
+```
+
+### It's not working as I expect now what ?
+
+Try to use some of the debug facilities. Each of these environment variables need to be
+set to **YES** to work.
+
+Environment Variable                  | Description
+--------------------------------------+-------------------------------------
+MULLE_BOOTSTRAP_VERBOSE               | turn on a little more output. If you set it to VERBOSE instead of YES, it produces quite a bit more output. Set it to FULL for exhausting detail.  Set it to -x for shell tracing.
+MULLE_BOOTSTRAP_TRACE                 | traces shell commands as they are executed
+MULLE_BOOTSTRAP_TRACE_SETTINGS        | traces resolved settings
+MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS | traces each file access in search for a setting
+
 
 
 

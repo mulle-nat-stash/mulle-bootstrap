@@ -229,12 +229,8 @@ patch_xcode_project()
 
    check_for_mod_pbxproj
 
-   configurations=`read_local_setting "configurations"`
-   if [ "$configurations" = "" ]
-   then
-      configurations=`read_fetch_setting "configurations" "Debug
+   configurations=`read_build_root_setting "configurations" "Debug
 Release"`
-   fi
 
    default=`echo "${configurations}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//'`
 
@@ -269,7 +265,14 @@ Release"
    local library_search_paths
    local framework_search_paths
 
-   dependencies_dir='$(PROJECT_DIR)'"/${DEPENDENCY_SUBDIR}"
+   #  figure out a way to make this nicer
+   local absolute
+   local relative_subdir
+
+   absolute="`readlink -f "${project}"`"
+   relative_subdir=`relative_path_between "${absolute}" "$(PWD)"/${DEPENDENCY_SUBDIR}`
+
+   dependencies_dir='$(PROJECT_DIR)'"${relative_subdir}"
 
    header_search_paths="\$(DEPENDENCIES_DIR)${HEADER_PATH}"
    header_search_paths="${header_search_paths} /usr/local/include"

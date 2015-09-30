@@ -33,10 +33,10 @@
 .  mulle-bootstrap-gcc.sh
 
 
-CLEAN_BEFORE_BUILD=`read_config_setting "clean"`
+CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
 HEADER_PATH=`read_config_setting "header_path" "/include"`
 LIBRARY_PATH=`read_config_setting "library_path" "/lib"`
-FRAMEWORK_PATH=`read_config_setting "frameworks_path" "/Frameworks"`
+FRAMEWORK_PATH=`read_config_setting "framework_path" "/Frameworks"`
 
 #
 # move stuff produced my cmake and configure to places
@@ -173,6 +173,9 @@ build_cmake()
 
    enforce_build_sanity
 
+   log_info "Do a cmake ${C_MAGENTA}${configuration}${C_INFO} build of \
+${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
+
    mapped=`read_build_setting "$name" "cmake-${configuration}.map" "${configuration}"`
    suffix=`determine_suffix "${configuration}" "${sdk}"`
    sdk=`cmake_sdk_parameter "${sdk}"`
@@ -268,6 +271,10 @@ build_configure()
 
    enforce_build_sanity
 
+   log_info "Do a configure ${C_MAGENTA}${configuration}${C_INFO} build of \
+${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
+
+
    mapped=`read_build_setting "$name" "configure-${configuration}.map" "${configuration}"`
    suffix=`determine_suffix "${configuration}" "${sdk}"`
    sdk=`gcc_sdk_parameter "${sdk}"`
@@ -348,12 +355,18 @@ xcode_get_setting()
 }
 
 
+#
+# What we can not fix up is
+# /usr/local/include/${PROJECT_NAME}
+# since we can't read the unresolved value (yet)
+#
 fixup_header_path()
 {
    local key
    local setting_key
    local default
    local name
+   local prefix
 
    key="$1"
    shift
@@ -364,49 +377,51 @@ fixup_header_path()
    default="$1"
    shift
 
+   read_yes_no_build_setting "${name}" "xcode_mangle_header_settings"
+   if [ $? -ne 0 ]
+   then
+      return 1
+   fi
+
    local headers
 
    headers=`xcode_get_setting "${key}" $*`
-   log_info "${key} read as \"${headers}\""
+   log_fluff "${key} read as \"${headers}\""
 
-   read_yes_no_build_setting "${name}" "keep_xcode_header_settings"
+   case "${headers}" in
+      /*)
+      ;;
+
+      ./*|../*)
+         log_warning "relative path \"${headers}\" as header path ???"
+      ;;
+
+      "")
+         headers="${default}"
+      ;;
+
+      *)
+         headers="/${headers}"
+      ;;
+   esac
+
+   prefix=""
+   read_yes_no_build_setting "${name}" "xcode_mangle_include_prefix"
    if [ $? -ne 0 ]
    then
-      case "${headers}" in
-         /*)
-         ;;
-
-         ./*|../*)
-            log_warning "relative path \"${headers}\" as header path ???"
-         ;;
-
-         "")
-            headers="${default}"
-         ;;
-
-         *)
-            headers="/${headers}"
-         ;;
-      esac
-
-      local header_name
-
-      header_name=`remove_absolute_path_prefix_up_to "${headers}" "include"`
-
-      if read_yes_no_build_setting "${name}" "mangle_header_dash"
-      then
-         header_name="`echo "${header_name}" | tr '-' '_'`"
-      fi
-
-      if [ ! -z "${header_name}" ]
-      then
-         header_name="/${header_name}"
-      fi
-
-      headers="`read_repo_setting "${name}" "${setting_key}" "${HEADER_PATH}${header_name}"`"
-
-      log_info "${key} set to \"${headers}\""
+      headers="`remove_absolute_path_prefix_up_to "${headers}" "include"`"
+      prefix="${HEADER_PATH}"
    fi
+
+
+   if read_yes_no_build_setting "${name}" "xcode_mangle_header_dash"
+   then
+      headers="`echo "${headers}" | tr '-' '_'`"
+   fi
+
+   headers="`read_repo_setting "${name}" "${setting_key}" "${prefix}${headers}"`"
+
+   log_fluff "${key} set to \"${headers}\""
 
    echo "${headers}"
 }
@@ -468,9 +483,22 @@ build_xcodebuild()
    [ -z "${sdk}" ]         && internal_fail "sdk is empty"
    [ -z "${project}" ]     && internal_fail "project is empty"
 
-   log_fluff "Do a xcodebuild ${C_MAGENTA}${configuration}${C_FLUFF} of \
+   local info
+
+   info=""
+   if [ ! -z "${targetname}" ]
+   then
+      info="Target ${C_MAGENTA}${targetname}${C_FLUFF}"
+   fi
+
+   if [ ! -z "${schemename}" ]
+   then
+      info="Scheme ${C_MAGENTA}${schemename}${C_FLUFF}"
+   fi
+
+   log_info "Do a xcodebuild ${C_MAGENTA}${configuration}${C_FLUFF} of \
 ${C_MAGENTA}${name}${C_FLUFF} for SDK ${C_MAGENTA}${sdk}${C_FLUFF} \
-${C_MAGENTA}${targetname}${schemename}${C_FLUFF} ..."
+${info} ..."
 
    local projectname
 
@@ -596,6 +624,7 @@ ${C_MAGENTA}${targetname}${schemename}${C_FLUFF} ..."
       local public_headers
       local private_headers
       local default
+
       default="/include/${name}"
       public_headers="`fixup_header_path "PUBLIC_HEADERS_FOLDER_PATH" "public_headers" "${name}" "${default}" ${arguments}`"
       default="/include/${name}/private"
@@ -614,7 +643,7 @@ ${C_MAGENTA}${targetname}${schemename}${C_FLUFF} ..."
       #
       # TODO: need to figure out the correct mapping here
       #
-      inherited=`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`
+      inherited="`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path \
 "${owd}/${DEPENDENCY_SUBDIR}${HEADER_PATH}" \
 "/usr/local/include"`
@@ -625,7 +654,7 @@ ${C_MAGENTA}${targetname}${schemename}${C_FLUFF} ..."
          dependencies_header_search_path="${path} ${inherited}"
       fi
 
-      inherited=`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`
+      inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path \
 "${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}" \
 "${owd}/${DEPENDENCY_SUBDIR}${LIBRARY_PATH}" \
@@ -643,7 +672,7 @@ ${C_MAGENTA}${targetname}${schemename}${C_FLUFF} ..."
       fi
 
 
-      inherited=`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`
+      inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path \
 "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}" \
 "${owd}/${DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}"`
@@ -658,14 +687,23 @@ ${C_MAGENTA}${targetname}${schemename}${C_FLUFF} ..."
       else
          dependencies_framework_search_path="${path} ${inherited}"
       fi
+
+      if [ ! -z "${public_headers}" ]
+      then
+         arguments="${arguments} PUBLIC_HEADERS_FOLDER_PATH='${public_headers}'"
+      fi
+      if [ ! -z "${private_headers}" ]
+      then
+         arguments="${arguments} PRIVATE_HEADERS_FOLDER_PATH='${private_headers}'"
+      fi
+
+
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${xcodebuild}\" \"${command}\" ${arguments} \
 ARCHS='\${ARCHS_STANDARD_32_64_BIT}' \
 DEPLOYMENT_LOCATION=YES \
 DSTROOT='${owd}/${DEPENDENCY_SUBDIR}' \
 INSTALL_PATH='${LIBRARY_PATH}${suffix}' \
-PUBLIC_HEADERS_FOLDER_PATH='${public_headers}' \
-PRIVATE_HEADERS_FOLDER_PATH='${private_headers}' \
 SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
 ONLY_ACTIVE_ARCH=NO \
@@ -748,7 +786,7 @@ build()
    local preferences
    local configurations
 
-   preferences=`read_config_setting "build_preferences" "script
+   preferences=`read_config_setting "preferences" "script
 xcodebuild
 cmake
 configure"`
@@ -886,6 +924,7 @@ build_clones()
    #
    if [ ! -d "${CLONES_SUBDIR}" ]
    then
+      log_info "No repos fetched, nothing to do."
       return 0
    fi
 

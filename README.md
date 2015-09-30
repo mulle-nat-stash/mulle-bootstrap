@@ -26,7 +26,7 @@ After cloning **mulle-bootstrap** does a simple security check with respect to `
 
 Everything you need should be present at this time. so **mulle-bootstrap** will now  build a **Debug** and a **Release** version for each library, and places the headers and the produced libraries into "./dependencies".
 
-Your Xcode project can be optionally massaged by **mulle-bootstrap setup-xcode** to have the .dependency folder in its search paths.
+Your Xcode project can be optionally massaged by **mulle-bootstrap setup-xcode** to have the "./dependencies" folder in its search paths.
 
 ## What a project user needs to do
 
@@ -52,7 +52,7 @@ Downloads all required libraries into a `.repos` folder.
 
 #### mulle-bootstrap build
 
-Compiles the required libraries contained in the `.repos` folder into `dependency`. It compiles each project once for Release and once for Debug (and given a file `.bootstrap/sdks` multiplied by the number of sdks needed)
+Compiles the required libraries contained in the `.repos` folder into `./dependencies`. It compiles each project once for Release and once for Debug (and given a file `.bootstrap/sdks` multiplied by the number of sdks needed)
 
 
 
@@ -78,7 +78,7 @@ openssl
 
 #### mulle-bootstrap setup-xcode
 
-Prepares a Xcode project to use the libraries that are compiled into the `dependency` folder. You still need to add the libraries to your targets though.
+Prepares a Xcode project to use the libraries that are compiled into the `./dependencies` folder. You still need to add the libraries to your targets though.
 
 #### mulle-bootstrap tag
 
@@ -87,7 +87,6 @@ Tag your project and all fetched repositories, with a tag.
 
 ## Known limitations
 
-* no "-n" test run option
 * only works for libraries so far
-* not much tested
+* not tested too much
 
