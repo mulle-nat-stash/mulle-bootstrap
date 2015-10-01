@@ -5,25 +5,27 @@
 . mulle-bootstrap-local-environment.sh
 
 
-BUILD_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
-${DEPENDENCY_SUBDIR}/tmp"`
-OUTPUT_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`
-DIST_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
-.bootstrap.auto"`
+BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
+${DEPENDENCY_SUBDIR}/tmp"`"
+OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
+DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
+.bootstrap.auto"`"
 
 
 usage()
 {
-   echo "clean [build|output|dist]"
-   echo ""
-   echo "   build   : is the default, it cleans
-${BUILD_CLEANABLE_SUBDIRS}"
-   echo ""
-   echo "   output  : cleans additionaly
-${OUTPUT_CLEANABLE_SUBDIRS}"
-   echo ""
-   echo "   dist    : cleans additionaly
-${DIST_CLEANABLE_SUBDIRS}"
+   cat <<EOF
+clean [build|output|dist]
+
+   build   : is the default, it cleans
+${BUILD_CLEANABLE_SUBDIRS}
+
+   output  : cleans additionaly
+${OUTPUT_CLEANABLE_SUBDIRS}
+
+   dist    : cleans additionaly
+${DIST_CLEANABLE_SUBDIRS}
+EOF
 }
 
 
@@ -133,6 +135,7 @@ main()
    # for users of previous versions.
    # Also don't change the search paths for read_sane_config_path_setting
    #
+   log_fluff "::: clean :::"
 
    clean "$@"
 }

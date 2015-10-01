@@ -47,6 +47,35 @@ fi
 . mulle-bootstrap-settings.sh
 
 
+MULLE_BOOTSTRAP_TRACE="`read_config_setting "trace"`"
+
+case "${MULLE_BOOTSTRAP_TRACE}" in
+   VERBOSE)
+      MULLE_BOOTSTRAP_VERBOSE="YES"
+      MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
+      MULLE_BOOTSTRAP_TRACE="YES"
+      log_trace "VERBOSE trace started"
+      ;;
+   FULL|ALL)
+      MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS="YES"
+      MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
+      MULLE_BOOTSTRAP_VERBOSE="YES"
+      MULLE_BOOTSTRAP_TRACE="YES"
+      log_trace "FULL trace started"
+      ;;
+   1848)
+      MULLE_BOOTSTRAP_VERBOSE="YES"
+      MULLE_BOOTSTRAP_TRACE="YES"
+      log_trace "1848 trace (set -x) started"
+      set -x
+      ;;
+esac
+
+if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" ]
+then
+   log_trace "Dry run is active."
+fi
+
 CLONES_SUBDIR=`read_sane_config_path_setting "repos_foldername" ".repos"`
 CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "build/.repos"`
 DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "dependencies"`
@@ -79,31 +108,10 @@ fi
 [ -z "${CLONES_RELATIVE}" ]      && internal_fail "variable CLONES_RELATIVE is empty"
 [ -z "${CLONESBUILD_RELATIVE}" ] && internal_fail "CLONESBUILD_RELATIVE is empty"
 
+#
+# Global Settings
+#
+HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
+LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
+FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 
-MULLE_BOOTSTRAP_TRACE="`read_config_setting "trace"`"
-
-case "${MULLE_BOOTSTRAP_TRACE}" in
-	VERBOSE)
-		MULLE_BOOTSTRAP_VERBOSE="YES"
-	   MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
-	   MULLE_BOOTSTRAP_TRACE="YES"
-	   log_trace "VERBOSE trace started"
-	   ;;
-	FULL|ALL)
-      MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS="YES"
-	   MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
-		MULLE_BOOTSTRAP_VERBOSE="YES"
-	   MULLE_BOOTSTRAP_TRACE="YES"
-	   log_trace "FULL trace started"
-	   ;;
-	1848)
-	   MULLE_BOOTSTRAP_TRACE="YES"
-	   log_trace "1848 trace (set -x) started"
-		set -x
-	   ;;
-esac
-
-if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" ]
-then
-   log_trace "Dry run is active. Nothing should be modified on the filesystem"
-fi

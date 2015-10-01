@@ -135,7 +135,7 @@ ask_symlink_it()
       echo "You need to check out ${clone} yourself, as it's not there." >&2 || exit 1
    fi
 
-   SYMLINK_FORBIDDEN=`read_config_setting "symlink_forbidden"`
+   SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
 
    # check if checked out
    if [ -d "${clone}"/.git ]
@@ -183,7 +183,7 @@ run_fetch_settings_script()
 
    local script
 
-   script=`read_fetch_setting "bin/${name}.sh"`
+   script="`read_fetch_setting "bin/${name}.sh"`"
    if [ ! -z "${script}" ]
    then
       run_script "${script}" "$@"
@@ -229,7 +229,7 @@ checkout()
    fi
 
    srcname="${clone}"
-   script=`read_repo_setting "${name1}" "bin/${COMMAND}.sh"`
+   script="`read_repo_setting "${name1}" "bin/${COMMAND}.sh"`"
    operation="git_clone"
 
    # simplify this crap copy/paste code
@@ -305,7 +305,6 @@ git_checkout_tag()
 {
    local dst
    local tag
-   local cmd
 
    dst="$1"
    tag="$2"
@@ -378,9 +377,11 @@ bootstrap_recurse()
    local name
 
    dst="$1"
-   [ "${PWD}" != "${dst}" ] || fail "configuration error"
 
-   name=`basename "${dst}"`
+   [ ! -z "${dst}" ] || internal_fail "dst was empty"
+   [ "${PWD}" != "${dst}" ] || internal_fail "configuration error"
+
+   name="`basename "${dst}"`"
 
    # contains own bootstrap ? and not a symlink
    if [ ! -d "${dst}/.bootstrap" ] # -a ! -L "${dst}" ]
@@ -438,7 +439,7 @@ bootstrap_recurse()
       local relative
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
-      relative=`compute_relative "${BOOTSTRAP_SUBDIR}"`
+      relative="`compute_relative "${BOOTSTRAP_SUBDIR}"`"
       exekutor find "${dst}/.bootstrap/settings" -type f -depth 1 -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
@@ -496,7 +497,7 @@ mark_alive()
    # mark as alive
    if [ -d "${dstname}" -o -L "${dstname}" ] && [ ! -r "${dstname}" ]
    then
-      permission=`lso "${CLONES_FETCH_SUBDIR}"`
+      permission="`lso "${CLONES_FETCH_SUBDIR}"`"
       [ ! -z "$permission" ] || fail "failed to get permission of ${CLONES_FETCH_SUBDIR}"
       exekutor chmod -h "${permission}" "${dstname}"
 
@@ -537,11 +538,11 @@ checkout_repository()
 {
    local dstname
 
-   dstname="$5"
+   dstname="$4"
 
    if [ ! -e "${dstname}" ]
    then
-      checkout "$@"  || fail "checkout failed"
+      checkout "$@"
       if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
       then
          bootstrap_recurse "${dstname}"
@@ -550,6 +551,8 @@ checkout_repository()
             return 1
          fi
       fi
+   else
+      log_fluff "Repository \"${dstname}\" already exists"
    fi
    return 0
 }
@@ -566,9 +569,9 @@ clone_repository()
    local tag
    local dstname
 
-   name1=`basename "${clone}" .git`
-   name2=`basename "${clone}"`
-   tag=`read_repo_setting "${name1}" "tag"` #repo (sic)
+   name1="`basename "${clone}" .git`"
+   name2="`basename "${clone}"`"
+   tag="`read_repo_setting "${name1}" "tag"`" #repo (sic)
 
    dstname="${CLONES_FETCH_SUBDIR}/${name1}"
 
@@ -599,7 +602,7 @@ clone_repositories()
    do
       stop=1
 
-      clones=`read_fetch_setting "gits"`
+      clones="`read_fetch_setting "gits"`"
       if [ "${clones}" != "" ]
       then
          ensure_clones_directory
@@ -639,7 +642,7 @@ update()
    log_info "Updating \"${dstname}\""
    if [ ! -L "${dstname}"  ]
    then
-      script=`read_repo_setting "${name}" "bin/update.sh"`
+      script="`read_repo_setting "${name}" "bin/update.sh"`"
       if [ ! -z "${script}" ]
       then
          run_script "${script}" "$@"
@@ -647,7 +650,7 @@ update()
          exekutor git_pull "${dstname}" "${tag}"
       fi
 
-      script=`read_repo_setting "${name}" "bin/post-update.sh"`
+      script="`read_repo_setting "${name}" "bin/post-update.sh"`"
       if [ ! -z "${script}" ]
       then
          run_script "${script}" "$@"
@@ -666,8 +669,8 @@ update_repository()
    local tag
    local dstname
 
-   name=`basename "${clone}" .git`
-   tag=`read_repo_setting "${name}" "tag"` #repo (sic)
+   name="`basename "${clone}" .git`"
+   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
    dstname="${CLONES_FETCH_SUBDIR}/${name}"
    exekutor [ -e "${dstname}" ] || fail "You need to install first, before updating"
@@ -700,7 +703,7 @@ update_repositories()
          update_repository "${CLONES_FETCH_SUBDIR}/${clone}"
       done
    else
-      clones=`read_fetch_setting "gits"`
+      clones="`read_fetch_setting "gits"`"
       if [ "${clones}" != "" ]
       then
          for clone in ${clones}
@@ -716,7 +719,9 @@ brew_update_if_needed()
 {
    local stale
    local last_update
+   local what
 
+   what="$1"
    last_update="${HOME}/.mulle-bootstrap/brew-update"
 
    fetch_brew_if_needed
@@ -727,18 +732,20 @@ brew_update_if_needed()
 
    if [ -f "${last_update}" ]
    then
-      stale=`find "${last_update}" -mtime +1 -type f -exec echo '{}' \;`
+      stale="`find "${last_update}" -mtime +1 -type f -exec echo '{}' \;`"
       if [ -f "${last_update}" -a "$stale" = "" ]
       then
+         log_fluff "brew seems to be up to date"
          return 0
       fi
    fi
 
-   user_say_yes "Should brew be updated before installing ?"
+   user_say_yes "Should brew be updated before installing ${what} ?"
 
    if [ $? -eq 0 ]
    then
-   	brew update
+      log_fluff "Updating brew, this can take some time..."
+   	exekutor brew update
 
 	   mkdir_if_missing "`dirname "${last_update}"`"
    	exekutor touch "${last_update}"
@@ -755,12 +762,14 @@ install_taps()
    local taps
    local old
 
+   log_fluff "Looking for taps"
+
    taps=`read_fetch_setting "taps" | sort | sort -u`
    if [ "${taps}" != "" ]
    then
       local old
 
-      brew_update_if_needed
+      fetch_brew_if_needed
 
       old="${IFS:-" "}"
       IFS="
@@ -769,6 +778,8 @@ install_taps()
       do
          exekutor brew tap "${tap}" > /dev/null || exit 1
       done
+   else
+      log_fluff "No taps found"
    fi
 }
 
@@ -780,24 +791,31 @@ install_brews()
 
    install_taps
 
+   log_fluff "Looking for brews"
+
    brews=`read_fetch_setting "brews" | sort | sort -u`
    if [ "${brews}" != "" ]
    then
       local old
-
-      brew_update_if_needed
 
       old="${IFS:-" "}"
       IFS="
 "
       for brew in ${brews}
       do
-         if [ "${COMMAND}" != "install" -o "`which "${brew}"`" = "" ]
+         if [ "`which "${brew}"`" = "" ]
          then
+            brew_update_if_needed "${brew}"
+
+            log_fluff "brew ${COMMAND} \"${brew}\""
             exekutor brew "${COMMAND}" "${brew}" || exit 1
+         else
+            log_info "\"${brew}\" is already installed."
          fi
       done
       IFS="${old}"
+   else
+      log_fluff "No brews found"
    fi
 }
 
@@ -810,7 +828,9 @@ check_tars()
    local tarballs
    local tar
 
-   tarballs=`read_fetch_setting "tarballs" | sort | sort -u`
+   log_fluff "Looking for tarballs"
+
+   tarballs="`read_fetch_setting "tarballs" | sort | sort -u`"
    if [ "${tarballs}" != "" ]
    then
       local old
@@ -824,8 +844,11 @@ check_tars()
          then
             fail "tarball \"$tar\" not found"
          fi
+         log_fluff "tarball \"$tar\" found"
       done
       IFS="${old}"
+   else
+      log_fluff "No tarballs found"
    fi
 }
 
@@ -838,7 +861,9 @@ install_gems()
    local gems
    local gem
 
-   gems=`read_fetch_setting "gems" | sort | sort -u`
+   log_fluff "Looking for gems"
+
+   gems="`read_fetch_setting "gems" | sort | sort -u`"
    if [ "${gems}" != "" ]
    then
       local old
@@ -848,12 +873,17 @@ install_gems()
 "
       for gem in ${gems}
       do
+         log_fluff "gem install \"${gem}\""
+
          echo "gem needs sudo to install ${gem}" >&2
          exekutor sudo gem install "${gem}" || exit 1
       done
       IFS="${old}"
+   else
+      log_fluff "No gems found"
    fi
 }
+
 
 #
 # Use pips for stuff we don't tag
@@ -863,7 +893,9 @@ install_pips()
    local pips
    local pip
 
-   pips=`read_fetch_setting "pips" | sort | sort -u`
+   log_fluff "Looking for pips"
+
+   pips="`read_fetch_setting "pips" | sort | sort -u`"
    if [ "${pips}" != "" ]
    then
       local old
@@ -873,17 +905,21 @@ install_pips()
 "
       for pip in ${pips}
       do
+         log_fluff "pip install \"${gem}\""
+
          echo "pip needs sudo to install ${pip}" >&2
          exekutor sudo pip install "${pip}" || exit 1
       done
       IFS="${old}"
+   else
+      log_fluff "No pips found"
    fi
 }
 
 
 main()
 {
-   log_info "Start fetch"
+   log_fluff "::: fetch :::"
    #
    # Run prepare scripts if present
    #
@@ -894,7 +930,7 @@ main()
    then
       clone_repositories "$@"
 
-      install_brews "${COMMAND}" # no update for now
+      install_brews
       install_gems
       install_pips
       check_tars

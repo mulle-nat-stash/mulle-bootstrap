@@ -20,7 +20,7 @@ git@github.com:mulle-nat/UISS.git
 git@github.com:mulle-nat/Finch.git
 ```
 
-Now **mulle-bootstrap** can iterate over them and check them out into a common directory `.repos`. Ok the repository **MulleScion** has a local clone in the parent directory. mulle-bootstrap can clone (or even symlink) from there, if you want.
+Now **mulle-bootstrap** can iterate over them and check them out into a common directory `.repos`. If  there is a local clone of the  repository **MulleScion** in the parent directory of the projeczt, then mulle-bootstrap can clone (or even symlink) from there, if you want.
 
 After cloning **mulle-bootstrap** does a simple security check with respect to `.bootstrap` shell scripts and Xcode script phases. Finally it looks for a `.bootstrap` folder in the freshly checked out repositories! They might have dependencies too, if they do, those dependencies are added to the source repositories dependencies.
 
@@ -83,10 +83,4 @@ Prepares a Xcode project to use the libraries that are compiled into the `./depe
 #### mulle-bootstrap tag
 
 Tag your project and all fetched repositories, with a tag.
-
-
-## Known limitations
-
-* only works for libraries so far
-* not tested too much
 

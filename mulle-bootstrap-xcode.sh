@@ -40,14 +40,6 @@ shift
 
 check_and_usage_and_help
 
-#
-# Global Settings
-#
-HEADER_PATH=`read_config_setting "header_path" "/include"`
-LIBRARY_PATH=`read_config_setting "library_path" "/lib"`
-FRAMEWORK_PATH=`read_config_setting "framework_path" "/Frameworks"`
-
-
 
 list_configurations()
 {
@@ -230,7 +222,6 @@ patch_xcode_project()
 {
    local name
    local project
-   local prefix
    local mapped
    local configurations
    local xcode_configurations
@@ -293,24 +284,24 @@ Release"
 
    dependencies_dir='$(PROJECT_DIR)'"${relative_subdir}"
 
-   header_search_paths="\$(DEPENDENCIES_DIR)${HEADER_PATH}"
+   header_search_paths="\$(DEPENDENCIES_DIR)/${HEADER_DIR_NAME}"
    header_search_paths="${header_search_paths} /usr/local/include"
    header_search_paths="${header_search_paths} \$(inherited)"
 
-   library_search_paths="\$(DEPENDENCIES_DIR)${LIBRARY_PATH}/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)${LIBRARY_PATH}/\$(LIBRARY_CONFIGURATION)"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)${LIBRARY_PATH}/${default}\$(EFFECTIVE_PLATFORM_NAME)"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)${LIBRARY_PATH}/${default}"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)${LIBRARY_PATH}"
+   library_search_paths="\$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)"
+   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/\$(LIBRARY_CONFIGURATION)"
+   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/${default}\$(EFFECTIVE_PLATFORM_NAME)"
+   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/${default}"
+   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}"
    library_search_paths="${library_search_paths} /usr/local/lib"
    library_search_paths="${library_search_paths} \$(inherited)"
 
 
-   framework_search_paths="\$(DEPENDENCIES_DIR)${FRAMEWORK_PATH}/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)${FRAMEWORK_PATH}/\$(LIBRARY_CONFIGURATION)"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)${FRAMEWORK_PATH}/${default}\$(EFFECTIVE_PLATFORM_NAME)"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)${FRAMEWORK_PATH}/${default}"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)${FRAMEWORK_PATH}"
+   framework_search_paths="\$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)"
+   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}/\$(LIBRARY_CONFIGURATION)"
+   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}/${default}\$(EFFECTIVE_PLATFORM_NAME)"
+   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}/${default}"
+   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}"
    framework_search_paths="${framework_search_paths} \$(inherited)"
 
    local query
@@ -349,9 +340,9 @@ Release"
       IFS="${old}"
       echo  "-----------------------------------------------------------${C_RESET}"  >&2
 
-      query="Add ${C_CYAN}\"${DEPENDENCY_SUBDIR}${LIBRARY_PATH}\"${C_YELLOW}  and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Add ${C_CYAN}\"${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}\"${C_YELLOW}  and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    else
-      query="Remove ${C_CYAN}\"${DEPENDENCY_SUBDIR}${LIBRARY_PATH}\"${C_YELLOW}  and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Remove ${C_CYAN}\"${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}\"${C_YELLOW}  and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    fi
 
    user_say_yes "$query"
@@ -385,7 +376,7 @@ Release"
 
 main()
 {
-   log_info "Start xcode"
+   log_fluff "::: xcode :::"
 
    patch_xcode_project "$@"
 }

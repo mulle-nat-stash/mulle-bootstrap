@@ -195,7 +195,7 @@ posttag_script()
 
 main()
 {
-   log_info "Start tag"
+   log_fluff "::: tag :::"
 
    ensure_repos_clean
 

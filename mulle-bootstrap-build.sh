@@ -52,9 +52,6 @@ fi
 
 
 CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
-HEADER_PATH=`read_config_setting "header_path" "/include"`
-LIBRARY_PATH=`read_config_setting "library_path" "/lib"`
-FRAMEWORK_PATH=`read_config_setting "framework_path" "/Frameworks"`
 
 #
 # move stuff produced my cmake and configure to places
@@ -76,10 +73,10 @@ dispense_headers()
    then
       if dir_has_files "${src}"
       then
-         usrlocal="`read_build_setting "headers_c_and_d_prefix" "/usr/local"`"
+         usrlocal="`read_config_setting "headers_c_and_d_prefix" "/usr/local"`"
 
-         dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}${HEADER_PATH}"
-         mkdir_if_missing "${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}${HEADER_PATH}"
+         dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}/${HEADER_DIR_NAME}"
+         mkdir_if_missing "${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}/${HEADER_DIR_NAME}"
 
          log_fluff "Copying ${src} to ${dst}"
          exekutor find -x "${src}" ! -path "${src}" -depth 1 -type d -print0 | \
@@ -152,7 +149,7 @@ collect_and_dispense_product()
       dispense_headers "${src}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/lib${subdir}"
-      dispense_binaries "${src}" "f" "${LIBRARY_PATH}"
+      dispense_binaries "${src}" "f" "/${LIBRARY_DIR_NAME}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks${subdir}"
       dispense_binaries "${src}" "d" "${FRAMEWORK_PATH}"
@@ -163,7 +160,7 @@ collect_and_dispense_product()
       dispense_headers "${src}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/lib"
-      dispense_binaries "${src}" "f" "${LIBRARY_PATH}"
+      dispense_binaries "${src}" "f" "/${LIBRARY_DIR_NAME}"
 
       # coming from Cmake and configure
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/Frameworks"
@@ -191,7 +188,7 @@ collect_and_dispense_product()
    # probably should hack all executables with install_name_tool that contain .ref
    #
    # now copy over the rest of the output
-   usrlocal="`read_build_setting "others_c_and_d_prefix" "/usr/local"`"
+   usrlocal="`read_config_setting "others_c_and_d_prefix" "/usr/local"`"
 
    log_fluff "Considering copying ${BUILD_DEPENDENCY_SUBDIR}/*"
 
@@ -310,35 +307,35 @@ build_cmake()
    log_info "Do a cmake ${C_MAGENTA}${configuration}${C_INFO} build of \
 ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
-   mapped=`read_build_setting "$name" "cmake-${configuration}.map" "${configuration}"`
-   suffix=`determine_suffix "${configuration}" "${sdk}"`
-   sdk=`cmake_sdk_parameter "${sdk}"`
+   mapped="`read_build_setting "$name" "cmake-${configuration}.map" "${configuration}"`"
+   suffix="`determine_suffix "${configuration}" "${sdk}"`"
+   sdk="`cmake_sdk_parameter "${sdk}"`"
 
    local other_cflags
    local other_cppflags
    local other_ldflags
 
-   other_cflags=`gcc_cflags_value "${name}"`
-   other_cppflags=`gcc_cppflags_value "${name}"`
-   other_ldflags=`gcc_ldflags_value "${name}"`
+   other_cflags="`gcc_cflags_value "${name}"`"
+   other_cppflags="`gcc_cppflags_value "${name}"`"
+   other_ldflags="`gcc_ldflags_value "${name}"`"
 
    owd="${PWD}"
    # to avoid warning make sure directories are all there
    # TODO: I DONT LIKE THIS
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}"
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}"
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}"
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}"
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}"
 
    mkdir_if_missing "${builddir}"
    exekutor cd "${builddir}" || exit 1
 
       # check that relative ise right
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" ] || exit 1
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" ] || exit 1
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
+      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ] || exit 1
+      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}" ] || exit 1
+      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}" ] || exit 1
 
       #
       # cmake doesn't seem to "get" CMAKE_CXX_FLAGS or -INCLUDE
@@ -348,26 +345,26 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
       exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
 "-DCMAKE_C_FLAGS=\
--I${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+-I${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
 ${sdk}" \
 "-DCMAKE_CXX_FLAGS=\
--I${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+-I${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
 ${sdk}" \
 "-DCMAKE_LD_FLAGS=\
--L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH}${suffix} \
--L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${configuration} \
--L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+-L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
+-L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_ldflags} \
 ${sdk}" \
 "${relative}/${srcdir}" 1>&2  || exit 1
@@ -425,45 +422,45 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
    owd="${PWD}"
    # to avoid warnings make sure directories are all there
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}"
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}"
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}"
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}"
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}"
 
    mkdir_if_missing "${builddir}" 2> /dev/null
    exekutor cd "${builddir}" || exit 1
 
       # check that relative is right
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" ] || exit 1
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration}" ] || exit 1
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix}" ] || exit 1
+      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ] || exit 1
+      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}" ] || exit 1
+      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}" ] || exit 1
 
       set -f
 
       # use absolute paths for configure, safer (and easier to read IMO)
       CFLAGS="\
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+-I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
 ${sdk}" \
       CPPFLAGS="\
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
+-I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
 ${sdk}" \
       LDFLAGS="\
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${configuration} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH}${suffix} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${configuration} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 ${sdk}" \
       exekutor "${owd}/${srcdir}/configure" --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" 1>&2  || exit 1
@@ -535,7 +532,7 @@ create_mangled_header_path()
    if [ $? -ne 0 ]
    then
       headers="`remove_absolute_path_prefix_up_to "${headers}" "include"`"
-      prefix="${HEADER_PATH}"
+      prefix="${HEADER_DIR_NAME}"
    fi
 
    if read_yes_no_build_setting "${name}" "xcode_mangle_header_dash"
@@ -553,7 +550,6 @@ fixup_header_path()
    local setting_key
    local default
    local name
-   local prefix
 
    key="$1"
    shift
@@ -674,18 +670,18 @@ ${info} ..."
    suffix="/${configuration}"
    if [ "${sdk}" != "Default" ]
    then
-      hackish=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
+      hackish="`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`"
       suffix="${suffix}-${hackish}"
    else
       sdk=
    fi
 
-   local proper_skip_install
+   local xcode_proper_skip_install
    local skip_install
 
    skip_install=
-   proper_skip_install=`read_build_setting "${name}" "proper_skip_install" "NO"`
-   if [ "$proper_skip_install" != "YES" ]
+   xcode_proper_skip_install=`read_build_setting "${name}" "xcode_proper_skip_install" "NO"`
+   if [ "$xcode_proper_skip_install" != "YES" ]
    then
       skip_install="SKIP_INSTALL=NO"
    fi
@@ -801,7 +797,7 @@ ${info} ..."
       #
       inherited="`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${HEADER_PATH}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" \
 "/usr/local/include"`
       if [ -z "${inherited}" ]
       then
@@ -812,12 +808,12 @@ ${info} ..."
 
       inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}" \
 "/usr/local/lib"`
       if [ ! -z "$sdk" ]
       then
-         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${LIBRARY_PATH}/${mapped}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
+         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
          path="${escaped} ${path}" # prepend
       fi
       if [ -z "${inherited}" ]
@@ -830,11 +826,11 @@ ${info} ..."
 
       inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}"`
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`
       if [ ! -z "$sdk" ]
       then
-         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${FRAMEWORK_PATH}/${mapped}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
+         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
          path="${escaped} ${path}" # prepend
       fi
       if [ -z "${inherited}" ]
@@ -859,7 +855,7 @@ ${info} ..."
 ARCHS='\${ARCHS_STANDARD_32_64_BIT}' \
 DEPLOYMENT_LOCATION=YES \
 DSTROOT='${owd}/${BUILD_DEPENDENCY_SUBDIR}' \
-INSTALL_PATH='${LIBRARY_PATH}${suffix}' \
+INSTALL_PATH='/${LIBRARY_DIR_NAME}${suffix}' \
 SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
 ONLY_ACTIVE_ARCH=NO \
@@ -981,7 +977,7 @@ Release"`
    do
       for configuration in ${configurations}
       do
-         if [ "$/{configuration}" = "${LIBRARY_PATH}" -o "/${configuration}" = "${HEADER_PATH}" -o "/${configuration}" = "${FRAMEWORK_PATH}" ]
+         if [ "$/{configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_PATH}" ]
          then
             fail "You are just asking for trouble."
          fi
@@ -1216,7 +1212,7 @@ main()
 {
    local  no_clean
 
-   log_info "Start build"
+   log_fluff "::: build :::"
 
    log_fluff "Setting up ${DEPENDENCY_SUBDIR}"
    no_clean="`read_config_setting "dont_clean_dependencies_before_build"`"
@@ -1231,7 +1227,7 @@ main()
    #
    if [ ! -d "${CLONES_SUBDIR}" ]
    then
-      log_info "No repos fetched, nothing to do."
+      log_fluff "No repos fetched, nothing to do."
       return 0
    fi
 

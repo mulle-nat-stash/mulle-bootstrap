@@ -125,6 +125,7 @@ eval_exekutor()
    fi
 }
 
+
 exekutor()
 {
    if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" -o "$MULLE_BOOTSTRAP_TRACE" = "YES" ]
@@ -292,7 +293,6 @@ rmdir_safer()
 }
 
 
-
 user_say_yes()
 {
   local  x
@@ -355,12 +355,15 @@ Install brew now (Linux or OS X should work) ? "
       fi
       if [ "`uname`" = 'Darwin' ]
       then
+         log_info "Installing OS X brew"
          exekutor ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || exit 1
       else
+         log_info "Installing Linux brew"
          exekutor ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/linuxbrew/go/install)" || exit 1
       fi
 
-      exekutor mkdir -p "`dirname "${last_update}"`" 2> /dev/null
+      log_fluff "Touching ${last_update}"
+      exekutor mkdir_if_missing "`dirname "${last_update}"`"
       exekutor touch "${last_update}"
       return 1
    fi

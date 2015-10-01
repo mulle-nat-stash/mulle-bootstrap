@@ -23,7 +23,6 @@ buildorder              |  repositories to build in that order. You only need to
 configurations          |  configurations to build              | Debug\nRelease
 sdks                    |  SDKs to build                        | Default
 
-
 Build Settings
 ===================
 
@@ -73,6 +72,24 @@ project        | build,xcode   | The Xcode project file to use
 schemes        | build         | The Xcode schemes to build
 targets        | build         | The Xcode targets to build
 
+Fetch Settings
+===================
+
+1. ./bootstrap.auto/settings
+2. ./bootstrap.local/settings
+3. ./bootstrap/settings
+
+
+Setting Name       |  Description
+-------------------|----------------------------------------
+brews              | Homebrew formulae to install
+gems               | Ruby packages to install with gem
+gits               | Repositories to clone, specify the URLs
+pips               | Python packages to install with pip
+taps               | Homebrew taps to install
+tarballs           | Tarballs to install (currently filesystem only)
+
+
 
 Config Settings
 ===================
@@ -87,40 +104,34 @@ Environment variables use the setting name, transformed to upper case and prepen
 3. ./bootstrap.auto/config
 5. ~/.mulle-bootstrap
 
-Setting Name                   |  Description                              | Default
--------------------------------|-------------------------------------------|----------------------------
-preferences           | list order of preferred build tools. Will be used in deciding if to use cmake or xcodebuild, if both are available       | script\nxcodebuild\ncmake\nconfigure
-framework_path   | path of the Frameworks folder in dependencies           | /Frameworks
-header_path      | path of the headers folder in dependencies              | /include
-lib_path         | path of the lib folder in dependencies                  | /lib
-symlink_forbidden | mulle-bootstrap will not attempt to symlink            | NO
-clean_before_build | should mulle-bootstrap clean before building          | NO
-                  |                                                        |
-clean_folders      | folders to delete for mulle-bootstrap clean           | build/.repos
-dist_clean_folders  | folders to delete for mulle-bootstrap clean dist     | .repos\n/.bootstrap.auto
-output_clean_folders| folders to delete for mulle-bootstrap clean output   | dependencies
+Setting Name                   |  Description                                  | Default
+-------------------------------|-----------------------------------------------|----------------
+clean_before_build             | should mulle-bootstrap clean before building  | NO
+dont_clean_dependencies_before_build |  usually before a build, mulle-bootstrap cleans dependencies to avoid surprising  "it worked the second time" builds due to wrong buildorder
+                                                                               | NO
+framework_path                  | name of the Frameworks folder                | Frameworks
+header_dir_name                 | name of the headers folder in
+dependencies. e.g. You dislike "include" and favor "headers".                                                                      | include
+library_dir_name                | as above, but for libraries                   | lib
+preferences                    | list order of preferred build tools. Will be used in deciding if to use cmake or xcodebuild, if both are available       | script\nxcodebuild\ncmake\nconfigure
+headers_c_and_d_prefix  | where the build should put headers, relative to dependencies | /usr/local
+others_c_and_d_prefix   | where the build should put other files (excluding libraries, frameworks and headers), relative to dependencies | /usr/local
+symlink_forbidden              | mulle-bootstrap will not attempt to symlink          | NO
+trace                          | see MULLE_BOOTSTRAP_TRACE for more info   | NO
+xcodebuild                     | tool to use instead of xcodebuild (xctool ?) | xcodebuild
+                     |                                                     |
+clean_folders        | folders to delete for mulle-bootstrap clean         | build/.repos
+dist_clean_folders   | folders to delete for mulle-bootstrap clean dist    | .repos\n/.bootstrap.auto
+output_clean_folders | folders to delete for mulle-bootstrap clean output  | dependencies
                   |                                                        |
 repos_foldername  |  Where to place cloned repositories                    | .repos
 output_foldername |  DSTROOT, --prefix of headers and libraries            | dependencies
 build_foldername  |  OBJROOT, build root for intermediate files like .o    | build/.repos
-
-
-Fetch Settings
-===================
-
-1. ./bootstrap.auto/settings
-2. ./bootstrap.local/settings
-3. ./bootstrap/settings
-
-
-Setting Name       |  Description
--------------------|----------------------------------------
-brews              | Homebrew formulae to install
-gems               | Ruby gems to install
-gits               | Repositories to clone, specify the URLs
-taps               | Homebrew taps to install
-
-
+      |                                                        |
+no_warn_environment_setting | don't warn when a setting is defined by environment        | NO
+no_warn_local_setting       | don't warn when a setting is defined by .bootstrap.local   | NO
+no_warn_user_setting        | don't warn when a setting is defined by ~/.mulle-bootstrap | NO
+      |                                                        |
 
 Fetch Script Settings
 ==========================
@@ -135,7 +146,6 @@ pre-upgrade.sh
 post-upgrade.sh
 pre-tag.sh
 post-tag.sh
-
 
 Build Script Settings
 ==========================
