@@ -37,6 +37,22 @@
 
 . mulle-bootstrap-local-environment.sh
 
+
+check_and_usage_and_help()
+{
+   echo "usage: mulle-bootstrap-tag.sh [tag] [vendortag_prefix] [repo]" 2>&1
+   exit 1
+}
+
+#
+# Parameter
+#
+if [ "$1" = "-h" -o "$1" = "--help" ]
+then
+   check_and_usage_and_help
+fi
+
+
 name=`basename "${PWD}"`
 
 project=`find_xcodeproj "${name}"`

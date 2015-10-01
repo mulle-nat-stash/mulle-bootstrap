@@ -35,31 +35,40 @@
 # You can also specify a list of "brew" dependencies. That
 # will be third party libraries, you don't tag or debug
 #
-COMMAND=${1:-"install"}
-
 . mulle-bootstrap-warn-scripts.sh
 . mulle-bootstrap-local-environment.sh
 
 
+check_and_usage_and_help()
+{
+   case "$COMMAND" in
+      install)
+      ;;
+      nonrecursive)
+        COMMAND=install
+        DONT_RECURSE="YES"
+      ;;
+      update)
+      ;;
+      *)
+      echo "usage: mulle-bootstrap-fetch.sh <install|nonrecursive|update>" 2>&1
+      exit 1
+      ;;
+   esac
+}
+
+if [ "$1" = "-h" -o "$1" = "--help" ]
+then
+   check_and_usage_and_help
+fi
+
+COMMAND=${1:-"install"}
 if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
 then
    COMMAND="install"
 fi
 
-case "$COMMAND" in
-   install)
-   ;;
-   nonrecursive)
-     COMMAND=install
-     DONT_RECURSE="YES"
-   ;;
-   update)
-   ;;
-   *)
-   echo "usage: mulle-bootstrap-fetch.sh <install|nonrecursive|update>" 2>&1
-   exit 1
-   ;;
-esac
+check_and_usage_and_help
 
 
 link_command()
@@ -87,7 +96,7 @@ link_command()
          name="`basename "${dst}"`"
          echo "tag ${tag} will be ignored, due to symlink" >&2
          echo "if you want to checkout this tag do:" >&2
-         echo "(cd .repos/${name}; git checkout \"${tag}\" )" >&2
+         echo "(cd .repos/${name}; git ${GITFLAGS} checkout \"${tag}\" )" >&2
       fi
    fi
 
@@ -164,6 +173,19 @@ checkout()
    local flag
    local found
 
+   #
+   # this implicitly ensures, that these folders are
+   # movable and cleanable by mulle-bootstrap
+   # so ppl can't really use  src mistakenly
+
+   if [ -e "${DEPENDENCY_SUBDIR}" -o -e "${CLONESBUILD_SUBDIR}" ]
+   then
+      log_error "Stale folders ${DEPENDENCY_SUBDIR} and/or ${CLONESBUILD_SUBDIR} found."
+      log_error "Please remove them before continuing."
+      log_info  "Suggested command: ${C_WHITE}mulle-bootstrap clean output"
+      exit 1
+   fi
+
    srcname="${clone}"
    script=`read_repo_setting "${name1}" bin/"${cmd}.sh"`
    operation="git_command"
@@ -236,7 +258,7 @@ Use it instead of cloning ${clone} ?"
    script=`read_repo_setting "${name1}" "bin/post-${cmd}.sh"`
    if [ -x "${script}" ]
    then
-      "${script}" || exit 1
+      exekutor "${script}" || exit 1
    fi
 }
 
@@ -261,15 +283,15 @@ update()
    then
       if [ -x "${script}" ]
       then
-         "${script}" || exit 1
+         exekutor "${script}" || exit 1
       else
-         git_command "${clone}" "${dstname}" "${tag}" || exit 1
+         exekutor git_command ${GITFLAGS} "${clone}" "${dstname}" "${tag}" || exit 1
       fi
 
       script=`read_repo_setting "${name}" "bin/post-${cmd}.sh"`
       if [ -x "${script}" ]
       then
-         "${script}" || exit 1
+         exekutor "${script}" || exit 1
       fi
    fi
 }
@@ -288,15 +310,15 @@ git_command()
    if [ "${COMMAND}" = "install" ]
    then
       log_info "Cloning ${C_WHITE}${src}${C_INFO} ..."
-      git clone "${src}" "${dst}" || exit 1
+      exekutor git clone ${GITFLAGS} "${src}" "${dst}" || exit 1
    else
-      ( cd "${dst}" ; git pull ) || exit 1
+      ( exekutor cd "${dst}" ; exekutor git pull ) || exit 1
    fi
 
    if [ "${tag}" != "" ]
    then
       log_info "Checking out ${C_MAGENTA}${tag}${C_INFO} ..."
-      (cd "${dst}" ; git checkout "${tag}" )
+      ( exekutor cd "${dst}" ; exekutor git checkout ${GITFLAGS} "${tag}" )
 
       if [ $? -ne 0 ]
       then
@@ -304,8 +326,8 @@ git_command()
          log_error "You need to fix this manually and then move it back."
          log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename "${dst}"`/TAG" >&2
 
-         rm -rf "${dst}.failed" 2> /dev/null
-         mv "${dst}" "${dst}.failed"
+         rmdir_safer "${dst}.failed"
+         exekutor mv "${dst}" "${dst}.failed"
          exit 1
       fi
    fi
@@ -339,16 +361,16 @@ bootstrap_recurse()
    then
       echo "Found a .bootstrap folder for `basename "${dst}"` will set up ${BOOTSTRAP_SUBDIR}.auto" >&2
 
-      mkdir -p "${BOOTSTRAP_SUBDIR}.auto/settings"
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
       for i in $INHERIT_SETTINGS
       do
          if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
          then
-            cp "${BOOTSTRAP_SUBDIR}}.local/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+            exekutor cp "${BOOTSTRAP_SUBDIR}}.local/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
          else
             if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
             then
-               cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+               exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
             fi
          fi
       done
@@ -364,11 +386,11 @@ bootstrap_recurse()
       then
          if [ -f "${BOOTSTRAP_SUBDIR}.auto/${i}" ]
          then
-            mv "${BOOTSTRAP_SUBDIR}.auto/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" || exit 1
-            cat "${dst}/.bootstrap/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" > "${BOOTSTRAP_SUBDIR}.auto/${i}"  || exit 1
-            rm "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" || exit 1
+            exekutor mv "${BOOTSTRAP_SUBDIR}.auto/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" || exit 1
+            exekutor cat "${dst}/.bootstrap/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" > "${BOOTSTRAP_SUBDIR}.auto/${i}"  || exit 1
+            exekutor rm "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" || exit 1
          else
-            cp "${dst}/.bootstrap/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+            exekutor cp "${dst}/.bootstrap/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
          fi
       fi
    done
@@ -380,14 +402,14 @@ bootstrap_recurse()
    then
       local relative
 
-      mkdir -p "${BOOTSTRAP_SUBDIR}.auto/settings/${name}" 2> /dev/null
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
       relative=`compute_relative "${BOOTSTRAP_SUBDIR}"`
-      find "${dst}/.bootstrap/settings" -type f -depth 1 -print0 | \
-      xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
+      exekutor find "${dst}/.bootstrap/settings" -type f -depth 1 -print0 | \
+         exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
       # flatten folders into our own settings
-      find "${dst}/.bootstrap/settings" -type d -depth 1 -print0 | \
-      xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
+      exekutor find "${dst}/.bootstrap/settings" -type d -depth 1 -print0 | \
+         exekutor xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
 
 
@@ -400,8 +422,8 @@ bootstrap_recurse()
 # if you specify ../ it will assume you have
 # checked it out yourself, If there is something
 # checked out already it will use it, or ask
-# convetion: .git suffix == repo to clone
-#         no .git suffix, try to symlink
+# convention: .git suffix == repo to clone
+#          no .git suffix, try to symlink
 #
 clone_repositories()
 {
@@ -423,7 +445,7 @@ clone_repositories()
       do
          if [ -d "${i}" -o -L "${i}" ]
          then
-            chmod -h 000 "${i}"
+            exekutor chmod -h 000 "${i}"
          fi
       done
    fi
@@ -442,7 +464,7 @@ clone_repositories()
             then
                fail "install first before upgrading"
             fi
-            mkdir -p "${CLONES_FETCH_SUBDIR}" || exit 1
+            mkdir_if_missing "${CLONES_FETCH_SUBDIR}"
          fi
 
          for clone in ${clones}
@@ -460,7 +482,7 @@ clone_repositories()
             then
                permission=`lso "${CLONES_FETCH_SUBDIR}"`
                [ ! -z "$permission" ] || fail "failed to get permission of ${CLONES_FETCH_SUBDIR}"
-               chmod -h "${permission}" "${dstname}"
+               exekutor chmod -h "${permission}" "${dstname}"
             fi
 
             local info
@@ -529,8 +551,8 @@ brew_update_if_needed()
    then
    	brew update
 
-	   mkdir -p "`dirname "${last_update}"`" 2> /dev/null
-   	touch "${last_update}"
+	   mkdir_if_missing "`dirname "${last_update}"`"
+   	exekutor touch "${last_update}"
    fi
 }
 
@@ -542,14 +564,21 @@ install_taps()
 {
    local tap
    local taps
+   local old
 
    taps=`read_fetch_setting "taps" | sort | sort -u`
    if [ "${taps}" != "" ]
    then
+      local old
+
       brew_update_if_needed
+
+      old="${IFS:-" "}"
+      IFS="
+"
       for tap in ${taps}
       do
-         brew tap "${tap}" > /dev/null || exit 1
+         exekutor brew tap "${tap}" > /dev/null || exit 1
       done
    fi
 }
@@ -567,16 +596,55 @@ install_brews()
    brews=`read_fetch_setting "brews" | sort | sort -u`
    if [ "${brews}" != "" ]
    then
+      local old
+
       brew_update_if_needed
+
+      old="${IFS:-" "}"
+      IFS="
+"
       for brew in ${brews}
       do
          if [ "${cmd}" != "install" -o "`which "${brew}"`" = "" ]
          then
-            brew "$cmd" "${brew}" || exit 1
+            exekutor brew "${cmd}" "${brew}" || exit 1
          fi
       done
+      IFS="${old}"
    fi
 }
+
+
+#
+# future, download tarballs...
+#
+check_tars()
+{
+   local tarballs
+   local tar
+   local cmd
+
+   cmd="$1"
+
+   tarballs=`read_fetch_setting "tarballs" | sort | sort -u`
+   if [ "${tarballs}" != "" ]
+   then
+      local old
+
+      old="${IFS:-" "}"
+      IFS="
+"
+      for tar in ${tarballs}
+      do
+         if [ ! -f "$tar" ]
+         then
+            fail "tarball \"$tar\" not found"
+         fi
+      done
+      IFS="${old}"
+   fi
+}
+
 
 #
 # Use gems for stuff we don't tag
@@ -589,11 +657,17 @@ install_gems()
    gems=`read_fetch_setting "gems" | sort | sort -u`
    if [ "${gems}" != "" ]
    then
+      local old
+
+      old="${IFS:-" "}"
+      IFS="
+"
       for gem in ${gems}
       do
          echo "gem needs sudo to install ${gem}" >&2
-         sudo gem install "${gem}" || exit 1
+         exekutor sudo gem install "${gem}" || exit 1
       done
+      IFS="${old}"
    fi
 }
 
@@ -608,11 +682,17 @@ install_pips()
    pips=`read_fetch_setting "pips" | sort | sort -u`
    if [ "${pips}" != "" ]
    then
+      local old
+
+      old="${IFS:-" "}"
+      IFS="
+"
       for pip in ${pips}
       do
          echo "pip needs sudo to install ${pip}" >&2
-         sudo pip install "${pip}" || exit 1
+         exekutor sudo pip install "${pip}" || exit 1
       done
+      IFS="${old}"
    fi
 }
 
@@ -625,7 +705,7 @@ main()
    script=`read_fetch_setting "bin/pre-${COMMAND}.sh"`
    if [ -x "${script}" ]
    then
-      "${script}" || exit 1
+      exekutor "${script}" || exit 1
    fi
 
    clone_repositories "${COMMAND}"
@@ -633,6 +713,7 @@ main()
    install_brews "${COMMAND}"
    install_gems
    install_pips
+   check_tars
 
    #
    # Run prepare scripts if present
@@ -640,7 +721,7 @@ main()
    script=`read_fetch_setting "bin/post-${COMMAND}.sh"`
    if [ -x "${script}" ]
    then
-      "${script}" || exit 1
+      exekutor "${script}" || exit 1
    fi
 }
 

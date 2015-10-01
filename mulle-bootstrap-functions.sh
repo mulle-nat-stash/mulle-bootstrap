@@ -38,6 +38,8 @@ then
    C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
    C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
    C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
+
+   trap 'echo "${C_RESET}"' TERM EXIT
 fi
 
 
@@ -244,6 +246,53 @@ remove_absolute_path_prefix_up_to()
 }
 
 
+mkdir_if_missing()
+{
+   if [ ! -d "${1}" ]
+   then
+      exekutor mkdir -p "$1" || fail "failed to create directory $1"
+   fi
+}
+
+
+#
+# consider . .. ~ or absolute paths as unsafe
+# anything starting with a $ is probably also bad
+# this just catches some obvious problems, not all
+#
+assert_sane_subdir_path()
+{
+   case "$1"  in
+      \$*|~/.|..|./|../|/*)
+         log_error "refuse unsafe path ${C_WHITE}$1"
+         exit 1
+      ;;
+   esac
+}
+
+
+assert_sane_path()
+{
+   case "$1"  in
+      \$*|~/*|..|.|/|./|../*)
+         log_error "refuse unsafe path ${C_WHITE}$1"
+         exit 1
+      ;;
+   esac
+}
+
+
+rmdir_safer()
+{
+   if [ -d "$1" ]
+   then
+      assert_sane_path "$1"
+      exekutor rm -rf "$1" || fail "failed to remove ${1}"
+   fi
+}
+
+
+
 user_say_yes()
 {
   local  x
@@ -272,9 +321,19 @@ is_dir_empty()
 dir_has_files()
 {
    local empty
+   local result
 
    empty=`ls "$1"/* 2> /dev/null` 2> /dev/null
    [ "$empty" != "" ]
+   result=$?
+
+   if [ "$result" -eq 1 ]
+   then
+      log_fluff "directory \"$1\" has no files"
+   else
+      log_fluff "directory \"$1\" has files"
+   fi
+   return "$result"
 }
 
 
@@ -348,23 +407,6 @@ find_xcodeproj()
    fi
 
    return 1
-}
-
-
-#
-# consider . .. ~ or absolute paths as unsafe
-# anything starting with a $ is probably also bad
-# this just catches some obvious problems, not all
-# when in the environment, clones_subdir may be ..
-#
-assert_sane_path()
-{
-   case "$1"  in
-      \$*|~/.|..|./|../|/*)
-         log_error "refuse unsafe path ${C_WHITE}$1"
-         exit 1
-      ;;
-   esac
 }
 
 

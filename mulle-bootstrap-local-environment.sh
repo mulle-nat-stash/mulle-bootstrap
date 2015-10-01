@@ -80,21 +80,26 @@ fi
 [ -z "${CLONESBUILD_RELATIVE}" ] && internal_fail "CLONESBUILD_RELATIVE is empty"
 
 
+MULLE_BOOTSTRAP_TRACE="`read_config_setting "trace"`"
+
 case "${MULLE_BOOTSTRAP_TRACE}" in
 	VERBOSE)
 		MULLE_BOOTSTRAP_VERBOSE="YES"
 	   MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
 	   MULLE_BOOTSTRAP_TRACE="YES"
+	   log_trace "VERBOSE trace started"
 	   ;;
-	FULL)
+	FULL|ALL)
       MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS="YES"
 	   MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
 		MULLE_BOOTSTRAP_VERBOSE="YES"
 	   MULLE_BOOTSTRAP_TRACE="YES"
+	   log_trace "FULL trace started"
 	   ;;
 	1848)
-		set -x
 	   MULLE_BOOTSTRAP_TRACE="YES"
+	   log_trace "1848 trace (set -x) started"
+		set -x
 	   ;;
 esac
 

@@ -67,7 +67,6 @@ warn_environment_setting()
    fi
 }
 
-
 #
 # Base functions, not be called outside of this file
 #
@@ -81,20 +80,29 @@ _read_setting()
 
    # file not found = 2 (same as grep)
 
+   [ -r "${file}" ]
+   flag=$?
+
    if [ "$MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS" = "YES" ]
    then
-      log_trace2 "Looking for setting: ${file}"
+      local  yesno
+      yesno="not found"
+      if [ $flag -eq 0 ]
+      then
+         yesno="found"
+      fi
+      log_trace2 "Looking for setting: ${file} (pwd=$PWD) :  $yesno"
    fi
 
-   if [ ! -r "${file}" ]
+   if [ $flag -eq 1 ]
    then
       return 2
    fi
 
    value=`egrep -v '^#|^[ ]*$' "${file}"`
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS" = "YES" ]
    then
-      log_trace "setting `basename "${file}"` found in `dirname "${file}"` as \"${value}\""
+      log_trace "setting `basename "${file}"` found in "${file}" to \"${value}\""
    fi
 
    case "${file}" in
@@ -401,7 +409,7 @@ read_sane_config_path_setting()
    value=`read_config_setting "${name}"`
    if [ $? -ne 0 ]
    then
-      assert_sane_path "${value}"
+      assert_sane_subdir_path "${value}"
    else
       if [ "$value" = "" ]
       then

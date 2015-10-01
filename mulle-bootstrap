@@ -49,6 +49,27 @@ then
    shift
 fi
 
+if [ "$1" = "-v" ]
+then
+   MULLE_BOOTSTRAP_TRACE=VERBOSE
+   export MULLE_BOOTSTRAP_TRACE
+   GITFLAGS="-v"
+   export GITFLAGS
+   shift
+fi
+
+if [ "$1" = "-s" ] # silent
+then
+   MULLE_BOOTSTRAP_TRACE=
+   MULLE_BOOTSTRAP_TERSE=YES
+   export MULLE_BOOTSTRAP_TERSE
+   GITFLAGS="-q"
+   export GITFLAGS
+   shift
+fi
+
+
+
 command=${1:-"bootstrap"}
 shift
 
@@ -117,24 +138,30 @@ case "${command}" in
    tag)
       mulle-bootstrap-tag.sh "$@" || exit 1
       ;;
+
    *)
-      echo "usage: mulle-bootstrap [-n] [command]" >&2
-      echo "version 0.1" >&2
-      echo    " Common user commands:" >&2
-      echo    "   bootstrap : does fetch and build recursively [default]" >&2
-      echo    "   nomagic   : does fetch and build, but not recursively" >&2
-      echo    "" >& 2
-      echo    " Common maintainer commands:" >&2
-      echo    "   init      : initializes a bootstrap project" >&2
-      echo    "   xcode [o] : sets up the xcodeproj settings" >&2
-      echo    "               with [o=remove] removes settings again." >&2
-      echo    "   tag       : tag this project and fetched repositories" >&2
-      echo    "" >& 2
-      echo    " Specialized commands:" >&2
-      echo    "   build     : builds fetched repositories" >&2
-      echo    "   fetch [o] : fetches required repositories recursively." >&2
-      echo    "               whith [o=nonrecursive] fetches non recursively." >&2
-      echo    "   clean [o] : cleans intermediate build files." >&2
-      echo    "               with [o=dist] cleans clones and dependencies too." >&2
+      echo "usage: mulle-bootstrap [-n][-v][-s] [command]" >&2
+      echo "version 0.2" >&2
+      echo " Flags (must be in this order)" >&2
+      echo "   -n        : do nothing creative or destructive" >&2
+      echo "   -v        : be more verbose" >&2
+      echo "   -s        : be more terse" >&2
+      echo ""
+      echo " Common user commands:" >&2
+      echo "   bootstrap : does fetch and build recursively [default]" >&2
+      echo "   nomagic   : does fetch and build, but not recursively" >&2
+      echo "" >& 2
+      echo " Common maintainer commands:" >&2
+      echo "   init      : initializes a bootstrap project" >&2
+      echo "   xcode [o] : sets up the xcodeproj settings" >&2
+      echo "               with [o=remove] removes settings again." >&2
+      echo "   tag       : tag this project and fetched repositories" >&2
+      echo "" >& 2
+      echo " Specialized commands:" >&2
+      echo "   build     : builds fetched repositories" >&2
+      echo "   fetch [o] : fetches required repositories recursively." >&2
+      echo "               whith [o=nonrecursive] fetches non recursively." >&2
+      echo "   clean [o] : cleans intermediate build files." >&2
+      echo "               with [o=dist] cleans clones and dependencies too." >&2
       exit 1
 esac

@@ -5,18 +5,12 @@
 # this script patches the xcodeproj so that the headers and
 # lib files can be added in a sensible order
 #
-COMMAND="${1:-add}"
-shift
-
-trap 'echo "${C_RESET}"' TERM EXIT
-
 
 . mulle-bootstrap-local-environment.sh
 
-HEADER_PATH=`read_config_setting "header_path" "/include"`
-LIBRARY_PATH=`read_config_setting "library_path" "/lib"`
-FRAMEWORK_PATH=`read_config_setting "framework_path" "/Frameworks"`
 
+check_and_usage_and_help()
+{
 case "$COMMAND" in
    add)
    ;;
@@ -27,6 +21,28 @@ case "$COMMAND" in
    exit 1
    ;;
 esac
+}
+
+
+#
+# Parameter
+#
+if [ "$1" = "-h" -o "$1" = "--help" ]
+then
+   check_and_usage_and_help
+fi
+
+COMMAND="${1:-add}"
+shift
+
+check_and_usage_and_help
+
+#
+# Global Settings
+#
+HEADER_PATH=`read_config_setting "header_path" "/include"`
+LIBRARY_PATH=`read_config_setting "library_path" "/lib"`
+FRAMEWORK_PATH=`read_config_setting "framework_path" "/Frameworks"`
 
 
 

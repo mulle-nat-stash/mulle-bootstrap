@@ -38,7 +38,8 @@ dependencies. Optimally this folder is empty or non-existant.
 * Folders in `.bootstrap.auto/repos` are the settings inherited from
 .bootstrap.
 
-### How are multiple values separated ?
+
+### How are multiple value settings separated ?
 
 Separation is done by newline, not by space.
 
@@ -50,7 +51,11 @@ Release" > .bootstrap/settings/configurations # RIGHT
 ```
 
 
-### The default target/scheme is not the one I want ?
+### mulle-bootstrap does not do what  I want  ?
+
+Check out the SETTINGS.md file for help  about tweaking  mulle-bootstrap.
+
+As an example, here is how to specify what target to build.
 
 Put the target name into `.bootstrap/settings/{reponame}/targets`
 
@@ -58,48 +63,6 @@ Put the target name into `.bootstrap/settings/{reponame}/targets`
 mkdir -p  ".bootstrap/settings/Finch" 2> /dev/null
 echo "Finch Demo" > .bootstrap/Finch/targets
 ```
-
-Use "schemes" instead of "targets" to specify a scheme.
-
-### Can it build to various specific SDKs ?
-
-Put the SDK names into ".bootstrap/settings/sdks".
-
-```console
-mkdir -p  ".bootstrap/settings/sdks" 2> /dev/null
-cat <<EOF > .bootstrap/settings/sdks
-iphoneos
-iphonesimulator
-EOF
-```
-
-Or if you don't want to change .bootstrap for temporary edits:
-
-```console
-cat <<EOF > .bootstrap.local/sdks
-iphoneos
-iphonesimulator
-EOF
-```
-
-
-### I don't like the name "dependencies" for the output folder ?
-
-You could rename it to "output" persistently with
-
-```console
-echo "output" > ~/.mulle-bootstrap/output_foldername
-```
-
-If want to rename for just this project ?
-
-```console
-mkdir -p .bootstrap.local 2> /dev/null
-echo "output" > .bootstrap.local/output_foldername
-```
-
-If you do this after running **mulle-bootstrap setup-xcode**, you will run into
-problems.
 
 ### Can I change the build folder from build/.repos to something else  ?
 
@@ -113,13 +76,7 @@ so choosing `~` or `/tmp` as a build folder is not a great idea.</font>
 echo "you_have/been_warned" > ~/.bootstrap.local/build_foldername
 ```
 
-### Can I change the repository folder name from .repos to something else ?
-
-Somewhat, but it must remain toplevel for now, otherwise the
-detection of local clone copies gets wonky. So with that in mind: as above, but
-use "repos_foldername" instead.
-
-### What happens when I symlink something ?
+### What happens when I symlink a folder instead of cloning it ?
 
 It is assumed, that the repository link is "usable" as is. Specifically it won't
 be recursively bootstrapped. It also won't get any kind of .bootstrap
@@ -146,21 +103,12 @@ mkdir -p .bootstrap/Foo 2> /dev/null
 echo "BrandedFoo" > .bootstrap/settings/Foo/PRODUCT_NAME
 ```
 
-
 If you have lots of stuff, you may want to use your own **.xcconfig** file. This
 is likely to be more useful if placed into the .bootstrap folder directly.
 
 ```console
 mkdir -p  ".bootstrap/settings" 2> /dev/null
 cp myconfig.xcconfig > .bootstrap/settings/xcconfig
-```
-
-
-Need to add some other magic Xcode build flags ?
-
-```console
-mkdir -p  ".bootstrap/settings" 2> /dev/null
-echo "-verbose" > .bootstrap/settings/xcodebuild-flags
 ```
 
 ### Should I put build settings into .bootstrap/{reponame} or into .bootstrap ?

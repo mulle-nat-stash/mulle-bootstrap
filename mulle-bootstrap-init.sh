@@ -29,11 +29,17 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
+. mulle-bootstrap-local-settings.sh
 
 #
 # this script creates a .bootstrap folder with some
 # demo files.
 #
+if [ "$1" = "-h" -o "$1" = "--help" ]
+then
+   fail "usage: mulle-bootstrap-init"
+fi
+
 BOOTSTRAP_SUBDIR=.bootstrap
 
 NO_DEFAULT_FILES=${1:-""}
@@ -66,7 +72,7 @@ do
 done
 
 
-exekutor mkdir -p "${BOOTSTRAP_SUBDIR}" || exit 1
+mkdir -p "${BOOTSTRAP_SUBDIR}" || exit 1
 
 if [ "${NO_DEFAULT_FILES}" = "" ]
 then
@@ -99,7 +105,7 @@ fi
 if [ "${NO_EXAMPLE_FILES}" = "" ]
 then
 
-   exekutor mkdir -p "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin" || exit 1
+   mkdir -p "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin" || exit 1
 
    exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/tag"
 # specify a tag or branch for a project named MulleScion
