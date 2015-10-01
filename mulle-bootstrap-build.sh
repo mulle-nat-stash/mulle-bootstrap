@@ -35,14 +35,19 @@
 
 check_and_usage_and_help()
 {
-   echo "usage: mulle-bootstrap-build.sh [repos]*" 2>&1
-   exit 1
+   cat <<EOF
+usage: build [repos]*
+   You can specify the names of the repositories to build.
+   Currently available names are:
+EOF
+   (cd "${CLONES_SUBDIR}" ; ls -1d ) 2> /dev/null
 }
 
 
 if [ "$1" = "-h" -o "$1" = "--help" ]
 then
-   check_and_usage_and_help
+   check_and_usage_and_help >&2
+   exit 1
 fi
 
 
@@ -568,7 +573,7 @@ fixup_header_path()
          return 1
       fi
 
-      headers="`"$create_mangled_header_path "${key}" "${name}" ${default}"`"
+      headers="`create_mangled_header_path "${key}" "${name}" "${default}"`"
    fi
 
    log_fluff "${key} set to \"${headers}\""
@@ -585,7 +590,7 @@ escaped_spaces()
 
 combined_escaped_search_path()
 {
-   for i in $*
+   for i in "$@"
    do
       if [ ! -z "$i" ]
       then
@@ -964,7 +969,7 @@ Release"`
 
    # need uniform SDK for our builds
    sdks=`read_build_root_setting "sdks" "Default"`
-   [ -z "${sdks}" ] && fail "setting \"sdks\" must at least contain \"Default\" to build anything"
+   [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
    local builddir
    local relative
@@ -1067,7 +1072,7 @@ build_wrapper()
 
    if [ -d "${BUILD_DEPENDENCY_SUBDIR}" ]
    then
-      log_info "Cleaning up orphaned ${BUILD_DEPENDENCY_SUBDIR}"
+      log_info "Cleaning up orphaned \"${BUILD_DEPENDENCY_SUBDIR}\""
       rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
    fi
 
@@ -1075,11 +1080,11 @@ build_wrapper()
    # move dependencies we have so far away into safety,
    # need that path for includes though
    #
-   log_fluff "Setting up ${BUILD_DEPENDENCY_SUBDIR}"
+   log_fluff "Setting up \"${BUILD_DEPENDENCY_SUBDIR}\""
 
    build "${clone}"
 
-   log_fluff "Remove ${BUILD_DEPENDENCY_SUBDIR}"
+   log_fluff "Remove \"${BUILD_DEPENDENCY_SUBDIR}\""
 
    rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
 
@@ -1121,15 +1126,6 @@ build_clones()
    local built
    local xdone
    local name
-
-   #
-   # START
-   #
-   if [ ! -d "${CLONES_SUBDIR}" ]
-   then
-      log_info "No repos fetched, nothing to do."
-      return 0
-   fi
 
    for clone in ${CLONES_SUBDIR}/*.failed
    do
@@ -1191,8 +1187,7 @@ install_tars()
 {
    local tarballs
    local tar
-   local cmd
-   cmd="$1"
+
 
    tarballs=`read_fetch_setting "tarballs" | sort | sort -u`
    if [ "${tarballs}" != "" ]
@@ -1221,11 +1216,23 @@ main()
 {
    local  no_clean
 
+   log_info "Start build"
+
    log_fluff "Setting up ${DEPENDENCY_SUBDIR}"
    no_clean="`read_config_setting "dont_clean_dependencies_before_build"`"
    if [ "${no_clean}" != "YES" ]
    then
       rmdir_safer "${DEPENDENCY_SUBDIR}"
+   fi
+
+
+   #
+   # START
+   #
+   if [ ! -d "${CLONES_SUBDIR}" ]
+   then
+      log_info "No repos fetched, nothing to do."
+      return 0
    fi
 
    # if present then we didnt't want to clean and we do nothing special

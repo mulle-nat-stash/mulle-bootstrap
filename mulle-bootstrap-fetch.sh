@@ -39,6 +39,21 @@
 . mulle-bootstrap-local-environment.sh
 
 
+usage()
+{
+   cat <<EOF
+usage: fetch <install|nonrecursive|update> [repos]*
+   install      : clone or symlink non-exisiting repositories and other resources
+   nonrecursive : like above, but ignore .bootstrap folders of repositories
+   update       : pull repositories
+
+   You can specify the names of the repositories to update or fetch.
+   Currently available names are:
+EOF
+   (cd "${CLONES_SUBDIR}" ; ls -1d ) 2> /dev/null
+}
+
+
 check_and_usage_and_help()
 {
    case "$COMMAND" in
@@ -51,21 +66,27 @@ check_and_usage_and_help()
       update)
       ;;
       *)
-      echo "usage: mulle-bootstrap-fetch.sh <install|nonrecursive|update>" 2>&1
+      usage >&2
       exit 1
       ;;
    esac
 }
 
+
 if [ "$1" = "-h" -o "$1" = "--help" ]
 then
-   check_and_usage_and_help
-fi
+   COMMAND=help
+else
+   if [ -z "${COMMAND}" ]
+   then
+      COMMAND=${1:-"install"}
+      shift
+   fi
 
-COMMAND=${1:-"install"}
-if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
-then
-   COMMAND="install"
+   if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
+   then
+      COMMAND="install"
+   fi
 fi
 
 check_and_usage_and_help
@@ -90,7 +111,7 @@ link_command()
 
    if [ "${COMMAND}" = "install" ]
    then
-      ln -s -f "$src" "$dst" || exit 1
+      exekutor ln -s -f "$src" "$dst" || fail "failed to setup symlink \"$dst\" (to \"$src\")"
       if [ "$tag" != "" ]
       then
          name="`basename "${dst}"`"
@@ -151,24 +172,45 @@ ask_symlink_it()
 }
 
 
+run_fetch_settings_script()
+{
+   local  name
+
+   name="$1"
+   shift
+
+   [ -z "$name" ] && internal_fail "name is empty"
+
+   local script
+
+   script=`read_fetch_setting "bin/${name}.sh"`
+   if [ ! -z "${script}" ]
+   then
+      run_script "${script}" "$@"
+   fi
+}
+
+
 checkout()
 {
    local clone
-   local cmd
    local name1
    local name2
    local tag
    local dstname
 
    clone="$1"
-   cmd="$2"
-   name1="$3"
-   name2="$4"
+   name1="$2"
+   name2="$3"
+   dstname="$4"
    tag="$5"
-   dstname="$6"
+
+   [ -z "$clone" ]    && internal_fail "clone is empty"
+   [ -z "$name1" ]    && internal_fail "name1 is empty"
+   [ -z "$name2" ]    && internal_fail "name2 is empty"
+   [ -z "$dstname" ]  && internal_fail "dstname is empty"
 
    local srcname
-   local script
    local operation
    local flag
    local found
@@ -187,13 +229,13 @@ checkout()
    fi
 
    srcname="${clone}"
-   script=`read_repo_setting "${name1}" bin/"${cmd}.sh"`
-   operation="git_command"
+   script=`read_repo_setting "${name1}" "bin/${COMMAND}.sh"`
+   operation="git_clone"
 
    # simplify this crap copy/paste code
-   if [ -x "${script}" ]
+   if [ ! -z "${script}" ]
    then
-      "${script}" || exit 1
+      run_script "${script}" "$@"
    else
       case "${clone}" in
          /*)
@@ -251,53 +293,40 @@ Use it instead of cloning ${clone} ?"
          ;;
       esac
 
-      "${operation}" "${srcname}" "${dstname}" "${tag}" || exit 1
+      "${operation}" "${srcname}" "${dstname}" "${tag}"
        warn_scripts "${dstname}/.bootstrap" "${dstname}" || exit 1 # sic
    fi
 
-   script=`read_repo_setting "${name1}" "bin/post-${cmd}.sh"`
-   if [ -x "${script}" ]
-   then
-      exekutor "${script}" || exit 1
-   fi
+   run_fetch_settings_script "post-install"
 }
 
 
-update()
+git_checkout_tag()
 {
-   local clone
-   local cmd
-   local name
+   local dst
    local tag
-   local dstname
+   local cmd
 
-   clone="$1"
-   cmd="$2"
-   name="$3"
-   dstname="$4"
-   tag="$5"
+   dst="$1"
+   tag="$2"
 
-   local script
+   log_info "Checking out ${C_MAGENTA}${tag}${C_INFO} ..."
+   ( exekutor cd "${dst}" ; exekutor git checkout ${GITFLAGS} "${tag}" )
 
-   if [ ! -L "${dstname}"  ]
+   if [ $? -ne 0 ]
    then
-      if [ -x "${script}" ]
-      then
-         exekutor "${script}" || exit 1
-      else
-         exekutor git_command ${GITFLAGS} "${clone}" "${dstname}" "${tag}" || exit 1
-      fi
+      log_error "Checkout failed, moving ${C_CYAN}${dst}${C_ERROR} to {C_CYAN}${dst}.failed${C_ERROR}"
+      log_error "You need to fix this manually and then move it back."
+      log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename "${dst}"`/TAG" >&2
 
-      script=`read_repo_setting "${name}" "bin/post-${cmd}.sh"`
-      if [ -x "${script}" ]
-      then
-         exekutor "${script}" || exit 1
-      fi
+      rmdir_safer "${dst}.failed"
+      exekutor mv "${dst}" "${dst}.failed"
+      exit 1
    fi
 }
 
 
-git_command()
+git_clone()
 {
    local src
    local dst
@@ -307,29 +336,35 @@ git_command()
    dst="$2"
    tag="$3"
 
-   if [ "${COMMAND}" = "install" ]
-   then
-      log_info "Cloning ${C_WHITE}${src}${C_INFO} ..."
-      exekutor git clone ${GITFLAGS} "${src}" "${dst}" || exit 1
-   else
-      ( exekutor cd "${dst}" ; exekutor git pull ) || exit 1
-   fi
+   [ -z "$src" ] && internal_fail "src is empty"
+   [ -z "$dst" ] && internal_fail "dst is empty"
+
+   log_info "Cloning ${C_WHITE}${src}${C_INFO} ..."
+   exekutor git clone ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
 
    if [ "${tag}" != "" ]
    then
-      log_info "Checking out ${C_MAGENTA}${tag}${C_INFO} ..."
-      ( exekutor cd "${dst}" ; exekutor git checkout ${GITFLAGS} "${tag}" )
+      git_checkout_tag "${dst}" "${tag}"
+   fi
+}
 
-      if [ $? -ne 0 ]
-      then
-         log_error "Checkout failed, moving ${C_CYAN}${dst}${C_ERROR} to {C_CYAN}${dst}.failed${C_ERROR}"
-         log_error "You need to fix this manually and then move it back."
-         log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename "${dst}"`/TAG" >&2
 
-         rmdir_safer "${dst}.failed"
-         exekutor mv "${dst}" "${dst}.failed"
-         exit 1
-      fi
+git_pull()
+{
+   local dst
+   local tag
+
+   dst="$1"
+   tag="$2"
+
+   [ -z "$dst" ] && internal_fail "dst is empty"
+
+   log_info "Updating ${C_WHITE}${dst}${C_INFO} ..."
+   ( exekutor cd "${dst}" ; exekutor git pull ${GITFLAGS} ) || fail "git pull of \"${dst}\" failed"
+
+   if [ "${tag}" != "" ]
+   then
+      git_checkout_tag "${dst}" "${tag}"
    fi
 }
 
@@ -350,7 +385,7 @@ bootstrap_recurse()
    # contains own bootstrap ? and not a symlink
    if [ ! -d "${dst}/.bootstrap" ] # -a ! -L "${dst}" ]
    then
-      log_fluff "no .bootstrap folder in ${dst} found"
+      log_fluff "no .bootstrap folder in \"${dst}\" found"
       return 1
    fi
 
@@ -417,30 +452,28 @@ bootstrap_recurse()
 }
 
 
-#
-# Use git clones for stuff that gets tagged
-# if you specify ../ it will assume you have
-# checked it out yourself, If there is something
-# checked out already it will use it, or ask
-# convention: .git suffix == repo to clone
-#          no .git suffix, try to symlink
-#
-clone_repositories()
+ensure_clones_directory()
 {
-   local stop
-   local clones
-   local clone
-   local cmd
-   local name1
-   local name2
-   local tag
-   local dstname
+   if [ ! -d "${CLONES_FETCH_SUBDIR}" ]
+   then
+      if [ "${COMMAND}" = "update" ]
+      then
+         fail "install first before upgrading"
+      fi
+      mkdir_if_missing "${CLONES_FETCH_SUBDIR}"
+   fi
+}
 
-   cmd="$1"
 
-   # first mark all repos as stale
+mark_all_zombies()
+{
+   local i
+
+      # first mark all repos as stale
    if dir_has_files "${CLONES_FETCH_SUBDIR}"
    then
+      log_fluff "Marking all repositories as zombies for now"
+
       for i in `ls -1d "${CLONES_FETCH_SUBDIR}/"*`
       do
          if [ -d "${i}" -o -L "${i}" ]
@@ -449,6 +482,117 @@ clone_repositories()
          fi
       done
    fi
+}
+
+
+mark_alive()
+{
+   local dstname
+
+   dstname="$1"
+
+   local permission
+
+   # mark as alive
+   if [ -d "${dstname}" -o -L "${dstname}" ] && [ ! -r "${dstname}" ]
+   then
+      permission=`lso "${CLONES_FETCH_SUBDIR}"`
+      [ ! -z "$permission" ] || fail "failed to get permission of ${CLONES_FETCH_SUBDIR}"
+      exekutor chmod -h "${permission}" "${dstname}"
+
+      log_fluff "Marked \${dstname}\" as alive"
+   fi
+}
+
+
+log_fetch_action()
+{
+   local dstname
+   local clone
+
+   clone="$1"
+   dstname="$2"
+
+   local info
+
+   if [ -L "${clone}" ]
+   then
+      info="symlinked"
+   else
+      info=" "
+   fi
+
+   log_fluff "$COMMAND ${info}${clone} in ${dstname} ..."
+}
+
+#
+# Use git clones for stuff that gets tagged
+# if you specify ../ it will assume you have
+# checked it out yourself, If there is something
+# checked out already it will use it, or ask
+# convention: .git suffix == repo to clone
+#          no .git suffix, try to symlink
+#
+checkout_repository()
+{
+   local dstname
+
+   dstname="$5"
+
+   if [ ! -e "${dstname}" ]
+   then
+      checkout "$@"  || fail "checkout failed"
+      if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
+      then
+         bootstrap_recurse "${dstname}"
+         if [ $? -eq 0 ]
+         then
+            return 1
+         fi
+      fi
+   fi
+   return 0
+}
+
+
+clone_repository()
+{
+   local clone
+
+   clone="$1"
+
+   local name1
+   local name2
+   local tag
+   local dstname
+
+   name1=`basename "${clone}" .git`
+   name2=`basename "${clone}"`
+   tag=`read_repo_setting "${name1}" "tag"` #repo (sic)
+
+   dstname="${CLONES_FETCH_SUBDIR}/${name1}"
+
+   mark_alive "${dstname}"
+   log_fetch_action "${clone}" "${dstname}"
+
+   checkout_repository "${clone}" "${name1}" "${name2}" "${dstname}" "${tag}"
+}
+
+
+clone_repositories()
+{
+   if [ $# -ne 0 ]
+   then
+      log_error  "Additional parameters not allowed for install"
+      usage >&2
+      exit 1
+   fi
+
+   local stop
+   local clones
+   local clone
+
+   mark_all_zombies
 
    stop=0
    while [ $stop -eq 0 ]
@@ -458,68 +602,113 @@ clone_repositories()
       clones=`read_fetch_setting "gits"`
       if [ "${clones}" != "" ]
       then
-         if [ ! -d "${CLONES_FETCH_SUBDIR}" ]
-         then
-            if [ "${COMMAND}" = "update" ]
-            then
-               fail "install first before upgrading"
-            fi
-            mkdir_if_missing "${CLONES_FETCH_SUBDIR}"
-         fi
+         ensure_clones_directory
 
          for clone in ${clones}
          do
-            name1=`basename "${clone}" .git`
-            name2=`basename "${clone}"`
-            tag=`read_repo_setting "${name1}" "tag"` #repo (sic)
-
-            dstname="${CLONES_FETCH_SUBDIR}/${name1}"
-
-            local permission
-
-            # mark as alive
-            if [ -d "${dstname}" -o -L "${dstname}" ] && [ ! -r "${dstname}" ]
+            clone_repository "${clone}"
+            if [ $? -eq 1 ]
             then
-               permission=`lso "${CLONES_FETCH_SUBDIR}"`
-               [ ! -z "$permission" ] || fail "failed to get permission of ${CLONES_FETCH_SUBDIR}"
-               exekutor chmod -h "${permission}" "${dstname}"
+               stop=0
+               break
             fi
-
-            local info
-
-            if [ -L "${clone}" ]
-            then
-               info="symlinked"
-            else
-               info=" "
-            fi
-
-            log_fluff "Checking${info}${clone} in ${dstname} ..."
-
-            case "${cmd}" in
-               install)
-                  if [ ! -e "${dstname}" ]
-                  then
-                     checkout "${clone}" "${cmd}" "${name1}" "${name2}" "${tag}" "${dstname}" || exit 1
-                     if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
-                     then
-                        bootstrap_recurse "${dstname}"
-                        if [ $? -eq 0 ]
-                        then
-                           stop=0
-                           break
-                        fi
-                     fi
-                  fi
-                  ;;
-
-               update)
-                  update "${clone}" "${cmd}" "${name1}" "${tag}" "${dstname}" || exit 1
-                  ;;
-            esac
          done
       fi
    done
+}
+
+
+update()
+{
+   local clone
+   local name
+   local tag
+   local dstname
+
+   clone="$1"
+   name="$2"
+   dstname="$3"
+   tag="$4"
+
+   [ -z "$clone" ]    && internal_fail "clone is empty"
+   [ -z "$name" ]     && internal_fail "name is empty"
+   [ -z "$dstname" ]  && internal_fail "dstname is empty"
+
+   local script
+
+   log_info "Updating \"${dstname}\""
+   if [ ! -L "${dstname}"  ]
+   then
+      script=`read_repo_setting "${name}" "bin/update.sh"`
+      if [ ! -z "${script}" ]
+      then
+         run_script "${script}" "$@"
+      else
+         exekutor git_pull "${dstname}" "${tag}"
+      fi
+
+      script=`read_repo_setting "${name}" "bin/post-update.sh"`
+      if [ ! -z "${script}" ]
+      then
+         run_script "${script}" "$@"
+      fi
+   fi
+}
+
+
+update_repository()
+{
+   local clone
+
+   clone="$1"
+
+   local name
+   local tag
+   local dstname
+
+   name=`basename "${clone}" .git`
+   tag=`read_repo_setting "${name}" "tag"` #repo (sic)
+
+   dstname="${CLONES_FETCH_SUBDIR}/${name}"
+   exekutor [ -e "${dstname}" ] || fail "You need to install first, before updating"
+   exekutor [ -x "${dstname}" ] || fail "${name} is not anymore in \"gits\""
+
+   log_fetch_action "${clone}" "${dstname}"
+
+   update "${clone}" "${name}" "${dstname}" "${tag}"
+}
+
+
+#
+# Use git clones for stuff that gets tagged
+# if you specify ../ it will assume you have
+# checked it out yourself, If there is something
+# checked out already it will use it, or ask
+# convention: .git suffix == repo to clone
+#          no .git suffix, try to symlink
+#
+update_repositories()
+{
+   local clones
+   local clone
+   local i
+
+   if [ $# -ne 0 ]
+   then
+      for clone in "$@"
+      do
+         update_repository "${CLONES_FETCH_SUBDIR}/${clone}"
+      done
+   else
+      clones=`read_fetch_setting "gits"`
+      if [ "${clones}" != "" ]
+      then
+         for clone in ${clones}
+         do
+            update_repository "${clone}"
+         done
+      fi
+   fi
 }
 
 
@@ -588,9 +777,7 @@ install_brews()
 {
    local brew
    local brews
-   local cmd
 
-   cmd="$1"
    install_taps
 
    brews=`read_fetch_setting "brews" | sort | sort -u`
@@ -605,9 +792,9 @@ install_brews()
 "
       for brew in ${brews}
       do
-         if [ "${cmd}" != "install" -o "`which "${brew}"`" = "" ]
+         if [ "${COMMAND}" != "install" -o "`which "${brew}"`" = "" ]
          then
-            exekutor brew "${cmd}" "${brew}" || exit 1
+            exekutor brew "${COMMAND}" "${brew}" || exit 1
          fi
       done
       IFS="${old}"
@@ -622,9 +809,6 @@ check_tars()
 {
    local tarballs
    local tar
-   local cmd
-
-   cmd="$1"
 
    tarballs=`read_fetch_setting "tarballs" | sort | sort -u`
    if [ "${tarballs}" != "" ]
@@ -699,30 +883,29 @@ install_pips()
 
 main()
 {
+   log_info "Start fetch"
    #
    # Run prepare scripts if present
    #
-   script=`read_fetch_setting "bin/pre-${COMMAND}.sh"`
-   if [ -x "${script}" ]
+   run_fetch_settings_script "pre-${COMMAND}"
+
+
+   if [ "${COMMAND}" = "install" ]
    then
-      exekutor "${script}" || exit 1
+      clone_repositories "$@"
+
+      install_brews "${COMMAND}" # no update for now
+      install_gems
+      install_pips
+      check_tars
+   else
+      update_repositories "$@"
    fi
-
-   clone_repositories "${COMMAND}"
-
-   install_brews "${COMMAND}"
-   install_gems
-   install_pips
-   check_tars
 
    #
    # Run prepare scripts if present
    #
-   script=`read_fetch_setting "bin/post-${COMMAND}.sh"`
-   if [ -x "${script}" ]
-   then
-      exekutor "${script}" || exit 1
-   fi
+   run_fetch_settings_script "post-${COMMAND}"
 }
 
-main
+main "$@"

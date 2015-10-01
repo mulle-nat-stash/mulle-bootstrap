@@ -33,9 +33,19 @@
 private_dir_has_files()
 {
    local empty
+   local result
 
    empty=`ls "$1"/* 2> /dev/null` 2> /dev/null
    [ "$empty" != "" ]
+   result=$?
+
+   if [ "$result" -eq 1 ]
+   then
+      log_fluff "directory \"$1\" has no files"
+   else
+      log_fluff "directory \"$1\" has files"
+   fi
+   return "$result"
 }
 
 
@@ -46,7 +56,7 @@ private_user_say_yes()
   x="nix"
   while [ "$x" != "y" -a "$x" != "n" -a "$x" != "" ]
   do
-     echo "$@" "(y/N)" >&2
+     echo "${C_YELLOW}$* (${C_WHITE}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
      read x
   done
 
@@ -81,7 +91,7 @@ warn_scripts()
 
    if [ ! -z "$2" ]
    then
-      [ -e "$2" ] ||  fail "internal error, expected directory missing"
+       exekutor [ -e "$2" ] || fail "internal error, expected directory missing"
 
       if private_dir_has_files "$2"
       then

@@ -12,6 +12,21 @@ DIST_CLEANABLE_SUBDIRS=`read_sane_config_path_setting "dist_clean_folders" "${CL
 .bootstrap.auto"`
 
 
+usage()
+{
+   echo "clean [build|output|dist]"
+   echo ""
+   echo "   build   : is the default, it cleans
+${BUILD_CLEANABLE_SUBDIRS}"
+   echo ""
+   echo "   output  : cleans additionaly
+${OUTPUT_CLEANABLE_SUBDIRS}"
+   echo ""
+   echo "   dist    : cleans additionaly
+${DIST_CLEANABLE_SUBDIRS}"
+}
+
+
 check_and_usage_and_help()
 {
    case "$COMMAND" in
@@ -23,26 +38,11 @@ check_and_usage_and_help()
       COMMAND="build"
       ;;
       *)
-      echo "usage: mulle-bootstrap-clean.sh [build|output|dist]" >&2
-      echo "" >&2
-      echo "   build   : is the default, it cleans
-${BUILD_CLEANABLE_SUBDIRS}" >&2
-      echo "" >&2
-      echo "   output  : cleans additionaly
-${OUTPUT_CLEANABLE_SUBDIRS}" >&2
-      echo "" >&2
-      echo "   dist    : cleans additionaly
-${DIST_CLEANABLE_SUBDIRS}" >&2
+      usage >&2
       exit 1
       ;;
    esac
 }
-
-
-if [ "$1" = "-h" -o "$1" = "--help" ]
-then
-   check_and_usage_and_help
-fi
 
 
 COMMAND=${1:-"build"}
@@ -134,7 +134,7 @@ main()
    # Also don't change the search paths for read_sane_config_path_setting
    #
 
-   clean
+   clean "$@"
 }
 
-main
+main "$@"

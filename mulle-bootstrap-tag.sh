@@ -38,19 +38,25 @@
 . mulle-bootstrap-local-environment.sh
 
 
-check_and_usage_and_help()
+usage()
 {
-   echo "usage: mulle-bootstrap-tag.sh [tag] [vendortag_prefix] [repo]" 2>&1
-   exit 1
+   cat <<EOF
+tag [tag] [vendortag]
+
+   tag       : the tag for your repository ($PWD)
+   vendortag : the tag used for tagging the fetched repositories
+EOF
 }
 
-#
-# Parameter
-#
-if [ "$1" = "-h" -o "$1" = "--help" ]
-then
-   check_and_usage_and_help
-fi
+
+check_and_usage_and_help()
+{
+   if [ "$TAG" = "" -o "$TAG" = "-h" -o "$TAG" = "--help" -o "$VENDOR_TAG" = "" ]
+   then
+      usage >&2
+      exit 1
+   fi
+}
 
 
 name=`basename "${PWD}"`
@@ -70,24 +76,24 @@ fi
 
 TAG=${1:-${AGVTAG}}
 shift
-VENDOR_PREFIX="${1:-${name}}"
-shift
-REPO=${1:-"."}
+
+VENDOR_TAG="$1"
 shift
 
-if [ "$TAG" = "" ]
+if [ -z "${VENDOR_TAG}" ]
 then
-   fail "no tag specified"
+   local prefix
+
+   prefix=`basename "${PWD}"`
+   prefix="${prefix%%.*}"  # remove vile extension :)
+
+   VENDOR_TAG="${prefix}-${TAG}"
 fi
 
-#
-# remove file extension from directory, that would
-# indicate the "branch" like foo.release vs. foo.dev
-#
-VENDOR_PREFIX=${VENDOR_PREFIX%%.*}
+check_and_usage_and_help
 
-OUR_VENDOR_TAG="${1:-${VENDOR_PREFIX}-${TAG}}"
-shift
+
+REPO="."
 
 
 git_must_be_clean()
@@ -189,6 +195,8 @@ posttag_script()
 
 main()
 {
+   log_info "Start tag"
+
    ensure_repos_clean
 
    echo "Tagging `basename "${PWD}"` with ${TAG}" >&2
@@ -204,4 +212,4 @@ main()
    posttag_script
 }
 
-main
+main "$@"

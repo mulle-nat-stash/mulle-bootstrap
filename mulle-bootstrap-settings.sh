@@ -436,7 +436,7 @@ all_build_flag_keys()
 
    package="$1"
 
-   [ "$package" = "" ] && fail "script error"
+   [ ! -z "$package" ] || internal_fail "script error"
 
    keys1=`(cd "${BOOTSTRAP_SUBDIR}.local/settings/${package}" 2> /dev/null || exit 1; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`

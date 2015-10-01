@@ -417,3 +417,27 @@ lso()
    awk '{k=0;for(i=0;i<=8;i++)k+=((substr($1,i+2,1)~/[rwx]/)*2^(8-i));if(k)printf(" %0o ",k);print }' | \
    awk '{print $1}'
 }
+
+
+run_script()
+{
+   local script
+
+   script="$1"
+   shift
+
+   [ -z "$script" ] && internal_fail "script is empty"
+
+   if [ -x "${script}" ]
+   then
+      log_info "Executing script ${script}"
+      exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
+   else
+      if [ ! -e "${script}" ]
+      then
+         fail "script \"${script}\" not found"
+      else
+         fail "script \"${script}\" not executable"
+      fi
+   fi
+}

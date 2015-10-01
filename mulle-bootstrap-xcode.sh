@@ -9,6 +9,17 @@
 . mulle-bootstrap-local-environment.sh
 
 
+usage()
+{
+   cat <<EOF
+xcode <add|remove>
+
+   add      : add settings to Xcode project (default)
+   remove   : remove settings from Xcode project
+EOF
+}
+
+
 check_and_usage_and_help()
 {
 case "$COMMAND" in
@@ -17,20 +28,12 @@ case "$COMMAND" in
    remove)
    ;;
    *)
-   echo "usage: mulle-bootstrap-setup-xcode.sh [add|remove]" 2>&1
+   usage >&2
    exit 1
    ;;
 esac
 }
 
-
-#
-# Parameter
-#
-if [ "$1" = "-h" -o "$1" = "--help" ]
-then
-   check_and_usage_and_help
-fi
 
 COMMAND="${1:-add}"
 shift
@@ -382,8 +385,11 @@ Release"
 
 main()
 {
-   patch_xcode_project
+   log_info "Start xcode"
+
+   patch_xcode_project "$@"
 }
 
 
-main
+main "$@"
+
