@@ -113,12 +113,6 @@ EOF
 }
 
 
-if [ "$1" = "-h" -o "$1" = "--help" ]
-then
-    check_and_usage_and_help >&2
-    exit 1
-fi
-
 command=${1:-"bootstrap"}
 shift
 
