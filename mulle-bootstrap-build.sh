@@ -207,34 +207,39 @@ collect_and_dispense_product()
    # probably should hack all executables with install_name_tool that contain .ref
    #
    # now copy over the rest of the output
-   usrlocal="`read_build_setting "${name}" "dispense_other_files" "/usr/local"`"
-
-   log_fluff "Considering copying ${BUILD_DEPENDENCY_SUBDIR}/*"
-
-   src="${BUILD_DEPENDENCY_SUBDIR}"
-   if [ "${wasxcode}" = "YES" ]
+   if read_yes_no_build_setting "${name}" "dispense_other_product" "NO"
    then
-      src="${src}${subdir}"
-   fi
+      local usrlocal
 
-   if dir_has_files "${src}"
-   then
-      dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
+      usrlocal="`read_build_setting "${name}" "dispense_other_path" "/usr/local"`"
 
-      log_fluff "Copying \"${src}/*\" to \"${dst}\""
-      exekutor find -x "${src}" ! -path "${src}" -depth 1 -print0 | \
-            exekutor xargs -0 -J % mv -v -n % "${dst}"
-      [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
-   fi
+      log_fluff "Considering copying ${BUILD_DEPENDENCY_SUBDIR}/*"
 
-   if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
-   then
-      if dir_has_files "${BUILD_DEPENDENCY_SUBDIR}"
+      src="${BUILD_DEPENDENCY_SUBDIR}"
+      if [ "${wasxcode}" = "YES" ]
       then
-         log_fluff "Directory \"${BUILD_DEPENDENCY_SUBDIR}\" contained files after collect and dispense"
-         log_fluff "--------------------"
-         ( cd "${BUILD_DEPENDENCY_SUBDIR}" ; ls -lR >&2 )
-         log_fluff "--------------------"
+         src="${src}${subdir}"
+      fi
+
+      if dir_has_files "${src}"
+      then
+         dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
+
+         log_fluff "Copying \"${src}/*\" to \"${dst}\""
+         exekutor find -x "${src}" ! -path "${src}" -depth 1 -print0 | \
+               exekutor xargs -0 -J % mv -v -n % "${dst}"
+         [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
+      fi
+
+      if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
+      then
+         if dir_has_files "${BUILD_DEPENDENCY_SUBDIR}"
+         then
+            log_fluff "Directory \"${BUILD_DEPENDENCY_SUBDIR}\" contained files after collect and dispense"
+            log_fluff "--------------------"
+            ( cd "${BUILD_DEPENDENCY_SUBDIR}" ; ls -lR >&2 )
+            log_fluff "--------------------"
+         fi
       fi
    fi
 
