@@ -104,16 +104,6 @@ EOF
 }
 
 
-if [ "$1" = "-h" -o "$1" = "--help" ]
-then
-    check_and_usage_and_help
-fi
-
-command=${1:-"bootstrap"}
-shift
-
-. mulle-bootstrap-warn-scripts.sh
-
 check_and_usage_and_help()
 {
    cat <<EOF
@@ -121,6 +111,19 @@ usage: bootstrap
    There is nothing more to it.
 EOF
 }
+
+
+if [ "$1" = "-h" -o "$1" = "--help" ]
+then
+    check_and_usage_and_help >&2
+    exit 1
+fi
+
+command=${1:-"bootstrap"}
+shift
+
+. mulle-bootstrap-warn-scripts.sh
+
 
 
 bootstrap()

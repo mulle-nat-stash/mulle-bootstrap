@@ -16,13 +16,14 @@ SHELLFLAGS=-x -e SC2164,SC2166,SC2006 -s sh
 
 .PHONY: all
 .PHONY: clean
+.PHONY: shellcheck_check
 
-%.chk:	%.sh
+%.chk:	%.sh shellcheck_check
 		- ( shellcheck $(SHELLFLAGS) $< || touch $@ )
 
 all:	$(CHECKSTAMPS) mulle-bootstrap.chk
 
-mulle-bootstrap.chk:	mulle-bootstrap
+mulle-bootstrap.chk:	mulle-bootstrap shellcheck_check
 		- ( shellcheck $(SHELLFLAGS) $< || touch $@ )
 
 install:
@@ -30,4 +31,7 @@ install:
 
 clean:
 	@- rm *.chk
+
+shellcheck_check:
+	which shellcheck || brew install shellcheck
 

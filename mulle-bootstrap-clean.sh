@@ -91,7 +91,8 @@ clean_parent_folders_if_empty()
          if dir_can_be_rmdir "${parent}"
          then
             assert_sane_subdir_path "${parent}"
-            log_info "Deleting \"${parent}\""
+            log_info "Deleting \"${parent}\" because it was empty. "
+            log_fluff "Set \".bootstrap/config/clean_empty_parent_folders\" to NO if you don't like it."
             exekutor rmdir "${parent}"
          fi
       done
