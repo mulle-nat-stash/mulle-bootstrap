@@ -38,12 +38,6 @@ then
    BOOTSTRAP_SUBDIR=.bootstrap
 fi
 
-if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
-then
-   echo "there is no ${BOOTSTRAP_SUBDIR} here, can't continue" >&2
-   exit 1
-fi
-
 . mulle-bootstrap-settings.sh
 
 
@@ -52,18 +46,17 @@ MULLE_BOOTSTRAP_TRACE="`read_config_setting "trace"`"
 case "${MULLE_BOOTSTRAP_TRACE}" in
    VERBOSE)
       MULLE_BOOTSTRAP_VERBOSE="YES"
-      MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
       MULLE_BOOTSTRAP_TRACE="YES"
       log_trace "VERBOSE trace started"
       ;;
    FULL|ALL)
-      MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS="YES"
       MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
       MULLE_BOOTSTRAP_VERBOSE="YES"
       MULLE_BOOTSTRAP_TRACE="YES"
       log_trace "FULL trace started"
       ;;
    1848)
+      MULLE_BOOTSTRAP_TRACE_SETTINGS="NO"
       MULLE_BOOTSTRAP_VERBOSE="YES"
       MULLE_BOOTSTRAP_TRACE="YES"
       log_trace "1848 trace (set -x) started"

@@ -251,7 +251,7 @@ mkdir_if_missing()
 {
    if [ ! -d "${1}" ]
    then
-      exekutor mkdir -p "$1" || fail "failed to create directory $1"
+      exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
    fi
 }
 
@@ -309,15 +309,21 @@ user_say_yes()
 }
 
 
-is_dir_empty()
+dir_can_be_rmdir()
 {
    local empty
 
-   empty=`ls "$1"/* 2> /dev/null` 2> /dev/null
+   if [ ! -d "$1" ]
+   then
+      return 2
+   fi
+
+   empty="`ls -A "$1" 2> /dev/null`"
    [ "$empty" = "" ]
 }
 
 
+# this does not check for hidden files
 dir_has_files()
 {
    local empty
@@ -329,9 +335,9 @@ dir_has_files()
 
    if [ "$result" -eq 1 ]
    then
-      log_fluff "directory \"$1\" has no files"
+      log_fluff "Directory \"$1\" has no files"
    else
-      log_fluff "directory \"$1\" has files"
+      log_fluff "Directory \"$1\" has files"
    fi
    return "$result"
 }

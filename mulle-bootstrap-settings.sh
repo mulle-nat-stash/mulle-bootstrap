@@ -83,7 +83,7 @@ _read_setting()
    [ -r "${file}" ]
    flag=$?
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS" = "YES" ]
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
    then
       local  yesno
       yesno="not found"
@@ -100,9 +100,9 @@ _read_setting()
    fi
 
    value=`egrep -v '^#|^[ ]*$' "${file}"`
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS" = "YES" ]
+   if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
    then
-      log_trace "setting `basename "${file}"` found in "${file}" to \"${value}\""
+      log_fluff "Setting ${C_MAGENTA}`basename "${file}"`${C_FLUFF} found in ${C_WHITE}\"${file}\"${C_FLUFF} to ${C_MAGENTA}\"${value}\"${C_FLUFF}"
    fi
 
    case "${file}" in

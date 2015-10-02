@@ -18,10 +18,14 @@ Build Settings (Global only)
 
 Setting Name            | Description                           |  Default
 ------------------------|---------------------------------------|----------------------------
-buildignore             |  repositories not to build            |
-buildorder              |  repositories to build in that order. You only need to specify those, that need ordering. Otherwise mulle-bootstrap build in default sort order by name.   |
-configurations          |  configurations to build              | Debug\nRelease
-sdks                    |  SDKs to build                        | Default
+buildignore             | repositories not to build             |
+buildorder              | repositories to build in that order.  |
+                        | You only need to specify those, that  |
+                        | need ordering. Otherwise              |
+                        | mulle-bootstrap builds in default `ls`|
+                        | sort order by name.                   |
+configurations          | configurations to build               | Debug\nRelease
+sdks                    | SDKs to build                         | Default
 
 Build Settings
 ===================
@@ -41,16 +45,29 @@ as a repository.
 
 #### Settings
 
-Setting Name                   |  Description                              | Default
--------------------------------|-------------------------------------------|---------------
-${configuration}.map           | rename configuration for xcodebuild       |
-cmake-${configuration}.map     | rename configuration for cmake            |
-configure-${configuration}.map | rename configuration for configure        |
-xcode_proper_skip_install      | assume SKIP_INSTALL is set correctly in Xcode project                          | NO
-xcode_mangle_header_settings   | mangle Xcode header paths. Specifcally PUBLIC_HEADERS_FOLDER_PATH and PRIVATE_HEADERS_FOLDER_PATH        | NO
-xcode_mangle_include_prefix    | remove /usr/local from Xcode header paths | NO
-xcode_mangle_header_dash       | convert '-' to '_' in Xcode header paths  | NO
-
+Setting Name                   |  Description                               | Default
+-------------------------------|--------------------------------------------|---------------
+${configuration}.map           | rename configuration for xcodebuild        |
+cmake-${configuration}.map     | rename configuration for cmake             |
+configure-${configuration}.map | rename configuration for configure         |
+dispense_headers_path          | where the build should put headers,        |
+                               | relative to dependencies. Preferred way    |
+                               | for cmake and  configure projects to place |
+                               | headers.                                   | /usr/local/${HEADER_DIR_NAME}
+dispense_other_files           | where the build should put other files     |
+                               | (excluding libraries, frameworks and headers),|
+                               | relative to dependencies                   | /usr/local
+xcode_proper_skip_install      | assume SKIP_INSTALL is set correctly in    |
+                               | Xcode project                              | NO
+xcode_public_headers           | Substitute for PUBLIC_HEADERS_FOLDER_PATH  |
+xcode_private_headers          | Substitute for PRIVATE_HEADERS_FOLDER_PATH |
+                               |                                            |
+xcode_mangle_header_paths      | Mangle Xcode header paths. Specifcally     |
+                               | PUBLIC_HEADERS_FOLDER_PATH and             |
+                               | PRIVATE_HEADERS_FOLDER_PATH. Mangling is   |
+                               | controlled by the following settings       | NO
+xcode_mangle_include_prefix    | remove /usr/local from Xcode header paths  | NO
+xcode_mangle_header_dash       | convert '-' to '_' in Xcode header paths   | NO
 
 Settings Repository Specific
 ===================
@@ -94,7 +111,9 @@ tarballs           | Tarballs to install (currently filesystem only)
 Config Settings
 ===================
 
-Environment variables use the setting name, transformed to upper case and prepended with "MULLE_BOOTSTRAP_". So preferences is MULLE_BOOTSTRAP_PREFERENCES in the environment.
+Environment variables use the setting name, transformed to upper case and
+prepended with "MULLE_BOOTSTRAP_". So preferences is MULLE_BOOTSTRAP_PREFERENCES
+in the environment.
 
 #### Search Paths
 
@@ -104,34 +123,42 @@ Environment variables use the setting name, transformed to upper case and prepen
 3. ./bootstrap.auto/config
 5. ~/.mulle-bootstrap
 
-Setting Name                   |  Description                                  | Default
--------------------------------|-----------------------------------------------|----------------
-clean_before_build             | should mulle-bootstrap clean before building  | NO
-dont_clean_dependencies_before_build |  usually before a build, mulle-bootstrap cleans dependencies to avoid surprising  "it worked the second time" builds due to wrong buildorder
-                                                                               | NO
-framework_path                  | name of the Frameworks folder                | Frameworks
-header_dir_name                 | name of the headers folder in
-dependencies. e.g. You dislike "include" and favor "headers".                                                                      | include
+Setting Name                    |  Description                                  | Default
+--------------------------------|-----------------------------------------------|--------------
+clean_before_build              | should mulle-bootstrap clean before building  | YES
+clean_dependencies_before_build | usually before a build, mulle-bootstrap       |
+                                | cleans dependencies to avoid surprising       |
+                                | worked the second time" builds due to a wrong |
+                                | buildorder                                    | YES
+framework_dir_name              | name of the Frameworks folder                 | Frameworks
+header_dir_name                 | name of the headers folder in dependencies.   |
+                                | e.g. You dislike "include" and favor          |
+                                | "headers".                                    | include
 library_dir_name                | as above, but for libraries                   | lib
-preferences                    | list order of preferred build tools. Will be used in deciding if to use cmake or xcodebuild, if both are available       | script\nxcodebuild\ncmake\nconfigure
-headers_c_and_d_prefix  | where the build should put headers, relative to dependencies | /usr/local
-others_c_and_d_prefix   | where the build should put other files (excluding libraries, frameworks and headers), relative to dependencies | /usr/local
-symlink_forbidden              | mulle-bootstrap will not attempt to symlink          | NO
-trace                          | see MULLE_BOOTSTRAP_TRACE for more info   | NO
-xcodebuild                     | tool to use instead of xcodebuild (xctool ?) | xcodebuild
-                     |                                                     |
-clean_folders        | folders to delete for mulle-bootstrap clean         | build/.repos
-dist_clean_folders   | folders to delete for mulle-bootstrap clean dist    | .repos\n/.bootstrap.auto
-output_clean_folders | folders to delete for mulle-bootstrap clean output  | dependencies
-                  |                                                        |
-repos_foldername  |  Where to place cloned repositories                    | .repos
-output_foldername |  DSTROOT, --prefix of headers and libraries            | dependencies
-build_foldername  |  OBJROOT, build root for intermediate files like .o    | build/.repos
-      |                                                        |
-no_warn_environment_setting | don't warn when a setting is defined by environment        | NO
-no_warn_local_setting       | don't warn when a setting is defined by .bootstrap.local   | NO
-no_warn_user_setting        | don't warn when a setting is defined by ~/.mulle-bootstrap | NO
-      |                                                        |
+preferences                     | list order of preferred build tools. Will be  |
+                                | used in deciding if to use cmake or           |
+                                | xcodebuild, if both are available             | script\nxcodebuild\ncmake\nconfigure
+symlink_forbidden               | mulle-bootstrap will not attempt to symlink   | NO
+trace                           | see MULLE_BOOTSTRAP_TRACE for more info       | NO
+xcodebuild                      | tool to use instead of xcodebuild (xctool ?)  | xcodebuild
+                                |                                               |
+clean_folders                   | folders to delete for mulle-bootstrap clean   | build/.repos
+dist_clean_folders              | folders to delete for mulle-bootstrap clean   |
+                                | dist                                          | .repos\n/.bootstrap.auto
+output_clean_folders            | folders to delete for mulle-bootstrap clean   |
+                                | output                                        | dependencies
+                                |                                               |
+repos_foldername                |  Where to place cloned repositories           | .repos
+output_foldername               |  DSTROOT, --prefix of headers and libraries   | dependencies
+build_foldername                |  OBJROOT, build root for intermediate files   |
+                                |  like .o                                      | build/.repos
+                                |                                               |
+no_warn_environment_setting     | don't warn when a setting is defined by       |
+                                | environment                                   | NO
+no_warn_local_setting           | don't warn when a setting is defined by       |
+                                | .bootstrap.local                              | NO
+no_warn_user_setting            | don't warn when a setting is defined by       |
+                                | ~/.mulle-bootstrap                            | NO
 
 Fetch Script Settings
 ==========================

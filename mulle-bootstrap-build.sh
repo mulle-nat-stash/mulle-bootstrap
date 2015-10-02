@@ -37,7 +37,8 @@ check_and_usage_and_help()
 {
    cat <<EOF
 usage: build [repos]*
-   You can specify the names of the repositories to build.
+
+   You can optionally specify the names of the repositories to build.
    Currently available names are:
 EOF
    (cd "${CLONES_SUBDIR}" ; ls -1d ) 2> /dev/null
@@ -51,7 +52,7 @@ then
 fi
 
 
-CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
+CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build" "YES"`
 
 #
 # move stuff produced my cmake and configure to places
@@ -60,29 +61,32 @@ CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
 #
 dispense_headers()
 {
-   local  src
+   local name
+   local src
 
-   src="$1"
+   name="${1}"
+   src="$2"
 
    local dst
-   local usrlocal
+   local headers
+   local suffix
 
-   log_fluff "Considering copying ${src}"
+   log_fluff "Consider copying headers from \"${src}\""
 
    if [ -d "${src}" ]
    then
       if dir_has_files "${src}"
       then
-         usrlocal="`read_config_setting "headers_c_and_d_prefix" "/usr/local"`"
+         headers="`read_build_setting "${name}" "dispense_headers_path" "/usr/local/${HEADER_DIR_NAME}"`"
 
-         dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}/${HEADER_DIR_NAME}"
-         mkdir_if_missing "${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}/${HEADER_DIR_NAME}"
+         dst="${REFERENCE_DEPENDENCY_SUBDIR}${headers}"
+         mkdir_if_missing "${dst}"
 
-         log_fluff "Copying ${src} to ${dst}"
+         log_fluff "Copying \"${src}\" to \"${dst}\""
          exekutor find -x "${src}" ! -path "${src}" -depth 1 -type d -print0 | \
             exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
-         exekutor find -x "${src}" ! -path "${src}" -depth 1 -type f -print0 | \
+         exekutor find -x "${src}" ! -path "${src}" -depth 1 \( -type f -o -type l \) -print0 | \
             exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
          rmdir_safer "${src}"
@@ -94,15 +98,26 @@ dispense_headers()
 dispense_binaries()
 {
    local src
+   local findtype
+   local subpath
+   local name
 
-   src="$1"
-   findtype="$2"
-   subpath="$3"
+   name="$1"
+   src="$2"
+   findtype="$3"
+   subpath="$4"
 
    local dst
    local usrlocal
+   local findtype2
 
-   log_fluff "Considering copying ${src}"
+   findtype2="${findtype}"
+   if [ "${findtype}" = "f" ]
+   then
+      findtype2="l"
+   fi
+
+   log_fluff "Consider copying binaries from \"${src}\" for type \"${findtype}/${findtype2}\""
 
    if [ -d "${src}" ]
    then
@@ -110,9 +125,9 @@ dispense_binaries()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${subpath}${subdir}"
 
-         log_fluff "Copying ${src} to ${dst}"
+         log_fluff "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
-         exekutor find -x "${src}" ! -path "${src}" -type "${findtype}" -depth 1 -print0 | \
+         exekutor find -x "${src}" ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -depth 1 -print0 | \
             exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
       fi
@@ -123,14 +138,18 @@ dispense_binaries()
 
 collect_and_dispense_product()
 {
+   local  name
    local  subdir
+   local  name
+
+   name="${1}"
+   subdir="${2}"
+   wasxcode="${3}"
+
    local  dst
    local  src
 
-   subdir="$1"
-   wasxcode="$2"
-
-   log_fluff "Start collecting and dispensing product"
+   log_info "Collecting and dispensing \"${name}\" \"`basename "${subdir}"`\" products "
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref
    # (will this work with signing stuff ?)
@@ -140,31 +159,31 @@ collect_and_dispense_product()
       log_fluff "Choosing xcode dispense path"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/include"
-      dispense_headers "${src}"
+      dispense_headers "${name}" "${src}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/include"
-      dispense_headers "${src}"
+      dispense_headers "${name}" "${src}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/include"
-      dispense_headers "${src}"
+      dispense_headers "${name}" "${src}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/lib${subdir}"
-      dispense_binaries "${src}" "f" "/${LIBRARY_DIR_NAME}"
+      dispense_binaries "${name}" "${src}" "f" "/${LIBRARY_DIR_NAME}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks${subdir}"
-      dispense_binaries "${src}" "d" "${FRAMEWORK_PATH}"
+      dispense_binaries "${name}" "${src}" "d" "${FRAMEWORK_PATH}"
    else
       log_fluff "Choosing cmake/configure dispense path"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/include"
-      dispense_headers "${src}"
+      dispense_headers "${name}" "${src}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/lib"
-      dispense_binaries "${src}" "f" "/${LIBRARY_DIR_NAME}"
+      dispense_binaries "${name}" "${src}" "f" "/${LIBRARY_DIR_NAME}"
 
       # coming from Cmake and configure
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/Frameworks"
-      dispense_binaries "${src}" "d" "${FRAMEWORK_PATH}"
+      dispense_binaries "${name}" "${src}" "d" "${FRAMEWORK_PATH}"
    fi
 
    #
@@ -188,7 +207,7 @@ collect_and_dispense_product()
    # probably should hack all executables with install_name_tool that contain .ref
    #
    # now copy over the rest of the output
-   usrlocal="`read_config_setting "others_c_and_d_prefix" "/usr/local"`"
+   usrlocal="`read_build_setting "${name}" "dispense_other_files" "/usr/local"`"
 
    log_fluff "Considering copying ${BUILD_DEPENDENCY_SUBDIR}/*"
 
@@ -202,19 +221,19 @@ collect_and_dispense_product()
    then
       dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
 
-      log_fluff "Copying ${src}/* to ${dst}"
-      exekutor find -x "${src}" ! -path "${src}" -depth 1 -exec mv -v -n '{}' "${dst}" | \
+      log_fluff "Copying \"${src}/*\" to \"${dst}\""
+      exekutor find -x "${src}" ! -path "${src}" -depth 1 -print0 | \
             exekutor xargs -0 -J % mv -v -n % "${dst}"
-      [ $? -eq 0 ]  || exit 1
+      [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
    fi
 
    if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
    then
       if dir_has_files "${BUILD_DEPENDENCY_SUBDIR}"
       then
-         log_fluff "${BUILD_DEPENDENCY_SUBDIR} contained files after collect and dispense"
+         log_fluff "Directory \"${BUILD_DEPENDENCY_SUBDIR}\" contained files after collect and dispense"
          log_fluff "--------------------"
-         ( cd "${BUILD_DEPENDENCY_SUBDIR}" ; ls -R >&2 )
+         ( cd "${BUILD_DEPENDENCY_SUBDIR}" ; ls -lR >&2 )
          log_fluff "--------------------"
       fi
    fi
@@ -235,12 +254,7 @@ enforce_build_sanity()
    # these must not exist
    if [ -d "${BUILD_DEPENDENCY_SUBDIR}" ]
    then
-      fail "A previous build left ${BUILD_DEPENDENCY_SUBDIR} can't continue"
-   fi
-
-   if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" != "" ]
-   then
-      rmdir_safer "${builddir}"
+      fail "A previous build left ${BUILD_DEPENDENCY_SUBDIR}, can't continue"
    fi
 }
 
@@ -278,6 +292,43 @@ cmake_sdk_parameter()
       echo '-DCMAKE_OSX_SYSROOT='"${sdkpath}"
    fi
 }
+
+
+
+create_dummy_dirs_against_warnings()
+{
+   local relative
+   local suffix
+
+   builddir="$1"
+   configuration="$2"
+   suffix="$3"
+   relative="$4"
+
+   local owd
+
+   owd="${PWD}"
+
+   # to avoid warnings make sure directories are all there
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}"
+   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}" ]  &&  \
+      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}"
+
+
+   mkdir_if_missing "${builddir}"
+   exekutor cd "${builddir}" ||  fail "failed to enter ${builddir}"
+
+      # check that relative is right
+   exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ] || internal_fail "${relative} is wrong"
+   exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}" ] || internal_fail "${relative} is wrong"
+   exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}" ] || internal_fail "${relative} is wrong"
+
+   exekutor cd "${owd}" ||  fail "failed to enter ${owd}"
+}
+
 
 #
 # remove old builddir, create a new one
@@ -319,23 +370,12 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
    other_cppflags="`gcc_cppflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
+
+   create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}" "${relative}"
+
    owd="${PWD}"
-   # to avoid warning make sure directories are all there
-   # TODO: I DONT LIKE THIS
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}"
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}"
-
    mkdir_if_missing "${builddir}"
-   exekutor cd "${builddir}" || exit 1
-
-      # check that relative ise right
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ] || exit 1
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}" ] || exit 1
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}" ] || exit 1
+   exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
 
       #
       # cmake doesn't seem to "get" CMAKE_CXX_FLAGS or -INCLUDE
@@ -367,16 +407,17 @@ ${sdk}" \
 -F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_ldflags} \
 ${sdk}" \
-"${relative}/${srcdir}" 1>&2  || exit 1
+"${relative}/${srcdir}" 1>&2  || fail "cmake failed for ${srcdir}" 1
 
-      exekutor make all install 1>&2 || exit 1
+      exekutor make all install 1>&2 || fail "make install failed for ${srcdir}" 1
 
       set +f
 
    exekutor cd "${owd}"
 
-   collect_and_dispense_product "${suffix}" || exit 1
+   collect_and_dispense_product "${name}" "${suffix}" || internal_fail "collect failed silently"
 }
+
 
 
 #
@@ -408,36 +449,25 @@ build_configure()
 ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
 
-   mapped=`read_build_setting "$name" "configure-${configuration}.map" "${configuration}"`
-   suffix=`determine_suffix "${configuration}" "${sdk}"`
-   sdk=`gcc_sdk_parameter "${sdk}"`
+   mapped="`read_build_setting "$name" "configure-${configuration}.map" "${configuration}"`"
+   suffix="`determine_suffix "${configuration}" "${sdk}"`"
+   sdk="`gcc_sdk_parameter "${sdk}"`"
 
    local other_cflags
    local other_cppflags
    local other_ldflags
 
-   other_cflags=`gcc_cflags_value "${name}"`
-   other_cppflags=`gcc_cppflags_value "${name}"`
-   other_ldflags=`gcc_ldflags_value "${name}"`
+   other_cflags="`gcc_cflags_value "${name}"`"
+   other_cppflags="`gcc_cppflags_value "${name}"`"
+   other_ldflags="`gcc_ldflags_value "${name}"`"
+
+   create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}" "${relative}"
 
    owd="${PWD}"
-   # to avoid warnings make sure directories are all there
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}"
-   [ ! -e "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ]  &&  \
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}"
+   mkdir_if_missing "${builddir}"
+   exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
 
-   mkdir_if_missing "${builddir}" 2> /dev/null
-   exekutor cd "${builddir}" || exit 1
-
-      # check that relative is right
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" ] || exit 1
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}" ] || exit 1
-      exekutor [ -d "${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}" ] || exit 1
-
-      set -f
+       set -f
 
       # use absolute paths for configure, safer (and easier to read IMO)
       CFLAGS="\
@@ -471,7 +501,7 @@ ${sdk}" \
 
    exekutor cd "${owd}"
 
-   collect_and_dispense_product "${suffix}" || exit 1
+   collect_and_dispense_product "${name}" "${suffix}" || exit 1
 }
 
 
@@ -563,7 +593,7 @@ fixup_header_path()
    headers="`read_repo_setting "${name}" "${setting_key}"`"
    if [ "$headers" = "" ]
    then
-      read_yes_no_build_setting "${name}" "xcode_mangle_header_settings"
+      read_yes_no_build_setting "${name}" "xcode_mangle_header_paths"
       if [ $? -ne 0 ]
       then
          return 1
@@ -751,9 +781,9 @@ ${info} ..."
    local default
 
    default="/include/${name}"
-   public_headers="`fixup_header_path "PUBLIC_HEADERS_FOLDER_PATH" "public_headers" "${name}" "${default}" ${arguments}`"
+   public_headers="`fixup_header_path "PUBLIC_HEADERS_FOLDER_PATH" "xcode_public_headers" "${name}" "${default}" ${arguments}`"
    default="/include/${name}/private"
-   private_headers="`fixup_header_path "PRIVATE_HEADERS_FOLDER_PATH" "private_headers" "${name}" "${default}" ${arguments}`"
+   private_headers="`fixup_header_path "PRIVATE_HEADERS_FOLDER_PATH" "xcode_private_headers" "${name}" "${default}" ${arguments}`"
 
    owd=`pwd`
    cd "${srcdir}" || exit 1
@@ -870,7 +900,7 @@ FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
    cd "${owd}"
 
-   collect_and_dispense_product "${suffix}" "YES" || exit 1
+   collect_and_dispense_product "${name}" "${suffix}" "YES" || exit 1
 }
 
 
@@ -884,8 +914,9 @@ build_xcodebuild_schemes_or_target()
    name="$5"
    project="$7"
 
-   if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" != "" ]
+   if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" = "YES" ]
    then
+      log_fluff "Cleaning build directory \"${builddir}\""
       rmdir_safer "${builddir}"
    fi
 
@@ -1210,25 +1241,29 @@ install_tars()
 
 main()
 {
-   local  no_clean
+   local  clean
 
    log_fluff "::: build :::"
-
-   log_fluff "Setting up ${DEPENDENCY_SUBDIR}"
-   no_clean="`read_config_setting "dont_clean_dependencies_before_build"`"
-   if [ "${no_clean}" != "YES" ]
-   then
-      rmdir_safer "${DEPENDENCY_SUBDIR}"
-   fi
-
 
    #
    # START
    #
    if [ ! -d "${CLONES_SUBDIR}" ]
    then
-      log_fluff "No repos fetched, nothing to do."
+      log_info "No repos fetched, so nothing to build."
       return 0
+   fi
+
+   if [ $# -eq 0 ]
+   then
+      log_fluff "Setting up ${DEPENDENCY_SUBDIR}"
+      clean="`read_config_setting "clean_dependencies_before_build" "YES"`"
+      if [ "${clean}" = "YES" ]
+      then
+         rmdir_safer "${DEPENDENCY_SUBDIR}"
+      fi
+   else
+      log_fluff "Keep \"${DEPENDENCY_SUBDIR}\" intact, as this is a partial build"
    fi
 
    # if present then we didnt't want to clean and we do nothing special

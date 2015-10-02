@@ -51,21 +51,24 @@ fi
 
 if [ "$1" = "-v" ]
 then
-   MULLE_BOOTSTRAP_TRACE=VERBOSE
-   export MULLE_BOOTSTRAP_TRACE
+   if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+   then
+       MULLE_BOOTSTRAP_TRACE=VERBOSE
+      export MULLE_BOOTSTRAP_TRACE
+   fi
    GITFLAGS="-v"
    export GITFLAGS
    shift
-fi
-
-if [ "$1" = "-s" ] # silent
-then
-   MULLE_BOOTSTRAP_TRACE=
-   MULLE_BOOTSTRAP_TERSE=YES
-   export MULLE_BOOTSTRAP_TERSE
-   GITFLAGS="-q"
-   export GITFLAGS
-   shift
+else
+   if [ "$1" = "-s" ] # silent
+   then
+      MULLE_BOOTSTRAP_TRACE=
+      MULLE_BOOTSTRAP_TERSE=YES
+      export MULLE_BOOTSTRAP_TERSE
+      GITFLAGS="-q"
+      export GITFLAGS
+      shift
+   fi
 fi
 
 
@@ -73,12 +76,12 @@ fi
 usage()
 {
    cat <<EOF
-usage: mulle-bootstrap [-n][-v][-s] [command] [--help]
+usage: mulle-bootstrap [-n][-v|-s] [command] [--help]
        version 0.4
 
  Specify the -h or --help option after each command to get more help.
 
- Flags (must be in this order)
+ Flags (-n must be first, if present)
    -n        : do nothing creative or destructive
    -v        : be more verbose
    -s        : be more terse
@@ -127,15 +130,6 @@ bootstrap()
        check_and_usage_and_help >&2
        exit 1
    fi
-   #
-   # Parameter
-   #
-
-   if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
-   then
-      echo "there is no ${BOOTSTRAP_SUBDIR} here, can't continue" >&2
-      exit 1
-   fi
 
    #
    # this is run when checking mulle-project itself out
@@ -160,6 +154,13 @@ bootstrap()
 
 main()
 {
+
+   if [ ! -d "${BOOTSTRAP_SUBDIR}" -a "${command}" != "init" ]
+   then
+      echo "there is no ${BOOTSTRAP_SUBDIR} here, can't continue" >&2
+      exit 1
+   fi
+
    case "${command}" in
       bootstrap)
          bootstrap "$@" || exit 1

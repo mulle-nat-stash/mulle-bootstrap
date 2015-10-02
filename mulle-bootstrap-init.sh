@@ -43,17 +43,14 @@ fi
 
 BOOTSTRAP_SUBDIR=.bootstrap
 
-NO_DEFAULT_FILES=${1:-""}
-shift
-NO_EXAMPLE_FILES=${1:-""}
-shift
-DONT_OPEN_GITS=${1:-""}
-shift
+
+CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
+CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "YES"`"
 
 
 if [ -d "${BOOTSTRAP_SUBDIR}" ]
 then
-   echo "${BOOTSTRAP_SUBDIR} already exists" >&2
+   log_warning "\"${BOOTSTRAP_SUBDIR}\" already exists"
    exit 1
 fi
 
@@ -66,18 +63,20 @@ main()
       then
         if [ "$project" != "" ]
         then
-           echo "more than one xcodeproj found, cant' deal with it" >&1
-           exit 1
+           fail "more than one xcodeproj found, cant' deal with it"
         fi
         project="$i"
       fi
    done
 
 
-   mkdir -p "${BOOTSTRAP_SUBDIR}" || exit 1
+   log_fluff "Create \"${BOOTSTRAP_SUBDIR}\""
+   mkdir_if_missing "${BOOTSTRAP_SUBDIR}"
 
-   if [ "${NO_DEFAULT_FILES}" = "" ]
+   if [ "${CREATE_DEFAULT_FILES}" = "YES" ]
    then
+      log_fluff "Create default files"
+
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"
 # add projects that should be installed by brew
 # e.g.
@@ -94,7 +93,7 @@ EOF
 # add projects that should be cloned with git in order
 # of their inter-dependencies
 #
-# possible types of repository URIs:
+# some possible types of repository specifications:
 # http://www.mulle-kybernetik.com/repositories/MulleScion
 # git@github.com:mulle-nat/MulleScion.git
 # ../MulleScion
@@ -103,9 +102,11 @@ EOF
 EOF
    fi
 
-   if [ "${NO_EXAMPLE_FILES}" = "" ]
+   if [ "${CREATE_EXAMPLE_FILES}" = "YES" ]
    then
-      mkdir -p "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin" || exit 1
+     log_fluff "Create example repository settings"
+
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin"
 
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/tag"
 # specify a tag or branch for a project named MulleScion
@@ -120,20 +121,20 @@ EOF
 EOF
 
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/project"
-# Specify a xcodeproj to compile in project MulleScion instead of default
+# Specify a xcodeproj to compile in project MulleScion instead of the default
 # leave commented out or delete file for default project
 # mulle-scion
 EOF
 
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/scheme"
-# Specify a scheme to compile in project MulleScion instead of default
+# Specify a scheme to compile in project MulleScion instead of the default
 # Might bite itself with TARGET, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/target"
-# Specify a target to compile in project MulleScion instead of default.
+# Specify a target to compile in project MulleScion instead of the default.
 # Might bite itself with SCHEME, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
@@ -157,14 +158,29 @@ EOF
 EOF
 #chmod 755 "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-upgrade.sh"
 
-   fi
+  fi
 
-   echo "${BOOTSTRAP_SUBDIR} folder has been set up. Now add your gits to ${BOOTSTRAP_SUBDIR}/gits"
+  log_info "${BOOTSTRAP_SUBDIR} folder has been set up. Now add your gits to ${BOOTSTRAP_SUBDIR}/gits"
 
-   if [ "${DONT_OPEN_GITS}" = "" -a "${NO_DEFAULT_FILES}" = "" ]
-   then
-       exekutor open -e "${BOOTSTRAP_SUBDIR}/gits"
-   fi
+  local open
+
+  open="`read_config_setting "open_gits_file" "ASK"`"
+  if [ "${open}" = "ASK" ]
+  then
+    user_say_yes "Edit the \"gits\" file now ?"
+    if [ $? -eq 0 ]
+    then
+       open="YES"
+    fi
+  fi
+
+  if [ "${open}" = "YES" ]
+  then
+     local editor
+
+     editor="`read_config_setting "editor" "${EDITOR:-vi}"`"
+     exekutor $editor "${BOOTSTRAP_SUBDIR}/gits"
+  fi
 }
 
 main "$@"
