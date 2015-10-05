@@ -888,7 +888,6 @@ ${info} ..."
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${xcodebuild}\" \"${command}\" ${arguments} \
 ARCHS='\${ARCHS_STANDARD_32_64_BIT}' \
-DEPLOYMENT_LOCATION=YES \
 DSTROOT='${owd}/${BUILD_DEPENDENCY_SUBDIR}' \
 INSTALL_PATH='/${LIBRARY_DIR_NAME}${suffix}' \
 SYMROOT='${owd}/${builddir}/' \
