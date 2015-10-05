@@ -7,23 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		41C310661BB444B500F0B036 /* B.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 41C310651BB444B500F0B036 /* B.h */; };
 		41C310681BB444B500F0B036 /* B.m in Sources */ = {isa = PBXBuildFile; fileRef = 41C310671BB444B500F0B036 /* B.m */; };
 		41C310A01BB44CD400F0B036 /* B.h in Headers */ = {isa = PBXBuildFile; fileRef = 41C310651BB444B500F0B036 /* B.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		41C310601BB444B500F0B036 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "include/$(PRODUCT_NAME)";
-			dstSubfolderSpec = 16;
-			files = (
-				41C310661BB444B500F0B036 /* B.h in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		41C310621BB444B500F0B036 /* libB.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libB.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -89,7 +75,6 @@
 				41C3109F1BB44CCD00F0B036 /* Headers */,
 				41C3105E1BB444B500F0B036 /* Sources */,
 				41C3105F1BB444B500F0B036 /* Frameworks */,
-				41C310601BB444B500F0B036 /* CopyFiles */,
 			);
 			buildRules = (
 			);
