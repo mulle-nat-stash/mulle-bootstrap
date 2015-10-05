@@ -41,7 +41,7 @@
 usage()
 {
    cat <<EOF
-tag [tag] [vendortag]
+usage: tag [tag] [vendortag]
 
    tag       : the tag for your repository ($PWD)
    vendortag : the tag used for tagging the fetched repositories
@@ -63,18 +63,25 @@ name=`basename "${PWD}"`
 
 project=`find_xcodeproj "${name}"`
 AGVTAG=
+
 if [ "${project}" != "" ]
 then
+   log_fluff "Trying agvtool to figure out current version"
    dir=`dirname "${project}"`
+   [ -x "${dir}" ] || fail "${dir} is not accesible"
+
    AGVTAG=`(cd "${dir}" ; agvtool what-version -terse ) 2> /dev/null`
    if [ $? -ne 0 ]
    then
+      log_fluff "agvtool failed"
       AGVTAG=
+   else
+      log_info "Current version: ${AGVTAG}"
    fi
 fi
 
 
-TAG=${1:-${AGVTAG}}
+TAG=${1:-"$AGVTAG"}
 shift
 
 VENDOR_TAG="$1"
@@ -82,12 +89,11 @@ shift
 
 if [ -z "${VENDOR_TAG}" ]
 then
-   local prefix
-
    prefix=`basename "${PWD}"`
    prefix="${prefix%%.*}"  # remove vile extension :)
 
    VENDOR_TAG="${prefix}-${TAG}"
+   log_info "Set vendortag to \"${VENDOR_TAG}\""
 fi
 
 check_and_usage_and_help
@@ -105,11 +111,11 @@ git_must_be_clean()
 
    if [ ! -d .git ]
    then
-      fail "$name is not a git repository"
+      fail "\"${name}\" is not a git repository"
    fi
 
    clean=`git status -s`
-   if [ "$clean" != "" ]
+   if [ "${clean}" != "" ]
    then
       fail "repository $name is tainted"
    fi
@@ -171,7 +177,8 @@ tag()
             then
                if [ -d "${i}/.git" -o -d "${i}/refs" ]
                then
-                   (cd "$i" ; executor git tag "${OUR_VENDOR_TAG}" ) || exit 1
+                  log_info "Tagging  \"`basename "${i}"`\" with \"${VENDOR_TAG}\""
+                  (cd "$i" ; executor git tag "${VENDOR_TAG}" ) || fail "tag failed"
                fi
             fi
          done
@@ -202,7 +209,7 @@ main()
    echo "Tagging `basename "${PWD}"` with ${TAG}" >&2
    if  dir_has_files "${CLONES_SUBDIR}"
    then
-      echo "Tagging clones with ${VENDOR_PREFIX}" >&2
+      echo "Tagging clones with ${VENDOR_TAG}" >&2
    fi
    echo "press RETURN to continue, CTRL-C to abort" >&2
    read
