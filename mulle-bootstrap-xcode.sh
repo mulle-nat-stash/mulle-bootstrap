@@ -277,12 +277,15 @@ Release"
 
    #  figure out a way to make this nicer
    local absolute
+   local absolute2
    local relative_subdir
 
-   absolute="`readlink -f "${project}"`"
-   relative_subdir=`relative_path_between "${absolute}" "$(PWD)"/${DEPENDENCY_SUBDIR}`
+   absolute="`realpath "${project}"`"
+   absolute="`dirname "${absolute}"`"
+   absolute2="`pwd -P`/${DEPENDENCY_SUBDIR}"
+   relative_subdir="`relative_path_between "${absolute2}" "${absolute}" `"
 
-   dependencies_dir='$(PROJECT_DIR)'"${relative_subdir}"
+   dependencies_dir='$(PROJECT_DIR)/'"${relative_subdir}"
 
    header_search_paths="\$(DEPENDENCIES_DIR)/${HEADER_DIR_NAME}"
    header_search_paths="${header_search_paths} /usr/local/include"

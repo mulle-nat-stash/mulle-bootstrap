@@ -253,14 +253,20 @@ _read_build_setting()
 #
 read_config_setting()
 {
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
    local name
-   local value
    local default
 
    [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
 
    name="$1"
    default="$2"
+
+   local value
 
    value="`_read_environment_setting "${name}"`"
    if [ $? -ne 0 ]
@@ -278,6 +284,11 @@ read_config_setting()
 
    echo "$value"
 
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
+
    [ "${value}" = "${default}" ]
    return $?
 }
@@ -285,8 +296,12 @@ read_config_setting()
 
 read_build_setting()
 {
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
    local name
-   local value
    local default
    local package
 
@@ -295,6 +310,8 @@ read_build_setting()
    package="$1"
    name="$2"
    default="$3"
+
+   local value
 
    value=`_read_repo_setting "${package}" "${name}"`
    if [ $? -ne 0 ]
@@ -307,6 +324,11 @@ read_build_setting()
    fi
    echo "$value"
 
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
+
    [ "${value}" = "${default}" ]
    return $?
 }
@@ -314,7 +336,11 @@ read_build_setting()
 
 read_repo_setting()
 {
-   local value
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
    local name
    local default
    local package
@@ -325,6 +351,8 @@ read_repo_setting()
    name="$2"
    default="$3"
 
+   local value
+
    value="`_read_repo_setting "${package}" "${name}"`"
    if [ $? -ne 0 ]
    then
@@ -333,6 +361,11 @@ read_repo_setting()
 
    echo "$value"
 
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
+
    [ "${value}" = "${default}" ]
    return $?
 }
@@ -340,6 +373,11 @@ read_repo_setting()
 
 read_build_root_setting()
 {
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
    local value
    local name
    local default
@@ -357,6 +395,11 @@ read_build_root_setting()
 
    echo "$value"
 
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
+
    [ "${value}" = "${default}" ]
    return $?
 }
@@ -364,6 +407,11 @@ read_build_root_setting()
 
 read_fetch_setting()
 {
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
    local value
    local default
    local name
@@ -378,6 +426,11 @@ read_fetch_setting()
    fi
 
    echo "$value"
+
+   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
 
    [ "${value}" = "${default}" ]
    return $?
