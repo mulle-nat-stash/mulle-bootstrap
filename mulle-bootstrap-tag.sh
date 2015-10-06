@@ -152,7 +152,7 @@ pretag_script()
    script=`read_fetch_setting "bin/pre-tag.sh"`
    if [ -x "${script}" ]
    then
-      executor "${script}" || exit 1
+      exekutor "${script}" || exit 1
    fi
 }
 
@@ -165,9 +165,10 @@ tag()
    script=`read_fetch_setting "bin/tag.sh"`
    if [ -x "$script" ]
    then
-      executor "$script" "${TAG}" "${REPO}" || exit 1
+      exekutor "$script" "${TAG}" "${REPO}" || exit 1
    else
-      ( cd "${REPO}" ; executor git tag "${TAG}" ) || exit 1
+      log_info "Tagging \"`basename "${REPO}"`\" with \"${TAG}\""
+      ( cd "${REPO}" ; exekutor git tag "${TAG}" ) || exit 1
 
       if  dir_has_files "${CLONES_SUBDIR}"
       then
@@ -177,8 +178,8 @@ tag()
             then
                if [ -d "${i}/.git" -o -d "${i}/refs" ]
                then
-                  log_info "Tagging  \"`basename "${i}"`\" with \"${VENDOR_TAG}\""
-                  (cd "$i" ; executor git tag "${VENDOR_TAG}" ) || fail "tag failed"
+                  log_info "Tagging \"`basename "${i}"`\" with \"${VENDOR_TAG}\""
+                  (cd "$i" ; exekutor git tag "${VENDOR_TAG}" ) || fail "tag failed"
                fi
             fi
          done
@@ -195,7 +196,7 @@ posttag_script()
    script=`read_fetch_setting "bin/post-tag.sh"`
    if [ -x "${script}" ]
    then
-      executor "${script}" || exit 1
+      exekutor "${script}" || exit 1
    fi
 }
 
@@ -206,17 +207,19 @@ main()
 
    ensure_repos_clean
 
-   echo "Tagging `basename "${PWD}"` with ${TAG}" >&2
+   echo "Will tag `basename "${PWD}"` with ${TAG}" >&2
    if  dir_has_files "${CLONES_SUBDIR}"
    then
-      echo "Tagging clones with ${VENDOR_TAG}" >&2
+      echo "Will tag clones with ${VENDOR_TAG}" >&2
    fi
-   echo "press RETURN to continue, CTRL-C to abort" >&2
-   read
 
-   pretag_script
-   tag
-   posttag_script
+   user_say_yes "Is this OK ?"
+   if [ $? -eq 0 ]
+   then
+      pretag_script
+      tag
+      posttag_script
+   fi
 }
 
 main "$@"
