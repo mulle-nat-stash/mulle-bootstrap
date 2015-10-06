@@ -1164,6 +1164,7 @@ build_clones()
    local built
    local xdone
    local name
+   local clonedir
 
    for clone in ${CLONES_SUBDIR}/*.failed
    do
@@ -1181,15 +1182,16 @@ build_clones()
    then
       built=`read_build_root_setting "build_ignore"`
 
-      for name in `read_build_root_setting "build_order"`
+      for clone in `read_build_root_setting "build_order"`
       do
-         clone="${CLONES_SUBDIR}/${name}"
+         name="`canonical_clone_name "${clone}"`"
+         clonedir="${CLONES_SUBDIR}/${name}"
 
-         if [ -d "${clone}" ]
+         if [ -d "${clonedir}" ]
          then
-            built="`build_if_readable "${clone}" "${name}" "${built}"`" || exit 1
+            built="`build_if_readable "${clonedir}" "${name}" "${built}"`" || exit 1
          else
-            fail "build_order contains unknown repo ${name}"
+            fail "build_order contains unknown repo \"${clone}\" (\"${clonedir}\")"
          fi
       done
 
@@ -1201,21 +1203,23 @@ build_clones()
       then
          for clone in ${clones}
          do
-            name=`basename "${clone}"`
-            clone="${CLONES_SUBDIR}/${name}"
+            name="`canonical_clone_name "${clone}"`"
+            clonedir="${CLONES_SUBDIR}/${name}"
 
-            if [ -d "${clone}" ]
+            if [ -d "${clonedir}" ]
             then
-               built="`build_if_readable "${clone}" "${name}" "${built}"`" || exit 1
+               built="`build_if_readable "${clonedir}" "${name}" "${built}"`" || exit 1
+            else
+               fail "repo for \"${clone}\" not found (\"${clonedir}\")"
             fi
          done
       fi
    else
       for name in "$@"
       do
-         clone="${CLONES_SUBDIR}/${name}"
+         clonedir="${CLONES_SUBDIR}/${name}"
 
-         if [ -d "${clone}" ]
+         if [ -d "${clonedir}" ]
          then
             built="`build_if_readable "${clone}" "${name}" "${built}"`" || exit 1
          else

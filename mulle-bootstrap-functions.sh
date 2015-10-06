@@ -452,6 +452,16 @@ find_xcodeproj()
 }
 
 
+canonical_clone_name()
+{
+   local url
+
+   url="${1}"
+
+   basename "${url}" .git
+}
+
+
 # http://askubuntu.com/questions/152001/how-can-i-get-octal-file-permissions-from-command-line
 lso()
 {
