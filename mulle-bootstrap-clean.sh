@@ -10,7 +10,7 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
 OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
 DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
 .bootstrap.auto"`"
-CLEAN_EMPTY_PARENTS="`read_sane_config_path_setting "clean_empty_parent_folders" "YES"`"
+CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
 
 usage()

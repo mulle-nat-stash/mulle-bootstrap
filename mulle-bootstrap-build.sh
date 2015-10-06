@@ -981,13 +981,20 @@ build()
    local preferences
    local configurations
 
-   preferences=`read_config_setting "preferences" "script
+   #
+   # repo may override how it wants to be build
+   #
+   preferences="`read_build_setting "${name}" "build_preferences"`"
+   if [ -z "${preferences}" ]
+   then
+      preferences="`read_config_setting "build_preferences" "script
 xcodebuild
 cmake
-configure"`
+configure"`"
+   fi
 
-   configurations=`read_build_root_setting "configurations" "Debug
-Release"`
+   configurations="`read_build_root_setting "configurations" "Debug
+Release"`"
 
    local xcodebuild
    local cmake
@@ -1140,7 +1147,7 @@ build_if_readable()
    then
       echo "ignoring orphaned repo ${name}" >&2
    else
-      xdone=`/bin/echo "${built}" | grep "${name}"`
+      xdone="`/bin/echo "${built}" | grep -x "${name}"`"
       if [ "$xdone" = "" ]
       then
          build_wrapper "${clone}"
@@ -1172,31 +1179,37 @@ build_clones()
    #
    if [ "$#" -eq 0 ]
    then
-      built=`read_build_root_setting "buildignore"`
+      built=`read_build_root_setting "build_ignore"`
 
-      for name in `read_build_root_setting "buildorder"`
+      for name in `read_build_root_setting "build_order"`
       do
          clone="${CLONES_SUBDIR}/${name}"
 
          if [ -d "${clone}" ]
          then
-            built=`build_if_readable "${clone}" "${name}" "${built}"`
-            [ $? -eq 0 ] || exit 1
+            built="`build_if_readable "${clone}" "${name}" "${built}"`" || exit 1
          else
-            fail "buildorder contains unknown repo ${name}"
+            fail "build_order contains unknown repo ${name}"
          fi
       done
 
-      for clone in "${CLONES_SUBDIR}"/*
-      do
-         name=`basename "${clone}"`
+      #
+      # otherwise compile in gits order
+      #
+      clones="`read_fetch_setting "gits"`"
+      if [ "${clones}" != "" ]
+      then
+         for clone in ${clones}
+         do
+            name=`basename "${clone}"`
+            clone="${CLONES_SUBDIR}/${name}"
 
-         if [ -d "${clone}" ]
-         then
-            built=`build_if_readable "${clone}" "${name}" "${built}"`
-            [ $? -eq 0 ] || exit 1
-         fi
-      done
+            if [ -d "${clone}" ]
+            then
+               built="`build_if_readable "${clone}" "${name}" "${built}"`" || exit 1
+            fi
+         done
+      fi
    else
       for name in "$@"
       do
@@ -1204,8 +1217,7 @@ build_clones()
 
          if [ -d "${clone}" ]
          then
-            built=`build_if_readable "${clone}" "${name}" "${built}"`
-            [ $? -eq 0 ] || exit 1
+            built="`build_if_readable "${clone}" "${name}" "${built}"`" || exit 1
          else
             fail "unknown repo ${name}"
          fi

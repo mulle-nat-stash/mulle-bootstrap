@@ -369,7 +369,7 @@ git_pull()
 }
 
 
-INHERIT_SETTINGS="taps brews gits pips gems buildorder buildignore"
+INHERIT_SETTINGS="taps brews gits pips gems build_order build_ignore"
 
 
 bootstrap_recurse()
@@ -502,7 +502,7 @@ mark_alive()
       [ ! -z "$permission" ] || fail "failed to get permission of ${CLONES_FETCH_SUBDIR}"
       exekutor chmod -h "${permission}" "${dstname}"
 
-      log_fluff "Marked \${dstname}\" as alive"
+      log_fluff "Marked \"${dstname}\" as alive"
    fi
 }
 

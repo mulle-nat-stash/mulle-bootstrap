@@ -62,7 +62,7 @@ $ mulle-bootstrap init
 ```
 
 At that point a `.bootstrap` will be created with some default
-content. Take the option to edit **gists** and you should be in an editor
+content. Take the option to edit **gits** and you should be in an editor
 seeing:
 
 ```shell
@@ -81,7 +81,7 @@ long run, so delete them all, and add a line containing 'A'.
 The file now looks like this.
 
 ```
-$ cat .bootstrap/gists
+$ cat .bootstrap/gits
 A
 ```
 
@@ -94,10 +94,11 @@ Dry run is active.
 mkdir -p .repos
 There is a ../A folder in the parent
 directory of this project.
-Use it instead of cloning A ? (y/N)
+Use it ? (y/N)
 ```
 
-**A** will be found in the parent directory, and you have the option to use it, which you should do.
+**A** will be found in the parent directory, and you have the option to use it,
+which you should do.
 
 ```console
 y
@@ -110,12 +111,16 @@ Dry run is active.
 No repos fetched, nothing to do.
 ```
 
-It can not preview the build stage, because there are no repositories really setup yet.
+It can not preview the build stage, because there are no repositories really
+setup yet.
 
-The conservative choice now is to do it in two steps. **mulle-bootstrap fetch** and then **mulle-bootstrap build**. **mulle-bootstrap** alone combined both steps into one.
+The conservative choice now is to do it in two steps. **mulle-bootstrap fetch**
+and then **mulle-bootstrap build**. **mulle-bootstrap** alone combined both
+steps into one.
 
 Lets go with **mulle-bootstrap fetch** first, so we can examine the build
-processs afterwards. It will be just like above, but the symlink should be in place now.
+processs afterwards. It will be just like above, but the symlink should be in
+place now.
 
 ```console
 $ mulle-bootstrap -n build
@@ -144,24 +149,72 @@ dependencies/lib/Release/libA.a
 dependencies/usr/local/include/A.h
 ~~~
 
-**include@** is a symlink to `/usr/local/include`, that will always be there. There is a library **libA** for each configuraration. The include file is in `dependencies/usr/local/include`, which is not where we need it.
+**include@** is a symlink to `/usr/local/include`, that will always be there.
+There is a library **libA** for each configuraration. The include file is in
+`dependencies/usr/local/include`, which is not where we need it.
 
 #### Tweaking the output
 
-We can instruct **mulle-bootstrap** to place the headers somewhere else. This is done on a per-repository basis in `.bootstrap/settings`. Since it's an xcode project, it's more foolproof to use "xcode_public_headers":
+We can instruct **mulle-bootstrap** to place the headers somewhere else. This
+is done on a per-repository basis in `.bootstrap/settings`. Since it's an
+xcode project, it's more foolproof to use "xcode_public_headers":
 
 ```console
 $ mkdir -p .bootstrap/settings/A
 $ echo "/usr/local/include/A" > .bootstrap/settings/A/xcode_public_headers
 ```
 
-Now build it again with **mulle-bootstrap**, the header should appear as `dependencies/usr/local/include/A/A.h`, if not you may have made an exciting mistake (see "Figuring out what went wrong").
+Now build it again with **mulle-bootstrap**, the header should appear as
+`dependencies/usr/local/include/A/A.h`, if not you may have made an exciting
+mistake (see "Figuring out what went wrong").
 
 Ok, the proof is in the pudding. Let's build B again with **xcodebuild**.
+This will fail, because it doesn't know yet, to look in "dependecies/include"
+at all.
 
-#### The header isn't found again
+#### Finally we have to tell xcodebuild where the dependencies are
 
-We
+```console
+$ mulle-bootstrap xcode add
+Settings will be added to B.xcodeproj.
+In the long term it may be more useful to copy/paste the following
+lines into a local .xcconfig file, that is inherited by all configurations.
+-----------------------------------------------------------
+// Common.xcconfig:
+DEPENDENCIES_DIR=$(PROJECT_DIR)/dependencies
+HEADER_SEARCH_PATHS=$(DEPENDENCIES_DIR)/include /usr/local/include $(inherited)
+LIBRARY_SEARCH_PATHS=$(DEPENDENCIES_DIR)/lib/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME) $(DEPENDENCIES_DIR)/lib/$(LIBRARY_CONFIGURATION) $(DEPENDENCIES_DIR)/lib/Release$(EFFECTIVE_PLATFORM_NAME) $(DEPENDENCIES_DIR)/lib/Release $(DEPENDENCIES_DIR)/lib /usr/local/lib $(inherited)
+FRAMEWORK_SEARCH_PATHS=$(DEPENDENCIES_DIR)/Frameworks/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME) $(DEPENDENCIES_DIR)/Frameworks/$(LIBRARY_CONFIGURATION) $(DEPENDENCIES_DIR)/Frameworks/Release$(EFFECTIVE_PLATFORM_NAME) $(DEPENDENCIES_DIR)/Frameworks/Release $(DEPENDENCIES_DIR)/Frameworks $(inherited)
+
+
+// Debug.xcconfig:
+#include "Common.xcconfig"
+LIBRARY_CONFIGURATION=Debug
+
+
+// Release.xcconfig:
+#include "Common.xcconfig"
+LIBRARY_CONFIGURATION=Release
+-----------------------------------------------------------
+Add "dependencies/lib"  and friends to search paths of B.xcodeproj ? (y/N)
+```
+
+where you should say YES. Now it will build.
+
+## Inheriting our work in C
+
+So go to folder C, and do the usual setup as
+
+```console
+mulle-bootstrap init
+echo "B" > .bootstrap/gits
+mkdir -p .bootstrap/settings/B
+echo "/usr/local/include/B" > .bootstrap/settings/B/xcode_public_headers
+mulle-bootstrap
+```
+
+This will now use the dependency information from B, to automatically also
+build A and get the header of A into the right place.
 
 
 
@@ -172,41 +225,14 @@ if not present and to use cmake as the only build tool:
 
 ```console
 cd C
-mulle-bootstrap clean    # throw away results from "Using xcodebuild"
+mulle-bootstrap clean dist    # throw away results from "Using xcodebuild"
 echo "cmake" >> .bootstrap/brews
 mkdir -p .bootstrap/settings
 echo "cmake" >> .bootstrap/settings/build_preferences
 mulle-bootstrap
 ```
 
-Now at this point it can be assumed that C.xcodeproj already has the proper
-settings, from doing the example above, but doing it again should be harmless:
-
-```console
-mulle-bootstrap xcode
-xcodebuild
-```
-
-In many cases, especially if you didn't change any mulle-bootstrap settings,
-you can also easily remove the added settings again:
-
-```console
-mulle-bootstrap xcode remove
-xcodebuild  # fails again
-cd ..
-```
-
-## Play around with some settings
-
-
-### Clone or symlink from local folder
-
-Change the `gits` file of C and see what happens
-
-```console
-mulle-bootstrap clean dist
-echo "git@github.com:invalid-user/B" > ".bootstrap.local/gits"
-mulle-bootstrap
-```
-
+> This is actually cheaing a little, because the CMakeLists.txt files already
+habe 'include/[A|B]' set. But you could set dispense_public_headers like you
+can set xcode_public_headers.
 
