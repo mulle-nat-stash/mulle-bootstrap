@@ -1,4 +1,5 @@
 SCRIPTS=install.sh \
+mulle-bootstrap-brew.sh \
 mulle-bootstrap-build.sh \
 mulle-bootstrap-clean.sh \
 mulle-bootstrap-fetch.sh \

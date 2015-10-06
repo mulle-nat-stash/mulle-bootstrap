@@ -410,40 +410,6 @@ dir_has_files()
 }
 
 
-fetch_brew_if_needed()
-{
-   local last_update
-   local binary
-
-   last_update="${HOME}/.mulle-bootstrap/brew-update"
-
-   binary=`which brew`
-   if [ "${binary}" = "" ]
-   then
-      user_say_yes "Brew isn't installed on this system.
-Install brew now (Linux or OS X should work) ? "
-      if [ $? -ne 0 ]
-      then
-         return 1
-      fi
-      if [ "`uname`" = 'Darwin' ]
-      then
-         log_info "Installing OS X brew"
-         exekutor ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || exit 1
-      else
-         log_info "Installing Linux brew"
-         exekutor ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/linuxbrew/go/install)" || exit 1
-      fi
-
-      log_fluff "Touching ${last_update}"
-      exekutor mkdir_if_missing "`dirname "${last_update}"`"
-      exekutor touch "${last_update}"
-      return 1
-   fi
-   return 0
-}
-
-
 #
 # first find a project with matching name, otherwise find
 # first nearest project

@@ -37,6 +37,7 @@
 #
 . mulle-bootstrap-warn-scripts.sh
 . mulle-bootstrap-local-environment.sh
+. mulle-bootstrap-brew.sh
 
 
 usage()
@@ -278,7 +279,7 @@ checkout()
             then
                user_say_yes "There is a ${found} folder in the parent
 directory of this project.
-Use it instead of cloning ${clone} ?"
+Use it ?"
                if [ $? -eq 0 ]
                then
                   srcname="${found}"
@@ -715,42 +716,6 @@ update_repositories()
 }
 
 
-brew_update_if_needed()
-{
-   local stale
-   local last_update
-   local what
-
-   what="$1"
-   last_update="${HOME}/.mulle-bootstrap/brew-update"
-
-   fetch_brew_if_needed
-   if [ $? -eq 1 ]
-  	then
-	  	return 0  ## just fetched it
-	fi
-
-   if [ -f "${last_update}" ]
-   then
-      stale="`find "${last_update}" -mtime +1 -type f -exec echo '{}' \;`"
-      if [ -f "${last_update}" -a "$stale" = "" ]
-      then
-         log_fluff "brew seems to be up to date"
-         return 0
-      fi
-   fi
-
-   user_say_yes "Should brew be updated before installing ${what} ?"
-
-   if [ $? -eq 0 ]
-   then
-      log_fluff "Updating brew, this can take some time..."
-   	exekutor brew update
-
-	   mkdir_if_missing "`dirname "${last_update}"`"
-   	exekutor touch "${last_update}"
-   fi
-}
 
 
 #

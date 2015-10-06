@@ -7,6 +7,7 @@
 #
 
 . mulle-bootstrap-local-environment.sh
+. mulle-bootstrap-brew.sh
 
 
 usage()
@@ -65,74 +66,27 @@ list_default_configuration()
 }
 
 
-check_for_python()
-{
-   local python
-
-   python="`which python`"
-   if [ "$python" = "" ]
-   then
-      echo "Need to install python with pip to install mod_pbxproj." >&2
-      echo "The author suggests you install phyton with brew (http://brew.sh)" >&2
-      user_say_yes "Install brew now ?"
-      [ $? -eq 0 ] || exit 1
-
-      fetch_brew_if_needed
-      executor brew install python  || exit 1
-   fi
-}
-
-
-check_for_pip()
-{
-   local pip
-
-   pip="`which pip`"
-   if [ "$pip" = "" ]
-   then
-      echo "Need to install python with pip to install mod_pbxproj. You have only python." >&2
-      echo "The author suggests you install phyton with brew (http://brew.sh)" >&2
-      user_say_yes "Install python now ?"
-      [ $? -eq 0 ] || exit 1
-
-      fetch_brew_if_needed
-      executor brew install python || exit 1
-   fi
-}
-
-
-check_for_mod_pbxproj()
+check_for_mulle_xcode_settings()
 {
    local installed
-
-   check_for_python
 
    #
    # OK
    #
-   installed=`python -m mod_pbxproj 2>&1 | grep usage`
+   installed=`which mulle-xcode-settings`
    if [ "$installed" = "" ]
    then
-      user_say_yes "Need to install mod_pbxproj (as sudo)
-   Install mod_pbxproj now ?"
+      user_say_yes "Need to install mulle-xcode-settings (via brew)
+   Install mulle-xcode-settings now ?"
       [ $? -eq 0 ] || exit 1
 
-      check_for_pip
+      brew_update_if_needed
 
-      echo "pip needs to run as sudo, and may ask you for your password." >&2
-      sudo pip install mod_pbxproj
-      if [ $? -ne 0 ]
-      then
-         echo "Pip didn't work. )Pip is part of python)" >&2
-         echo "Maybe it's too old." >&2
+      log_info "Tapping mulle-kybernetik/software"
+      brew tap "mulle-kybernetik/software"
 
-         user_say_yes "Try to upgrade pip ?"
-         [ $? -eq 0 ] || exit 1
-
-         echo "pip needs to run as sudo, and may ask you for your password." >&2
-         executor sudo pip install --upgrade pip setuptools
-         executor sudo pip install mod_pbxproj
-      fi
+      log_info "Installing mulle-xcode-settings"
+      brew install "mulle-xcode-settings" || fail "failed to install \"mulle-xcode-settings\""
    fi
 }
 
@@ -184,8 +138,6 @@ map_configuration()
 }
 
 
-
-
 patch_library_configurations()
 {
    local xcode_configurations
@@ -206,13 +158,7 @@ patch_library_configurations()
    for i in ${xcode_configurations}
    do
       mapped=`map_configuration "${configurations}" "${i}"`
-      if [ "${i}" = "Debug" -o "${i}" = "Release" ]
-      then
-         exekutor python -m mod_pbxproj -b "${flag}" 'LIBRARY_CONFIGURATION='"${mapped}" "${project}" "${i}" || exit 1
-      else
-         echo "${C_RED}You need to edit ${C_CYAN}LIBRARY_CONFIGURATION=${C_RED} \
-for ${C_CYAN}$i${C_RED} manually, sorry${C_RESET}" 2>&1
-      fi
+      exekutor mulle-xcode-settings -configuration "${i}" "${flag}" "LIBRARY_CONFIGURATION" "${mapped}" "${project}" || exit 1
    done
    IFS="${old}"
 }
@@ -237,7 +183,7 @@ patch_xcode_project()
 
    # mod_pbxproj can only do Debug/Release/All...
 
-   check_for_mod_pbxproj
+   check_for_mulle_xcode_settings
 
    configurations=`read_build_root_setting "configurations" "Debug
 Release"`
@@ -258,15 +204,15 @@ Release"
 
    if [ "$COMMAND" = "add" ]
    then
-      flag="-af"
+      flag="add"
       #     012345678901234567890123456789012345678901234567890123456789
-      echo "${C_WHITE}Settings will be added to ${C_MAGENTA}${projectname}${C_WHITE} and each contained target." >&2
+      echo "${C_WHITE}Settings will be added to ${C_MAGENTA}${projectname}${C_WHITE}." >&2
       echo "In the long term it may be more useful to copy/paste the following" >&2
-      echo "xcconfig lines into local .xcconfig files.${C_RESET}" >&2
+      echo "lines into a local .xcconfig file, that is inherited by all configurations.${C_RESET}" >&2
    else
-      flag="-rf"
+      flag="remove"
       #     012345678901234567890123456789012345678901234567890123456789
-      echo "${C_WHITE}Settings will be removed from ${projectname} and each contained target." >&2
+      echo "${C_WHITE}Settings will be removed from ${projectname}." >&2
       echo "You may want to check afterwards, that this has worked out OK :).${C_RESET}" >&2
    fi
 
@@ -354,10 +300,10 @@ Release"
 
    patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${flag}"
 
-   exekutor python -m mod_pbxproj -b "${flag}" "DEPENDENCIES_DIR=${dependencies_dir}" "${project}" "All" || exit 1
-   exekutor python -m mod_pbxproj -b "${flag}" "HEADER_SEARCH_PATHS=${header_search_paths}" "${project}" "All" || exit 1
-   exekutor python -m mod_pbxproj -b "${flag}" "LIBRARY_SEARCH_PATHS=${library_search_paths}" "${project}" "All" || exit 1
-   exekutor python -m mod_pbxproj -b "${flag}" "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}" "${project}" "All" || exit 1
+   exekutor mulle-xcode-settings "${flag}" "DEPENDENCIES_DIR" "${dependencies_dir}" "${project}"  || exit 1
+   exekutor mulle-xcode-settings "${flag}" "HEADER_SEARCH_PATHS" "${header_search_paths}" "${project}"  || exit 1
+   exekutor mulle-xcode-settings "${flag}" "LIBRARY_SEARCH_PATHS" "${library_search_paths}" "${project}"  || exit 1
+   exekutor mulle-xcode-settings "${flag}" "FRAMEWORK_SEARCH_PATHS" "${framework_search_paths}" "${project}" || exit 1
 
 
    if [ "$COMMAND" = "add" ]
@@ -365,9 +311,6 @@ Release"
       #     012345678901234567890123456789012345678901234567890123456789
       echo "${C_WHITE}"
       echo "Hint:"
-      echo "You may want to delete the target settings, which have been" >&2
-      echo "(redundantly) added by mod_pbxproj. The project settings suffice." >&2
-      echo "" >&2
       echo "If you add a configuration to your project, remember to edit" >&2
       echo "the LIBRARY_CONFIGURATION setting for that configuration." >&2
       echo "" >&2
