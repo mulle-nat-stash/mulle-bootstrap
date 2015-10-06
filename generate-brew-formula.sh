@@ -8,7 +8,7 @@ HOMEPAGE="http://www.mulle-kybernetik.com/software/git/${TARGET}"
 DESC="A simple shell script based dependency manager for projects"
 VERSION="$1"
 shift
-ARCHIVEURL="$1"
+ARCHIVEURL=${1:-"http://www.mulle-kybernetik.com/software/git/mulle-bootstrap/tarball/$VERSION"}
 shift
 
 set -e
