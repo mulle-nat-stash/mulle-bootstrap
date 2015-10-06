@@ -77,7 +77,7 @@ usage()
 {
    cat <<EOF
 usage: mulle-bootstrap [-n][-v|-s] [command] [--help]
-       version 0.4
+       version 0.5
 
  Specify the -h or --help option after each command to get more help.
 
