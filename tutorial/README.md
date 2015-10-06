@@ -1,10 +1,8 @@
----
-layout: post
-author: Nat!
-title:
-open_comments: true
-date: 2015-10-02 20:48
----
+
+> Check out the [terminal movie](http://www.mulle-kybernetik.com/weblog/statics/demo-tutorial.html),
+instead of typing all the stuff here yourself.
+
+
 # "A B C" Tutorial
 
 This directory contains a simple test with 3 folder A B C, each containing a

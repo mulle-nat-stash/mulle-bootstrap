@@ -4,6 +4,9 @@ This demo shows an already created `.bootstrap` folder in action.
 **mulle-bootstrap** clones and builds a xcodebuild based project, a cmake make
 based project and a configure based project.
 
+> Check out the [terminal movie](http://www.mulle-kybernetik.com/weblog/statics/demo-session.html),
+instead of typing all the stuff here yourself.
+
 Just run mulle-bootstrap in here and examine the created output in the folder
 `dependencies`:
 
