@@ -38,6 +38,7 @@
 . mulle-bootstrap-warn-scripts.sh
 . mulle-bootstrap-local-environment.sh
 . mulle-bootstrap-brew.sh
+. mulle-bootstrap-scripts.sh
 
 
 usage()
@@ -173,48 +174,30 @@ ask_symlink_it()
 }
 
 
-run_fetch_settings_script()
-{
-   local  name
-
-   name="$1"
-   shift
-
-   [ -z "$name" ] && internal_fail "name is empty"
-
-   local script
-
-   script="`read_fetch_setting "bin/${name}.sh"`"
-   if [ ! -z "${script}" ]
-   then
-      run_script "${script}" "$@"
-   fi
-}
-
 
 checkout()
 {
    local clone
    local name1
-   local name2
    local tag
    local dstname
 
    clone="$1"
    name1="$2"
-   name2="$3"
-   dstname="$4"
-   tag="$5"
+   dstname="$3"
+   tag="$4"
 
    [ -z "$clone" ]    && internal_fail "clone is empty"
    [ -z "$name1" ]    && internal_fail "name1 is empty"
-   [ -z "$name2" ]    && internal_fail "name2 is empty"
    [ -z "$dstname" ]  && internal_fail "dstname is empty"
 
    local srcname
    local operation
    local flag
    local found
+   local name2
+
+   name2="`basename "${clone}"`"
 
    #
    # this implicitly ensures, that these folders are
@@ -230,7 +213,7 @@ checkout()
    fi
 
    srcname="${clone}"
-   script="`read_repo_setting "${name1}" "bin/${COMMAND}.sh"`"
+   script="`find_repo_setting_file "${name1}" "bin/${COMMAND}.sh"`"
    operation="git_clone"
 
    # simplify this crap copy/paste code
@@ -297,8 +280,6 @@ Use it ?"
       "${operation}" "${srcname}" "${dstname}" "${tag}"
        warn_scripts "${dstname}/.bootstrap" "${dstname}" || exit 1 # sic
    fi
-
-   run_fetch_settings_script "post-install"
 }
 
 
@@ -369,7 +350,7 @@ git_pull()
 }
 
 
-INHERIT_SETTINGS="taps brews gits pips gems build_order build_ignore"
+INHERIT_SETTINGS="taps brews gits pips gems settings/build_order settings/build_ignore"
 
 
 bootstrap_recurse()
@@ -417,17 +398,30 @@ bootstrap_recurse()
    # prepend new contents to old contents
    # of a few select and known files
    #
+   local srcfile
+   local dstfile
+   local i
+
    for i in $INHERIT_SETTINGS
    do
-      if [ -f "${dst}/.bootstrap/${i}" ]
+      srcfile="${dst}/.bootstrap/${i}"
+      dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
+      if [ -f "${srcfile}" ]
       then
+         log_fluff "Inheriting \"`basename ${i}`\" from \"${srcfile}\""
+
+         mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/`dirname "${i}"`"
          if [ -f "${BOOTSTRAP_SUBDIR}.auto/${i}" ]
          then
-            exekutor mv "${BOOTSTRAP_SUBDIR}.auto/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" || exit 1
-            exekutor cat "${dst}/.bootstrap/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" > "${BOOTSTRAP_SUBDIR}.auto/${i}"  || exit 1
-            exekutor rm "${BOOTSTRAP_SUBDIR}.auto/${i}.tmp" || exit 1
+            local tmpfile
+
+            tmpfile="${BOOTSTRAP_SUBDIR}.auto/${i}.tmp"
+
+            exekutor mv "${dstfile}" "${tmpfile}" || exit 1
+            exekutor cat "${srcfile}" "${tmpfile}" > "${dstfile}"  || exit 1
+            exekutor rm "${tmpfile}" || exit 1
          else
-            exekutor cp "${dst}/.bootstrap/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+            exekutor cp "${srcfile}" "${dstfile}" || exit 1
          fi
       fi
    done
@@ -439,14 +433,22 @@ bootstrap_recurse()
    then
       local relative
 
+      log_fluff "Link up build settings of \"${name}\" to \"${BOOTSTRAP_SUBDIR}.auto/settings/${name}\""
+
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
       relative="`compute_relative "${BOOTSTRAP_SUBDIR}"`"
       exekutor find "${dst}/.bootstrap/settings" -type f -depth 1 -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
-      # flatten folders into our own settings
-      exekutor find "${dst}/.bootstrap/settings" -type d -depth 1 -print0 | \
-         exekutor xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
+      if [ -e "${dst}/.bootstrap/settings/bin"  ]
+      then
+         exekutor ln -s -f "${relative}/../../${dst}/.bootstrap/settings/bin" "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
+      fi
+
+      # flatten other folders into our own settings
+      # don't force though, keep first
+      exekutor find "${dst}/.bootstrap/settings" ! -name bin -type d -depth 1 -print0 | \
+         exekutor xargs -0 -I % ln -s "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
 
 
@@ -519,12 +521,12 @@ log_fetch_action()
 
    if [ -L "${clone}" ]
    then
-      info="symlinked"
+      info=" symlinked "
    else
       info=" "
    fi
 
-   log_fluff "$COMMAND ${info}${clone} in ${dstname} ..."
+   log_fluff "Perform ${COMMAND}${info}${clone} in ${dstname} ..."
 }
 
 #
@@ -538,12 +540,15 @@ log_fetch_action()
 checkout_repository()
 {
    local dstname
+   local name
 
-   dstname="$4"
+   name="$2"
+   dstname="$3"
 
    if [ ! -e "${dstname}" ]
    then
       checkout "$@"
+
       if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
       then
          bootstrap_recurse "${dstname}"
@@ -552,6 +557,8 @@ checkout_repository()
             return 1
          fi
       fi
+
+      run_repo_settings_script "${dstname}" "${name}" "post-${COMMAND}" "$@"
    else
       log_fluff "Repository \"${dstname}\" already exists"
    fi
@@ -565,21 +572,19 @@ clone_repository()
 
    clone="$1"
 
-   local name1
-   local name2
+   local name
    local tag
    local dstname
 
-   name1="`basename "${clone}" .git`"
-   name2="`basename "${clone}"`"
-   tag="`read_repo_setting "${name1}" "tag"`" #repo (sic)
+   name="`basename "${clone}" .git`"
+   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
-   dstname="${CLONES_FETCH_SUBDIR}/${name1}"
+   dstname="${CLONES_FETCH_SUBDIR}/${name}"
 
    mark_alive "${dstname}"
-   log_fetch_action "${clone}" "${dstname}"
+   log_fetch_action "${name}" "${dstname}"
 
-   checkout_repository "${clone}" "${name1}" "${name2}" "${dstname}" "${tag}"
+   checkout_repository "${clone}" "${name}" "${dstname}" "${tag}"
 }
 
 
@@ -624,26 +629,28 @@ clone_repositories()
 
 update()
 {
-   local clone
+   local clonedir
    local name
    local tag
    local dstname
 
-   clone="$1"
+   clonedir="$1"
    name="$2"
    dstname="$3"
    tag="$4"
 
-   [ -z "$clone" ]    && internal_fail "clone is empty"
-   [ -z "$name" ]     && internal_fail "name is empty"
-   [ -z "$dstname" ]  && internal_fail "dstname is empty"
+   [ -d "$clonedir" ]   || internal_fail "clonedir \"${clonedir}\" is wrong ($PWD)"
+   [ ! -z "$name" ]     || internal_fail "name is empty"
+   [ ! -z "$dstname" ]  ||internal_fail "dstname is empty"
 
    local script
 
    log_info "Updating \"${dstname}\""
    if [ ! -L "${dstname}"  ]
    then
-      script="`read_repo_setting "${name}" "bin/update.sh"`"
+      run_repo_settings_script "${clonedir}" "${name}" "pre-update" "%@"
+
+      script="`find_repo_setting_file "${name}" "bin/update.sh"`"
       if [ ! -z "${script}" ]
       then
          run_script "${script}" "$@"
@@ -651,35 +658,31 @@ update()
          exekutor git_pull "${dstname}" "${tag}"
       fi
 
-      script="`read_repo_setting "${name}" "bin/post-update.sh"`"
-      if [ ! -z "${script}" ]
-      then
-         run_script "${script}" "$@"
-      fi
+      run_repo_settings_script "${clonedir}"  "${name}" "post-update" "%@"
    fi
 }
 
 
 update_repository()
 {
-   local clone
+   local clonedir
 
-   clone="$1"
+   clonedir="$1"
 
    local name
    local tag
    local dstname
 
-   name="`basename "${clone}" .git`"
+   name="`basename "${clonedir}" .git`"
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
    dstname="${CLONES_FETCH_SUBDIR}/${name}"
    exekutor [ -e "${dstname}" ] || fail "You need to install first, before updating"
    exekutor [ -x "${dstname}" ] || fail "${name} is not anymore in \"gits\""
 
-   log_fetch_action "${clone}" "${dstname}"
+   log_fetch_action "${clonedir}" "${dstname}"
 
-   update "${clone}" "${name}" "${dstname}" "${tag}"
+   update "${clonedir}" "${name}" "${dstname}" "${tag}"
 }
 
 
@@ -714,8 +717,6 @@ update_repositories()
       fi
    fi
 }
-
-
 
 
 #
@@ -885,12 +886,10 @@ install_pips()
 main()
 {
    log_fluff "::: fetch :::"
+
    #
    # Run prepare scripts if present
    #
-   run_fetch_settings_script "pre-${COMMAND}"
-
-
    if [ "${COMMAND}" = "install" ]
    then
       clone_repositories "$@"
@@ -906,7 +905,7 @@ main()
    #
    # Run prepare scripts if present
    #
-   run_fetch_settings_script "post-${COMMAND}"
+   run_fetch_settings_script "post-${COMMAND}" "%@"
 }
 
 main "$@"

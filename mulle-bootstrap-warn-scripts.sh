@@ -75,10 +75,10 @@ warn_scripts()
    if [ -d "$1" ]
    then
       scripts=`find "$1" -name "*.sh" \( -perm +u+x -o -perm +g+x -o -perm +o+x \) -type f -print`
-      if [ "$scripts" != "" ]
+      if [ ! -z "${scripts}" ]
       then
          echo "this .bootstrap contains shell scripts:" >&2
-         for i in `$scripts`
+         echo $scripts | while read i
          do
             echo "$i:" >&2
             echo "--------------------------------------------------------" >&2
@@ -96,11 +96,12 @@ warn_scripts()
       if private_dir_has_files "$2"
       then
          phases=`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}'  \; -print)`
-         if [ "$phases" != "" ]
+         if [ ! -z "${phases}" ]
          then
             echo "this repository contains xcode projects with shellscript phases" >&2
+
             ack=`which ack`
-            if [ "$ack" = "" ]
+            if [ -z "${ack}" ]
             then
                echo "brew install ack ; ack -A1 \"shellPath|shellScript\"" >&2
                echo "$phases" >&2

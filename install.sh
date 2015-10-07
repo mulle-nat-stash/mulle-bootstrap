@@ -14,7 +14,7 @@ C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
 #
 # restore colors if stuff gets wonky
 #
-trap 'echo "${C_RESET}"' TERM EXIT
+trap 'printf "${C_RESET}"' TERM EXIT
 
 #
 # https://github.com/hoelzro/useful-scripts/blob/master/decolorize.pl
@@ -35,7 +35,7 @@ then
    exit 1
 fi
 
-echo "${C_WHITE}"
+printf "${C_WHITE}"
 
 for i in mulle*bootstrap
 do

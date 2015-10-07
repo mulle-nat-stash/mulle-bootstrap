@@ -86,12 +86,13 @@ _read_setting()
    if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
    then
       local  yesno
+
       yesno="not found"
       if [ $flag -eq 0 ]
       then
          yesno="found"
       fi
-      log_trace2 "Looking for setting: ${file} (pwd=$PWD) :  $yesno"
+      log_trace2 "Looking for setting: ${file} (pwd=$PWD) : $yesno"
    fi
 
    if [ $flag -eq 1 ]
@@ -99,10 +100,19 @@ _read_setting()
       return 2
    fi
 
-   value=`egrep -v '^#|^[ ]*$' "${file}"`
-   if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
+   if [ "${READ_SETTING_RETURNS_PATH}" = "YES" ]
    then
-      log_fluff "Setting ${C_MAGENTA}`basename "${file}"`${C_FLUFF} found in ${C_WHITE}\"${file}\"${C_FLUFF} to ${C_MAGENTA}\"${value}\"${C_FLUFF}"
+      value="${file}"
+      if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
+      then
+         log_fluff "${C_MAGENTA}`basename "${file}"`${C_FLUFF} found as ${C_WHITE}\"${file}\"${C_FLUFF}${C_FLUFF}"
+      fi
+   else
+      value=`egrep -v '^#|^[ ]*$' "${file}"`
+      if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
+      then
+         log_fluff "Setting ${C_MAGENTA}`basename "${file}"`${C_FLUFF} found in ${C_WHITE}\"${file}\"${C_FLUFF} as ${C_MAGENTA}\"${value}\"${C_FLUFF}"
+      fi
    fi
 
    case "${file}" in
@@ -133,7 +143,7 @@ _read_environment_setting()
 
    envname="MULLE_BOOTSTRAP_`echo "${name}" | tr '[:lower:]' '[:upper:]'`"
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS" = "YES" ]
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
    then
       log_trace2 "Looking for setting ${name} as environment variable ${envname}"
    fi
@@ -144,7 +154,7 @@ _read_environment_setting()
       return 2
    fi
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES" ]
    then
       log_trace "setting ${name} found in environment variable ${envname} as \"${value}\""
    fi
@@ -168,7 +178,7 @@ _read_local_setting()
 
    [ "$name" = "" ] && internal_fail "missing parameters in _read_local_setting"
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS" = "YES" ]
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
    then
       log_trace2 "Looking for setting ${name} in ~/.mulle-bootstrap"
    fi
@@ -179,7 +189,7 @@ _read_local_setting()
       return 2
    fi
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES" ]
    then
       log_trace "setting ${name} found in ~/.mulle-bootstrap as \"${value}\""
    fi
@@ -234,7 +244,8 @@ _read_repo_setting()
    package="$1"
    name="$2"
 
-   [ "$name" = "" -o "$package" = "" ] && internal_fail "missing parameters in read_repo_setting"
+   [ ! -z "$name" ]    || internal_fail "empty name in _read_repo_setting( $*)"
+   [ ! -z "$package" ] || internal_fail "empty package in _read_repo_setting( $*)"
 
    # need to conserve return value 2 if empty
    _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto"
@@ -253,7 +264,7 @@ _read_build_setting()
 #
 read_config_setting()
 {
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -284,7 +295,7 @@ read_config_setting()
 
    echo "$value"
 
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -296,7 +307,7 @@ read_config_setting()
 
 read_build_setting()
 {
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -324,7 +335,7 @@ read_build_setting()
    fi
    echo "$value"
 
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -336,7 +347,7 @@ read_build_setting()
 
 read_repo_setting()
 {
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -361,7 +372,7 @@ read_repo_setting()
 
    echo "$value"
 
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -373,7 +384,7 @@ read_repo_setting()
 
 read_build_root_setting()
 {
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -395,7 +406,7 @@ read_build_root_setting()
 
    echo "$value"
 
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -407,7 +418,7 @@ read_build_root_setting()
 
 read_fetch_setting()
 {
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -427,7 +438,7 @@ read_fetch_setting()
 
    echo "$value"
 
-   if [ "{MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -476,6 +487,11 @@ read_sane_config_path_setting()
    return $?
 }
 
+
+
+###
+#
+#
 
 all_build_flag_keys()
 {

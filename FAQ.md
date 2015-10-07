@@ -51,7 +51,7 @@ Release" > .bootstrap/settings/configurations # RIGHT
 ```
 
 
-### mulle-bootstrap does not do what  I want  ?
+### mulle-bootstrap does not do what I want  ?
 
 Check out the SETTINGS.md file for help  about tweaking  mulle-bootstrap.
 
@@ -63,6 +63,9 @@ Put the target name into `.bootstrap/settings/{reponame}/targets`
 mkdir -p  ".bootstrap/settings/Finch" 2> /dev/null
 echo "Finch Demo" > .bootstrap/Finch/targets
 ```
+
+Use `mulle-bootstrap -V` to get an extensive trace.
+
 
 ### Can I change the build folder from build/.repos to something else  ?
 
@@ -111,11 +114,6 @@ mkdir -p  ".bootstrap/settings" 2> /dev/null
 cp myconfig.xcconfig > .bootstrap/settings/xcconfig
 ```
 
-### Should I put build settings into .bootstrap/{reponame} or into .bootstrap ?
-
-It's better to specify build settings on a per repository basis. Repository
-settings can be inherited over recursive fetches. Build settings in `.bootstrap`
-do not.
 
 ### My Xcode project's headers do not show up ?
 
@@ -148,10 +146,9 @@ set to **YES** to work.
 
 Environment Variable                  | Description
 --------------------------------------+-------------------------------------
-MULLE_BOOTSTRAP_VERBOSE               | turn on a little more output. If you set it to VERBOSE instead of YES, it produces quite a bit more output. Set it to FULL for exhausting detail.  Set it to -x for shell tracing.
+MULLE_BOOTSTRAP_VERBOSE               | turn on a little more output. If you set it to VERBOSE instead of YES, it produces quite a bit more output. Set it to FULL for exhausting detail.  Set it to 1848 for shell tracing.
 MULLE_BOOTSTRAP_TRACE                 | traces shell commands as they are executed
-MULLE_BOOTSTRAP_TRACE_SETTINGS        | traces resolved settings
-MULLE_BOOTSTRAP_TRACE_ACCESS_SETTINGS | traces each file access in search for a setting
+MULLE_BOOTSTRAP_TRACE_SETTINGS        | traces settings accesses
 
 
 

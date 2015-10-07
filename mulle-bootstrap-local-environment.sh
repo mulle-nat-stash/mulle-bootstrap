@@ -74,6 +74,7 @@ CLONES_SUBDIR=`read_sane_config_path_setting "repos_foldername" ".repos"`
 CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "build/.repos"`
 DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "dependencies"`
 
+
 if [ "${CLONES_FETCH_SUBDIR}" = "" ]
 then
    CLONES_FETCH_SUBDIR="${CLONES_SUBDIR}"
@@ -109,3 +110,14 @@ HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
 LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
 FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 
+
+#
+# export stuff for scripts
+#
+export CLONES_SUBDIR
+export CLONES_FETCH_SUBDIR
+export CLONESBUILD_SUBDIR
+export DEPENDENCY_SUBDIR
+export HEADER_DIR_NAME
+export LIBRARY_DIR_NAME
+export FRAMEWORK_DIR_NAME

@@ -53,37 +53,48 @@ if [ "$1" = "-v" ]
 then
    if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
    then
-       MULLE_BOOTSTRAP_TRACE=VERBOSE
+      MULLE_BOOTSTRAP_TRACE=VERBOSE
       export MULLE_BOOTSTRAP_TRACE
    fi
    GITFLAGS="-v"
    export GITFLAGS
    shift
 else
-   if [ "$1" = "-s" ] # silent
+   if [ "$1" = "-V" ]
    then
-      MULLE_BOOTSTRAP_TRACE=
-      MULLE_BOOTSTRAP_TERSE=YES
-      export MULLE_BOOTSTRAP_TERSE
-      GITFLAGS="-q"
+      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+      then
+         MULLE_BOOTSTRAP_TRACE=ALL
+         export MULLE_BOOTSTRAP_TRACE
+      fi
+      GITFLAGS="-v"
       export GITFLAGS
       shift
+   else
+      if [ "$1" = "-s" ] # silent
+      then
+         MULLE_BOOTSTRAP_TRACE=
+         MULLE_BOOTSTRAP_TERSE=YES
+         export MULLE_BOOTSTRAP_TERSE
+         GITFLAGS="-q"
+         export GITFLAGS
+         shift
+      fi
    fi
 fi
-
 
 
 usage()
 {
    cat <<EOF
 usage: mulle-bootstrap [-n][-v|-s] [command] [--help]
-       version 0.5
+       version 0.6
 
  Specify the -h or --help option after each command to get more help.
 
  Flags (-n must be first, if present)
    -n        : do nothing creative or destructive
-   -v        : be more verbose
+   -v        : be more verbose (-V even more verbose)
    -s        : be more terse
 
  Common user commands:

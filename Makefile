@@ -8,6 +8,7 @@ mulle-bootstrap-gcc.sh \
 mulle-bootstrap-init.sh \
 mulle-bootstrap-local-environment.sh \
 mulle-bootstrap-settings.sh \
+mulle-bootstrap-scripts.sh \
 mulle-bootstrap-tag.sh \
 mulle-bootstrap-warn-scripts.sh \
 mulle-bootstrap-xcode.sh

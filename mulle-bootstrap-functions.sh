@@ -39,7 +39,9 @@ then
    C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
    C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
 
-   trap 'echo "${C_RESET}"' TERM EXIT
+   C_BR_RED="\033[0;91m"
+
+   trap 'printf "${C_RESET}"' TERM EXIT
 fi
 
 
@@ -106,8 +108,7 @@ fail()
 
 internal_fail()
 {
-   fail "**** mulle-bootstrap internal error ****
-$*"
+   fail "${C_BR_RED}*** internal error: ${C_RED}$*"
 }
 
 
@@ -478,7 +479,7 @@ run_script()
    script="$1"
    shift
 
-   [ -z "$script" ] && internal_fail "script is empty"
+   [ ! -z "$script" ] || internal_fail "script is empty"
 
    if [ -x "${script}" ]
    then
@@ -487,7 +488,7 @@ run_script()
    else
       if [ ! -e "${script}" ]
       then
-         fail "script \"${script}\" not found"
+         fail "script \"${script}\" not found ($PWD)"
       else
          fail "script \"${script}\" not executable"
       fi

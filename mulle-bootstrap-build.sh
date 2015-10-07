@@ -29,8 +29,9 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-.  mulle-bootstrap-local-environment.sh
-.  mulle-bootstrap-gcc.sh
+. mulle-bootstrap-local-environment.sh
+. mulle-bootstrap-gcc.sh
+. mulle-bootstrap-scripts.sh
 
 
 check_and_usage_and_help()
@@ -50,6 +51,7 @@ then
    check_and_usage_and_help >&2
    exit 1
 fi
+
 
 
 CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build" "YES"`
@@ -90,7 +92,11 @@ dispense_headers()
             exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
          rmdir_safer "${src}"
+      else
+         log_fluff "But threre are none"
       fi
+   else
+      log_fluff "But it doesn't exist"
    fi
 }
 
@@ -130,8 +136,12 @@ dispense_binaries()
          exekutor find -x "${src}" ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -depth 1 -print0 | \
             exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
+      else
+         log_fluff "But threre are none"
       fi
       rmdir_safer "${src}"
+   else
+      log_fluff "But it doesn't exist"
    fi
 }
 
@@ -297,7 +307,6 @@ cmake_sdk_parameter()
       echo '-DCMAKE_OSX_SYSROOT='"${sdkpath}"
    fi
 }
-
 
 
 create_dummy_dirs_against_warnings()
@@ -966,7 +975,6 @@ build_xcodebuild_schemes_or_target()
 }
 
 
-
 build()
 {
    local srcdir
@@ -1011,7 +1019,7 @@ Release"`"
 
    local builddir
    local relative
-   local built
+   local hasbuilt
    local configuration
    local preference
 
@@ -1032,14 +1040,20 @@ Release"`"
          builddir="${CLONESBUILD_SUBDIR}/${configuration}/${name}"
          relative="${CLONESBUILD_RELATIVE}/../.."
 
-         built=no
+         hasbuilt=no
          for preference in ${preferences}
          do
-            if [ -x "${SCRIPT}" -a "${preference}" = "script" ]
+            if [ "${preference}" = "script" ]
             then
-               "${SCRIPT}" "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" || exit 1
-               built=yes
-               break
+               local script
+
+               script="`find_build_setting_file "${name}" "bin/build.sh"`"
+               if [ -x "${script}" ]
+               then
+                  run_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" || exit 1
+                  hasbuilt=yes
+                  break
+               fi
             fi
 
             if [ "${preference}" = "xcodebuild" -a -x "${xcodebuild}" ]
@@ -1049,7 +1063,7 @@ Release"`"
                if [ "$project" != "" ]
                then
                   build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" "${project}"  || exit 1
-                  built=yes
+                  hasbuilt=yes
                   break
                fi
             fi
@@ -1064,7 +1078,7 @@ Release"`"
                if [ -x "${srcdir}/configure" ]
                then
                   build_configure "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}"  || exit 1
-                  built=yes
+                  hasbuilt=yes
                   break
                fi
             fi
@@ -1074,13 +1088,13 @@ Release"`"
                if [ -f "${srcdir}/CMakeLists.txt" ]
                then
                   build_cmake "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}"  || exit 1
-                  built=yes
+                  hasbuilt=yes
                   break
                fi
             fi
          done
 
-         if [ "$built" != "yes" ]
+         if [ "$hasbuilt" != "yes" ]
          then
             fail "Don't know how to build ${name}"
          fi
@@ -1099,14 +1113,19 @@ Release"`"
 #
 build_wrapper()
 {
-   local clone
+   local dstdir
+   local name
 
-   clone="$1"
+   dstdir="$1"
+   name="$2"
+
 
    REFERENCE_DEPENDENCY_SUBDIR="${DEPENDENCY_SUBDIR}"
    BUILD_DEPENDENCY_SUBDIR="${DEPENDENCY_SUBDIR}/tmp"
 
    DEPENDENCY_SUBDIR="WRONG_DONT_USE_DEPENDENCY_SUBDIR_DURING_BUILD"
+
+   log_fluff "Setting up BUILD_DEPENDENCY_SUBDIR as \"${BUILD_DEPENDENCY_SUBDIR}\""
 
    if [ -d "${BUILD_DEPENDENCY_SUBDIR}" ]
    then
@@ -1118,9 +1137,12 @@ build_wrapper()
    # move dependencies we have so far away into safety,
    # need that path for includes though
    #
-   log_fluff "Setting up \"${BUILD_DEPENDENCY_SUBDIR}\""
 
-   build "${clone}"
+   run_repo_settings_script "${dstdir}" "${name}" "pre-build" "$@" || exit 1
+
+   build "${dstdir}" || exit 1
+
+   run_repo_settings_script "${dstdir}" "${name}" "post-build" "$@" || exit 1
 
    log_fluff "Remove \"${BUILD_DEPENDENCY_SUBDIR}\""
 
@@ -1135,24 +1157,25 @@ build_wrapper()
 
 build_if_readable()
 {
-   local clone
+   local dstdir
    local name
-   local xdone
 
-   clone="$1"
+   dstdir="$1"
    name="$2"
-   built="$3"
 
-   if [ ! -r "${clone}" ]
+   local xdone
+   if [ ! -r "${dstdir}" ]
    then
-      echo "ignoring orphaned repo ${name}" >&2
+      echo "Ignoring orphaned repo ${name}" >&2
    else
-      xdone="`/bin/echo "${built}" | grep -x "${name}"`"
+      xdone="`/bin/echo "${BUILT}" | grep -x "${name}"`"
       if [ "$xdone" = "" ]
       then
-         build_wrapper "${clone}"
-         echo "${name}
-${built}"
+         build_wrapper "${dstdir}" "${name}"
+         BUILT="${name}
+${BUILT}"
+      else
+         log_fluff "Ignoring \"${name}\". (Either in \"build_ignore\" or already built)"
       fi
    fi
 }
@@ -1161,10 +1184,9 @@ ${built}"
 build_clones()
 {
    local clone
-   local built
    local xdone
    local name
-   local clonedir
+   local dstdir
 
    for clone in ${CLONES_SUBDIR}/*.failed
    do
@@ -1174,24 +1196,29 @@ build_clones()
       fi
    done
 
+   run_build_root_settings_script "pre-build" "$@"
+
    #
    # build order is there, because we want to have gits
    # and maybe later hgs
    #
+   BUILT=
+   export BUILT
+
    if [ "$#" -eq 0 ]
    then
-      built=`read_build_root_setting "build_ignore"`
+      BUILT="`read_build_root_setting "build_ignore"`"
 
       for clone in `read_build_root_setting "build_order"`
       do
          name="`canonical_clone_name "${clone}"`"
-         clonedir="${CLONES_SUBDIR}/${name}"
+         dstdir="${CLONES_SUBDIR}/${name}"
 
-         if [ -d "${clonedir}" ]
+         if [ -d "${dstdir}" ]
          then
-            built="`build_if_readable "${clonedir}" "${name}" "${built}"`" || exit 1
+            build_if_readable "${dstdir}" "${name}"  || exit 1
          else
-            fail "build_order contains unknown repo \"${clone}\" (\"${clonedir}\")"
+            fail "build_order contains unknown repo \"${clone}\" (\"${dstdir}\")"
          fi
       done
 
@@ -1204,29 +1231,31 @@ build_clones()
          for clone in ${clones}
          do
             name="`canonical_clone_name "${clone}"`"
-            clonedir="${CLONES_SUBDIR}/${name}"
+            dstdir="${CLONES_SUBDIR}/${name}"
 
-            if [ -d "${clonedir}" ]
+            if [ -d "${dstdir}" ]
             then
-               built="`build_if_readable "${clonedir}" "${name}" "${built}"`" || exit 1
+               build_if_readable "${dstdir}" "${name}" || exit  1
             else
-               fail "repo for \"${clone}\" not found (\"${clonedir}\")"
+               fail "repo for \"${clone}\" not found (\"${dstdir}\") ($PWD)"
             fi
          done
       fi
    else
       for name in "$@"
       do
-         clonedir="${CLONES_SUBDIR}/${name}"
+         dstdir="${CLONES_SUBDIR}/${name}"
 
-         if [ -d "${clonedir}" ]
+         if [ -d "${dstdir}" ]
          then
-            built="`build_if_readable "${clone}" "${name}" "${built}"`" || exit 1
+            build_if_readable "${clone}" "${name}" || exit 1
          else
             fail "unknown repo ${name}"
          fi
       done
    fi
+
+   run_build_root_settings_script "post-build" "$@"
 }
 
 
@@ -1276,7 +1305,7 @@ main()
 
    if [ $# -eq 0 ]
    then
-      log_fluff "Setting up ${DEPENDENCY_SUBDIR}"
+      log_fluff "Setting up dependencies directory as \"${DEPENDENCY_SUBDIR}\""
       clean="`read_config_setting "clean_dependencies_before_build" "YES"`"
       if [ "${clean}" = "YES" ]
       then

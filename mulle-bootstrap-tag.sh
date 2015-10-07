@@ -36,7 +36,7 @@
 #
 
 . mulle-bootstrap-local-environment.sh
-
+. mulle-bootstrap-scripts.sh
 
 usage()
 {
@@ -144,28 +144,17 @@ ensure_repos_clean()
 }
 
 
-pretag_script()
-{
-   #
-   # Run pre-tag scripts if present
-   #
-   script=`read_fetch_setting "bin/pre-tag.sh"`
-   if [ -x "${script}" ]
-   then
-      exekutor "${script}" || exit 1
-   fi
-}
-
-
 tag()
 {
    local i
    local script
 
-   script=`read_fetch_setting "bin/tag.sh"`
+   run_fetch_settings_script "pre-tag"
+
+   script=`find_fetch_setting_file "bin/tag.sh"`
    if [ -x "$script" ]
    then
-      exekutor "$script" "${TAG}" "${REPO}" || exit 1
+      run_script "$script" "${TAG}" "${REPO}" || exit 1
    else
       log_info "Tagging \"`basename "${REPO}"`\" with \"${TAG}\""
       ( cd "${REPO}" ; exekutor git tag "${TAG}" ) || exit 1
@@ -185,19 +174,8 @@ tag()
          done
       fi
    fi
-}
 
-
-posttag_script()
-{
-   #
-   # Run post-tag scripts if present
-   #
-   script=`read_fetch_setting "bin/post-tag.sh"`
-   if [ -x "${script}" ]
-   then
-      exekutor "${script}" || exit 1
-   fi
+   run_fetch_settings_script "pre-tag"
 }
 
 
@@ -216,9 +194,7 @@ main()
    user_say_yes "Is this OK ?"
    if [ $? -eq 0 ]
    then
-      pretag_script
       tag
-      posttag_script
    fi
 }
 
