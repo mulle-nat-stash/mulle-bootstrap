@@ -130,15 +130,15 @@ run_build_root_settings_script()
 # run in subshell
 run_fake_environment_script()
 {
-   local clonedir
+   local dstname
    local script
 
-   clonedir="$1"
+   dstname="$1"
    shift
    script="$1"
    shift
 
-   ( owd="`pwd -P`"; cd "${clonedir}" ;
+   ( owd="`pwd -P`"; cd "${dstname}" ;
    CLONES_SUBDIR="${owd}/${CLONES_SUBDIR}" \
    CLONESBUILD_SUBDIR="${owd}/${CLONESBUILD_SUBDIR}" \
    DEPENDENCY_SUBDIR="${owd}/${DEPENDENCY_SUBDIR}" \
@@ -151,16 +151,16 @@ run_repo_settings_script()
 {
    local name
    local scriptname
-   local clonedir
+   local dstname
 
-   clonedir="$1"
+   dstname="$1"
    shift
    name="$1"
    shift
    scriptname="$1"
    shift
 
-   [ -d "$clonedir" ]     || internal_fail "clonedir \"${clonedir}\" is wrong ($PWD)"
+   [ -d "$dstname" ]      || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
    [ ! -z "$name" ]       || internal_fail "name is empty"
    [ ! -z "$scriptname" ] || internal_fail "scriptname is empty"
 
@@ -169,7 +169,34 @@ run_repo_settings_script()
    script="`find_repo_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      run_fake_environment_script "${clonedir}" "${script}" "$@" || exit 1
+      run_fake_environment_script "${dstname}" "${script}" "$@" || exit 1
+   fi
+}
+
+
+run_build_settings_script()
+{
+   local dstname
+   local name
+   local scriptname
+
+   dstname="$1"
+   shift
+   name="$1"
+   shift
+   scriptname="$1"
+   shift
+
+   [ -d "$dstname" ]      || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
+   [ ! -z "$name" ]       || internal_fail "name is empty"
+   [ ! -z "$scriptname" ] || internal_fail "scriptname is empty"
+
+   local script
+
+   script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
+   if [ ! -z "${script}" ]
+   then
+      run_script "${script}" "$@" || exit 1
    fi
 }
 

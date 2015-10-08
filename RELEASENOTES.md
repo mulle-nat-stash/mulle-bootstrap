@@ -10,3 +10,7 @@
 
    Lots of en-passant bug fixes. Should be in general better than 0.5
 
+   Add -V option.
+
+   Added new did-install script phase. Depending on actual usage, I'll
+   probably ditch some of the other phases again. This is all in flux.
