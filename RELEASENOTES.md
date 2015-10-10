@@ -1,3 +1,7 @@
+0.7
+===
+   Added version command
+
 0.6
 ===
 	Improve scripts handling and add a some new phases to
