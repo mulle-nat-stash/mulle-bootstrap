@@ -6,9 +6,10 @@ PROJECT=MulleBootstrap
 TARGET=mulle-bootstrap
 HOMEPAGE="http://www.mulle-kybernetik.com/software/git/${TARGET}"
 DESC="A simple shell script based dependency manager for projects"
-VERSION="$1"
+
+VERSION="${1:-`./mulle-bootstrap version`}"
 shift
-ARCHIVEURL=${1:-"http://www.mulle-kybernetik.com/software/git/mulle-bootstrap/tarball/$VERSION"}
+ARCHIVEURL="${1:-http://www.mulle-kybernetik.com/software/git/${TARGET}/tarball/$VERSION}"
 shift
 
 set -e
