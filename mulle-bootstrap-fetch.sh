@@ -831,7 +831,7 @@ update()
    log_info "Updating \"${dstname}\""
    if [ ! -L "${dstname}"  ]
    then
-      run_repo_settings_script "${clone}" "${name}" "pre-update" "%@"
+      run_repo_settings_script "${dstname}" "${name}" "pre-update" "%@"
 
       script="`find_repo_setting_file "${name}" "bin/update.sh"`"
       if [ ! -z "${script}" ]
@@ -841,7 +841,7 @@ update()
          exekutor git_pull "${dstname}" "${tag}"
       fi
 
-      run_repo_settings_script "${clone}" "${name}" "post-update" "%@"
+      run_repo_settings_script "${dstname}" "${name}" "post-update" "%@"
    fi
 }
 

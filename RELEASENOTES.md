@@ -1,3 +1,7 @@
+0.7.1
+===
+   Fixed an internal error, when using mulle-bootstrap update.
+
 0.7
 ===
    Added version command
