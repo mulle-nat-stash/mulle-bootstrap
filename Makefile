@@ -20,13 +20,15 @@ SHELLFLAGS=-x -e SC2164,SC2166,SC2006 -s sh
 .PHONY: clean
 .PHONY: shellcheck_check
 
-%.chk:	%.sh shellcheck_check
-		- ( shellcheck $(SHELLFLAGS) $< || touch $@ )
+%.chk:	%.sh
+		- shellcheck $(SHELLFLAGS) $<
+		(shellcheck -f json $(SHELLFLAGS) $< | jq '.[].level' | grep error > /dev/null ) && exit 1 || touch $@
 
-all:	$(CHECKSTAMPS) mulle-bootstrap.chk
+all:	$(CHECKSTAMPS) mulle-bootstrap.chk shellcheck_check jq_check
 
-mulle-bootstrap.chk:	mulle-bootstrap shellcheck_check
-		- ( shellcheck $(SHELLFLAGS) $< || touch $@ )
+mulle-bootstrap.chk:	mulle-bootstrap
+		- shellcheck $(SHELLFLAGS) $<
+		(shellcheck -f json $(SHELLFLAGS) $< | jq '.[].level' | grep error > /dev/null ) && exit 1 || touch $@
 
 install:
 	@ ./install.sh
@@ -37,3 +39,5 @@ clean:
 shellcheck_check:
 	which shellcheck || brew install shellcheck
 
+jq_check:
+		which shellcheck || brew install shellcheck
