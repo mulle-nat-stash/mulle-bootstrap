@@ -460,6 +460,15 @@ read_yes_no_build_setting()
 }
 
 
+read_yes_no_config_setting()
+{
+   local value
+
+   value=`read_config_setting "$1" "$2"`
+   is_yes "$value" "$1"
+}
+
+
 
 read_sane_config_path_setting()
 {

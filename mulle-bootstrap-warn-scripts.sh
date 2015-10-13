@@ -53,15 +53,15 @@ private_user_say_yes()
 {
   local  x
 
-  x="nix"
-  while [ "$x" != "y" -a "$x" != "n" -a "$x" != "" ]
+  x=`read_config_setting "answer" "ASK"`
+  while [ "$x" != "Y" -a "$x" != "YES" -a "$x" != "N" -a "$x" != "NO" -a "$x" != "" ]
   do
      echo "${C_YELLOW}$* (${C_WHITE}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
      read x
+     x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
   done
 
-  [ "$x" = "y" ]
-  return $?
+  [ "$x" = "Y" -o "$x" = "YES" ]
 }
 
 
@@ -116,8 +116,15 @@ warn_scripts()
    if [ "$phases" != "" -o "$scripts" != "" ]
    then
       private_user_say_yes "You should probably inspect them before continuing.
-Ready to proceed ?"
-      return $?
+Abort now ?"
+      if [ $? -eq 0 ]
+      then
+          log_error "The bootstrap is in an inconsistent state. It would be good
+to run
+        ${C_WHITE}mulle-bootstrap clean dist${C_ERROR}
+now."
+          return 1
+      fi
    fi
 }
 

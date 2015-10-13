@@ -91,9 +91,10 @@ dispense_headers()
          exekutor find -x "${src}" ! -path "${src}" -depth 1 \( -type f -o -type l \) -print0 | \
             exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
+
          rmdir_safer "${src}"
       else
-         log_fluff "But threre are none"
+         log_fluff "But there are none"
       fi
    else
       log_fluff "But it doesn't exist"
@@ -344,6 +345,17 @@ create_dummy_dirs_against_warnings()
 }
 
 
+
+build_fail()
+{
+   printf "${C_RED}"
+   grep -A5 "error:" "${1}" >&2
+   printf "${C_RESET}"
+
+   fail "$2 failed"
+}
+
+
 #
 # remove old builddir, create a new one
 # depending on configuration cmake with flags
@@ -387,6 +399,13 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
    create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}" "${relative}"
 
+   local logfile
+
+   mkdir_if_missing "${BUILDLOG_SUBDIR}"
+   logfile="${BUILDLOG_SUBDIR}/${name}"
+
+   log_info "Logs in \"${logfile}.cmake\" and \"${logfile}.make\""
+
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
    exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
@@ -395,6 +414,8 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
       # cmake doesn't seem to "get" CMAKE_CXX_FLAGS or -INCLUDE
       #
       set -f
+
+      logfile="${owd}/${logfile}"
 
       exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
@@ -421,9 +442,9 @@ ${sdk}" \
 -F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_ldflags} \
 ${sdk}" \
-"${relative}/${srcdir}" 1>&2  || fail "cmake failed for ${srcdir}" 1
+"${relative}/${srcdir}" > "${logfile}.cmake" || build_fail "${logfile}.cmake" "cmake"
 
-      exekutor make all install 1>&2 || fail "make install failed for ${srcdir}" 1
+      exekutor make all install > "${logfile}.make" || build_fail "${logfile}.make" "make"
 
       set +f
 
@@ -477,11 +498,20 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
    create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}" "${relative}"
 
+   local logfile
+
+   mkdir_if_missing "${BUILDLOG_SUBDIR}"
+   logfile="${BUILDLOG_SUBDIR}/${name}"
+
+   log_info "Logs in \"${logfile}.configure\" and \"${logfile}.make\""
+
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
    exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
 
        set -f
+
+      logfile="${owd}/${logfile}"
 
       # use absolute paths for configure, safer (and easier to read IMO)
       CFLAGS="\
@@ -507,9 +537,9 @@ ${sdk}" \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 ${sdk}" \
-      exekutor "${owd}/${srcdir}/configure" --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" 1>&2  || exit 1
+      exekutor "${owd}/${srcdir}/configure" --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" > "${logfile}.configure" || build_fail "${logfile}.configure" "configure"
 
-      exekutor make all install 1>&2 || exit 1
+      exekutor make all install > "${logfile}.make" || build_fail "${logfile}.make" "make"
 
       set +f
 
@@ -648,6 +678,7 @@ combined_escaped_search_path()
 }
 
 
+
 build_xcodebuild()
 {
    local configuration
@@ -685,16 +716,16 @@ build_xcodebuild()
    info=""
    if [ ! -z "${targetname}" ]
    then
-      info="Target ${C_MAGENTA}${targetname}${C_FLUFF}"
+      info="Target ${C_MAGENTA}${targetname}${C_INFO}"
    fi
 
    if [ ! -z "${schemename}" ]
    then
-      info="Scheme ${C_MAGENTA}${schemename}${C_FLUFF}"
+      info="Scheme ${C_MAGENTA}${schemename}${C_INFO}"
    fi
 
-   log_info "Do a xcodebuild ${C_MAGENTA}${configuration}${C_FLUFF} of \
-${C_MAGENTA}${name}${C_FLUFF} for SDK ${C_MAGENTA}${sdk}${C_FLUFF} \
+   log_info "Do a xcodebuild ${C_MAGENTA}${configuration}${C_INFO} of \
+${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} \
 ${info} ..."
 
    local projectname
@@ -799,33 +830,43 @@ ${info} ..."
    default="/include/${name}/private"
    private_headers="`fixup_header_path "PRIVATE_HEADERS_FOLDER_PATH" "xcode_private_headers" "${name}" "${default}" ${arguments}`"
 
+
+   local logfile
+
+   mkdir_if_missing "${BUILDLOG_SUBDIR}"
+   logfile="${BUILDLOG_SUBDIR}/${name}"
+
+   log_info "Log in \"${logfile}.xcodebuild\""
+
+   set -f
+
+   arguments=""
+   if [ ! -z "${projectname}" ]
+   then
+      arguments="${arguments} -project \"${projectname}\""
+   fi
+   if [ ! -z "${sdk}" ]
+   then
+      arguments="${arguments} -sdk \"${sdk}\""
+   fi
+   if [ ! -z "${schemename}" ]
+   then
+      arguments="${arguments} -scheme \"${schemename}\""
+   fi
+   if [ ! -z "${targetname}" ]
+   then
+      arguments="${arguments} -target \"${targetname}\""
+   fi
+   if [ ! -z "${mapped}" ]
+   then
+      arguments="${arguments} -configuration \"${mapped}\""
+   fi
+
    owd=`pwd`
    cd "${srcdir}" || exit 1
 
-      set -f
 
-      arguments=""
-      if [ ! -z "${projectname}" ]
-      then
-         arguments="${arguments} -project \"${projectname}\""
-      fi
-      if [ ! -z "${sdk}" ]
-      then
-         arguments="${arguments} -sdk \"${sdk}\""
-      fi
-      if [ ! -z "${schemename}" ]
-      then
-         arguments="${arguments} -scheme \"${schemename}\""
-      fi
-      if [ ! -z "${targetname}" ]
-      then
-         arguments="${arguments} -target \"${targetname}\""
-      fi
-      if [ ! -z "${mapped}" ]
-      then
-         arguments="${arguments} -configuration \"${mapped}\""
-      fi
-
+      logfile="${owd}/${logfile}"
 
       # manually point xcode to our headers and libs
       # this is like manually doing xcode-setup
@@ -893,7 +934,6 @@ ${info} ..."
          arguments="${arguments} PRIVATE_HEADERS_FOLDER_PATH='${private_headers}'"
       fi
 
-
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${xcodebuild}\" \"${command}\" ${arguments} \
 ARCHS='\${ARCHS_STANDARD_32_64_BIT}' \
@@ -907,7 +947,7 @@ HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
-      eval_exekutor "${cmdline}" 1>&2 || exit 1
+      eval_exekutor "${cmdline}" > "${logfile}.xcodebuild" || build_fail "${logfile}.xcodebuild" "xcodebuild"
 
       set +f
 
@@ -1324,6 +1364,15 @@ main()
    fi
 
    build_clones "$@"
+
+   if [ $# -eq 0 ]
+   then
+      if [ "${clean}" = "YES" ]
+      then
+         log_info "Write-protecting \"${DEPENDENCY_SUBDIR}\" to avoid spurious header edits"
+         chmod -R a-w "${DEPENDENCY_SUBDIR}"
+      fi
+   fi
 }
 
 main "$@"

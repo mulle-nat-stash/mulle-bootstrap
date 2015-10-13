@@ -73,6 +73,7 @@ fi
 CLONES_SUBDIR=`read_sane_config_path_setting "repos_foldername" ".repos"`
 CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "build/.repos"`
 DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "dependencies"`
+BUILDLOG_SUBDIR=`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`
 
 
 if [ "${CLONES_FETCH_SUBDIR}" = "" ]
@@ -99,6 +100,7 @@ fi
 [ -z "${BOOTSTRAP_SUBDIR}" ]     && internal_fail "variable BOOTSTRAP_SUBDIR is empty"
 [ -z "${CLONES_SUBDIR}" ]        && internal_fail "variable CLONES_SUBDIR is empty"
 [ -z "${CLONESBUILD_SUBDIR}" ]   && internal_fail "variable CLONESBUILD_SUBDIR is empty"
+[ -z "${BUILDLOG_SUBDIR}" ]      && internal_fail "variable BUILDLOG_SUBDIR is empty"
 [ -z "${DEPENDENCY_SUBDIR}" ]    && internal_fail "variable DEPENDENCY_SUBDIR is empty"
 [ -z "${CLONES_RELATIVE}" ]      && internal_fail "variable CLONES_RELATIVE is empty"
 [ -z "${CLONESBUILD_RELATIVE}" ] && internal_fail "CLONESBUILD_RELATIVE is empty"
@@ -117,6 +119,7 @@ FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 export CLONES_SUBDIR
 export CLONES_FETCH_SUBDIR
 export CLONESBUILD_SUBDIR
+export BUILDLOG_SUBDIR
 export DEPENDENCY_SUBDIR
 export HEADER_DIR_NAME
 export LIBRARY_DIR_NAME

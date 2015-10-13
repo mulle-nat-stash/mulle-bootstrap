@@ -356,6 +356,7 @@ rmdir_safer()
    if [ -d "$1" ]
    then
       assert_sane_path "$1"
+      exekutor chmod -R u+w "$1" || fail "Failed to make $1 writable"
       exekutor rm -rf "$1" || fail "failed to remove ${1}"
    fi
 }
@@ -365,14 +366,15 @@ user_say_yes()
 {
   local  x
 
-  x="nix"
-  while [ "$x" != "y" -a "$x" != "n" -a "$x" != "" ]
+  x=`read_config_setting "answer" "ASK"`
+  while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
   do
      echo "${C_YELLOW}$* (${C_WHITE}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
      read x
+     x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
   done
 
-  [ "$x" = "y" ]
+  [ "$x" = "Y" -o "$x" = "YES" ]
   return $?
 }
 

@@ -114,6 +114,10 @@ mkdir -p  ".bootstrap/settings" 2> /dev/null
 cp myconfig.xcconfig > .bootstrap/settings/xcconfig
 ```
 
+### I changed something in .bootstrap but it nothing happens ?
+
+This can happen, when you  a .bootstrap.auto was created. The easy solution
+is to say `mulle-bootstrap clean dist`.
 
 ### My Xcode project's headers do not show up ?
 
@@ -149,6 +153,8 @@ Environment Variable                  | Description
 MULLE_BOOTSTRAP_VERBOSE               | turn on a little more output. If you set it to VERBOSE instead of YES, it produces quite a bit more output. Set it to FULL for exhausting detail.  Set it to 1848 for shell tracing.
 MULLE_BOOTSTRAP_TRACE                 | traces shell commands as they are executed
 MULLE_BOOTSTRAP_TRACE_SETTINGS        | traces settings accesses
+
+
 
 
 

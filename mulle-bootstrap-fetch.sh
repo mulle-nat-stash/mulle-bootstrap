@@ -377,7 +377,7 @@ git_clone()
    [ -z "$src" ] && internal_fail "src is empty"
    [ -z "$dst" ] && internal_fail "dst is empty"
 
-   log_info "Cloning ${C_WHITE}${src}${C_INFO} ..."
+   log_info "Cloning ${C_MAGENTA}${src}${C_INFO} ..."
    exekutor git clone ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
 
    if [ "${tag}" != "" ]
@@ -688,7 +688,7 @@ Use it ?"
       esac
 
       "${operation}" "${srcname}" "${dstname}" "${tag}"
-       warn_scripts "${dstname}/.bootstrap" "${dstname}" || exit 1 # sic
+       warn_scripts "${dstname}/.bootstrap" "${dstname}" || fail "Ok, aborted"  #sic
    fi
 }
 
@@ -931,6 +931,18 @@ update_repositories()
 }
 
 
+
+append_dir_to_gitignore_if_needed()
+{
+   grep -s -x "$1/" .gitignore > /dev/null 2>&1
+   if [ $? -ne 0 ]
+   then
+      echo "$1/" >> .gitignore || fail "Couldn't append to .gitignore"
+      log_info "Added ${C_MAGENTA}$1/${C_INFO} to ${C_CYAN}.gitignore${C_INFO}"
+   fi
+}
+
+
 main()
 {
    log_fluff "::: fetch :::"
@@ -961,6 +973,17 @@ main()
    # Run prepare scripts if present
    #
    run_fetch_settings_script "post-${COMMAND}" "%@"
+
+   if read_yes_no_config_setting "update_gitignore" "YES"
+   then
+      if [ -d .git ]
+      then
+         append_dir_to_gitignore_if_needed "${BOOTSTRAP_SUBDIR}.auto"
+         append_dir_to_gitignore_if_needed "${BOOTSTRAP_SUBDIR}.local"
+         append_dir_to_gitignore_if_needed "${DEPENDENCY_SUBDIR}"
+         append_dir_to_gitignore_if_needed "${CLONES_SUBDIR}"
+      fi
+   fi
 }
 
 main "$@"

@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.7.1
+VERSION=0.8
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -43,9 +43,16 @@ export PATH
 #
 # simple option handling
 #
+if [ "$1" = "-a" ] # silent
+then
+   MULLE_BOOTSTRAP_ANSWER="NO"
+   export MULLE_BOOTSTRAP_ANSWER
+   shift
+fi
+
 if [ "$1" = "-n" ]
 then
-   MULLE_BOOTSTRAP_DRY_RUN=YES
+   MULLE_BOOTSTRAP_DRY_RUN="YES"
    export MULLE_BOOTSTRAP_DRY_RUN
    shift
 fi
@@ -54,7 +61,7 @@ if [ "$1" = "-v" ]
 then
    if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
    then
-      MULLE_BOOTSTRAP_TRACE=VERBOSE
+      MULLE_BOOTSTRAP_TRACE="VERBOSE"
       export MULLE_BOOTSTRAP_TRACE
    fi
    GITFLAGS="-v"
@@ -65,7 +72,7 @@ else
    then
       if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
       then
-         MULLE_BOOTSTRAP_TRACE=ALL
+         MULLE_BOOTSTRAP_TRACE="ALL"
          export MULLE_BOOTSTRAP_TRACE
       fi
       GITFLAGS="-v"
@@ -75,7 +82,7 @@ else
       if [ "$1" = "-s" ] # silent
       then
          MULLE_BOOTSTRAP_TRACE=
-         MULLE_BOOTSTRAP_TERSE=YES
+         MULLE_BOOTSTRAP_TERSE="YES"
          export MULLE_BOOTSTRAP_TERSE
          GITFLAGS="-q"
          export GITFLAGS
@@ -88,12 +95,13 @@ fi
 usage()
 {
    cat <<EOF
-usage: mulle-bootstrap [-n][-v|-s] [command] [--help]
+usage: mulle-bootstrap [-n][-v|-s][-a] [command] [--help]
        version ${VERSION}
 
  Specify the -h or --help option after each command to get more help.
 
  Flags (-n must be first, if present)
+   -a        : always chose default answer to questions
    -n        : do nothing creative or destructive
    -v        : be more verbose (-V even more verbose)
    -s        : be more terse
@@ -148,7 +156,7 @@ bootstrap()
       . install.sh "$@"
       export MULLE_BOOTSTRAP=mulle-bootstrap
    else
-      warn_scripts "${BOOTSTRAP_SUBDIR}"  || exit 1
+      warn_scripts "${BOOTSTRAP_SUBDIR}"  || fail "Ok, aborted."
    fi
 
    if [ "${DONT_RECURSE}" = "" ]
@@ -185,6 +193,10 @@ main()
 
       clean)
          mulle-bootstrap-clean.sh "$@" || exit 1
+         ;;
+
+      dist-clean)
+         mulle-bootstrap-clean.sh "dist"  || exit 1
          ;;
 
       fetch)

@@ -4,3 +4,4 @@ build/
 .repos/
 .bootstrap.auto/
 dependencies/
+.bootstrap.local/

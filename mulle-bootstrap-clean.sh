@@ -91,9 +91,9 @@ clean_asserted_folder()
 {
    if [ -d "$1" ]
    then
-      assert_sane_subdir_path "$1"
       log_info "Deleting \"$1\""
-      exekutor rm -rf "$1"
+
+      rmdir_safer "$1"
    else
       log_fluff "\"$1\" doesn't exist"
    fi

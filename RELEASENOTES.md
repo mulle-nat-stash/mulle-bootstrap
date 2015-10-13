@@ -1,3 +1,15 @@
+0.8
+===
+   Added dist shortcut, because I always like to type "dist-clean".
+   Allow upper-case user input for yes/no questions.
+   Write protect dependencies folder, because I have a tendency to edit
+   the headers.
+   Automatically append boring directories to .gitignore after fetch.
+   Inverted script default answer, because it pains me. Also it's not
+   useful when using -a to just "breeze" through.
+   Redirect build logs to "build/.repos/.logs", because especially
+   xcodebuild is just too verbose.
+
 0.7.1
 ===
    Fixed an internal error, when using mulle-bootstrap update.
