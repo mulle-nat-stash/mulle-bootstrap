@@ -27,10 +27,10 @@ git@github.com:mulle-nat/UISS.git
 git@github.com:mulle-nat/Finch.git
 ```
 
-Now **mulle-bootstrap** can iterate over them and check them out into a common
-directory `.repos`. If  there is a local clone of the repository **MulleScion**
-in the parent directory of the projeczt, then mulle-bootstrap can clone (or
-even symlink) from there, if you want.
+**mulle-bootstrap** will check them out into a common directory `.repos`. If
+there is a local clone of the repository **MulleScion** in the parent directory
+of the project, then mulle-bootstrap can clone (or even symlink) from there,
+if you want.
 
 After cloning **mulle-bootstrap** does a simple security check with respect to
 `.bootstrap` shell scripts and Xcode script phases. Finally it looks for a
@@ -39,11 +39,11 @@ dependencies too, if they do, those dependencies are added to the source
 repositories dependencies.
 
 Everything you need should be present at this time. so **mulle-bootstrap** will
-now  build a **Debug** and a **Release** version for each library, and places
+now build a **Debug** and a **Release** version for each library, and place
 the headers and the produced libraries into "./dependencies".
 
 Your Xcode project can be optionally massaged by
-**mulle-bootstrap setup-xcode** to have the "./dependencies" folder in its
+**mulle-bootstrap xcode add** to have the "./dependencies" folder in its
 search paths.
 
 ## What a project user needs to do

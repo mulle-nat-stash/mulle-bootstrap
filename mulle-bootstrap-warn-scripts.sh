@@ -30,40 +30,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-private_dir_has_files()
-{
-   local empty
-   local result
-
-   empty=`ls "$1"/* 2> /dev/null` 2> /dev/null
-   [ "$empty" != "" ]
-   result=$?
-
-   if [ "$result" -eq 1 ]
-   then
-      log_fluff "directory \"$1\" has no files"
-   else
-      log_fluff "directory \"$1\" has files"
-   fi
-   return "$result"
-}
-
-
-private_user_say_yes()
-{
-  local  x
-
-  x=`read_config_setting "answer" "ASK"`
-  while [ "$x" != "Y" -a "$x" != "YES" -a "$x" != "N" -a "$x" != "NO" -a "$x" != "" ]
-  do
-     echo "${C_YELLOW}$* (${C_WHITE}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
-     read x
-     x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
-  done
-
-  [ "$x" = "Y" -o "$x" = "YES" ]
-}
-
+. mulle-bootstrap-local-environment.sh
 
 warn_scripts()
 {
@@ -93,7 +60,7 @@ warn_scripts()
    then
        exekutor [ -e "$2" ] || fail "internal error, expected directory missing"
 
-      if private_dir_has_files "$2"
+      if dir_has_files "$2"
       then
          phases=`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}'  \; -print)`
          if [ ! -z "${phases}" ]
@@ -115,7 +82,7 @@ warn_scripts()
 
    if [ "$phases" != "" -o "$scripts" != "" ]
    then
-      private_user_say_yes "You should probably inspect them before continuing.
+      user_say_yes "You should probably inspect them before continuing.
 Abort now ?"
       if [ $? -eq 0 ]
       then
@@ -128,3 +95,10 @@ now."
    fi
 }
 
+
+main()
+{
+   warn_scripts "$@"
+}
+
+main "$@"
