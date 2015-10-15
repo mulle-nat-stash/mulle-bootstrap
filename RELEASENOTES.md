@@ -1,3 +1,7 @@
+0.9.1
+===
+   Fix cmake and configure build.
+
 0.9
 ===
    Specifying repos with mulle-bootstrap build <repos> was broken.

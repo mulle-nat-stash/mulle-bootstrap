@@ -420,7 +420,7 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
    logfile1="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.cmake.log"
    logfile2="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.make.log"
 
-   log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}{C_INFO}"
+   log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}${C_INFO}"
 
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
@@ -431,8 +431,8 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
       #
       set -f
 
-      logfile1="${owd}/${logfile}"
-      logfile2="${owd}/${logfile}"
+      logfile1="${owd}/${logfile1}"
+      logfile2="${owd}/${logfile2}"
       if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
       then
          logfile1="/dev/null"
@@ -527,7 +527,7 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
    logfile1="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.configure.log"
    logfile2="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.make.log"
 
-   log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}{C_INFO}"
+   log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}${C_INFO}"
 
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
@@ -535,8 +535,8 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
        set -f
 
-      logfile1="${owd}/${logfile}"
-      logfile2="${owd}/${logfile}"
+      logfile1="${owd}/${logfile1}"
+      logfile2="${owd}/${logfile2}"
       if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
       then
          logfile1="/dev/null"

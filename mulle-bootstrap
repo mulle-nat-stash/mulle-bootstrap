@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.9
+VERSION=0.9.1
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -65,36 +65,46 @@ then
    shift
 fi
 
-if [ "$1" = "-v" ]
+if [ "$1" = "-t" ]
 then
-   if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-   then
-      MULLE_BOOTSTRAP_TRACE="VERBOSE"
-      export MULLE_BOOTSTRAP_TRACE
-   fi
+   MULLE_BOOTSTRAP_TRACE="1848"
+   export MULLE_BOOTSTRAP_TRACE
+
    GITFLAGS="-v"
    export GITFLAGS
    shift
 else
-   if [ "$1" = "-V" ]
+   if [ "$1" = "-v" ]
    then
       if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
       then
-         MULLE_BOOTSTRAP_TRACE="ALL"
+         MULLE_BOOTSTRAP_TRACE="VERBOSE"
          export MULLE_BOOTSTRAP_TRACE
       fi
       GITFLAGS="-v"
       export GITFLAGS
       shift
    else
-      if [ "$1" = "-s" ] # silent
+      if [ "$1" = "-V" ]
       then
-         MULLE_BOOTSTRAP_TRACE=
-         MULLE_BOOTSTRAP_TERSE="YES"
-         export MULLE_BOOTSTRAP_TERSE
-         GITFLAGS="-q"
+         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+         then
+            MULLE_BOOTSTRAP_TRACE="ALL"
+            export MULLE_BOOTSTRAP_TRACE
+         fi
+         GITFLAGS="-v"
          export GITFLAGS
          shift
+      else
+         if [ "$1" = "-s" ] # silent
+         then
+            MULLE_BOOTSTRAP_TRACE=
+            MULLE_BOOTSTRAP_TERSE="YES"
+            export MULLE_BOOTSTRAP_TERSE
+            GITFLAGS="-q"
+            export GITFLAGS
+            shift
+         fi
       fi
    fi
 fi
@@ -103,7 +113,7 @@ fi
 usage()
 {
    cat <<EOF
-usage: mulle-bootstrap [-a|y][-n][-v|-s] [command] [--help]
+usage: mulle-bootstrap [-a|-y][-n][-v|-s|-t] [command] [--help]
        version ${VERSION}
 
  Specify the -h or --help option after each command to get more help.
@@ -111,9 +121,12 @@ usage: mulle-bootstrap [-a|y][-n][-v|-s] [command] [--help]
  Flags (-n must be first, if present)
    -a        : always chose default answer to questions
    -y        : always say yes to questions (scripts wont be checked)
+
    -n        : do nothing creative or destructive
+
    -v        : be more verbose (-V even more verbose)
    -s        : be more terse
+   -t        : turns on shell tracing for development
 
  Common user commands:
    bootstrap : does fetch and build recursively [default]

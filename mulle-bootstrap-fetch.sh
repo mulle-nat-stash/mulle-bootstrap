@@ -521,6 +521,11 @@ ensure_clones_directory()
       fi
       mkdir_if_missing "${CLONES_FETCH_SUBDIR}"
    fi
+
+   if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
+   then
+      log_warning "Folder ${C_WHITE}${BOOTSTRAP_SUBDIR}.auto${C_WARNING} already exists!"
+   fi
 }
 
 
