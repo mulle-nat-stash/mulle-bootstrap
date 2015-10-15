@@ -38,13 +38,18 @@
 . mulle-bootstrap-local-environment.sh
 . mulle-bootstrap-scripts.sh
 
+
+name=`basename "${PWD}"`
+
+
 usage()
 {
    cat <<EOF
-usage: tag [tag] [vendortag]
+usage: tag [tag] [vendortag] [vendorprefix]
 
-   tag       : the tag for your repository ($PWD)
-   vendortag : the tag used for tagging the fetched repositories
+   tag          : the tag for your repository ($name)
+   vendortag    : the tag used for tagging the fetched repositories
+   vendorprefix : prefix for the vendortag, if vendortag is "-"
 EOF
 }
 
@@ -58,8 +63,6 @@ check_and_usage_and_help()
    fi
 }
 
-
-name=`basename "${PWD}"`
 
 project=`find_xcodeproj "${name}"`
 AGVTAG=
@@ -87,17 +90,31 @@ shift
 VENDOR_TAG="$1"
 shift
 
-if [ -z "${VENDOR_TAG}" ]
+VENDOR_PREFIX="$1"
+shift
+
+
+if [ -z "${VENDOR_TAG}" -o "${VENDOR_TAG}" = "-" ]
 then
-   prefix=`basename "${PWD}"`
-   prefix="${prefix%%.*}"  # remove vile extension :)
+   if [ -z "${VENDOR_PREFIX}" ]
+   then
+      VENDOR_PREFIX=`basename "${PWD}"`
+      VENDOR_PREFIX="${VENDOR_PREFIX%%.*}"  # remove vile extension :)
+   fi
 
-   VENDOR_TAG="${prefix}-${TAG}"
+   if [ "${VENDOR_PREFIX}" = "-" ]
+   then
+      VENDOR_TAG="${TAG}"
+   else
+      VENDOR_TAG="${VENDOR_PREFIX}-${TAG}"
+   fi
+
+   check_and_usage_and_help
+
    log_info "Set vendortag to \"${VENDOR_TAG}\""
+else
+   check_and_usage_and_help
 fi
-
-check_and_usage_and_help
-
 
 REPO="."
 

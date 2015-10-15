@@ -160,7 +160,7 @@ run_repo_settings_script()
    scriptname="$1"
    shift
 
-   [ -d "$dstname" ]      || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
+   exekutor [ -d "$dstname" ]      || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
    [ ! -z "$name" ]       || internal_fail "name is empty"
    [ ! -z "$scriptname" ] || internal_fail "scriptname is empty"
 
@@ -187,7 +187,7 @@ run_build_settings_script()
    scriptname="$1"
    shift
 
-   [ -d "$dstname" ]      || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
+   exekutor [ -d "$dstname" ]      || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
    [ ! -z "$name" ]       || internal_fail "name is empty"
    [ ! -z "$scriptname" ] || internal_fail "scriptname is empty"
 

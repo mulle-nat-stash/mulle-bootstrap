@@ -39,7 +39,7 @@
 usage()
 {
    cat <<EOF
-xcode <add|remove>
+xcode <add|remove> [xcodeproj]
 
    add      : add settings to Xcode project (default)
    remove   : remove settings from Xcode project
@@ -64,16 +64,22 @@ esac
 
 COMMAND="${1:-add}"
 shift
+PROJECT="$1"
+shift
+
 
 check_and_usage_and_help
 
 
 list_configurations()
 {
+   local project
+
+   project="${1}"
   #
   # Figure out all configuration
   #
-   xcodebuild -list -project "$1" 2> /dev/null | \
+   xcodebuild -list -project "${project}" 2> /dev/null | \
    grep -A100 'Build Configurations' | \
    grep -B100 'Schemes' | \
    egrep -v 'Configurations:|Schemes:' | \
@@ -197,12 +203,24 @@ patch_xcode_project()
    local mapped
    local configurations
    local xcode_configurations
+   local terse
+
+
+   read_yes_no_config_setting "terse" "NO"
+   terse=$?
 
    name=`basename "${PWD}"`
-   project=`find_xcodeproj "${name}"`
-   if [ "${project}" = "" ]
+
+   if [ ! -z "${PROJECT}" ]
    then
-      fail "no xcodeproj found"
+      [ -d "${PROJECT}" ] || fail "xcodeproj ${PROJECT} not found"
+      project="${PROJECT}"
+   else
+   project=`find_xcodeproj "${name}"`
+      if [ "${project}" = "" ]
+      then
+         fail "no xcodeproj found"
+      fi
    fi
 
    projectname="`basename "${project}"`"
@@ -231,15 +249,23 @@ Release"
    if [ "$COMMAND" = "add" ]
    then
       flag="add"
-      #     012345678901234567890123456789012345678901234567890123456789
-      echo "${C_WHITE}Settings will be added to ${C_MAGENTA}${projectname}${C_WHITE}." >&2
-      echo "In the long term it may be more useful to copy/paste the following" >&2
-      echo "lines into a local .xcconfig file, that is inherited by all configurations.${C_RESET}" >&2
+
+      if [ $terse -ne 0 ]
+      then
+         #     012345678901234567890123456789012345678901234567890123456789
+         echo "${C_WHITE}Settings will be added to ${C_MAGENTA}${projectname}${C_WHITE}." >&2
+         echo "In the long term it may be more useful to copy/paste the following" >&2
+         echo "lines into a local .xcconfig file, that is inherited by all configurations.${C_RESET}" >&2
+      fi
    else
       flag="remove"
-      #     012345678901234567890123456789012345678901234567890123456789
-      echo "${C_WHITE}Settings will be removed from ${projectname}." >&2
-      echo "You may want to check afterwards, that this has worked out OK :).${C_RESET}" >&2
+
+      if [ $terse -ne 0 ]
+      then
+         #     012345678901234567890123456789012345678901234567890123456789
+         echo "${C_WHITE}Settings will be removed from ${projectname}." >&2
+         echo "You may want to check afterwards, that this has worked out OK :).${C_RESET}" >&2
+      fi
    fi
 
    local dependencies_dir
@@ -283,37 +309,41 @@ Release"
 
    if [ "$COMMAND" = "add" ]
    then
+      if [ $terse -ne 0 ]
+      then
+         local mapped
+         local i
 
-      local mapped
-      local i
+         echo  "${C_WHITE}-----------------------------------------------------------"  >&2
 
-      echo  "${C_WHITE}-----------------------------------------------------------"  >&2
-
-      #  make these echos easily grabable by stdout
-      #     012345678901234567890123456789012345678901234567890123456789
-      echo "// Common.xcconfig:"
-      echo "DEPENDENCIES_DIR=${dependencies_dir}"
-      echo "HEADER_SEARCH_PATHS=${header_search_paths}"
-      echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
-      echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
-
-   local old
-
-   old="${IFS:-" "}"
-   IFS="
-"
-      for i in ${xcode_configurations}
-      do
-         echo ""
-         echo ""
-         mapped=`map_configuration "${configurations}" "${i}"`
+         #  make these echos easily grabable by stdout
          #     012345678901234567890123456789012345678901234567890123456789
-         echo "// ${i}.xcconfig:"
-         echo "#include \"Common.xcconfig\""
-         echo "LIBRARY_CONFIGURATION=${mapped}"
-      done
-      IFS="${old}"
-      echo  "-----------------------------------------------------------${C_RESET}"  >&2
+         echo "// Common.xcconfig:"
+         echo "DEPENDENCIES_DIR=${dependencies_dir}"
+         echo "HEADER_SEARCH_PATHS=${header_search_paths}"
+         echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
+         echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
+
+         local old
+
+         old="${IFS:-" "}"
+         IFS="
+"
+         for i in ${xcode_configurations}
+         do
+            mapped=`map_configuration "${configurations}" "${i}"`
+
+            echo ""
+            echo ""
+            #     012345678901234567890123456789012345678901234567890123456789
+            echo "// ${i}.xcconfig:"
+            echo "#include \"Common.xcconfig\""
+            echo "LIBRARY_CONFIGURATION=${mapped}"
+         done
+
+         IFS="${old}"
+         echo  "-----------------------------------------------------------${C_RESET}"  >&2
+      fi
 
       query="Add ${C_CYAN}\"${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}\"${C_YELLOW}  and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    else
@@ -334,17 +364,21 @@ Release"
 
    if [ "$COMMAND" = "add" ]
    then
-      #     012345678901234567890123456789012345678901234567890123456789
-      echo "${C_WHITE}"
-      echo "Hint:"
-      echo "If you add a configuration to your project, remember to edit" >&2
-      echo "the LIBRARY_CONFIGURATION setting for that configuration." >&2
-      echo "" >&2
-      echo "You can rerun setup-xcode at later times and it should not" >&2
-      echo "unduly duplicate setting contents." >&2
-      echo "${C_RESET}" >&2
+      if [ $terse -ne 0 ]
+      then
+         #     012345678901234567890123456789012345678901234567890123456789
+         echo "${C_WHITE}"
+         echo "Hint:"
+         echo "If you add a configuration to your project, remember to edit" >&2
+         echo "the LIBRARY_CONFIGURATION setting for that configuration." >&2
+         echo "" >&2
+         echo "You can rerun setup-xcode at later times and it should not" >&2
+         echo "unduly duplicate setting contents." >&2
+         echo "${C_RESET}" >&2
+      fi
    fi
 }
+
 
 main()
 {

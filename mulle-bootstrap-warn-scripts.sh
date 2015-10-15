@@ -80,17 +80,20 @@ warn_scripts()
       fi
    fi
 
-   if [ "$phases" != "" -o "$scripts" != "" ]
+   if  [ "${DONT_ASK_AFTER_WARNING}" != "YES" ]
    then
-      user_say_yes "You should probably inspect them before continuing.
-Abort now ?"
-      if [ $? -eq 0 ]
+      if [ "$phases" != "" -o "$scripts" != "" ]
       then
-          log_error "The bootstrap is in an inconsistent state. It would be good
+         user_say_yes "You should probably inspect them before continuing.
+Abort now ?"
+         if [ $? -eq 0 ]
+         then
+             log_error "The bootstrap is in an inconsistent state. It would be good
 to run
-        ${C_WHITE}mulle-bootstrap clean dist${C_ERROR}
+           ${C_WHITE}mulle-bootstrap clean dist${C_ERROR}
 now."
-          return 1
+             return 1
+         fi
       fi
    fi
 }
@@ -98,7 +101,15 @@ now."
 
 main()
 {
-   warn_scripts "$@"
+   local  x
+
+   x=`read_config_setting "answer" "ASK"`
+   if [ "$x" != "YES"  ]
+   then
+      warn_scripts "$@"
+   else
+      log_warning "Script checking by autoanswer YES disabled"
+   fi
 }
 
 main "$@"

@@ -127,6 +127,13 @@ eval_exekutor()
 }
 
 
+logging_eval_exekutor()
+{
+   echo "$@"
+   eval_exekutor "$@"
+}
+
+
 exekutor()
 {
    if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" -o "$MULLE_BOOTSTRAP_TRACE" = "YES" ]
@@ -138,6 +145,13 @@ exekutor()
    then
       "$@"
    fi
+}
+
+
+logging_exekutor()
+{
+   echo "$@"
+   exekutor "$@"
 }
 
 
@@ -485,7 +499,7 @@ run_script()
 
    if [ -x "${script}" ]
    then
-      log_info "Executing script ${script}"
+      log_info "Executing script ${C_WHITE}${script}${C_INFO}"
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]
@@ -495,4 +509,11 @@ run_script()
          fail "script \"${script}\" not executable"
       fi
    fi
+}
+
+
+run_log_script()
+{
+   echo "$@"
+   run_script "$@"
 }

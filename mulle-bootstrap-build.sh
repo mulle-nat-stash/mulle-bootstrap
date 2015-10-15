@@ -73,7 +73,7 @@ dispense_headers()
    local headers
    local suffix
 
-   log_fluff "Consider copying headers from \"${src}\""
+   log_fluff "Consider copying headers from ${C_WHITE}${src}${C_FLUFF}"
 
    if [ -d "${src}" ]
    then
@@ -84,7 +84,7 @@ dispense_headers()
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${headers}"
          mkdir_if_missing "${dst}"
 
-         log_fluff "Copying \"${src}\" to \"${dst}\""
+         log_fluff "Copying ${C_WHITE}${src}${C_FLUFF} to ${C_WHITE}${dst}${C_FLUFF}"
          exekutor find -x "${src}" ! -path "${src}" -depth 1 -type d -print0 | \
             exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
@@ -118,13 +118,9 @@ dispense_binaries()
    local usrlocal
    local findtype2
 
-   findtype2="${findtype}"
-   if [ "${findtype}" = "f" ]
-   then
-      findtype2="l"
-   fi
+   findtype2="l"
 
-   log_fluff "Consider copying binaries from \"${src}\" for type \"${findtype}/${findtype2}\""
+   log_fluff "Consider copying binaries from ${C_WHITE}${src}${C_FLUFF} for type \"${findtype}/${findtype2}\""
 
    if [ -d "${src}" ]
    then
@@ -132,7 +128,7 @@ dispense_binaries()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${subpath}${subdir}"
 
-         log_fluff "Copying \"${src}\" to \"${dst}\""
+         log_fluff "Copying ${C_WHITE}${src}${C_FLUFF} to ${C_WHITE}${dst}${C_FLUFF}"
          mkdir_if_missing "${dst}"
          exekutor find -x "${src}" ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -depth 1 -print0 | \
             exekutor xargs -0 -J % mv -v -n % "${dst}"
@@ -160,7 +156,13 @@ collect_and_dispense_product()
    local  dst
    local  src
 
-   log_info "Collecting and dispensing \"${name}\" \"`basename "${subdir}"`\" products "
+   if read_yes_no_config_setting "skip_collect_and_dispense" "NO"
+   then
+      log_info "Skipped collection and dispensal on request"
+      return 0
+   fi
+
+   log_info "Collecting and dispensing ${C_WHITE}{name}${C_INFO} ${C_MAGENTA}`basename "${subdir}"`${C_INFO} products "
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref
    # (will this work with signing stuff ?)
@@ -181,8 +183,11 @@ collect_and_dispense_product()
       src="${BUILD_DEPENDENCY_SUBDIR}/lib${subdir}"
       dispense_binaries "${name}" "${src}" "f" "/${LIBRARY_DIR_NAME}"
 
+      src="${BUILD_DEPENDENCY_SUBDIR}/Library/Frameworks${subdir}"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+
       src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks${subdir}"
-      dispense_binaries "${name}" "${src}" "d" "${FRAMEWORK_PATH}"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
    else
       log_fluff "Choosing cmake/configure dispense path"
 
@@ -192,9 +197,15 @@ collect_and_dispense_product()
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/lib"
       dispense_binaries "${name}" "${src}" "f" "/${LIBRARY_DIR_NAME}"
 
-      # coming from Cmake and configure
+      # coming from Cmake and configure ?
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/Frameworks"
-      dispense_binaries "${name}" "${src}" "d" "${FRAMEWORK_PATH}"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+
+      src="${BUILD_DEPENDENCY_SUBDIR}/Library/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+
+      src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
    fi
 
    #
@@ -236,7 +247,7 @@ collect_and_dispense_product()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
 
-         log_fluff "Copying \"${src}/*\" to \"${dst}\""
+         log_fluff "Copying everything from ${C_WHITE}${src}${C_FLUFF} to ${C_WHITE}${dst}${C_FLUFF}"
          exekutor find -x "${src}" ! -path "${src}" -depth 1 -print0 | \
                exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
@@ -246,7 +257,7 @@ collect_and_dispense_product()
       then
          if dir_has_files "${BUILD_DEPENDENCY_SUBDIR}"
          then
-            log_fluff "Directory \"${BUILD_DEPENDENCY_SUBDIR}\" contained files after collect and dispense"
+            log_fluff "Directory ${C_WHITE}${BUILD_DEPENDENCY_SUBDIR}${C_FLUFF} contained files after collect and dispense"
             log_fluff "--------------------"
             ( cd "${BUILD_DEPENDENCY_SUBDIR}" ; ls -lR >&2 )
             log_fluff "--------------------"
@@ -270,7 +281,7 @@ enforce_build_sanity()
    # these must not exist
    if [ -d "${BUILD_DEPENDENCY_SUBDIR}" ]
    then
-      fail "A previous build left ${BUILD_DEPENDENCY_SUBDIR}, can't continue"
+      fail "A previous build left ${C_WHITE}${BUILD_DEPENDENCY_SUBDIR}${C_ERROR}, can't continue"
    fi
 }
 
@@ -348,9 +359,12 @@ create_dummy_dirs_against_warnings()
 
 build_fail()
 {
-   printf "${C_RED}"
-   grep -A5 "error:" "${1}" >&2
-   printf "${C_RESET}"
+   if [ -f "${1}" ]
+   then
+      printf "${C_RED}"
+      grep -A5 "error:" "${1}" >&2
+      printf "${C_RESET}"
+   fi
 
    fail "$2 failed"
 }
@@ -399,12 +413,14 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
    create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}" "${relative}"
 
-   local logfile
+   local logfile1
+   local logfile2
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
-   logfile="${BUILDLOG_SUBDIR}/${name}"
+   logfile1="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.cmake.log"
+   logfile2="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.make.log"
 
-   log_info "Logs in \"${logfile}.cmake\" and \"${logfile}.make\""
+   log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}{C_INFO}"
 
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
@@ -415,9 +431,15 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
       #
       set -f
 
-      logfile="${owd}/${logfile}"
+      logfile1="${owd}/${logfile}"
+      logfile2="${owd}/${logfile}"
+      if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
+      then
+         logfile1="/dev/null"
+         logfile2="/dev/null"
+      fi
 
-      exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
+      logging_exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
 "-DCMAKE_C_FLAGS=\
 -I${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
@@ -442,9 +464,9 @@ ${sdk}" \
 -F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_ldflags} \
 ${sdk}" \
-"${relative}/${srcdir}" > "${logfile}.cmake" || build_fail "${logfile}.cmake" "cmake"
+"${relative}/${srcdir}" >> "${logfile1}" || build_fail "${logfile1}" "cmake"
 
-      exekutor make all install > "${logfile}.make" || build_fail "${logfile}.make" "make"
+      logging_exekutor make all install >> "${logfile2}" || build_fail "${logfile2}" "make"
 
       set +f
 
@@ -498,12 +520,14 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
    create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}" "${relative}"
 
-   local logfile
+   local logfile1
+   local logfile2
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
-   logfile="${BUILDLOG_SUBDIR}/${name}"
+   logfile1="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.configure.log"
+   logfile2="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.make.log"
 
-   log_info "Logs in \"${logfile}.configure\" and \"${logfile}.make\""
+   log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}{C_INFO}"
 
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
@@ -511,10 +535,16 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
        set -f
 
-      logfile="${owd}/${logfile}"
+      logfile1="${owd}/${logfile}"
+      logfile2="${owd}/${logfile}"
+      if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
+      then
+         logfile1="/dev/null"
+         logfile2="/dev/null"
+      fi
 
       # use absolute paths for configure, safer (and easier to read IMO)
-      CFLAGS="\
+      logging_exekutor CFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
@@ -537,9 +567,12 @@ ${sdk}" \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 ${sdk}" \
-      exekutor "${owd}/${srcdir}/configure" --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" > "${logfile}.configure" || build_fail "${logfile}.configure" "configure"
+       "${owd}/${srcdir}/configure" \
+          --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" >> "${logfile1}" \
+      || build_fail "${logfile1}" "configure"
 
-      exekutor make all install > "${logfile}.make" || build_fail "${logfile}.make" "make"
+      logging_exekutor make all install >> "${logfile2}" \
+      || build_fail "${logfile2}" "make"
 
       set +f
 
@@ -558,8 +591,7 @@ xcode_get_setting()
 
    eval "xcodebuild -showBuildSettings $*" | \
    egrep "^[ ]*${key}" | \
-   sed 's/^[^=]*=[ ]*\(.*\)/\1/' || \
-   exit 1
+   sed 's/^[^=]*=[ ]*\(.*\)/\1/' || exit 1
 }
 
 
@@ -834,9 +866,9 @@ ${info} ..."
    local logfile
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
-   logfile="${BUILDLOG_SUBDIR}/${name}"
+      logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}-${targetname}${schemename}"
 
-   log_info "Log in \"${logfile}.xcodebuild\""
+   log_info "Build log will be in ${C_WHITE}${logfile}.xcodebuild.log${C_INFO}"
 
    set -f
 
@@ -863,7 +895,7 @@ ${info} ..."
    fi
 
    owd=`pwd`
-   cd "${srcdir}" || exit 1
+   exekutor cd "${srcdir}" || exit 1
 
 
       logfile="${owd}/${logfile}"
@@ -947,11 +979,12 @@ HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
-      eval_exekutor "${cmdline}" > "${logfile}.xcodebuild" || build_fail "${logfile}.xcodebuild" "xcodebuild"
+      logging_eval_exekutor "${cmdline}" >> "${logfile}.xcodebuild.log" \
+      || build_fail "${logfile}.xcodebuild.log" "xcodebuild"
 
       set +f
 
-   cd "${owd}"
+   exekutor cd "${owd}"
 
    collect_and_dispense_product "${name}" "${suffix}" "YES" || exit 1
 }
@@ -1015,6 +1048,70 @@ build_xcodebuild_schemes_or_target()
 }
 
 
+build_script()
+{
+   local script
+
+   script="$1"
+   shift
+
+   local configuration
+   local srcdir
+   local builddir
+   local relative
+   local name
+   local sdk
+   local project
+   local schemename
+   local targetname
+
+   configuration="$1"
+   srcdir="$2"
+   builddir="$3"
+   relative="$4"
+   name="$5"
+   sdk="$6"
+
+   local logfile
+
+   mkdir_if_missing "${BUILDLOG_SUBDIR}"
+   logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
+
+   log_info "Build log will be in ${C_WHITE}${logfile}${C_INFO}"
+
+   local owd
+
+   owd=`pwd`
+   exekutor cd "${srcdir}" || exit 1
+
+      logfile="${owd}/${logfile}"
+      if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
+      then
+         logfile="/dev/null"
+      fi
+
+      log_info "Running build script for ${C_MAGENTA}${configuration}${C_INFO}"
+      run_log_script "${owd}/${script}" \
+         "${configuration}" \
+         "${owd}/${srcdir}" \
+         "${owd}/${builddir}" \
+         "${owd}/${BUILD_DEPENDENCY_SUBDIR}" \
+         "${name}" \
+         "${sdk}" >> "${logfile}" \
+      || build_fail "${logfile}" "build.sh"
+
+   exekutor cd "${owd}"
+
+   local suffix
+
+   suffix="`determine_suffix "${configuration}" "${sdk}"`"
+   collect_and_dispense_product "${name}" "${suffix}" || internal_fail "collect failed silently"
+
+   return $rval
+}
+
+
+
 build()
 {
    local srcdir
@@ -1067,7 +1164,7 @@ Release"`"
    do
       for configuration in ${configurations}
       do
-         if [ "$/{configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_PATH}" ]
+         if [ "$/{configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_DIR_NAME}" ]
          then
             fail "You are just asking for trouble."
          fi
@@ -1090,9 +1187,11 @@ Release"`"
                script="`find_build_setting_file "${name}" "bin/build.sh"`"
                if [ -x "${script}" ]
                then
-                  run_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" || exit 1
+                  build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" || exit 1
                   hasbuilt=yes
                   break
+               else
+                  [ ! -e "${script}" ] || fail "script ${script} is not executable"
                fi
             fi
 
@@ -1173,6 +1272,8 @@ build_wrapper()
       rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
    fi
 
+   export BUILD_DEPENDENCY_SUBDIR
+   export REFERENCE_DEPENDENCY_SUBDIR
    #
    # move dependencies we have so far away into safety,
    # need that path for includes though
@@ -1288,7 +1389,7 @@ build_clones()
 
          if [ -d "${dstdir}" ]
          then
-            build_if_readable "${clone}" "${name}" || exit 1
+            build_if_readable "${dstdir}" "${name}" || exit 1
          else
             fail "unknown repo ${name}"
          fi
@@ -1319,7 +1420,7 @@ install_tars()
          then
             fail "tarball \"$tar\" not found"
          else
-            log_info "Installing tarball \"${tar}\""
+            log_info "Installing tarball ${C_WHITE}${tar}${C_INFO}"
             exekutor tar -xz -C "${DEPENDENCY_SUBDIR}" -f "${tar}" || fail "failed to extract ${tar}"
          fi
       done
@@ -1352,7 +1453,7 @@ main()
          rmdir_safer "${DEPENDENCY_SUBDIR}"
       fi
    else
-      log_fluff "Keep \"${DEPENDENCY_SUBDIR}\" intact, as this is a partial build"
+      log_fluff "Keeping \"${DEPENDENCY_SUBDIR}\" intact, as this is a partial build."
    fi
 
    # if present then we didnt't want to clean and we do nothing special
@@ -1361,16 +1462,18 @@ main()
       mkdir_if_missing "${DEPENDENCY_SUBDIR}/usr/local/include"
       exekutor ln -s "usr/local/include" "${DEPENDENCY_SUBDIR}/include" || fail "failed to symlink future usr/local/include"
       install_tars "$@"
+   else
+      log_warning "Tars have not been installed, as ${C_WHITE}${DEPENDENCY_SUBDIR}${C_WARNING} already exists."
    fi
 
    build_clones "$@"
 
    if [ $# -eq 0 ]
    then
-      if [ "${clean}" = "YES" ]
+      if [ "${clean}" = "YES" -a -d "${DEPENDENCY_SUBDIR}" ]
       then
-         log_info "Write-protecting \"${DEPENDENCY_SUBDIR}\" to avoid spurious header edits"
-         chmod -R a-w "${DEPENDENCY_SUBDIR}"
+         log_info "Write-protecting ${C_WHITE}${DEPENDENCY_SUBDIR}${C_INFO} to avoid spurious header edits"
+         exekutor chmod -R a-w "${DEPENDENCY_SUBDIR}"
       fi
    fi
 }

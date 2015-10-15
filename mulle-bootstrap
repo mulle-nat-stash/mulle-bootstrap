@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.8.1
+VERSION=0.9
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -43,12 +43,20 @@ export PATH
 #
 # simple option handling
 #
-if [ "$1" = "-a" ] # silent
+if [ "$1" = "-a" ]
 then
    MULLE_BOOTSTRAP_ANSWER="NO"
    export MULLE_BOOTSTRAP_ANSWER
    shift
+else
+   if [ "$1" = "-y" ] #  basically auto symlink everything
+   then
+      MULLE_BOOTSTRAP_ANSWER="YES"
+      export MULLE_BOOTSTRAP_ANSWER
+      shift
+   fi
 fi
+
 
 if [ "$1" = "-n" ]
 then
@@ -95,13 +103,14 @@ fi
 usage()
 {
    cat <<EOF
-usage: mulle-bootstrap [-n][-v|-s][-a] [command] [--help]
+usage: mulle-bootstrap [-a|y][-n][-v|-s] [command] [--help]
        version ${VERSION}
 
  Specify the -h or --help option after each command to get more help.
 
  Flags (-n must be first, if present)
    -a        : always chose default answer to questions
+   -y        : always say yes to questions (scripts wont be checked)
    -n        : do nothing creative or destructive
    -v        : be more verbose (-V even more verbose)
    -s        : be more terse
@@ -153,7 +162,7 @@ bootstrap()
       . install.sh "$@"
       export MULLE_BOOTSTRAP=mulle-bootstrap
    else
-      mulle-bootstrap-warn-scripts.sh "${BOOTSTRAP_SUBDIR}"  || fail "Ok, aborted."
+      mulle-bootstrap-warn-scripts.sh "${BOOTSTRAP_SUBDIR}" || exit 1
    fi
 
    if [ "${DONT_RECURSE}" = "" ]
@@ -197,7 +206,7 @@ main()
          ;;
 
       fetch)
-         mulle-bootstrap-fetch.sh "$@" || exit 1
+         DONT_ASK_AFTER_WARNING=YES mulle-bootstrap-fetch.sh "$@" || exit 1
          ;;
 
       update)

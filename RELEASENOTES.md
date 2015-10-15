@@ -1,3 +1,26 @@
+0.9
+===
+   Specifying repos with mulle-bootstrap build <repos> was broken.
+   Added -y option, so everything is answered YES. I use this all the time.
+   Log xcodebuild command line into logfile.
+   Fix useless errors during dry run.
+   ** Changed the way custom "build.sh" scripts are executed. **
+   You can give a xcodeproj to mulle-bootstrap xcode directly, nice for
+   sharing  dependencies with many subprojects.
+   Fixes the collection and dispensal of built frameworks.
+   Added logging to various 'cd' commands.
+   Collect and dispense symbolic links for directories too (not just for files)
+   Beautified output a little bit.
+   Respect the terse flag (-s) during mulle-bootstrap xcode add.
+   Add VENDOR_PREFIX to mulle-bootstrap-tag as third parameter.
+
+
+0.8.1
+===
+   And the fix, just minutes after the "release". warn scripts didn't
+   find a function, and now I have cleaned this up properly, I think.
+   No more duplicate functions.
+
 0.8
 ===
    Added dist shortcut, because I always like to type "dist-clean".

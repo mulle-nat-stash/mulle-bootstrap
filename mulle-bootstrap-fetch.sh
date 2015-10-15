@@ -35,7 +35,6 @@
 # You can also specify a list of "brew" dependencies. That
 # will be third party libraries, you don't tag or debug
 #
-. mulle-bootstrap-warn-scripts.sh
 . mulle-bootstrap-local-environment.sh
 . mulle-bootstrap-brew.sh
 . mulle-bootstrap-scripts.sh
@@ -163,7 +162,7 @@ install_brews()
 
 #
 # future, download tarballs...
-#
+# we check for existance during fetch, but install during build
 check_tars()
 {
    local tarballs
@@ -688,7 +687,7 @@ Use it ?"
       esac
 
       "${operation}" "${srcname}" "${dstname}" "${tag}"
-       warn_scripts "${dstname}/.bootstrap" "${dstname}" || fail "Ok, aborted"  #sic
+      mulle-bootstrap-warn-scripts.sh "${dstname}/.bootstrap" "${dstname}" || fail "Ok, aborted"  #sic
    fi
 }
 
@@ -823,7 +822,7 @@ update()
    tag="$4"
 
    [ ! -z "$clone" ] ||internal_fail "clone is empty"
-   [ -d "$dstname" ] || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
+   exekutor [ -d "$dstname" ] || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
    [ ! -z "$name" ]  || internal_fail "name is empty"
 
    local script
@@ -937,7 +936,7 @@ append_dir_to_gitignore_if_needed()
    grep -s -x "$1/" .gitignore > /dev/null 2>&1
    if [ $? -ne 0 ]
    then
-      echo "$1/" >> .gitignore || fail "Couldn't append to .gitignore"
+      exekutor echo "$1/" >> .gitignore || fail "Couldn't append to .gitignore"
       log_info "Added ${C_MAGENTA}$1/${C_INFO} to ${C_CYAN}.gitignore${C_INFO}"
    fi
 }
