@@ -1,0 +1,74 @@
+cd /tmp
+rm -rf mulle-bootstrap 2> /dev/null
+TermRecord -o /tmp/session.html 
+
+#
+# clone mulle-bootstrap from www.mulle-kybernetik.com
+#
+git clone http://www.mulle-kybernetik.com/repositories/mulle-bootstrap
+
+#
+# now install it, you can install it with itself, but you get
+# the developer environment too, which you may not want for now
+#
+cd mulle-bootstrap
+./install.sh
+
+#
+# lets try out a simple demo, that shows Xcode, cmake and configure
+# repositories being checked out and built
+#
+cd demo
+ls -FAG
+ls -FARG .bootstrap
+cat .bootstrap/settings/zlib/dispense_headers_path
+cat .bootstrap/settings/Finch/xcode_public_headers
+cat .bootstrap/gits
+
+#
+# lets make a dry run, to see what would happen
+#
+mulle-bootstrap -n fetch
+ls -FAG
+
+#
+# ok lets fetch them for real
+# the -a always chooses the default, which means clone
+# 
+mulle-bootstrap -a fetch
+ls -FAG
+
+#
+# time to build stuff, mulle-bootstrap w/o a command
+# does fetch and build in one step
+#
+mulle-bootstrap -n build
+
+#
+# ok now for real
+#
+mulle-bootstrap build
+ls -FARG dependencies
+ls -FAG
+
+#
+# remove intermediate build files, but how ?
+# ask mulle-bootstrap
+#
+mulle-bootstrap -h
+mulle-bootstrap clean -h
+
+#
+# ok clean those intermediates, use -v to get more output
+#
+mulle-bootstrap -v clean 
+ls -FAG
+
+#
+# now get rid of repos and dependencies too, everything like 
+# before. Use an environment variable to get even more output
+#
+MULLE_BOOTSTRAP_VERBOSE=FULL mulle-bootstrap clean dist
+ls -FAG
+
+exit

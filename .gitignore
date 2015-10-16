@@ -1,7 +1,9 @@
 .DS_Store
+*~.*
 *.chk
 build/
 .repos/
 .bootstrap.auto/
 dependencies/
 .bootstrap.local/
+mulle-bootstrap.sublime-workspace

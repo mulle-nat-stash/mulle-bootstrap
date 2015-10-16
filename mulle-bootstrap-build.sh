@@ -544,7 +544,32 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
       fi
 
       # use absolute paths for configure, safer (and easier to read IMO)
-      logging_exekutor CFLAGS="\
+       echo "CFLAGS=\"\
+-I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+${other_cflags} \
+${sdk}\" \
+      CPPFLAGS=\"\
+-I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+${other_cppflags} \
+${sdk}\" \
+      LDFLAGS=\"\
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+${other_ldflags} \
+${sdk}\"" >> "${logfile1}"
+
+
+       CFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
@@ -567,7 +592,7 @@ ${sdk}" \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 ${sdk}" \
-       "${owd}/${srcdir}/configure" \
+       logging_exekutor "${owd}/${srcdir}/configure" \
           --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
 
@@ -866,9 +891,19 @@ ${info} ..."
    local logfile
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
-      logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}-${targetname}${schemename}"
 
-   log_info "Build log will be in ${C_WHITE}${logfile}.xcodebuild.log${C_INFO}"
+   logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}-"
+   if [ ! -z "${targetname}" -o ! -z "${schemename}" ]
+   then
+      logfile="${logfile}-${targetname}${schemename}"
+   fi
+   if [ ! -z "${sdk}" ]
+   then
+      logfile="${logfile}-${sdk}"
+   fi
+
+   logfile="${logfile}.xcodebuild.log"
+   log_info "Build log will be in ${C_WHITE}${logfile}${C_INFO}"
 
    set -f
 
@@ -979,8 +1014,8 @@ HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
-      logging_eval_exekutor "${cmdline}" >> "${logfile}.xcodebuild.log" \
-      || build_fail "${logfile}.xcodebuild.log" "xcodebuild"
+      logging_eval_exekutor "${cmdline}" >> "${logfile}" \
+      || build_fail "${logfile}" "xcodebuild"
 
       set +f
 

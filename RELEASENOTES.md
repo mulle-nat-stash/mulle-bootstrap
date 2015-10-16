@@ -1,3 +1,11 @@
+0.9.3
+===
+   Ahem, problems with the new release script...
+
+0.9.2
+===
+   Fix xcodebuild log filename
+
 0.9.1
 ===
    Fix cmake and configure build.
