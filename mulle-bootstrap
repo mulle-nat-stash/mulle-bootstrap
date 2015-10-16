@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.9.6
+VERSION=0.9.7
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -144,7 +144,7 @@ EOF
    xcode     : sets up the xcodeproj settings
 EOF
    fi
-   
+
 cat <<EOF
    tag       : tag this project and fetched repositories
 
@@ -203,7 +203,7 @@ bootstrap()
 main()
 {
 
-   if [ ! -d "${BOOTSTRAP_SUBDIR}" -a "${command}" != "init" ]
+   if [ ! -d "${BOOTSTRAP_SUBDIR}" -a "${command}" != "init" -a "${command}" != "version" ]
    then
       echo "there is no ${BOOTSTRAP_SUBDIR} here, can't continue" >&2
       exit 1

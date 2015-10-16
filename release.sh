@@ -1,4 +1,4 @@
-#! /bin/sh -x
+#! /bin/sh
 
 TAG="${1:-`./mulle-bootstrap version`}"
 

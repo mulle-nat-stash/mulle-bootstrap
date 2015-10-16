@@ -1,3 +1,7 @@
+0.9.7
+===
+   Allow mulle-bootstrap version to work everywhere.
+
 0.9.6
 ===
    Figured out that some terminal windows have a white background (duh).
