@@ -109,13 +109,13 @@ _read_setting()
       value="${file}"
       if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
       then
-         log_fluff "${C_MAGENTA}`basename "${file}"`${C_FLUFF} found as ${C_WHITE}\"${file}\"${C_FLUFF}${C_FLUFF}"
+         log_fluff "${C_MAGENTA}`basename "${file}"`${C_FLUFF} found as ${C_RESET}${file}${C_FLUFF}${C_FLUFF}"
       fi
    else
       value=`egrep -v '^#|^[ ]*$' "${file}"`
       if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
       then
-         log_fluff "Setting ${C_MAGENTA}`basename "${file}"`${C_FLUFF} found in ${C_WHITE}\"${file}\"${C_FLUFF} as ${C_MAGENTA}\"${value}\"${C_FLUFF}"
+         log_fluff "Setting ${C_MAGENTA}`basename "${file}"`${C_FLUFF} found in ${C_RESET}${file}${C_FLUFF} as ${C_MAGENTA}\"${value}\"${C_FLUFF}"
       fi
    fi
 

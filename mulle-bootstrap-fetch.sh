@@ -81,7 +81,7 @@ else
    if [ -z "${COMMAND}" ]
    then
       COMMAND=${1:-"install"}
-      shift
+      [ $# -eq 0 ] || shift
    fi
 
    if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
@@ -396,7 +396,7 @@ git_pull()
 
    [ -z "$dst" ] && internal_fail "dst is empty"
 
-   log_info "Updating ${C_WHITE}${dst}${C_INFO} ..."
+   log_info "Updating ${C_RESET}${dst}${C_INFO} ..."
    ( exekutor cd "${dst}" ; exekutor git pull ${GITFLAGS} ) || fail "git pull of \"${dst}\" failed"
 
    if [ "${tag}" != "" ]
@@ -493,7 +493,7 @@ bootstrap_auto_update()
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
       relative="`compute_relative "${BOOTSTRAP_SUBDIR}"`"
-      exekutor find "${dst}/.bootstrap/settings" -type f -depth 1 -print0 | \
+      exekutor find "${dst}/.bootstrap/settings" -type f -mindepth 1 -maxdepth 1 -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
       if [ -e "${dst}/.bootstrap/settings/bin"  ]
@@ -503,7 +503,7 @@ bootstrap_auto_update()
 
       # flatten other folders into our own settings
       # don't force though, keep first
-      exekutor find "${dst}/.bootstrap/settings" ! -name bin -type d -depth 1 -print0 | \
+      exekutor find "${dst}/.bootstrap/settings" ! -name bin -type d -mindepth 1 -maxdepth 1 -print0 | \
          exekutor xargs -0 -I % ln -s "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
 
@@ -524,7 +524,7 @@ ensure_clones_directory()
 
    if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
-      log_warning "Folder ${C_WHITE}${BOOTSTRAP_SUBDIR}.auto${C_WARNING} already exists!"
+      log_warning "Folder ${C_RESET}${BOOTSTRAP_SUBDIR}.auto${C_WARNING} already exists!"
    fi
 }
 
@@ -623,7 +623,7 @@ checkout()
    then
       log_error "Stale folders ${DEPENDENCY_SUBDIR} and/or ${CLONESBUILD_SUBDIR} found."
       log_error "Please remove them before continuing."
-      log_info  "Suggested command: ${C_WHITE}mulle-bootstrap clean output"
+      log_info  "Suggested command: ${C_RESET}mulle-bootstrap clean output"
       exit 1
    fi
 

@@ -35,6 +35,10 @@
 . mulle-bootstrap-local-environment.sh
 . mulle-bootstrap-brew.sh
 
+if [ "`uname`" != 'Darwin' ]
+then
+   fail "for now xcode only works on OS X"
+fi
 
 usage()
 {
@@ -63,9 +67,9 @@ esac
 
 
 COMMAND="${1:-add}"
-shift
+[ $# -eq 0 ] || shift
 PROJECT="$1"
-shift
+[ $# -eq 0 ] || shift
 
 
 check_and_usage_and_help
@@ -253,7 +257,7 @@ Release"
       if [ $terse -ne 0 ]
       then
          #     012345678901234567890123456789012345678901234567890123456789
-         echo "${C_WHITE}Settings will be added to ${C_MAGENTA}${projectname}${C_WHITE}." >&2
+         echo "${C_RESET}Settings will be added to ${C_MAGENTA}${projectname}${C_RESET}." >&2
          echo "In the long term it may be more useful to copy/paste the following" >&2
          echo "lines into a local .xcconfig file, that is inherited by all configurations.${C_RESET}" >&2
       fi
@@ -263,7 +267,7 @@ Release"
       if [ $terse -ne 0 ]
       then
          #     012345678901234567890123456789012345678901234567890123456789
-         echo "${C_WHITE}Settings will be removed from ${projectname}." >&2
+         echo "${C_RESET}Settings will be removed from ${projectname}." >&2
          echo "You may want to check afterwards, that this has worked out OK :).${C_RESET}" >&2
       fi
    fi
@@ -314,7 +318,7 @@ Release"
          local mapped
          local i
 
-         echo  "${C_WHITE}-----------------------------------------------------------"  >&2
+         echo  "${C_RESET}-----------------------------------------------------------"  >&2
 
          #  make these echos easily grabable by stdout
          #     012345678901234567890123456789012345678901234567890123456789
@@ -345,9 +349,9 @@ Release"
          echo  "-----------------------------------------------------------${C_RESET}"  >&2
       fi
 
-      query="Add ${C_CYAN}\"${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}\"${C_YELLOW}  and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Add ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_YELLOW} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    else
-      query="Remove ${C_CYAN}\"${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}\"${C_YELLOW}  and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Remove ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_YELLOW} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    fi
 
    user_say_yes "$query"
@@ -367,7 +371,7 @@ Release"
       if [ $terse -ne 0 ]
       then
          #     012345678901234567890123456789012345678901234567890123456789
-         echo "${C_WHITE}"
+         echo "${C_RESET}"
          echo "Hint:"
          echo "If you add a configuration to your project, remember to edit" >&2
          echo "the LIBRARY_CONFIGURATION setting for that configuration." >&2

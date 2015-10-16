@@ -82,7 +82,7 @@ check_and_usage_and_help()
 
 
 COMMAND=${1:-"build"}
-shift
+[ $# -eq 0 ] || shift
 
 check_and_usage_and_help
 

@@ -21,13 +21,13 @@ trap 'printf "${C_RESET}"' TERM EXIT
 #
 
 prefix=${1:-"/usr/local"}
-shift
+[ $# -eq 0 ] || shift
 mode=${1:-755}
-shift
+[ $# -eq 0 ] || shift
 bin=${1:-"${prefix}/bin"}
-shift
+[ $# -eq 0 ] || shift
 libexec=${1:-"${prefix}/libexec/mulle-bootstrap"}
-shift
+[ $# -eq 0 ] || shift
 
 if [ "$prefix" = "" ] || [ "$bin" = "" ] || [ "$libexec" = "" ] || [ "$mode" = "" ]
 then
@@ -35,14 +35,13 @@ then
    exit 1
 fi
 
-printf "${C_WHITE}"
 
 for i in mulle*bootstrap
 do
    mkdir -p "${bin}" 2> /dev/null
    sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
    chmod "${mode}" "${bin}/${i}" || exit 1
-   echo "install: ${C_MAGENTA}$bin/$i${C_WHITE}" >&2
+   echo "install: ${C_MAGENTA}$bin/$i${C_RESET}" >&2
 done
 
 

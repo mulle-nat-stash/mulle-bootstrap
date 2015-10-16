@@ -85,13 +85,13 @@ fi
 
 
 TAG=${1:-"$AGVTAG"}
-shift
+[ $# -eq 0 ] || shift
 
 VENDOR_TAG="$1"
-shift
+[ $# -eq 0 ] || shift
 
 VENDOR_PREFIX="$1"
-shift
+[ $# -eq 0 ] || shift
 
 
 if [ -z "${VENDOR_TAG}" -o "${VENDOR_TAG}" = "-" ]

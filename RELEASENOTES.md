@@ -1,3 +1,9 @@
+0.9.6
+===
+   Figured out that some terminal windows have a white background (duh).
+   Fixed shifts for Ubuntu's hated dash.
+   Fixed some other Linux problems.
+
 0.9.5
 ===
    Messed up the tagging somewhat... 0.9.1 and 0.9.2 were the same and
@@ -59,13 +65,13 @@
 
 0.6
 ===
-	Improve scripts handling and add a some new phases to
-	the proceedings. Actually the whole script stuff didn't work before...
+   Improve scripts handling and add a some new phases to
+   the proceedings. Actually the whole script stuff didn't work before...
    Scripts in general aren't documented yet, because it's still very much
    in fluctuation.
 
-	More output during setting inheritance. Fix proper inheritance of
-	build_order and build_ignore.
+   More output during setting inheritance. Fix proper inheritance of
+   build_order and build_ignore.
 
    Lots of en-passant bug fixes. Should be in general better than 0.5
 

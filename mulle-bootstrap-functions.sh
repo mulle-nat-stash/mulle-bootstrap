@@ -89,7 +89,7 @@ log_trace()
 }
 
 
-C_TRACE2="${C_WHITE}"
+C_TRACE2="${C_RESET}"
 log_trace2()
 {
    echo "${C_TRACE2}$*${C_RESET}" >&2
@@ -333,7 +333,7 @@ mkdir_if_missing()
 {
    if [ ! -d "${1}" ]
    then
-      log_fluff "Creating ${C_WHITE}$1${C_FLUFF} (`pwd -P`)"
+      log_fluff "Creating ${C_RESET}$1${C_FLUFF} (`pwd -P`)"
       exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
    fi
 }
@@ -348,7 +348,7 @@ assert_sane_subdir_path()
 {
    case "$1"  in
       \$*|~/.|..|./|../|/*)
-         log_error "refuse unsafe path ${C_WHITE}$1"
+         log_error "refuse unsafe path ${C_RESET}$1"
          exit 1
       ;;
    esac
@@ -359,7 +359,7 @@ assert_sane_path()
 {
    case "$1"  in
       \$*|~/*|..|.|/|./|../*)
-         log_error "refuse unsafe path ${C_WHITE}$1"
+         log_error "refuse unsafe path ${C_RESET}$1"
          exit 1
       ;;
    esac
@@ -384,7 +384,7 @@ user_say_yes()
   x=`read_config_setting "answer" "ASK"`
   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
   do
-     echo "${C_YELLOW}$* (${C_WHITE}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
+     echo "${C_YELLOW}$* (${C_RESET}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
      read x
      x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
   done
@@ -500,7 +500,7 @@ run_script()
 
    if [ -x "${script}" ]
    then
-      log_info "Executing script ${C_WHITE}${script}${C_INFO}"
+      log_info "Executing script ${C_RESET}${script}${C_INFO}"
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]

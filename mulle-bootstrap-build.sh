@@ -73,7 +73,7 @@ dispense_headers()
    local headers
    local suffix
 
-   log_fluff "Consider copying headers from ${C_WHITE}${src}${C_FLUFF}"
+   log_fluff "Consider copying headers from ${C_RESET}${src}${C_FLUFF}"
 
    if [ -d "${src}" ]
    then
@@ -84,11 +84,11 @@ dispense_headers()
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${headers}"
          mkdir_if_missing "${dst}"
 
-         log_fluff "Copying ${C_WHITE}${src}${C_FLUFF} to ${C_WHITE}${dst}${C_FLUFF}"
-         exekutor find -x "${src}" ! -path "${src}" -depth 1 -type d -print0 | \
+         log_fluff "Copying ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
+         exekutor find -x "${src}" ! -path "${src}" -mindepth 1 -maxdepth 1 -type d -print0 | \
             exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
-         exekutor find -x "${src}" ! -path "${src}" -depth 1 \( -type f -o -type l \) -print0 | \
+         exekutor find -x "${src}" ! -path "${src}" -mindepth 1 -maxdepth 1 \( -type f -o -type l \) -print0 | \
             exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
 
@@ -120,7 +120,7 @@ dispense_binaries()
 
    findtype2="l"
 
-   log_fluff "Consider copying binaries from ${C_WHITE}${src}${C_FLUFF} for type \"${findtype}/${findtype2}\""
+   log_fluff "Consider copying binaries from ${C_RESET}${src}${C_FLUFF} for type \"${findtype}/${findtype2}\""
 
    if [ -d "${src}" ]
    then
@@ -128,9 +128,9 @@ dispense_binaries()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${subpath}${subdir}"
 
-         log_fluff "Copying ${C_WHITE}${src}${C_FLUFF} to ${C_WHITE}${dst}${C_FLUFF}"
+         log_fluff "Copying ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
          mkdir_if_missing "${dst}"
-         exekutor find -x "${src}" ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -depth 1 -print0 | \
+         exekutor find -x "${src}" ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -mindepth 1 -maxdepth 1 -print0 | \
             exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
       else
@@ -162,7 +162,7 @@ collect_and_dispense_product()
       return 0
    fi
 
-   log_info "Collecting and dispensing ${C_WHITE}${name}${C_INFO} ${C_MAGENTA}`basename "${subdir}"`${C_INFO} products "
+   log_info "Collecting and dispensing ${C_RESET}${name}${C_INFO} ${C_MAGENTA}`basename "${subdir}"`${C_INFO} products "
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref
    # (will this work with signing stuff ?)
@@ -247,8 +247,8 @@ collect_and_dispense_product()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
 
-         log_fluff "Copying everything from ${C_WHITE}${src}${C_FLUFF} to ${C_WHITE}${dst}${C_FLUFF}"
-         exekutor find -x "${src}" ! -path "${src}" -depth 1 -print0 | \
+         log_fluff "Copying everything from ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
+         exekutor find -x "${src}" ! -path "${src}" -mindepth 1 -maxdepth 1 -print0 | \
                exekutor xargs -0 -J % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
       fi
@@ -257,7 +257,7 @@ collect_and_dispense_product()
       then
          if dir_has_files "${BUILD_DEPENDENCY_SUBDIR}"
          then
-            log_fluff "Directory ${C_WHITE}${BUILD_DEPENDENCY_SUBDIR}${C_FLUFF} contained files after collect and dispense"
+            log_fluff "Directory ${C_RESET}${BUILD_DEPENDENCY_SUBDIR}${C_FLUFF} contained files after collect and dispense"
             log_fluff "--------------------"
             ( cd "${BUILD_DEPENDENCY_SUBDIR}" ; ls -lR >&2 )
             log_fluff "--------------------"
@@ -281,7 +281,7 @@ enforce_build_sanity()
    # these must not exist
    if [ -d "${BUILD_DEPENDENCY_SUBDIR}" ]
    then
-      fail "A previous build left ${C_WHITE}${BUILD_DEPENDENCY_SUBDIR}${C_ERROR}, can't continue"
+      fail "A previous build left ${C_RESET}${BUILD_DEPENDENCY_SUBDIR}${C_ERROR}, can't continue"
    fi
 }
 
@@ -375,9 +375,9 @@ build_log_name()
    local name
 
    tool="$1"
-   shift
+   [ $# -eq 0 ] || shift
    name="$1"
-   shift
+   [ $# -eq 0 ] || shift
 
    local logfile
    logfile="${BUILDLOG_SUBDIR}/${name}"
@@ -388,7 +388,7 @@ build_log_name()
       then
          logfile="${logfile}-${1}"
       fi
-      shift
+      [ $# -eq 0 ] || shift
    done
 
    echo "${logfile}.${tool}.log"
@@ -445,7 +445,7 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
    logfile1="`build_log_name "${name}" "cmake" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "${name}" "make" "${configuration}" "${sdk}"`"
 
-   log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}${C_INFO}"
+   log_info "Build logs will be in ${C_RESET}${logfile1}${C_INFO} and ${C_RESET}${logfile2}${C_INFO}"
 
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
@@ -552,7 +552,7 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
    logfile1="`build_log_name "${name}" "configure" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "${name}" "make" "${configuration}" "${sdk}"`"
 
-   log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}${C_INFO}"
+   log_info "Build logs will be in ${C_RESET}${logfile1}${C_INFO} and ${C_RESET}${logfile2}${C_INFO}"
 
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
@@ -922,7 +922,7 @@ ${info} ..."
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
    logfile="`build_log_name "${name}" "xcodebuild" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
-   log_info "Build log will be in ${C_WHITE}${logfile}${C_INFO}"
+   log_info "Build log will be in ${C_RESET}${logfile}${C_INFO}"
 
    set -f
 
@@ -1135,7 +1135,7 @@ build_script()
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
    logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
 
-   log_info "Build log will be in ${C_WHITE}${logfile}${C_INFO}"
+   log_info "Build log will be in ${C_RESET}${logfile}${C_INFO}"
 
    local owd
 
@@ -1190,10 +1190,17 @@ build()
    preferences="`read_build_setting "${name}" "build_preferences"`"
    if [ -z "${preferences}" ]
    then
-      preferences="`read_config_setting "build_preferences" "script
+      if [ "`uname`" = 'Darwin' ]
+      then
+         preferences="`read_config_setting "build_preferences" "script
 xcodebuild
 cmake
 configure"`"
+      else
+         preferences="`read_config_setting "build_preferences" "script
+cmake
+configure"`"
+      fi
    fi
 
    configurations="`read_build_root_setting "configurations" "Debug
@@ -1478,7 +1485,7 @@ install_tars()
          then
             fail "tarball \"$tar\" not found"
          else
-            log_info "Installing tarball ${C_WHITE}${tar}${C_INFO}"
+            log_info "Installing tarball ${C_RESET}${tar}${C_INFO}"
             exekutor tar -xz -C "${DEPENDENCY_SUBDIR}" -f "${tar}" || fail "failed to extract ${tar}"
          fi
       done
@@ -1521,7 +1528,7 @@ main()
       exekutor ln -s "usr/local/include" "${DEPENDENCY_SUBDIR}/include" || fail "failed to symlink future usr/local/include"
       install_tars "$@"
    else
-      log_warning "Tars have not been installed, as ${C_WHITE}${DEPENDENCY_SUBDIR}${C_WARNING} already exists."
+      log_warning "Tars have not been installed, as ${C_RESET}${DEPENDENCY_SUBDIR}${C_WARNING} already exists."
    fi
 
    build_clones "$@"
@@ -1530,7 +1537,7 @@ main()
    then
       if [ "${clean}" = "YES" -a -d "${DEPENDENCY_SUBDIR}" ]
       then
-         log_info "Write-protecting ${C_WHITE}${DEPENDENCY_SUBDIR}${C_INFO} to avoid spurious header edits"
+         log_info "Write-protecting ${C_RESET}${DEPENDENCY_SUBDIR}${C_INFO} to avoid spurious header edits"
          exekutor chmod -R a-w "${DEPENDENCY_SUBDIR}"
       fi
    fi

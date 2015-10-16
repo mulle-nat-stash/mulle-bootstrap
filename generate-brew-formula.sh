@@ -8,9 +8,9 @@ HOMEPAGE="http://www.mulle-kybernetik.com/software/git/${TARGET}"
 DESC="A simple shell script based dependency manager for projects"
 
 VERSION="${1:-`./mulle-bootstrap version`}"
-shift
+[ $# -eq 0 ] || shift
 ARCHIVEURL="${1:-http://www.mulle-kybernetik.com/software/git/${TARGET}/tarball/$VERSION}"
-shift
+[ $# -eq 0 ] || shift
 
 set -e
 
