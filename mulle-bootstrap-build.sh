@@ -86,10 +86,10 @@ dispense_headers()
 
          log_fluff "Copying ${C_WHITE}${src}${C_FLUFF} to ${C_WHITE}${dst}${C_FLUFF}"
          exekutor find -x "${src}" ! -path "${src}" -depth 1 -type d -print0 | \
-            exekutor xargs -0 -J % mv -v -n % "${dst}"
+            exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
          exekutor find -x "${src}" ! -path "${src}" -depth 1 \( -type f -o -type l \) -print0 | \
-            exekutor xargs -0 -J % mv -v -n % "${dst}"
+            exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
 
          rmdir_safer "${src}"
@@ -131,7 +131,7 @@ dispense_binaries()
          log_fluff "Copying ${C_WHITE}${src}${C_FLUFF} to ${C_WHITE}${dst}${C_FLUFF}"
          mkdir_if_missing "${dst}"
          exekutor find -x "${src}" ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -depth 1 -print0 | \
-            exekutor xargs -0 -J % mv -v -n % "${dst}"
+            exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
       else
          log_fluff "But threre are none"
@@ -162,7 +162,7 @@ collect_and_dispense_product()
       return 0
    fi
 
-   log_info "Collecting and dispensing ${C_WHITE}{name}${C_INFO} ${C_MAGENTA}`basename "${subdir}"`${C_INFO} products "
+   log_info "Collecting and dispensing ${C_WHITE}${name}${C_INFO} ${C_MAGENTA}`basename "${subdir}"`${C_INFO} products "
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref
    # (will this work with signing stuff ?)
@@ -356,7 +356,6 @@ create_dummy_dirs_against_warnings()
 }
 
 
-
 build_fail()
 {
    if [ -f "${1}" ]
@@ -369,6 +368,31 @@ build_fail()
    fail "$2 failed"
 }
 
+
+build_log_name()
+{
+   local tool
+   local name
+
+   tool="$1"
+   shift
+   name="$1"
+   shift
+
+   local logfile
+   logfile="${BUILDLOG_SUBDIR}/${name}"
+
+   while [ $# -gt 0 ]
+   do
+      if [ ! -z "${1}" ]
+      then
+         logfile="${logfile}-${1}"
+      fi
+      shift
+   done
+
+   echo "${logfile}.${tool}.log"
+}
 
 #
 # remove old builddir, create a new one
@@ -417,8 +441,9 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
    local logfile2
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
-   logfile1="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.cmake.log"
-   logfile2="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.make.log"
+
+   logfile1="`build_log_name "${name}" "cmake" "${configuration}" "${sdk}"`"
+   logfile2="`build_log_name "${name}" "make" "${configuration}" "${sdk}"`"
 
    log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}${C_INFO}"
 
@@ -476,7 +501,6 @@ ${sdk}" \
 }
 
 
-
 #
 # remove old builddir, create a new one
 # depending on configuration cmake with flags
@@ -524,8 +548,9 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
    local logfile2
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
-   logfile1="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.configure.log"
-   logfile2="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.make.log"
+
+   logfile1="`build_log_name "${name}" "configure" "${configuration}" "${sdk}"`"
+   logfile2="`build_log_name "${name}" "make" "${configuration}" "${sdk}"`"
 
    log_info "Build logs will be in ${C_WHITE}${logfile1}${C_INFO} and ${C_WHITE}${logfile2}${C_INFO}"
 
@@ -607,6 +632,12 @@ ${sdk}" \
 }
 
 
+_xcode_get_setting()
+{
+   eval_exekutor "xcodebuild -showBuildSettings $*" || fail "failed to read xcode settings"
+}
+
+
 xcode_get_setting()
 {
    local key
@@ -614,9 +645,7 @@ xcode_get_setting()
    key="$1"
    shift
 
-   eval "xcodebuild -showBuildSettings $*" | \
-   egrep "^[ ]*${key}" | \
-   sed 's/^[^=]*=[ ]*\(.*\)/\1/' || exit 1
+   _xcode_get_setting "$@" | egrep "^[ ]*${key}" | sed 's/^[^=]*=[ ]*\(.*\)/\1/'
 }
 
 
@@ -638,7 +667,7 @@ create_mangled_header_path()
    local headers
    local prefix
 
-   headers=`xcode_get_setting "${key}" $*`
+   headers=`xcode_get_setting "${key}" $*` || exit 1
    log_fluff "${key} read as \"${headers}\""
 
    case "${headers}" in
@@ -892,17 +921,7 @@ ${info} ..."
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
-   logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}-"
-   if [ ! -z "${targetname}" -o ! -z "${schemename}" ]
-   then
-      logfile="${logfile}-${targetname}${schemename}"
-   fi
-   if [ ! -z "${sdk}" ]
-   then
-      logfile="${logfile}-${sdk}"
-   fi
-
-   logfile="${logfile}.xcodebuild.log"
+   logfile="`build_log_name "${name}" "xcodebuild" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
    log_info "Build log will be in ${C_WHITE}${logfile}${C_INFO}"
 
    set -f
@@ -934,6 +953,10 @@ ${info} ..."
 
 
       logfile="${owd}/${logfile}"
+      if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
+      then
+         logfile="/dev/null"
+      fi
 
       # manually point xcode to our headers and libs
       # this is like manually doing xcode-setup
@@ -947,7 +970,7 @@ ${info} ..."
       #
       # TODO: need to figure out the correct mapping here
       #
-      inherited="`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`"
+      inherited="`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" \
 "/usr/local/include"`
@@ -958,7 +981,7 @@ ${info} ..."
          dependencies_header_search_path="${path} ${inherited}"
       fi
 
-      inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`"
+      inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}" \
@@ -976,7 +999,7 @@ ${info} ..."
       fi
 
 
-      inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`"
+      inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`

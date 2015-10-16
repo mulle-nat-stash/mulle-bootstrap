@@ -63,7 +63,11 @@ warn_environment_setting()
    name="$1"
    if [ "$MULLE_BOOTSTRAP_NO_WARN_ENVIRONMENT_SETTINGS" != "YES" ]
    then
-      log_warning "Using environment variable \"${name}\""
+      # don't trace some boring ones
+      if [ "${name}" != "MULLE_BOOTSTRAP_ANSWER" -a "${name}" != "MULLE_BOOTSTRAP_VERBOSE" ]
+      then
+         log_warning "Using environment variable \"${name}\""
+      fi
    fi
 }
 

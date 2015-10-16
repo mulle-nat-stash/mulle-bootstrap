@@ -1,3 +1,8 @@
+0.9.4
+===
+   Don't trace environment reads of MULLE_BOOTSTRAP_ANSWER and
+   MULLE_BOOTSTRAP_VERBOSE.
+
 0.9.3
 ===
    Ahem, problems with the new release script...

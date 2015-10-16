@@ -1,0 +1,102 @@
+cd /tmp
+chown -R `id -u` mulle-bootstrap 2> /dev/null
+rm -rf mulle-bootstrap 2> /dev/null
+
+# sudo pip install TermRecord
+# brew install ttyrec
+
+TermRecord -o /tmp/session.html || exit 1
+
+set -x
+set -e
+echo "#" > /dev/null
+echo "# clone mulle-bootstrap from www.mulle-kybernetik.com" > /dev/null
+echo "#" > /dev/null
+
+git clone /Volumes/Source/srcM/mulle-bootstrap
+# git clone http://www.mulle-kybernetik.com/repositories/mulle-bootstrap
+
+echo "#" > /dev/null
+echo "# now install it, you can install it with itself, but you get" > /dev/null
+echo "# the developer environment too, which you may not want for now" > /dev/null
+echo "#" > /dev/null
+cd mulle-bootstrap
+./install.sh
+set +e
+mulle-bootstrap -h
+set -e
+sleep 4
+
+echo "#" > /dev/null
+echo "# lets try out a simple demo, that shows Xcode, cmake and configure" > /dev/null
+echo "# repositories being checked out and built" > /dev/null
+echo "#" > /dev/null
+cd demo
+ls -FAG
+sleep 1
+ls -FARG .bootstrap
+sleep 1
+cat .bootstrap/settings/zlib/dispense_headers_path
+cat .bootstrap/settings/Finch/xcode_public_headers
+cat .bootstrap/gits
+sleep 2
+
+echo "#" > /dev/null
+echo "# lets make a dry run, to see what would happen" > /dev/null
+echo "#" > /dev/null
+mulle-bootstrap -n fetch
+ls -FAG
+sleep 2
+
+echo "#" > /dev/null
+echo "# ok lets fetch them for real" > /dev/null
+echo "# the -a always chooses the default, which means clone" > /dev/null
+echo "#" > /dev/null
+
+mulle-bootstrap -a fetch
+ls -FAG
+sleep 2
+
+echo "#" > /dev/null
+echo "# time to build stuff, mulle-bootstrap w/o a command" > /dev/null
+echo "# does fetch and build in one step" > /dev/null
+echo "#" > /dev/null
+
+mulle-bootstrap -n build
+sleep 2
+
+echo "#" > /dev/null
+echo "# ok now for real" > /dev/null
+echo "#" > /dev/null
+mulle-bootstrap build
+ls -FARG dependencies
+sleep 1
+ls -FAG
+sleep 2
+
+
+echo "#"
+echo "# remove intermediate build files, but how ?" > /dev/null
+echo "# ask mulle-bootstrap"  > /dev/null
+echo "#"  > /dev/null
+set +e
+mulle-bootstrap -h
+mulle-bootstrap clean -h
+sleep 1
+set -e
+
+echo "#"  > /dev/null
+echo "# ok clean those intermediates, use -v to get more output"  > /dev/null
+echo "#"  > /dev/null
+mulle-bootstrap -v clean
+ls -FAG
+sleep 2
+
+echo "#" > /dev/null
+echo "# now get rid of repos and dependencies too, everything like" > /dev/null
+echo "# before. Use an environment variable to get even more output"  > /dev/null
+echo "#" > /dev/null
+MULLE_BOOTSTRAP_VERBOSE=FULL mulle-bootstrap clean dist
+ls -FAG
+
+exit

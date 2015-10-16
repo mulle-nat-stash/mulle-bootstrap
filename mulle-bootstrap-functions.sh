@@ -55,7 +55,7 @@ log_error()
 C_WARNING="${C_YELLOW}"
 log_warning()
 {
-   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
+   if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
    then
       echo "${C_WARNING}$*${C_RESET}" >&2
    fi
@@ -65,7 +65,7 @@ log_warning()
 C_INFO="${C_CYAN}"
 log_info()
 {
-   if [ "$MULLE_BOOTSTRAP_TERSE" != "YES" ]
+   if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
    then
       echo "${C_INFO}$*${C_RESET}" >&2
    fi
@@ -75,7 +75,7 @@ log_info()
 C_FLUFF="${C_GREEN}"
 log_fluff()
 {
-   if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
+   if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
    then
       echo "${C_FLUFF}$*${C_RESET}" >&2
    fi
@@ -85,14 +85,14 @@ log_fluff()
 C_TRACE="${C_FLUFF}"
 log_trace()
 {
-  echo "${C_TRACE}$*${C_RESET}" >&2
+   echo "${C_TRACE}$*${C_RESET}" >&2
 }
 
 
 C_TRACE2="${C_WHITE}"
 log_trace2()
 {
-  echo "${C_TRACE2}$*${C_RESET}" >&2
+   echo "${C_TRACE2}$*${C_RESET}" >&2
 }
 
 
@@ -333,6 +333,7 @@ mkdir_if_missing()
 {
    if [ ! -d "${1}" ]
    then
+      log_fluff "Creating ${C_WHITE}$1${C_FLUFF} (`pwd -P`)"
       exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
    fi
 }

@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh +x
 #
 #   Copyright (c) 2015 Nat! - Mulle kybernetiK
 #   All rights reserved.
@@ -70,6 +70,8 @@ then
    MULLE_BOOTSTRAP_TRACE="1848"
    export MULLE_BOOTSTRAP_TRACE
 
+   COPYMOVEFLAGS="-v"
+   export COPYMOVEFLAGS
    GITFLAGS="-v"
    export GITFLAGS
    shift
@@ -81,6 +83,9 @@ else
          MULLE_BOOTSTRAP_TRACE="VERBOSE"
          export MULLE_BOOTSTRAP_TRACE
       fi
+
+      COPYMOVEFLAGS="-v"
+      export COPYMOVEFLAGS
       GITFLAGS="-v"
       export GITFLAGS
       shift
@@ -92,6 +97,9 @@ else
             MULLE_BOOTSTRAP_TRACE="ALL"
             export MULLE_BOOTSTRAP_TRACE
          fi
+
+         COPYMOVEFLAGS="-v"
+         export COPYMOVEFLAGS
          GITFLAGS="-v"
          export GITFLAGS
          shift
@@ -114,19 +122,12 @@ usage()
 {
    cat <<EOF
 usage: mulle-bootstrap [-a|-y][-n][-v|-s|-t] [command] [--help]
-       version ${VERSION}
-
- Specify the -h or --help option after each command to get more help.
-
  Flags (-n must be first, if present)
-   -a        : always chose default answer to questions
-   -y        : always say yes to questions (scripts wont be checked)
-
+   -a -y     : default answer to questions (scripts wont be checked)
+               -a (clone preferred) -y (symlink preferred)
    -n        : do nothing creative or destructive
-
-   -v        : be more verbose (-V even more verbose)
-   -s        : be more terse
-   -t        : turns on shell tracing for development
+   -v -s -t  : -v be more verbose (-V even more verbose), -s be more terse
+               -t turns on shell tracing for development
 
  Common user commands:
    bootstrap : does fetch and build recursively [default]
@@ -142,6 +143,8 @@ usage: mulle-bootstrap [-a|-y][-n][-v|-s|-t] [command] [--help]
    build     : builds fetched repositories
    fetch     : fetches required repositories recursively.
    update    : updates repositories (pull).
+
+ Specify the -h or --help option after each command to get more help.
 EOF
 }
 

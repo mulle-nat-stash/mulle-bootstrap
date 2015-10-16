@@ -65,6 +65,7 @@ case "${MULLE_BOOTSTRAP_TRACE}" in
       ;;
 esac
 
+
 if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" ]
 then
    log_trace "Dry run is active."

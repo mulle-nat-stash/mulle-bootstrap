@@ -1,0 +1,45 @@
+set -e
+set -x
+[ -d tutorial ] || exit 1
+[ -d /tmp/tut ] && chmod -R u+wX /tmp/tut && rm -rf /tmp/tut
+
+cp -R tutorial /tmp/tut
+cd /tmp/tut
+ls -FARG
+
+cd B
+mulle-bootstrap -a init
+echo "A" > .bootstrap/gits
+ls -FARG .bootstrap/
+rm -rf .bootstrap/brews .bootstrap/settings/MulleScion.example/
+ls -FARG .bootstrap/
+set +e
+mulle-bootstrap -y || echo "OK "
+
+ls dependencies/include
+cat ../B/src/B.h
+mkdir .bootstrap/settings/A
+echo "/usr/local/include/A" > .bootstrap/settings/A/xcode_public_headers
+
+mulle-bootstrap -y
+ls dependencies/include/A/A.h
+xcodebuild
+mulle-bootstrap -y xcode add
+xcodebuild
+
+git init
+git add .bootstrap/gits .bootstrap/settings/A/xcode_public_headers src/B.? B.xcodeproj/project.pbxproj CMakeLists.txt
+git commit -m "mercyful release"
+
+cd ../C
+cat src/C.h
+mulle-bootstrap -a init
+echo "B" > .bootstrap/gits
+rm -rf .bootstrap/brews .bootstrap/settings/MulleScion.example/
+mkdir -p .bootstrap/settings/B
+echo "/usr/local/include/B" > .bootstrap/settings/B/xcode_public_headers
+mulle-bootstrap -y
+ls -FARG  dependencies/include/
+ls -FARG .bootstrap.auto
+cat .bootstrap.auto/gits
+cat .bootstrap.auto/settings/A/xcode_public_headers
