@@ -1,15 +1,14 @@
-0.9.4
+0.9.5
 ===
+   Messed up the tagging somewhat... 0.9.1 and 0.9.2 were the same and
+   0.9.3 doesn't even exist. So now 0.9.5 is the one.
+
    Don't trace environment reads of MULLE_BOOTSTRAP_ANSWER and
    MULLE_BOOTSTRAP_VERBOSE.
-
-0.9.3
-===
-   Ahem, problems with the new release script...
-
-0.9.2
-===
-   Fix xcodebuild log filename
+   Fix xcodebuild log filename generation
+   Fix dry run some more.
+   Less output during dispensal, when not using -v.
+   Reduce usage output to 25 lines.
 
 0.9.1
 ===
