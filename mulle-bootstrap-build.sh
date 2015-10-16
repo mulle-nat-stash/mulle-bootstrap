@@ -85,11 +85,11 @@ dispense_headers()
          mkdir_if_missing "${dst}"
 
          log_fluff "Copying ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
-         exekutor find -x "${src}" ! -path "${src}" -mindepth 1 -maxdepth 1 -type d -print0 | \
-            exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
+         exekutor find -xdev "${src}" -mindepth 1 -maxdepth 1 ! -path "${src}" -type d -print0 | \
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
-         exekutor find -x "${src}" ! -path "${src}" -mindepth 1 -maxdepth 1 \( -type f -o -type l \) -print0 | \
-            exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
+         exekutor find -xdev "${src}" -mindepth 1 -maxdepth 1 ! -path "${src}" \( -type f -o -type l \) -print0 | \
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
 
          rmdir_safer "${src}"
@@ -130,8 +130,8 @@ dispense_binaries()
 
          log_fluff "Copying ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
          mkdir_if_missing "${dst}"
-         exekutor find -x "${src}" ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -mindepth 1 -maxdepth 1 -print0 | \
-            exekutor xargs -0 -J % mv ${COPYMOVEFLAGS} -n % "${dst}"
+         exekutor find -xdev "${src}" -mindepth 1 -maxdepth 1 ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
       else
          log_fluff "But threre are none"
@@ -248,8 +248,8 @@ collect_and_dispense_product()
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
 
          log_fluff "Copying everything from ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
-         exekutor find -x "${src}" ! -path "${src}" -mindepth 1 -maxdepth 1 -print0 | \
-               exekutor xargs -0 -J % mv -v -n % "${dst}"
+         exekutor find -xdev "${src}" -mindepth 1 -maxdepth 1 ! -path "${src}" -print0 | \
+               exekutor xargs -0 -I % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
       fi
 

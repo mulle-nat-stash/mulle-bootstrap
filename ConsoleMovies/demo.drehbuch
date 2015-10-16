@@ -13,15 +13,17 @@ echo "#" > /dev/null
 echo "# clone mulle-bootstrap from www.mulle-kybernetik.com" > /dev/null
 echo "#" > /dev/null
 
-git clone /Volumes/Source/srcM/mulle-bootstrap
-# git clone http://www.mulle-kybernetik.com/repositories/mulle-bootstrap
+#git clone /Volumes/Source/srcM/mulle-bootstrap
+git clone http://www.mulle-kybernetik.com/repositories/mulle-bootstrap
 
 echo "#" > /dev/null
 echo "# now install it, you can install it with itself, but you get" > /dev/null
 echo "# the developer environment too, which you may not want for now" > /dev/null
 echo "#" > /dev/null
 cd mulle-bootstrap
-./install.sh
+./install.sh /tmp
+PATH=/tmp/bin:$PATH
+
 set +e
 mulle-bootstrap -h
 set -e

@@ -503,7 +503,7 @@ bootstrap_auto_update()
 
       # flatten other folders into our own settings
       # don't force though, keep first
-      exekutor find "${dst}/.bootstrap/settings" ! -name bin -type d -mindepth 1 -maxdepth 1 -print0 | \
+      exekutor find "${dst}/.bootstrap/settings" -mindepth 1 -maxdepth 1 ! -name bin -type d -print0 | \
          exekutor xargs -0 -I % ln -s "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
 
