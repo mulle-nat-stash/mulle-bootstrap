@@ -85,10 +85,10 @@ dispense_headers()
          mkdir_if_missing "${dst}"
 
          log_fluff "Copying ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
-         exekutor find -xdev "${src}" -mindepth 1 -maxdepth 1 ! -path "${src}" -type d -print0 | \
+         exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
             exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
-         exekutor find -xdev "${src}" -mindepth 1 -maxdepth 1 ! -path "${src}" \( -type f -o -type l \) -print0 | \
+         exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type f -o -type l \) -print0 | \
             exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
 
@@ -130,7 +130,7 @@ dispense_binaries()
 
          log_fluff "Copying ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
          mkdir_if_missing "${dst}"
-         exekutor find -xdev "${src}" -mindepth 1 -maxdepth 1 ! -path "${src}" \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
+         exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
             exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
       else
@@ -248,7 +248,7 @@ collect_and_dispense_product()
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
 
          log_fluff "Copying everything from ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${dst}${C_FLUFF}"
-         exekutor find -xdev "${src}" -mindepth 1 -maxdepth 1 ! -path "${src}" -print0 | \
+         exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -print0 | \
                exekutor xargs -0 -I % mv -v -n % "${dst}"
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
       fi
@@ -442,8 +442,8 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
-   logfile1="`build_log_name "${name}" "cmake" "${configuration}" "${sdk}"`"
-   logfile2="`build_log_name "${name}" "make" "${configuration}" "${sdk}"`"
+   logfile1="`build_log_name "cmake" "${name}" "${configuration}" "${sdk}"`"
+   logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
 
    log_info "Build logs will be in ${C_RESET}${logfile1}${C_INFO} and ${C_RESET}${logfile2}${C_INFO}"
 
@@ -491,7 +491,7 @@ ${other_ldflags} \
 ${sdk}" \
 "${relative}/${srcdir}" >> "${logfile1}" || build_fail "${logfile1}" "cmake"
 
-      logging_exekutor make all install >> "${logfile2}" || build_fail "${logfile2}" "make"
+      logging_exekutor make VERBOSE=1 all install >> "${logfile2}" || build_fail "${logfile2}" "make"
 
       set +f
 
@@ -549,8 +549,8 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} ..."
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
-   logfile1="`build_log_name "${name}" "configure" "${configuration}" "${sdk}"`"
-   logfile2="`build_log_name "${name}" "make" "${configuration}" "${sdk}"`"
+   logfile1="`build_log_name "configure" "${name}" "${configuration}" "${sdk}"`"
+   logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
 
    log_info "Build logs will be in ${C_RESET}${logfile1}${C_INFO} and ${C_RESET}${logfile2}${C_INFO}"
 
@@ -738,33 +738,6 @@ fixup_header_path()
 }
 
 
-escaped_spaces()
-{
-   echo "$1" | sed 's/ /\\ /g'
-}
-
-
-combined_escaped_search_path()
-{
-   for i in "$@"
-   do
-      if [ ! -z "$i" ]
-      then
-         i="`escaped_spaces "$i"`"
-         if [ -z "$path" ]
-         then
-            path="$i"
-         else
-            path="$path $i"
-         fi
-      fi
-   done
-
-   echo "${path}"
-}
-
-
-
 build_xcodebuild()
 {
    local configuration
@@ -787,13 +760,13 @@ build_xcodebuild()
    schemename="$8"
    targetname="$9"
 
-   [ -z "${configuration}" ] && internal_fail "configuration is empty"
-   [ -z "${srcdir}" ]      && internal_fail "srcdir is empty"
-   [ -z "${builddir}" ]    && internal_fail "builddir is empty"
-   [ -z "${relative}" ]    && internal_fail "relative is empty"
-   [ -z "${name}" ]        && internal_fail "name is empty"
-   [ -z "${sdk}" ]         && internal_fail "sdk is empty"
-   [ -z "${project}" ]     && internal_fail "project is empty"
+   [ ! -z "${configuration}" ] || internal_fail "configuration is empty"
+   [ ! -z "${srcdir}" ]        || internal_fail "srcdir is empty"
+   [ ! -z "${builddir}" ]      || internal_fail "builddir is empty"
+   [ ! -z "${relative}" ]      || internal_fail "relative is empty"
+   [ ! -z "${name}" ]          || internal_fail "name is empty"
+   [ ! -z "${sdk}" ]           || internal_fail "sdk is empty"
+   [ ! -z "${project}" ]       || internal_fail "project is empty"
 
    enforce_build_sanity "${builddir}"
 
@@ -921,7 +894,7 @@ ${info} ..."
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
-   logfile="`build_log_name "${name}" "xcodebuild" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
+   logfile="`build_log_name "xcodebuild" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
    log_info "Build log will be in ${C_RESET}${logfile}${C_INFO}"
 
    set -f
@@ -1170,13 +1143,12 @@ build_script()
 
 build()
 {
+   local name
    local srcdir
 
-   srcdir="$1"
+   name="$1"
+   srcdir="$2"
 
-   local name
-
-   name=`basename "${srcdir}"`
    [ "${name}" != "${CLONES_SUBDIR}" ] || internal_fail "missing repo argument (${srcdir})"
 
    local preferences
@@ -1315,12 +1287,11 @@ Release"`"
 #
 build_wrapper()
 {
-   local dstdir
+   local srcdir
    local name
 
-   dstdir="$1"
-   name="$2"
-
+   name="$1"
+   srcdir="$2"
 
    REFERENCE_DEPENDENCY_SUBDIR="${DEPENDENCY_SUBDIR}"
    BUILD_DEPENDENCY_SUBDIR="${DEPENDENCY_SUBDIR}/tmp"
@@ -1342,11 +1313,11 @@ build_wrapper()
    # need that path for includes though
    #
 
-   run_repo_settings_script "${dstdir}" "${name}" "pre-build" "$@" || exit 1
+   run_repo_settings_script "${name}" "${srcdir}" "pre-build" "$@" || exit 1
 
-   build "${dstdir}" || exit 1
+   build "${name}" "${srcdir}" || exit 1
 
-   run_repo_settings_script "${dstdir}" "${name}" "post-build" "$@" || exit 1
+   run_repo_settings_script "${name}" "${srcdir}" "post-build" "$@" || exit 1
 
    log_fluff "Remove \"${BUILD_DEPENDENCY_SUBDIR}\""
 
@@ -1359,23 +1330,26 @@ build_wrapper()
 }
 
 
-build_if_readable()
+build_if_alive()
 {
-   local dstdir
    local name
+   local srcdir
 
-   dstdir="$1"
-   name="$2"
+   name="$1"
+   srcdir="$2"
 
    local xdone
-   if [ ! -r "${dstdir}" ]
+   local zombie
+
+   zombie="`dirname "${srcdir}"`/.zombies/${name}"
+   if [ -e "${zombie}" ]
    then
-      echo "Ignoring orphaned repo ${name}" >&2
+      log_warning "Ignoring zombie repo ${name} as ${C_RESET}${zombie}${C_WARNING} exists"
    else
       xdone="`/bin/echo "${BUILT}" | grep -x "${name}"`"
       if [ "$xdone" = "" ]
       then
-         build_wrapper "${dstdir}" "${name}"
+         build_wrapper "${name}" "${srcdir}" 
          BUILT="${name}
 ${BUILT}"
       else
@@ -1390,7 +1364,7 @@ build_clones()
    local clone
    local xdone
    local name
-   local dstdir
+   local srcdir
 
    for clone in ${CLONES_SUBDIR}/*.failed
    do
@@ -1416,13 +1390,13 @@ build_clones()
       for clone in `read_build_root_setting "build_order"`
       do
          name="`canonical_clone_name "${clone}"`"
-         dstdir="${CLONES_SUBDIR}/${name}"
+         srcdir="${CLONES_SUBDIR}/${name}"
 
-         if [ -d "${dstdir}" ]
+         if [ -d "${srcdir}" ]
          then
-            build_if_readable "${dstdir}" "${name}"  || exit 1
+            build_if_alive  "${name}" "${srcdir}" || exit 1
          else
-            fail "build_order contains unknown repo \"${clone}\" (\"${dstdir}\")"
+            fail "build_order contains unknown repo \"${clone}\" (\"${srcdir}\")"
          fi
       done
 
@@ -1435,24 +1409,24 @@ build_clones()
          for clone in ${clones}
          do
             name="`canonical_clone_name "${clone}"`"
-            dstdir="${CLONES_SUBDIR}/${name}"
+            srcdir="${CLONES_SUBDIR}/${name}"
 
-            if [ -d "${dstdir}" ]
+            if [ -d "${srcdir}" ]
             then
-               build_if_readable "${dstdir}" "${name}" || exit  1
+               build_if_alive "${name}" "${srcdir}" || exit  1
             else
-               fail "repo for \"${clone}\" not found (\"${dstdir}\") ($PWD)"
+               fail "repo for \"${clone}\" not found (\"${srcdir}\") ($PWD)"
             fi
          done
       fi
    else
       for name in "$@"
       do
-         dstdir="${CLONES_SUBDIR}/${name}"
+         srcdir="${CLONES_SUBDIR}/${name}"
 
-         if [ -d "${dstdir}" ]
+         if [ -d "${srcdir}" ]
          then
-            build_if_readable "${dstdir}" "${name}" || exit 1
+            build_if_alive "${name}" "${srcdir}"|| exit 1
          else
             fail "unknown repo ${name}"
          fi

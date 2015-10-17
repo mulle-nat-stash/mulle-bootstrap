@@ -428,7 +428,7 @@ bootstrap_auto_update()
       return 1
    fi
 
-   log_info "Recursively acquiring ${dstname} .bootstrap settings ..."
+   log_info "Recursively acquiring ${dstdir} .bootstrap settings ..."
 
    # prepare auto folder if it doesn't exist yet
    if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
@@ -493,7 +493,7 @@ bootstrap_auto_update()
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
       relative="`compute_relative "${BOOTSTRAP_SUBDIR}"`"
-      exekutor find "${dst}/.bootstrap/settings" -type f -mindepth 1 -maxdepth 1 -print0 | \
+      exekutor find "${dst}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
       if [ -e "${dst}/.bootstrap/settings/bin"  ]
@@ -503,7 +503,7 @@ bootstrap_auto_update()
 
       # flatten other folders into our own settings
       # don't force though, keep first
-      exekutor find "${dst}/.bootstrap/settings" -mindepth 1 -maxdepth 1 ! -name bin -type d -print0 | \
+      exekutor find "${dst}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
          exekutor xargs -0 -I % ln -s "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
 
@@ -529,20 +529,29 @@ ensure_clones_directory()
 }
 
 
+#
+# used to do this with chmod -h, alas Linux can't do that
+# So we create a special directory .zombies
+# and create files there
+#
 mark_all_zombies()
 {
    local i
+   local name
 
       # first mark all repos as stale
    if dir_has_files "${CLONES_FETCH_SUBDIR}"
    then
       log_fluff "Marking all repositories as zombies for now"
 
+      mkdir_if_missing "${CLONES_FETCH_SUBDIR}/.zombies"
+
       for i in `ls -1d "${CLONES_FETCH_SUBDIR}/"*`
       do
          if [ -d "${i}" -o -L "${i}" ]
          then
-            exekutor chmod -h 000 "${i}"
+            name="`basename "${i}"`"
+            exekutor touch "${CLONES_FETCH_SUBDIR}/.zombies/${name}"
          fi
       done
    fi
@@ -551,31 +560,41 @@ mark_all_zombies()
 
 mark_alive()
 {
-   local dstname
+   local dstdir
+   local name
 
-   dstname="$1"
+   name="$1"
+   dstdir="$2"
 
    local permission
+   local zombie
+
+   zombie="`dirname "${dstdir}"`/.zombies/${name}"
 
    # mark as alive
-   if [ -d "${dstname}" -o -L "${dstname}" ] && [ ! -r "${dstname}" ]
+   if [ -d "${dstdir}" -o -L "${dstdir}" ]
    then
-      permission="`lso "${CLONES_FETCH_SUBDIR}"`"
-      [ ! -z "$permission" ] || fail "failed to get permission of ${CLONES_FETCH_SUBDIR}"
-      exekutor chmod -h "${permission}" "${dstname}"
+      if [ -e "${zombie}" ]
+      then
+         log_fluff "Mark ${C_RESET}${dstdir}${C_FLUFF} as alive"
 
-      log_fluff "Marked \"${dstname}\" as alive"
+         exekutor rm -f "${zombie}" || fail "failed to delete zombie ${zombie}"
+      else
+         log_fluff "Marked ${C_RESET}${dstdir}${C_FLUFF} is already alive"
+      fi
+   else
+      log_fluff "${C_RESET}${dstdir}${C_FLUFF} is neither a symlink nor a directory"
    fi
 }
 
 
 log_fetch_action()
 {
-   local dstname
+   local dstdir
    local clone
 
    clone="$1"
-   dstname="$2"
+   dstdir="$2"
 
    local info
 
@@ -586,7 +605,7 @@ log_fetch_action()
       info=" "
    fi
 
-   log_fluff "Perform ${COMMAND}${info}${clone} in ${dstname} ..."
+   log_fluff "Perform ${COMMAND}${info}${clone} in ${dstdir} ..."
 }
 
 
@@ -595,16 +614,16 @@ checkout()
    local clone
    local name
    local tag
-   local dstname
+   local dstdir
 
    clone="$1"
    name="$2"
-   dstname="$3"
+   dstdir="$3"
    tag="$4"
 
-   [ ! -z "$clone" ]   || internal_fail "clone is empty"
-   [ ! -z "$name" ]    || internal_fail "name is empty"
-   [ ! -z "$dstname" ] || internal_fail "dstname is empty"
+   [ ! -z "$clone" ]  || internal_fail "clone is empty"
+   [ ! -z "$name" ]   || internal_fail "name is empty"
+   [ ! -z "$dstdir" ] || internal_fail "dstdir is empty"
 
    local srcname
    local operation
@@ -691,8 +710,8 @@ Use it ?"
          ;;
       esac
 
-      "${operation}" "${srcname}" "${dstname}" "${tag}"
-      mulle-bootstrap-warn-scripts.sh "${dstname}/.bootstrap" "${dstname}" || fail "Ok, aborted"  #sic
+      "${operation}" "${srcname}" "${dstdir}" "${tag}"
+      mulle-bootstrap-warn-scripts.sh "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
    fi
 }
 
@@ -707,25 +726,25 @@ Use it ?"
 #
 checkout_repository()
 {
-   local dstname
+   local dstdir
    local name
    local flag
 
    name="$2"
-   dstname="$3"
+   dstdir="$3"
 
-   if [ ! -e "${dstname}" ]
+   if [ ! -e "${dstdir}" ]
    then
       checkout "$@"
       flag=1
 
       if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
       then
-         bootstrap_auto_update "${dstname}"
+         bootstrap_auto_update "${dstdir}"
          flag=$?
       fi
 
-      run_build_settings_script "${dstname}" "${name}" "post-${COMMAND}" "$@"
+      run_build_settings_script "${name}" "${dstdir}" "post-${COMMAND}" "$@"
 
       # means we recursed and should start fetch from top
       if [ ${flag} -eq 0 ]
@@ -734,7 +753,7 @@ checkout_repository()
       fi
 
    else
-      log_fluff "Repository \"${dstname}\" already exists"
+      log_fluff "Repository ${C_RESET}${dstdir}${C_FLUFF} already exists"
    fi
    return 0
 }
@@ -748,15 +767,15 @@ clone_repository()
 
    local name
    local tag
-   local dstname
+   local dstdir
 
    name="`basename "${clone}" .git`"
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-   dstname="${CLONES_FETCH_SUBDIR}/${name}"
-   mark_alive "${dstname}"
-   log_fetch_action "${name}" "${dstname}"
+   dstdir="${CLONES_FETCH_SUBDIR}/${name}"
+   mark_alive "${name}" "${dstdir}"
+   log_fetch_action "${name}" "${dstdir}"
 
-   checkout_repository "${clone}" "${name}" "${dstname}" "${tag}"
+   checkout_repository "${clone}" "${name}" "${dstdir}" "${tag}"
 }
 
 
@@ -767,12 +786,12 @@ did_clone_repository()
    clone="$1"
 
    local name
-   local dstname
+   local dstdir
 
    name="`basename "${clone}" .git`"
-   dstname="${CLONES_FETCH_SUBDIR}/${name}"
+   dstdir="${CLONES_FETCH_SUBDIR}/${name}"
 
-   run_build_settings_script "${dstname}" "${name}" "did-install" "${dstname}" "${name}"
+   run_build_settings_script "${name}" "${dstdir}" "did-install" "${dstdir}" "${name}"
 }
 
 
@@ -819,33 +838,33 @@ update()
    local clone
    local name
    local tag
-   local dstname
+   local dstdir
 
    clone="$1"
    name="$2"
-   dstname="$3"
+   dstdir="$3"
    tag="$4"
 
-   [ ! -z "$clone" ] ||internal_fail "clone is empty"
-   exekutor [ -d "$dstname" ] || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
-   [ ! -z "$name" ]  || internal_fail "name is empty"
+   [ ! -z "$clone" ]         || internal_fail "clone is empty"
+   exekutor [ -d "$dstdir" ] || internal_fail "dstdir \"${dstdir}\" is wrong ($PWD)"
+   [ ! -z "$name" ]          || internal_fail "name is empty"
 
    local script
 
-   log_info "Updating \"${dstname}\""
-   if [ ! -L "${dstname}"  ]
+   log_info "Updating \"${dstdir}\""
+   if [ ! -L "${dstdir}"  ]
    then
-      run_repo_settings_script "${dstname}" "${name}" "pre-update" "%@"
+      run_repo_settings_script "${name}" "${dstdir}" "pre-update" "%@"
 
       script="`find_repo_setting_file "${name}" "bin/update.sh"`"
       if [ ! -z "${script}" ]
       then
          run_script "${script}" "$@"
       else
-         exekutor git_pull "${dstname}" "${tag}"
+         exekutor git_pull "${dstdir}" "${tag}"
       fi
 
-      run_repo_settings_script "${dstname}" "${name}" "post-update" "%@"
+      run_repo_settings_script "${name}" "${dstdir}" "post-update" "%@"
    fi
 }
 
@@ -858,18 +877,18 @@ update_repository()
 
    local name
    local tag
-   local dstname
+   local dstdir
 
    name="`basename "${clone}" .git`"
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
-   dstname="${CLONES_FETCH_SUBDIR}/${name}"
-   exekutor [ -e "${dstname}" ] || fail "You need to install first, before updating"
-   exekutor [ -x "${dstname}" ] || fail "${name} is not anymore in \"gits\""
+   dstdir="${CLONES_FETCH_SUBDIR}/${name}"
+   exekutor [ -e "${dstdir}" ] || fail "You need to install first, before updating"
+   exekutor [ -x "${dstdir}" ] || fail "${name} is not anymore in \"gits\""
 
-   log_fetch_action "${clone}" "${dstname}"
+   log_fetch_action "${clone}" "${dstdir}"
 
-   update "${clone}" "${name}" "${dstname}" "${tag}"
+   update "${clone}" "${name}" "${dstdir}" "${tag}"
 }
 
 
@@ -880,12 +899,12 @@ did_update_repository()
    clone="$1"
 
    local name
-   local dstname
+   local dstdir
 
    name="`basename "${clone}" .git`"
-   dstname="${CLONES_FETCH_SUBDIR}/${name}"
+   dstdir="${CLONES_FETCH_SUBDIR}/${name}"
 
-   run_build_settings_script "${dstname}" "${name}" "did-update" "${dstname}" "${name}"
+   run_build_settings_script "${name}" "${dstdir}" "did-update" "${dstdir}" "${name}"
 }
 
 

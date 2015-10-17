@@ -130,15 +130,15 @@ run_build_root_settings_script()
 # run in subshell
 run_fake_environment_script()
 {
-   local dstname
+   local srcdir
    local script
 
-   dstname="$1"
+   srcdir="$1"
    shift
    script="$1"
    shift
 
-   ( owd="`pwd -P`"; cd "${dstname}" ;
+   ( owd="`pwd -P`"; cd "${srcdir}" ;
    CLONES_SUBDIR="${owd}/${CLONES_SUBDIR}" \
    CLONESBUILD_SUBDIR="${owd}/${CLONESBUILD_SUBDIR}" \
    DEPENDENCY_SUBDIR="${owd}/${DEPENDENCY_SUBDIR}" \
@@ -151,45 +151,45 @@ run_repo_settings_script()
 {
    local name
    local scriptname
-   local dstname
+   local srcdir
 
-   dstname="$1"
-   shift
    name="$1"
+   shift
+   srcdir="$1"
    shift
    scriptname="$1"
    shift
 
-   exekutor [ -d "$dstname" ]      || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
-   [ ! -z "$name" ]       || internal_fail "name is empty"
-   [ ! -z "$scriptname" ] || internal_fail "scriptname is empty"
+   exekutor [ -d "$srcdir" ] || internal_fail "directory srcdir \"${srcdir}\" is wrong ($PWD)"
+   [ ! -z "$name" ]           || internal_fail "name is empty"
+   [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"
 
    local script
 
    script="`find_repo_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      run_fake_environment_script "${dstname}" "${script}" "$@" || exit 1
+      run_fake_environment_script "${srcdir}" "${script}" "$@" || exit 1
    fi
 }
 
 
 run_build_settings_script()
 {
-   local dstname
+   local srcdir
    local name
    local scriptname
 
-   dstname="$1"
-   shift
    name="$1"
+   shift
+   srcdir="$1"
    shift
    scriptname="$1"
    shift
 
-   exekutor [ -d "$dstname" ]      || internal_fail "dstname \"${dstname}\" is wrong ($PWD)"
-   [ ! -z "$name" ]       || internal_fail "name is empty"
-   [ ! -z "$scriptname" ] || internal_fail "scriptname is empty"
+   exekutor [ -d "$srcdir" ]  || internal_fail "srcdir \"${srcdir}\" is wrong ($PWD)"
+   [ ! -z "$name" ]           || internal_fail "name is empty"
+   [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"
 
    local script
 

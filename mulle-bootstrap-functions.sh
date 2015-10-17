@@ -329,6 +329,32 @@ remove_absolute_path_prefix_up_to()
 }
 
 
+escaped_spaces()
+{
+   echo "$1" | sed 's/ /\\ /g'
+}
+
+
+combined_escaped_search_path()
+{
+   for i in "$@"
+   do
+      if [ ! -z "$i" ]
+      then
+         i="`escaped_spaces "$i"`"
+         if [ -z "$path" ]
+         then
+            path="$i"
+         else
+            path="$path $i"
+         fi
+      fi
+   done
+
+   echo "${path}"
+}
+
+
 mkdir_if_missing()
 {
    if [ ! -d "${1}" ]
