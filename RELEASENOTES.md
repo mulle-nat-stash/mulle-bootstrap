@@ -1,8 +1,13 @@
-0.9.9
+0.10
 ===
    Fetch settings can be platform specific by using the `uname` as a file
    extension. e.g. gits.Darwin. Other settings may follow, if the need arises.
    So far it hasn't.
+
+   Added "subgits" for those special moments, where you don't want to link
+   another project, but just steal a few files. These gits are installed in
+   your projects root and they are not built. You can not symlink them into
+   your project, just clone them.
 
 0.9.8
 ===

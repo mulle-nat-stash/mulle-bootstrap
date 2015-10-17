@@ -160,9 +160,9 @@ run_repo_settings_script()
    scriptname="$1"
    shift
 
-   exekutor [ -d "$srcdir" ] || internal_fail "directory srcdir \"${srcdir}\" is wrong ($PWD)"
-   [ ! -z "$name" ]           || internal_fail "name is empty"
-   [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"
+   exekutor [ -e "$srcdir" ] || internal_fail "directory srcdir \"${srcdir}\" is wrong ($PWD)"
+   [ ! -z "$name" ]          || internal_fail "name is empty"
+   [ ! -z "$scriptname" ]    || internal_fail "scriptname is empty"
 
    local script
 
@@ -187,7 +187,7 @@ run_build_settings_script()
    scriptname="$1"
    shift
 
-   exekutor [ -d "$srcdir" ]  || internal_fail "srcdir \"${srcdir}\" is wrong ($PWD)"
+   exekutor [ -e "$srcdir" ]  || internal_fail "srcdir \"${srcdir}\" is wrong ($PWD)"
    [ ! -z "$name" ]           || internal_fail "name is empty"
    [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"
 

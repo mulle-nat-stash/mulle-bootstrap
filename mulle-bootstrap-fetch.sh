@@ -163,6 +163,7 @@ install_brews()
 #
 # future, download tarballs...
 # we check for existance during fetch, but install during build
+#
 check_tars()
 {
    local tarballs
@@ -264,27 +265,44 @@ link_command()
    local src
    local dst
    local tag
-   local name
 
    src="$1"
    dst="$2"
    tag="$3"
 
-   if [ -e "${src}" ]
+   local dstdir
+   dstdir="`dirname "${dst}"`"
+
+   if [ ! -e "${dstdir}/${src}" ]
    then
-      echo "${src} does not exist ($PWD)" >&2
-      exit 1
+      fail "${C_RESET}${dstdir}/${src}${C_ERROR} does not exist ($PWD)"
    fi
 
    if [ "${COMMAND}" = "install" ]
    then
+      #
+      # relative paths look nicer, but could fail in more complicated
+      # settings, when you symlink something, and that repo has symlinks
+      # itself
+      #
+      if read_yes_no_config_setting "absolute_symlinks" "NO"
+      then
+         local real
+
+         real="`( cd "${dstdir}" ; realpath "${src}")`"
+         log_fluff "Converted symlink ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${real}${C_FLUFF}"
+         src="${real}"
+      fi
+
       exekutor ln -s -f "$src" "$dst" || fail "failed to setup symlink \"$dst\" (to \"$src\")"
       if [ "$tag" != "" ]
       then
+         local name
+
          name="`basename "${dst}"`"
-         echo "tag ${tag} will be ignored, due to symlink" >&2
-         echo "if you want to checkout this tag do:" >&2
-         echo "(cd .repos/${name}; git ${GITFLAGS} checkout \"${tag}\" )" >&2
+         log_warning "tag ${tag} will be ignored, due to symlink" >&2
+         log_warning "if you want to checkout this tag do:" >&2
+         log_warning "${C_RESET}(cd .repos/${name}; git ${GITFLAGS} checkout \"${tag}\" )${C_WARNING}" >&2
       fi
    fi
 
@@ -299,10 +317,8 @@ ask_symlink_it()
    clone="$1"
    if [ ! -d "${clone}" ]
    then
-      echo "You need to check out ${clone} yourself, as it's not there." >&2 || exit 1
+      fail "You need to check out ${clone} yourself, as it's not there."
    fi
-
-   SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
 
    # check if checked out
    if [ -d "${clone}"/.git ]
@@ -321,21 +337,20 @@ ask_symlink_it()
     # if bare repo, we can only clone anyway
    if [ -f "${clone}"/HEAD -a -d "${clone}/refs" ]
    then
-      echo "${clone} looks like a bare git repository. So cloning" >&2
-      echo "is the only way to go." >&2
+      log_info "${clone} looks like a bare git repository. So cloning"
+      log_info "is the only way to go."
       return 1
    fi
 
    # can only symlink because not a .git repo yet
    if [ "${SYMLINK_FORBIDDEN}" != "YES" ]
    then
-      echo "${clone} is not a git repository (yet ?)" >&2
-      echo "So symlinking is the only way to go." >&2
+      log_info "${clone} is not a git repository (yet ?)"
+      log_info "So symlinking is the only way to go."
       return 0
    fi
 
-   echo "SYMLINK_FORBIDDEN=YES, can't symlink" >&2
-   exit 1
+   fail "Can't symlink"
 }
 
 
@@ -373,8 +388,8 @@ git_clone()
    dst="$2"
    tag="$3"
 
-   [ -z "$src" ] && internal_fail "src is empty"
-   [ -z "$dst" ] && internal_fail "dst is empty"
+   [ ! -z "$src" ] || internal_fail "src is empty"
+   [ ! -z "$dst" ] || internal_fail "dst is empty"
 
    log_info "Cloning ${C_MAGENTA}${src}${C_INFO} ..."
    exekutor git clone ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
@@ -394,7 +409,7 @@ git_pull()
    dst="$1"
    tag="$2"
 
-   [ -z "$dst" ] && internal_fail "dst is empty"
+   [ ! -z "$dst" ] || internal_fail "dst is empty"
 
    log_info "Updating ${C_RESET}${dst}${C_INFO} ..."
    ( exekutor cd "${dst}" ; exekutor git pull ${GITFLAGS} ) || fail "git pull of \"${dst}\" failed"
@@ -412,12 +427,13 @@ INHERIT_SETTINGS="taps brews gits pips gems settings/build_order settings/build_
 bootstrap_auto_update()
 {
    local dst
-   local name
 
    dst="$1"
 
    [ ! -z "${dst}" ] || internal_fail "dst was empty"
    [ "${PWD}" != "${dst}" ] || internal_fail "configuration error"
+
+   local name
 
    name="`basename "${dst}"`"
 
@@ -630,7 +646,14 @@ checkout()
    local flag
    local found
    local name2
+   local relative
 
+   relative="`dirname "${dstdir}"`"
+   relative="`compute_relative "${relative}"`"
+   if [ ! -z "${relative}" ]
+   then
+      relative="${relative}/"
+   fi
    name2="`basename "${clone}"`"
 
    #
@@ -640,9 +663,9 @@ checkout()
 
    if [ -e "${DEPENDENCY_SUBDIR}" -o -e "${CLONESBUILD_SUBDIR}" ]
    then
-      log_error "Stale folders ${DEPENDENCY_SUBDIR} and/or ${CLONESBUILD_SUBDIR} found."
+      log_error "Stale folders ${C_RESET}${DEPENDENCY_SUBDIR}${C_ERROR} and/or ${C_RESET}${CLONESBUILD_SUBDIR}${C_ERROR} found."
       log_error "Please remove them before continuing."
-      log_info  "Suggested command: ${C_RESET}mulle-bootstrap clean output"
+      log_info  "Suggested command: ${C_RESET}mulle-bootstrap clean output${C_INFO}"
       exit 1
    fi
 
@@ -668,7 +691,7 @@ checkout()
             if [ $? -eq 0 ]
             then
                operation=link_command
-               srcname="${CLONES_RELATIVE}/${clone}"
+               srcname="${relative}${clone}"
             fi
          ;;
 
@@ -703,7 +726,7 @@ Use it ?"
                   if [ $? -eq 0 ]
                   then
                      operation=link_command
-                     srcname="${CLONES_RELATIVE}/${found}"
+                     srcname="${relative}${found}"
                   fi
                fi
             fi
@@ -833,6 +856,44 @@ clone_repositories()
 }
 
 
+install_subgits()
+{
+   local clones
+   local clone
+
+   clones="`read_fetch_setting "subgits"`"
+   if [ "${clones}" != "" ]
+   then
+      for clone in ${clones}
+      do
+         name="`basename "${clone}" .git`"
+         tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
+         dstdir="${name}"
+         log_fetch_action "${name}" "${dstdir}"
+
+         #
+         # subgits are just cloned, no symlinks,
+         #
+         local old
+
+         old="${SYMLINK_FORBIDDEN}"
+
+         SYMLINK_FORBIDDEN="YES"
+         checkout "${clone}" "${name}" "${dstdir}" "${tag}"
+         SYMLINK_FORBIDDEN="$old"
+
+         if read_yes_no_config_setting "update_gitignore" "YES"
+         then
+            if [ -d .git ]
+            then
+               append_dir_to_gitignore_if_needed "${dstdir}"
+            fi
+         fi
+      done
+   fi
+}
+
+
 update()
 {
    local clone
@@ -954,6 +1015,27 @@ update_repositories()
 }
 
 
+update_subgits()
+{
+   local clones
+   local clone
+
+   clones="`read_fetch_setting "subgits"`"
+   if [ "${clones}" != "" ]
+   then
+      for clone in ${clones}
+      do
+         name="`basename "${clone}" .git`"
+         tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
+         dstdir="${name}"
+         log_fetch_action "${name}" "${dstdir}"
+
+         # again, just refresh no specialties
+         exekutor git_pull "${dstdir}" "${tag}"
+      done
+   fi
+}
+
 
 append_dir_to_gitignore_if_needed()
 {
@@ -970,6 +1052,9 @@ main()
 {
    log_fluff "::: fetch :::"
 
+   SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
+   export SYMLINK_FORBIDDEN
+
    #
    # Run prepare scripts if present
    #
@@ -984,12 +1069,15 @@ main()
 
       clone_repositories
 
+      install_subgits
       install_brews
       install_gems
       install_pips
       check_tars
    else
       update_repositories "$@"
+
+      update_subgits
    fi
 
    #

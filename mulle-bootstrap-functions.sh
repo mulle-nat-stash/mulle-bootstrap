@@ -308,6 +308,12 @@ compute_relative()
          depth=`expr $depth - 1`
       done
    fi
+
+#   if [ -z "$relative" ]
+#   then
+#      relative="."
+#   fi
+
    echo "${relative}"
 }
 
