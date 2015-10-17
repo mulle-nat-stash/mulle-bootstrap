@@ -1,3 +1,13 @@
+0.9.9
+===
+   Fetch settings can be platform specific by using the `uname` as a file
+   extension. e.g. gits.Darwin. Other settings may follow, if the need arises.
+   So far it hasn't.
+
+0.9.8
+===
+   Brings more Linux fixes
+
 0.9.7
 ===
    Allow mulle-bootstrap version to work everywhere.

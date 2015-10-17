@@ -1164,8 +1164,6 @@ build_script()
 
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    collect_and_dispense_product "${name}" "${suffix}" || internal_fail "collect failed silently"
-
-   return $rval
 }
 
 

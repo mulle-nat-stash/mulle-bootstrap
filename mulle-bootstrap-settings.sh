@@ -109,13 +109,17 @@ _read_setting()
       value="${file}"
       if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
       then
-         log_fluff "${C_MAGENTA}`basename "${file}"`${C_FLUFF} found as ${C_RESET}${file}${C_FLUFF}${C_FLUFF}"
+         local os
+         os="`uname`"
+         log_fluff "${C_MAGENTA}`basename "${file}" ".${os}"`${C_FLUFF} found as ${C_RESET}${file}${C_FLUFF}${C_FLUFF}"
       fi
    else
       value=`egrep -v '^#|^[ ]*$' "${file}"`
       if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
       then
-         log_fluff "Setting ${C_MAGENTA}`basename "${file}"`${C_FLUFF} found in ${C_RESET}${file}${C_FLUFF} as ${C_MAGENTA}\"${value}\"${C_FLUFF}"
+         local os
+         os="`uname`"
+         log_fluff "Setting ${C_MAGENTA}`basename "${file}" ".${os}"`${C_FLUFF} found in ${C_RESET}${file}${C_FLUFF} as ${C_MAGENTA}${value}${C_FLUFF}"
       fi
    fi
 
@@ -160,7 +164,7 @@ _read_environment_setting()
 
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES" ]
    then
-      log_trace "setting ${name} found in environment variable ${envname} as \"${value}\""
+      log_trace "Setting ${C_MAGENTA}${name}${C_TRACE} found in environment variable ${C_RESET}${envname}${C_TRACE} as ${C_MAGENTA}${value}${C_TRACE}"
    fi
 
    warn_environment_setting "${envname}"
@@ -195,7 +199,7 @@ _read_local_setting()
 
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES" ]
    then
-      log_trace "setting ${name} found in ~/.mulle-bootstrap as \"${value}\""
+      log_trace "Setting ${C_MAGENTA}${name}${C_TRACE} found in ${C_RESET}~/.mulle-bootstrap${C_TRACE} as ${C_MAGENTA}${value}${C_TRACE}"
    fi
    warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
 
@@ -210,33 +214,28 @@ _read_bootstrap_setting()
 {
    local name
    local value
-   local suffix1
-   local suffix2
-   local suffix3
+   local suffix
 
    name="$1"
-   suffix1="$2"
-   suffix2="$3"
-   suffix3="$4"
+   shift
 
-   [ $# -ne 4 ] && internal_fail "parameterization error"
-   [ "$name" = "" ] && internal_fail "missing parameters in _read_bootstrap_setting"
+   [ $# -gt 0 ]      || internal_fail "parameterization error"
+   [ ! -z "${name}" ] || internal_fail "missing parameters in _read_bootstrap_setting"
 
-   value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix1}/${name}"`"
-   if [ $? -ne 0 ]
-   then
-      value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix2}/${name}"`"
-      if [ $? -ne 0 ]
+   while [ $# -gt 0 ]
+   do
+      suffix="${1}"
+      shift
+
+      value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix}/${name}"`"
+      if [ $? -eq 0 ]
       then
-         value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix3}/${name}"`"
-         if [ $? -ne 0 ]
-         then
-            return 2
-         fi
+         echo "${value}"
+         return 0
       fi
-   fi
+   done
 
-   echo "$value"
+   return 2
 }
 
 
@@ -434,10 +433,21 @@ read_fetch_setting()
    name="$1"
    default="$2"
 
-   value="`_read_bootstrap_setting "${name}" ".auto" ".local" ""`"
+   local os
+
+   value="`_read_bootstrap_setting "${name}" ".auto" ".local"`"
    if [ $? -ne 0 ]
    then
-      value="${default}"
+      os="`uname`"
+      value="`_read_bootstrap_setting "${name}.${os}" ""`"
+      if [ $? -ne 0 ]
+      then
+         value="`_read_bootstrap_setting "${name}" ""`"
+         if [ $? -ne 0 ]
+         then
+           value="${default}"
+         fi
+      fi
    fi
 
    echo "$value"

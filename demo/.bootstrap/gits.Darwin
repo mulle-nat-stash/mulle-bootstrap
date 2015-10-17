@@ -2,3 +2,7 @@
 git://git.savannah.gnu.org/readline.git
 # A cmake project
 https://github.com/madler/zlib
+# An Xcode project
+https://github.com/mulle-nat/Finch.git
+# git@github.com:mulle-nat/Finch.git
+
