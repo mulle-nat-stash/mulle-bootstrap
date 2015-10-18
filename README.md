@@ -18,10 +18,10 @@ installs to `./dependencies`
 
 So you need a bunch of first and third party repositories to build your own
 project ? **mulle-bootstrap init** does the initial setup of the `.bootstrap`
-folder. Lets put the git repository URLs in a file called `.bootstrap/gits`.
+folder. Lets put the git repository URLs in a file called `.bootstrap/repositories`.
 
 ```console
-cat > .bootstrap/gits
+cat > .bootstrap/repositories
 git@github.com:mulle-nat/MulleScion.git
 git@github.com:mulle-nat/UISS.git
 git@github.com:mulle-nat/Finch.git
@@ -87,7 +87,7 @@ Compiles the required libraries contained in the `.repos` folder into
 
 This is the first action. It sets up a `.bootstrap` folder in your project
 directory root (e.g. alongside .git). At this point you should edit
-`.bootstrap/gits` to add git projects dependencies.
+`.bootstrap/repositories` to add git projects dependencies.
 
 For each repository add a line like
 

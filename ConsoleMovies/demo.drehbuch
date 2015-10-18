@@ -40,7 +40,7 @@ ls -FARG .bootstrap
 sleep 1
 cat .bootstrap/settings/zlib/dispense_headers_path
 cat .bootstrap/settings/Finch/xcode_public_headers
-cat .bootstrap/gits
+cat .bootstrap/repositories
 sleep 2
 
 echo "#" > /dev/null

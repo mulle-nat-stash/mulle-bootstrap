@@ -179,8 +179,11 @@ run_build_settings_script()
    local srcdir
    local name
    local scriptname
+   local url
 
    name="$1"
+   shift
+   url="$1"
    shift
    srcdir="$1"
    shift
@@ -189,6 +192,7 @@ run_build_settings_script()
 
    exekutor [ -e "$srcdir" ]  || internal_fail "srcdir \"${srcdir}\" is wrong ($PWD)"
    [ ! -z "$name" ]           || internal_fail "name is empty"
+   [ ! -z "$url" ]            || internal_fail "url is empty"
    [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"
 
    local script

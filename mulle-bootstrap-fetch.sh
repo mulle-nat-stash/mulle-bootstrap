@@ -37,6 +37,7 @@
 #
 . mulle-bootstrap-local-environment.sh
 . mulle-bootstrap-brew.sh
+. mulle-bootstrap-scm.sh
 . mulle-bootstrap-scripts.sh
 
 
@@ -275,7 +276,7 @@ link_command()
 
    if [ ! -e "${dstdir}/${src}" ]
    then
-      fail "${C_RESET}${dstdir}/${src}${C_ERROR} does not exist ($PWD)"
+      fail "\"${dstdir}/${src}${C_ERROR} does not exist ($PWD)"
    fi
 
    if [ "${COMMAND}" = "install" ]
@@ -290,7 +291,7 @@ link_command()
          local real
 
          real="`( cd "${dstdir}" ; realpath "${src}")`"
-         log_fluff "Converted symlink ${C_RESET}${src}${C_FLUFF} to ${C_RESET}${real}${C_FLUFF}"
+         log_fluff "Converted symlink \"${src}\" to \"${real}\""
          src="${real}"
       fi
 
@@ -354,109 +355,45 @@ ask_symlink_it()
 }
 
 
-git_checkout_tag()
-{
-   local dst
-   local tag
-
-   dst="$1"
-   tag="$2"
-
-   log_info "Checking out ${C_MAGENTA}${tag}${C_INFO} ..."
-   ( exekutor cd "${dst}" ; exekutor git checkout ${GITFLAGS} "${tag}" )
-
-   if [ $? -ne 0 ]
-   then
-      log_error "Checkout failed, moving ${C_CYAN}${dst}${C_ERROR} to {C_CYAN}${dst}.failed${C_ERROR}"
-      log_error "You need to fix this manually and then move it back."
-      log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename "${dst}"`/TAG" >&2
-
-      rmdir_safer "${dst}.failed"
-      exekutor mv "${dst}" "${dst}.failed"
-      exit 1
-   fi
-}
-
-
-git_clone()
-{
-   local src
-   local dst
-   local tag
-
-   src="$1"
-   dst="$2"
-   tag="$3"
-
-   [ ! -z "$src" ] || internal_fail "src is empty"
-   [ ! -z "$dst" ] || internal_fail "dst is empty"
-
-   log_info "Cloning ${C_MAGENTA}${src}${C_INFO} ..."
-   exekutor git clone ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
-
-   if [ "${tag}" != "" ]
-   then
-      git_checkout_tag "${dst}" "${tag}"
-   fi
-}
-
-
-git_pull()
-{
-   local dst
-   local tag
-
-   dst="$1"
-   tag="$2"
-
-   [ ! -z "$dst" ] || internal_fail "dst is empty"
-
-   log_info "Updating ${C_RESET}${dst}${C_INFO} ..."
-   ( exekutor cd "${dst}" ; exekutor git pull ${GITFLAGS} ) || fail "git pull of \"${dst}\" failed"
-
-   if [ "${tag}" != "" ]
-   then
-      git_checkout_tag "${dst}" "${tag}"
-   fi
-}
-
-
-INHERIT_SETTINGS="taps brews gits pips gems settings/build_order settings/build_ignore"
-
+INHERIT_SETTINGS='taps brews repositories pips gems settings/build_order settings/build_ignore'
 
 bootstrap_auto_update()
 {
-   local dst
-
-   dst="$1"
-
-   [ ! -z "${dst}" ] || internal_fail "dst was empty"
-   [ "${PWD}" != "${dst}" ] || internal_fail "configuration error"
-
    local name
+   local url
+   local dir
 
-   name="`basename "${dst}"`"
+   name="$1"
+   url="$2"
+   dir="$3"
+
+   [ ! -z "${dir}" ]        || internal_fail "src was empty"
+   [ "${PWD}" != "${dir}" ] || internal_fail "configuration error"
+
 
    # contains own bootstrap ? and not a symlink
-   if [ ! -d "${dst}/.bootstrap" ] # -a ! -L "${dst}" ]
+   if [ ! -d "${dir}/.bootstrap" ] # -a ! -L "${dst}" ]
    then
-      log_fluff "no .bootstrap folder in \"${dst}\" found"
+      log_fluff "no .bootstrap folder in \"${dir}\" found"
       return 1
    fi
 
-   log_info "Recursively acquiring ${dstdir} .bootstrap settings ..."
+   log_info "Recursively acquiring ${dir} .bootstrap settings ..."
 
+   #
    # prepare auto folder if it doesn't exist yet
+   # means copy our own files to .auto first
+   #
    if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
-      log_info "Found a .bootstrap folder for `basename "${dst}"` will set up ${BOOTSTRAP_SUBDIR}.auto"
+      log_info "Found a .bootstrap folder for \"${name}\" will set up ${BOOTSTRAP_SUBDIR}.auto"
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
       for i in $INHERIT_SETTINGS
       do
          if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
          then
-            exekutor cp "${BOOTSTRAP_SUBDIR}}.local/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+            exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
          else
             if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
             then
@@ -464,6 +401,8 @@ bootstrap_auto_update()
             fi
          fi
       done
+
+      # leave .scm files behind
    fi
 
    #
@@ -476,7 +415,7 @@ bootstrap_auto_update()
 
    for i in $INHERIT_SETTINGS
    do
-      srcfile="${dst}/.bootstrap/${i}"
+      srcfile="${dir}/.bootstrap/${i}"
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
       if [ -f "${srcfile}" ]
       then
@@ -498,28 +437,34 @@ bootstrap_auto_update()
       fi
    done
 
+   # link scm files over, that we find
+   local relative
+
+   relative="`compute_relative "${BOOTSTRAP_SUBDIR}"`"
+   exekutor find "${dir}/.bootstrap" -xdev -mindepth 1 -maxdepth 1 -name "*.scm" -type f -print0 | \
+         exekutor xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/${name}"
+
    #
    # link up other non-inheriting settings
    #
-   if dir_has_files "${dst}/.bootstrap/settings"
+   if dir_has_files "${dir}/.bootstrap/settings"
    then
       local relative
 
       log_fluff "Link up build settings of \"${name}\" to \"${BOOTSTRAP_SUBDIR}.auto/settings/${name}\""
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
-      relative="`compute_relative "${BOOTSTRAP_SUBDIR}"`"
-      exekutor find "${dst}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \
+      exekutor find "${dir}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
-      if [ -e "${dst}/.bootstrap/settings/bin"  ]
+      if [ -e "${dir}/.bootstrap/settings/bin"  ]
       then
-         exekutor ln -s -f "${relative}/../../${dst}/.bootstrap/settings/bin" "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
+         exekutor ln -s -f "${relative}/../../${dir}/.bootstrap/settings/bin" "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
       fi
 
       # flatten other folders into our own settings
       # don't force though, keep first
-      exekutor find "${dst}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
+      exekutor find "${dir}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
          exekutor xargs -0 -I % ln -s "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
 
@@ -536,11 +481,6 @@ ensure_clones_directory()
          fail "install first before upgrading"
       fi
       mkdir_if_missing "${CLONES_FETCH_SUBDIR}"
-   fi
-
-   if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
-   then
-      log_warning "Folder ${C_RESET}${BOOTSTRAP_SUBDIR}.auto${C_WARNING} already exists!"
    fi
 }
 
@@ -582,7 +522,6 @@ mark_alive()
    name="$1"
    dstdir="$2"
 
-   local permission
    local zombie
 
    zombie="`dirname "${dstdir}"`/.zombies/${name}"
@@ -592,14 +531,14 @@ mark_alive()
    then
       if [ -e "${zombie}" ]
       then
-         log_fluff "Mark ${C_RESET}${dstdir}${C_FLUFF} as alive"
+         log_fluff "Mark \"${dstdir}\" as alive"
 
          exekutor rm -f "${zombie}" || fail "failed to delete zombie ${zombie}"
       else
-         log_fluff "Marked ${C_RESET}${dstdir}${C_FLUFF} is already alive"
+         log_fluff "Marked \"${dstdir}\" is already alive"
       fi
    else
-      log_fluff "${C_RESET}${dstdir}${C_FLUFF} is neither a symlink nor a directory"
+      log_fluff "\"${dstdir}\" is neither a symlink nor a directory"
    fi
 }
 
@@ -607,46 +546,42 @@ mark_alive()
 log_fetch_action()
 {
    local dstdir
-   local clone
+   local url
 
-   clone="$1"
+   url="$1"
    dstdir="$2"
 
    local info
 
-   if [ -L "${clone}" ]
+   if [ -L "${url}" ]
    then
       info=" symlinked "
    else
       info=" "
    fi
 
-   log_fluff "Perform ${COMMAND}${info}${clone} in ${dstdir} ..."
+   log_fluff "Perform ${COMMAND}${info}${url} in ${dstdir} ..."
 }
 
 
 checkout()
 {
-   local clone
+   local url
    local name
-   local tag
    local dstdir
+   local tag
 
-   clone="$1"
-   name="$2"
+   name="$1"
+   url="$2"
    dstdir="$3"
    tag="$4"
 
-   [ ! -z "$clone" ]  || internal_fail "clone is empty"
    [ ! -z "$name" ]   || internal_fail "name is empty"
+   [ ! -z "$url" ]    || internal_fail "url is empty"
    [ ! -z "$dstdir" ] || internal_fail "dstdir is empty"
 
-   local srcname
-   local operation
-   local flag
-   local found
-   local name2
    local relative
+   local name2
 
    relative="`dirname "${dstdir}"`"
    relative="`compute_relative "${relative}"`"
@@ -654,7 +589,7 @@ checkout()
    then
       relative="${relative}/"
    fi
-   name2="`basename "${clone}"`"
+   name2="`basename "${url}"`"  # only works for git really
 
    #
    # this implicitly ensures, that these folders are
@@ -663,23 +598,43 @@ checkout()
 
    if [ -e "${DEPENDENCY_SUBDIR}" -o -e "${CLONESBUILD_SUBDIR}" ]
    then
-      log_error "Stale folders ${C_RESET}${DEPENDENCY_SUBDIR}${C_ERROR} and/or ${C_RESET}${CLONESBUILD_SUBDIR}${C_ERROR} found."
+      log_error "Stale folders \"${DEPENDENCY_SUBDIR}\" and/or \"${CLONESBUILD_SUBDIR}\" found."
       log_error "Please remove them before continuing."
       log_info  "Suggested command: ${C_RESET}mulle-bootstrap clean output${C_INFO}"
       exit 1
    fi
 
-   srcname="${clone}"
+   local operation
+   local map
+
+   map="`read_fetch_setting "${name}.scm"`"
+   case "${map}" in
+      git|"" )
+         operation="git_clone"
+         ;;
+      svn)
+         operation="svn_checkout"
+         ;;
+
+      *)
+         fail "unknown scm system ${map}"
+         ;;
+   esac
+
+   local found
+   local src
+   local script
+
+   src="${url}"
    script="`find_repo_setting_file "${name}" "bin/${COMMAND}.sh"`"
-   operation="git_clone"
 
    if [ ! -z "${script}" ]
    then
       run_script "${script}" "$@"
    else
-      case "${clone}" in
+      case "${url}" in
          /*)
-            ask_symlink_it "${clone}"
+            ask_symlink_it "${src}"
             if [ $? -eq 0 ]
             then
                operation=link_command
@@ -687,11 +642,12 @@ checkout()
          ;;
 
          ../*|./*)
-            ask_symlink_it "${clone}"
+            src="${url}"
+            ask_symlink_it "${src}"
             if [ $? -eq 0 ]
             then
                operation=link_command
-               srcname="${relative}${clone}"
+               src="${relative}${url}"
             fi
          ;;
 
@@ -721,19 +677,19 @@ directory of this project.
 Use it ?"
                if [ $? -eq 0 ]
                then
-                  srcname="${found}"
-                  ask_symlink_it "${srcname}"
+                  src="${found}"
+                  ask_symlink_it "${src}"
                   if [ $? -eq 0 ]
                   then
                      operation=link_command
-                     srcname="${relative}${found}"
+                     src="${relative}${found}"
                   fi
                fi
             fi
          ;;
       esac
 
-      "${operation}" "${srcname}" "${dstdir}" "${tag}"
+      "${operation}" "${src}" "${dstdir}" "${tag}"
       mulle-bootstrap-warn-scripts.sh "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
    fi
 }
@@ -752,8 +708,10 @@ checkout_repository()
    local dstdir
    local name
    local flag
+   local url
 
-   name="$2"
+   name="$1"
+   url="$2"
    dstdir="$3"
 
    if [ ! -e "${dstdir}" ]
@@ -763,11 +721,11 @@ checkout_repository()
 
       if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
       then
-         bootstrap_auto_update "${dstdir}"
+         bootstrap_auto_update "${name}" "${url}" "${dstdir}"
          flag=$?
       fi
 
-      run_build_settings_script "${name}" "${dstdir}" "post-${COMMAND}" "$@"
+      run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
 
       # means we recursed and should start fetch from top
       if [ ${flag} -eq 0 ]
@@ -776,7 +734,7 @@ checkout_repository()
       fi
 
    else
-      log_fluff "Repository ${C_RESET}${dstdir}${C_FLUFF} already exists"
+      log_fluff "Repository \"${dstdir}\" already exists"
    fi
    return 0
 }
@@ -784,37 +742,41 @@ checkout_repository()
 
 clone_repository()
 {
-   local clone
-
-   clone="$1"
-
    local name
+   local url
+
+   name="$1"
+   url="$2"
+
    local tag
    local dstdir
+   local flag
 
-   name="`basename "${clone}" .git`"
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
    dstdir="${CLONES_FETCH_SUBDIR}/${name}"
-   mark_alive "${name}" "${dstdir}"
    log_fetch_action "${name}" "${dstdir}"
 
-   checkout_repository "${clone}" "${name}" "${dstdir}" "${tag}"
+   checkout_repository "${name}" "${url}" "${dstdir}" "${tag}"
+   flag=$?
+
+   mark_alive "${name}" "${dstdir}"
+
+   return $flag
 }
 
 
 did_clone_repository()
 {
-   local clone
-
-   clone="$1"
-
    local name
+   local url
+
+   name="$1"
+   url="$2"
+
    local dstdir
 
-   name="`basename "${clone}" .git`"
    dstdir="${CLONES_FETCH_SUBDIR}/${name}"
-
-   run_build_settings_script "${name}" "${dstdir}" "did-install" "${dstdir}" "${name}"
+   run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
 }
 
 
@@ -823,6 +785,11 @@ clone_repositories()
    local stop
    local clones
    local clone
+   local old
+   local name
+   local url
+
+   old="${IFS:-" "}"
 
    mark_all_zombies
 
@@ -831,14 +798,19 @@ clone_repositories()
    do
       stop=1
 
-      clones="`read_fetch_setting "gits"`"
+      clones="`read_fetch_setting "repositories"`"
       if [ "${clones}" != "" ]
       then
          ensure_clones_directory
 
+         IFS="
+"
          for clone in ${clones}
          do
-            clone_repository "${clone}"
+            IFS="${old}"
+            name="`canonical_name_from_clone "${clone}"`"
+            url="`url_from_clone "${clone}"`"
+            clone_repository "${name}" "${url}"
             if [ $? -eq 1 ]
             then
                stop=0
@@ -848,67 +820,108 @@ clone_repositories()
       fi
    done
 
-   clones="`read_fetch_setting "gits"`"
+   clones="`read_fetch_setting "repositories"`"
+   IFS="
+"
    for clone in ${clones}
    do
-      did_clone_repository "${clone}"
+      IFS="${old}"
+      name="`canonical_name_from_clone "${clone}"`"
+      url="`url_from_clone "${clone}"`"
+      did_clone_repository "${name}" "${url}"
    done
+
+   IFS="${old}"
 }
 
 
-install_subgits()
+install_embedded_repositories()
 {
    local clones
    local clone
+   local old
+   local name
+   local url
 
-   clones="`read_fetch_setting "subgits"`"
+   old="${IFS:-" "}"
+
+   clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
    then
+      IFS="
+"
       for clone in ${clones}
       do
-         name="`basename "${clone}" .git`"
+         IFS="${old}"
+         name="`canonical_name_from_clone "${clone}"`"
+         url="`url_from_clone "${clone}"`"
+
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
          dstdir="${name}"
          log_fetch_action "${name}" "${dstdir}"
 
-         #
-         # subgits are just cloned, no symlinks,
-         #
-         local old
-
-         old="${SYMLINK_FORBIDDEN}"
-
-         SYMLINK_FORBIDDEN="YES"
-         checkout "${clone}" "${name}" "${dstdir}" "${tag}"
-         SYMLINK_FORBIDDEN="$old"
-
-         if read_yes_no_config_setting "update_gitignore" "YES"
+         if [ ! -d "${dstdir}" ]
          then
-            if [ -d .git ]
+            #
+            # embedded_repositories are just cloned, no symlinks,
+            #
+            local old
+
+            old="${SYMLINK_FORBIDDEN}"
+
+            SYMLINK_FORBIDDEN="YES"
+            checkout "${name}" "${url}" "${dstdir}" "${tag}"
+            SYMLINK_FORBIDDEN="$old"
+
+            if read_yes_no_config_setting "update_gitignore" "YES"
             then
-               append_dir_to_gitignore_if_needed "${dstdir}"
+               if [ -d .git ]
+               then
+                  append_dir_to_gitignore_if_needed "${dstdir}"
+               fi
             fi
+         else
+            log_fluff "\"${dstdir}\" already exists"
          fi
       done
    fi
+
+   IFS="${old}"
 }
 
 
 update()
 {
-   local clone
    local name
+   local url
    local tag
    local dstdir
 
-   clone="$1"
-   name="$2"
+   name="$1"
+   url="$2"
    dstdir="$3"
    tag="$4"
 
-   [ ! -z "$clone" ]         || internal_fail "clone is empty"
+   [ ! -z "$url" ]           || internal_fail "url is empty"
    exekutor [ -d "$dstdir" ] || internal_fail "dstdir \"${dstdir}\" is wrong ($PWD)"
    [ ! -z "$name" ]          || internal_fail "name is empty"
+
+   local map
+   local operation
+
+   map="`read_fetch_setting "${name}.scm"`"
+   case "${map}" in
+      git|"" )
+         operation="git_pull"
+         ;;
+      svn)
+         operation="svn_update"
+         ;;
+
+      *)
+         fail "unknown scm system ${map}"
+         ;;
+   esac
 
    local script
 
@@ -922,7 +935,7 @@ update()
       then
          run_script "${script}" "$@"
       else
-         exekutor git_pull "${dstdir}" "${tag}"
+         "${operation}" "${dstdir}" "${tag}"
       fi
 
       run_repo_settings_script "${name}" "${dstdir}" "post-update" "%@"
@@ -932,40 +945,41 @@ update()
 
 update_repository()
 {
-   local clone
+   local name
+   local url
 
-   clone="$1"
+   name="$1"
+   url="$2"
 
    local name
    local tag
    local dstdir
 
-   name="`basename "${clone}" .git`"
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
    dstdir="${CLONES_FETCH_SUBDIR}/${name}"
    exekutor [ -e "${dstdir}" ] || fail "You need to install first, before updating"
-   exekutor [ -x "${dstdir}" ] || fail "${name} is not anymore in \"gits\""
+   exekutor [ -x "${dstdir}" ] || fail "${name} is not anymore in \"repositories\""
 
-   log_fetch_action "${clone}" "${dstdir}"
+   log_fetch_action "${url}" "${dstdir}"
 
-   update "${clone}" "${name}" "${dstdir}" "${tag}"
+   update "${name}" "${url}" "${dstdir}" "${tag}"
 }
 
 
 did_update_repository()
 {
-   local clone
-
-   clone="$1"
-
    local name
+   local url
+
+   name="$1"
+   url="$2"
+
    local dstdir
 
-   name="`basename "${clone}" .git`"
    dstdir="${CLONES_FETCH_SUBDIR}/${name}"
 
-   run_build_settings_script "${name}" "${dstdir}" "did-update" "${dstdir}" "${name}"
+   run_build_settings_script "${name}" "${url}" "${dstdir}" "did-update" "${dstdir}" "${name}"
 }
 
 
@@ -983,57 +997,89 @@ update_repositories()
    local clone
    local name
    local i
+   local old
+
+   old="${IFS:-" "}"
 
    if [ $# -ne 0 ]
    then
+      IFS="
+"
       for name in "$@"
       do
-         update_repository "${name}"
+         IFS="${old}"
+         update_repository "${name}" "${CLONES_FETCH_SUBDIR}/${name}"
       done
 
+      IFS="
+"
       for name in "$@"
       do
-         did_update_repository "${name}"
+         IFS="${old}"
+         did_update_repository "${name}" "${CLONES_FETCH_SUBDIR}/${name}"
       done
    else
-      clones="`read_fetch_setting "gits"`"
+      clones="`read_fetch_setting "repositories"`"
       if [ "${clones}" != "" ]
       then
+         IFS="
+"
          for clone in ${clones}
          do
-            update_repository "${clone}"
+            IFS="${old}"
+            name="`canonical_name_from_clone "${clone}"`"
+            url="`url_from_clone "${clone}"`"
+            update_repository "${name}" "${url}"
          done
 
          # reread because of auto
-         clones="`read_fetch_setting "gits"`"
+         IFS="
+"
+         clones="`read_fetch_setting "repositories"`"
          for clone in ${clones}
          do
-            did_update_repository "${clone}"
+            IFS="${old}"
+            name="`canonical_name_from_clone "${clone}"`"
+            url="`url_from_clone "${clone}"`"
+            did_update_repository "${name}" "${url}"
          done
       fi
    fi
+
+   IFS="${old}"
 }
 
 
-update_subgits()
+update_embedded_repositories()
 {
    local clones
    local clone
+   local old
+   local name
+   local url
 
-   clones="`read_fetch_setting "subgits"`"
+   old="${IFS:-" "}"
+
+   clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
    then
+      IFS="
+"
       for clone in ${clones}
       do
-         name="`basename "${clone}" .git`"
+         IFS="${old}"
+         name="`canonical_name_from_clone "${clone}"`"
+         url="`url_from_clone "${clone}"`"
+
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
          dstdir="${name}"
          log_fetch_action "${name}" "${dstdir}"
 
-         # again, just refresh no specialties
-         exekutor git_pull "${dstdir}" "${tag}"
+         update "${name}" "${url}" "${dstdir}" "${tag}"
       done
    fi
+
+   IFS="${old}"
 }
 
 
@@ -1042,8 +1088,8 @@ append_dir_to_gitignore_if_needed()
    grep -s -x "$1/" .gitignore > /dev/null 2>&1
    if [ $? -ne 0 ]
    then
-      exekutor echo "$1/" >> .gitignore || fail "Couldn't append to .gitignore"
-      log_info "Added ${C_MAGENTA}$1/${C_INFO} to ${C_CYAN}.gitignore${C_INFO}"
+      exekutor echo "$1/" >> .gitignore || fail "Couldn\'t append to .gitignore"
+      log_info "Added \"$1/\" to \".gitignore\""
    fi
 }
 
@@ -1054,6 +1100,7 @@ main()
 
    SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
    export SYMLINK_FORBIDDEN
+
 
    #
    # Run prepare scripts if present
@@ -1067,9 +1114,15 @@ main()
          exit 1
       fi
 
+      if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
+      then
+         log_warning "Folder \"${BOOTSTRAP_SUBDIR}.auto\" already exists!"
+      fi
+
+
       clone_repositories
 
-      install_subgits
+      install_embedded_repositories
       install_brews
       install_gems
       install_pips
@@ -1077,7 +1130,7 @@ main()
    else
       update_repositories "$@"
 
-      update_subgits
+      update_embedded_repositories
    fi
 
    #

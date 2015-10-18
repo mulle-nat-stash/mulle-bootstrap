@@ -27,83 +27,54 @@
 #   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-#
+#   POSSIBILITY OF SUCH DAMAGE.
 
-gcc_sdk_parameter()
+. mulle-bootstrap-local-environment.sh
+
+
+move_it()
 {
-   local sdk
-   local sdkpath
+   local dir
+   local src
+   local dst
 
-   sdk="$1"
+   dir="$1"
+   src="$2"
+   dst="$3"
 
-   if [ "`uname`" = "Darwin" ]
+   ( cd "${dir}" ; git ls-files "$src" --error-unmatch 2> /dev/null 1>&2 )
+
+   if [ $? -eq 0 ]
    then
-      if [ "${sdk}" = "Default" ]
-      then
-         sdkpath="`xcrun --show-sdk-path`"
-      else
-         sdkpath="`xcrun --sdk "${sdk}" --show-sdk-path`"
-      fi
-      if [ "${sdkpath}" = "" ]
-      then
-         fail "SDK \"${sdk}\" is not installed"
-      fi
-      echo "${sdkpath}"
+       ( exekutor cd "${dir}" ;  exekutor git mv "$src" "$dst" )
+   else
+       ( exekutor cd "${dir}" ; exekutor mv "$src" "$dst" )
    fi
 }
 
 
-# Mash some known settings from xcodebuild together for regular
-# OTHER_CFLAGS
-# WARNING_CFLAGS
-# GCC_PREPROCESSOR_DEFINITIONS
-
-gcc_cflags_value()
+main()
 {
-   local value
-   local result
-   local name
-   local i
+   local dir
 
-   name="${1}"
-
-   result="`read_build_setting "${name}" "OTHER_CFLAGS"`"
-   value="`read_build_setting "${name}"  "WARNING_CFLAGS"`"
-   result="`concat "$result" "$value"`"
-   for i in `read_build_setting "${name}" "GCC_PREPROCESSOR_DEFINITIONS"`
+   find "$@" -name "${BOOTSTRAP_SUBDIR}" -type d -print | while read -r dir
    do
-      result="`concat "$result" "-D${i}"`"
+      if [ -f "${dir}/gits" ]
+      then
+         move_it "${dir}" gits repositories
+      fi
+
+      if [ -f "${dir}/subgits" ]
+      then
+         move_it "${dir}" subgits embedded_repositories
+      fi
    done
-
-   echo "${result}"
 }
 
 
-gcc_cppflags_value()
-{
-   local value
-   local result
-   local name
-
-   name="${1}"
-
-   result="`read_build_setting "${name}" "OTHER_CPPFLAGS"`"
-   value="`gcc_cflags_value "${name}"`"
-   result="`concat "$result" "$value"`"
-
-   echo "${result}"
-}
-
-
-gcc_ldflags_value()
-{
-   local result
-   local name
-
-   name="${1}"
-   result="`read_build_setting "${name}" "OTHER_LDFLAGS"`"
-
-   echo "${result}"
-}
-
-
+if [ $# -eq 0 ]
+then
+   main "."
+else
+   main "$@"
+fi

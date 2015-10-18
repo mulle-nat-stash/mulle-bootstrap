@@ -22,13 +22,13 @@ There is very little configuration needed to get this result. The
 
 Folder                     | Files                 | Folders
 ---------------------------|-----------------------|---------------
-.bootstrap						| gits                  | settings/
+.bootstrap						| repositories          | settings/
 .bootstrap/settings			|                       | Finch/	zlib/
 .bootstrap/settings/Finch	| xcode_public_headers  |
 .bootstrap/settings/zlib	| dispense_headers_path |
 
 
-`.bootstrap/gits` defines the repositories to fetch
+`.bootstrap/repositories` defines the repositories to fetch
 ```
 # A configure project
 git://git.savannah.gnu.org/readline.git

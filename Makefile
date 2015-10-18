@@ -2,12 +2,14 @@ SCRIPTS=install.sh \
 mulle-bootstrap-brew.sh \
 mulle-bootstrap-build.sh \
 mulle-bootstrap-clean.sh \
+mulle-bootstrap-convert-pre-0.10.sh \
 mulle-bootstrap-fetch.sh \
 mulle-bootstrap-functions.sh \
 mulle-bootstrap-gcc.sh \
 mulle-bootstrap-init.sh \
 mulle-bootstrap-local-environment.sh \
 mulle-bootstrap-settings.sh \
+mulle-bootstrap-scm.sh \
 mulle-bootstrap-scripts.sh \
 mulle-bootstrap-tag.sh \
 mulle-bootstrap-warn-scripts.sh \

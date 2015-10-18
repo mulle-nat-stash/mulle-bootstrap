@@ -60,7 +60,7 @@ $ mulle-bootstrap init
 ```
 
 At that point a `.bootstrap` will be created with some default
-content. Take the option to edit **gits** and you should be in an editor
+content. Take the option to edit **repositories** and you should be in an editor
 seeing:
 
 ```shell
@@ -79,7 +79,7 @@ long run, so delete them all, and add a line containing 'A'.
 The file now looks like this.
 
 ```
-$ cat .bootstrap/gits
+$ cat .bootstrap/repositories
 A
 ```
 
@@ -205,7 +205,7 @@ So go to folder C, and do the usual setup as
 
 ```console
 mulle-bootstrap init
-echo "B" > .bootstrap/gits
+echo "B" > .bootstrap/repositories
 mkdir -p .bootstrap/settings/B
 echo "/usr/local/include/B" > .bootstrap/settings/B/xcode_public_headers
 mulle-bootstrap

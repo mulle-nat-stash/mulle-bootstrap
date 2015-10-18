@@ -116,9 +116,9 @@ check_for_mulle_xcode_settings()
    Install mulle-xcode-settings now ?"
       [ $? -eq 0 ] || exit 1
 
-      brew_update_if_needed
+      brew_update_if_needed "mulle-xcode-settings"
 
-      log_info "Tapping mulle-kybernetik/software"
+      log_info "Tapping \"mulle-kybernetik/software\""
       brew tap "mulle-kybernetik/software"
 
       log_info "Installing mulle-xcode-settings"

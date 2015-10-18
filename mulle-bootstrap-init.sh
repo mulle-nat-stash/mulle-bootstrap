@@ -89,7 +89,7 @@ EOF
 # mod-pbxproj
 #EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/gits"
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/repositories"
 # add projects that should be cloned with git in order
 # of their inter-dependencies
 #
@@ -160,14 +160,15 @@ EOF
 
   fi
 
-  log_info "${BOOTSTRAP_SUBDIR} folder has been set up. Now add your gits to ${BOOTSTRAP_SUBDIR}/gits"
+  log_info "\"${BOOTSTRAP_SUBDIR}${C_INFO} folder has been set up.
+Now add your repositories to \"${BOOTSTRAP_SUBDIR}/repositories${C_INFO}"
 
   local open
 
-  open="`read_config_setting "open_gits_file" "ASK"`"
+  open="`read_config_setting "open_repositories_file" "ASK"`"
   if [ "${open}" = "ASK" ]
   then
-    user_say_yes "Edit the \"gits\" file now ?"
+    user_say_yes "Edit the ${C_MAGENTA}repositories${C_RESET} file now ?"
     if [ $? -eq 0 ]
     then
        open="YES"
@@ -179,7 +180,7 @@ EOF
      local editor
 
      editor="`read_config_setting "editor" "${EDITOR:-vi}"`"
-     exekutor $editor "${BOOTSTRAP_SUBDIR}/gits"
+     exekutor $editor "${BOOTSTRAP_SUBDIR}/repositories"
   fi
 }
 

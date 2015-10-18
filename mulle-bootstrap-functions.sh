@@ -39,7 +39,7 @@ then
    C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
    C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
 
-   C_BR_RED="\033[0;91m"
+   C_BR_RED="\033[0;91m" C_BR_YELLOW="\033[0;93m"
 
    trap 'printf "${C_RESET}"' TERM EXIT
 fi
@@ -108,7 +108,7 @@ fail()
 
 internal_fail()
 {
-   fail "${C_BR_RED}*** internal error: ${C_RED}$*"
+   fail "${C_RED}*** internal error: ${C_BR_RED}$*"
 }
 
 
@@ -214,6 +214,15 @@ path_depth()
       done
    fi
    echo "$depth"
+}
+
+
+extension_less_basename()
+{
+   local  file
+
+   file="`basename "$1"`"
+   echo "${file%.*}"
 }
 
 
@@ -365,7 +374,7 @@ mkdir_if_missing()
 {
    if [ ! -d "${1}" ]
    then
-      log_fluff "Creating ${C_RESET}$1${C_FLUFF} (`pwd -P`)"
+      log_fluff "Creating \"$1\" (`pwd -P`)"
       exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
    fi
 }
@@ -380,7 +389,7 @@ assert_sane_subdir_path()
 {
    case "$1"  in
       \$*|~/.|..|./|../|/*)
-         log_error "refuse unsafe path ${C_RESET}$1"
+         log_error "refuse unsafe path \"$1\""
          exit 1
       ;;
    esac
@@ -391,7 +400,7 @@ assert_sane_path()
 {
    case "$1"  in
       \$*|~/*|..|.|/|./|../*)
-         log_error "refuse unsafe path ${C_RESET}$1"
+         log_error "refuse unsafe path \"$1\""
          exit 1
       ;;
    esac
@@ -416,7 +425,7 @@ user_say_yes()
   x=`read_config_setting "answer" "ASK"`
   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
   do
-     echo "${C_YELLOW}$* (${C_RESET}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
+     echo "${C_BR_YELLOW}$* ${C_YELLOW}(${C_RESET}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
      read x
      x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
   done
@@ -504,11 +513,38 @@ find_xcodeproj()
 
 canonical_clone_name()
 {
+   extension_less_basename "${1}"
+}
+
+
+
+url_from_clone()
+{
+   echo "$@" | sed 's/^\(.*\);\(.*\)/\1/'
+}
+
+
+_name_part_from_clone()
+{
+   echo "$@" | sed 's/^\(.*\);\(.*\)/\2/'
+}
+
+
+canonical_name_from_clone()
+{
    local url
+   local name
 
-   url="${1}"
+   url="`url_from_clone "$@"`"
+   name="`_name_part_from_clone "$@"`"
 
-   basename "${url}" .git
+   if [ "${name}" != "${url}" ]
+   then
+      canonical_clone_name "${name}"
+      return
+   fi
+
+   canonical_clone_name "${url}"
 }
 
 
@@ -532,7 +568,7 @@ run_script()
 
    if [ -x "${script}" ]
    then
-      log_info "Executing script ${C_RESET}${script}${C_INFO}"
+      log_info "Executing script \"${script}\""
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]

@@ -1,13 +1,26 @@
 0.10
 ===
    Fetch settings can be platform specific by using the `uname` as a file
-   extension. e.g. gits.Darwin. Other settings may follow, if the need arises.
+   extension. e.g. repositories.Darwin. Other settings may follow, if the need arises.
    So far it hasn't.
 
-   Added "subgits" for those special moments, where you don't want to link
-   another project, but just steal a few files. These gits are installed in
-   your projects root and they are not built. You can not symlink them into
+   Added "embedded_repositories" for those special moments, where you don't want
+   to link another project, but just steal a few files. These gits are installed
+   in your projects root and they are not built. You can not symlink them into
    your project, just clone them.
+
+   Because I needed ancient and dying svn for MulleScion,  you can now remap
+   from the default git to svn, by creating a file <reponame>.scm. That contains
+   the string "svn" then.
+
+   *** Renamed "gits" to "repositories" ***
+
+   Use mulle-bootstrap convert-pre.0.10 ~/src to convert all .bootstrap folders
+   that `find` can find.
+
+   Do `mulle-bootstrap -n -v convert-pre-0.10 ${HOME}` to check what it's doing.
+
+   Install dummy dirs for xcodebuild too, to avoid boring compiler warnings.
 
 0.9.8
 ===

@@ -40,19 +40,19 @@ DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${C
 CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
 
-subgits()
+embedded_repositories()
 {
    local clones
    local clone
    local dir
    local name
 
-   clones="`read_fetch_setting "subgits"`"
+   clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
    then
       for clone in ${clones}
       do
-         name="`basename "${clone}" .git`"
+         name="`extension_less_basename "${clone}"`"
          dir="${name}"
          echo "${dir}"
       done
@@ -61,7 +61,7 @@ subgits()
 
 
 DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
-`subgits`"
+`embedded_repositories`"
 
 
 usage()

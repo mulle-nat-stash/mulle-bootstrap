@@ -27,6 +27,7 @@ build_order             | repositories to build in that order.  |
 configurations          | configurations to build               | Debug\nRelease
 sdks                    | SDKs to build                         | Default
 
+
 Build Settings
 ===================
 
@@ -95,6 +96,7 @@ project        | build,xcode   | The Xcode project file to use
 schemes        | build         | The Xcode schemes to build
 targets        | build         | The Xcode targets to build
 
+
 Fetch Settings
 ===================
 
@@ -103,14 +105,15 @@ Fetch Settings
 3. ./bootstrap/settings
 
 
-Setting Name       |  Description
--------------------|----------------------------------------
-brews              | Homebrew formulae to install
-gems               | Ruby packages to install with gem
-gits               | Repositories to clone, specify the URLs
-pips               | Python packages to install with pip
-taps               | Homebrew taps to install
-tarballs           | Tarballs to install (currently filesystem only)
+Setting Name          |  Description
+----------------------|----------------------------------------
+brews                 | Homebrew formulae to install
+gems                  | Ruby packages to install with gem
+repositories          | Repositories to clone, specify the URLs
+embedded_repositories | Repositories to embed, specify the URLs
+pips                  | Python packages to install with pip
+taps                  | Homebrew taps to install
+tarballs              | Tarballs to install (currently filesystem only)
 
 
 
@@ -133,11 +136,11 @@ in the environment.
 
 Setting Name                    |  Description                                  | Default
 --------------------------------|-----------------------------------------------|--------------
-repos_foldername                |  Where to place cloned repositories           | .repos
-output_foldername               |  DSTROOT, --prefix of headers and libraries   | dependencies
-build_foldername                |  OBJROOT, build root for intermediate files   |
-                                |  like .o                                      | build/.repos
+repos_foldername                | Where to place cloned repositories            | .repos
+output_foldername               | DSTROOT, --prefix of headers and libraries    | dependencies
 trace                           | see MULLE_BOOTSTRAP_TRACE for more info       | NO
+terse                           | set output to less verbose                    | NO
+verbose                         | set output to more verbose                    | NO
 no_warn_environment_setting     | don't warn when a setting is defined by       |
                                 | environment                                   | NO
 no_warn_local_setting           | don't warn when a setting is defined by       |
@@ -150,7 +153,9 @@ no_warn_user_setting            | don't warn when a setting is defined by       
 
 Setting Name                    |  Description                                  | Default
 --------------------------------|-----------------------------------------------|--------------
+absolute_symlinks               | Use absolute symlinks instead of relatives    | NO
 symlink_forbidden               | mulle-bootstrap will not attempt to symlink   | NO
+update_gitignore                | add cleanable directories to .gitignore       | YES
 
 
 Build Config Settings
@@ -160,6 +165,9 @@ Setting Name                    |  Description                                  
 build_preferences               | list order of preferred build tools. Will be  |
                                 | used in deciding if to use cmake or           |
                                 | xcodebuild, if both are available             | script\nxcodebuild\ncmake\nconfigure
+build_foldername                | OBJROOT, build root for intermediate files    |
+                                | like .o                                       | build/.repos
+build_log_foldername            | name of the output folder for logs            | build/.repos/.logs
 clean_before_build              | should mulle-bootstrap clean before building  | YES
 clean_dependencies_before_build | usually before a build, mulle-bootstrap       |
                                 | cleans dependencies to avoid surprising       |
@@ -169,6 +177,7 @@ header_dir_name                 | name of the headers folder in dependencies.   
                                 | e.g. You dislike "include" and favor          |
                                 | "headers".                                    | include
 library_dir_name                | as above, but for libraries                   | lib
+skip_collect_and_dispense       | don't collect and dispense products           | NO
 xcodebuild                      | tool to use instead of xcodebuild (xctool ?)  | xcodebuild
 
 
@@ -181,9 +190,10 @@ create_default_files            | if mulle-bootstrap init should populate       
 create_example_files            | if mulle-bootstrap init should populate       |
                                 | .bootstrap with some example files            | YES
 editor                          | the editor mulle-bootstrap init should use    |
-                                | to edit gits                                  | EDITOR environment variable
-open_gits_file                  | if mulle-bootstrap init should open an editor |
-                                | to edit gits (YES/NO/ASK)                     | ASK
+                                | to edit repositories                          | EDITOR environment variable
+open_repositories_file          | if mulle-bootstrap init should open an editor |
+                                | to edit repositories (YES/NO/ASK)             | ASK
+
 
 ##### Clean Config Settings
 

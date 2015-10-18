@@ -1,4 +1,4 @@
-#! /bin/sh +x
+#! /bin/sh
 #
 #   Copyright (c) 2015 Nat! - Mulle kybernetiK
 #   All rights reserved.
@@ -204,7 +204,10 @@ bootstrap()
 main()
 {
 
-   if [ ! -d "${BOOTSTRAP_SUBDIR}" -a "${command}" != "init" -a "${command}" != "version" ]
+   if [ ! -d "${BOOTSTRAP_SUBDIR}" -a \
+      "${command}" != "init" -a \
+      "${command}" != "version"  -a \
+      "${command}" != "convert-pre-0.10" ]
    then
       echo "there is no ${BOOTSTRAP_SUBDIR} here, can't continue" >&2
       exit 1
@@ -237,6 +240,10 @@ main()
 
       update)
          COMMAND="update" mulle-bootstrap-fetch.sh "$@" || exit 1
+         ;;
+
+      convert-pre-0.10)
+         mulle-bootstrap-convert-pre-0.10.sh "$@" || exit 1
          ;;
 
       init)
