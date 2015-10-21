@@ -55,7 +55,7 @@ Install brew now (Linux or OS X should work) ? "
       fi
 
       log_fluff "Touching ${last_update}"
-      exekutor mkdir_if_missing "`dirname "${last_update}"`"
+      exekutor mkdir_if_missing "`dirname -- "${last_update}"`"
       exekutor touch "${last_update}"
       return 1
    fi
@@ -95,7 +95,7 @@ brew_update_if_needed()
       log_fluff "Updating brew, this can take some time..."
    	exekutor brew update
 
-	   mkdir_if_missing "`dirname "${last_update}"`"
+	   mkdir_if_missing "`dirname -- "${last_update}"`"
    	exekutor touch "${last_update}"
    fi
 }

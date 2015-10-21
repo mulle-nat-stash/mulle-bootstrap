@@ -139,7 +139,7 @@ clean_parent_folders_if_empty()
       parent="${dir}"
       while :
       do
-         parent="`dirname "${parent}"`"
+         parent="`dirname -- "${parent}"`"
          if [ "${parent}" = "." -o "${parent}" = "${stop}" ]
          then
              break

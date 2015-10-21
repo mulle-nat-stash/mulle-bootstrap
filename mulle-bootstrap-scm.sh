@@ -44,7 +44,7 @@ git_checkout_tag()
    then
       log_error "Checkout failed, moving ${C_CYAN}${dst}${C_ERROR} to {C_CYAN}${dst}.failed${C_ERROR}"
       log_error "You need to fix this manually and then move it back."
-      log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename "${dst}"`/TAG" >&2
+      log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename -- "${dst}"`/TAG" >&2
 
       rmdir_safer "${dst}.failed"
       exekutor mv "${dst}" "${dst}.failed"

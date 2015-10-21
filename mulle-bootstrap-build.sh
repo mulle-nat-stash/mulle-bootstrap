@@ -162,7 +162,7 @@ collect_and_dispense_product()
       return 0
    fi
 
-   log_fluff "Collecting and dispensing \"${name}\" \"`basename "${subdir}"`\" products "
+   log_fluff "Collecting and dispensing \"${name}\" \"`basename -- "${subdir}"`\" products "
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref
    # (will this work with signing stuff ?)
@@ -915,6 +915,37 @@ ${info} in \"${builddir}\" ..."
       arguments="${arguments} -configuration \"${mapped}\""
    fi
 
+# an empty xcconfig is nice, because it acts as a reset for
+   local xcconfig
+
+   xcconfig=`read_repo_setting "${name}" "xcconfig"`
+   if [ ! -z "${xcconfig}" ]
+   then
+      arguments="${arguments} -xcconfig \"${xcconfig}\""
+   fi
+
+   local other_cflags
+   local other_cppflags
+   local other_ldflags
+
+   other_cflags="`gcc_cflags_value "${name}"`"
+   other_cppflags="`gcc_cppflags_value "${name}"`"
+   other_ldflags="`gcc_ldflags_value "${name}"`"
+
+   if [ ! -z "${other_cflags}" ]
+   then
+      other_cflags="OTHER_CFLAGS=${other_cflags}"
+   fi
+   if [ ! -z "${other_cppflags}" ]
+   then
+      other_cppflags="OTHER_CPPFLAGS=${other_cppflags}"
+   fi
+   if [ ! -z "${other_ldflags}" ]
+   then
+      other_ldflags="OTHER_LDFLAGS=${other_ldflags}"
+   fi
+
+
    create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}"
 
    owd=`pwd`
@@ -967,7 +998,6 @@ ${info} in \"${builddir}\" ..."
          dependencies_lib_search_path="${path} ${inherited}"
       fi
 
-
       inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped}" \
@@ -1002,6 +1032,9 @@ SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
 ONLY_ACTIVE_ARCH=NO \
 ${skip_install} \
+${other_cflags} \
+${other_cppflags} \
+${other_ldflags} \
 HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
@@ -1337,7 +1370,7 @@ build_if_alive()
    local xdone
    local zombie
 
-   zombie="`dirname "${srcdir}"`/.zombies/${name}"
+   zombie="`dirname -- "${srcdir}"`/.zombies/${name}"
    if [ -e "${zombie}" ]
    then
       log_warning "Ignoring zombie repo ${name} as \"${zombie}${C_WARNING} exists"
@@ -1447,6 +1480,13 @@ build_clones()
 }
 
 
+have_tars()
+{
+   tarballs=`read_fetch_setting "tarballs"`
+   [ "${tarballs}" != "" ]
+}
+
+
 install_tars()
 {
    local tarballs
@@ -1512,7 +1552,10 @@ main()
       exekutor ln -s "usr/local/include" "${DEPENDENCY_SUBDIR}/include" || fail "failed to symlink future usr/local/include"
       install_tars "$@"
    else
-      log_warning "Tars have not been installed, as \"${DEPENDENCY_SUBDIR}\" already exists."
+      if have_tars
+      then
+         log_warning "Tars have not been installed, as \"${DEPENDENCY_SUBDIR}\" already exists."
+      fi
    fi
 
    build_clones "$@"

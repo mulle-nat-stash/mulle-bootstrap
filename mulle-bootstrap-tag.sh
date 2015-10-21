@@ -39,7 +39,7 @@
 . mulle-bootstrap-scripts.sh
 
 
-name=`basename "${PWD}"`
+name=`basename -- "${PWD}"`
 
 
 usage()
@@ -70,7 +70,7 @@ AGVTAG=
 if [ "${project}" != "" ]
 then
    log_fluff "Trying agvtool to figure out current version"
-   dir=`dirname "${project}"`
+   dir=`dirname -- "${project}"`
    [ -x "${dir}" ] || fail "${dir} is not accesible"
 
    AGVTAG=`(cd "${dir}" ; agvtool what-version -terse ) 2> /dev/null`
@@ -98,7 +98,7 @@ if [ -z "${VENDOR_TAG}" -o "${VENDOR_TAG}" = "-" ]
 then
    if [ -z "${VENDOR_PREFIX}" ]
    then
-      VENDOR_PREFIX=`basename "${PWD}"`
+      VENDOR_PREFIX=`basename -- "${PWD}"`
       VENDOR_PREFIX="${VENDOR_PREFIX%%.*}"  # remove vile extension :)
    fi
 
@@ -173,7 +173,7 @@ tag()
    then
       run_script "$script" "${TAG}" "${REPO}" || exit 1
    else
-      log_info "Tagging \"`basename "${REPO}"`\" with \"${TAG}\""
+      log_info "Tagging \"`basename -- "${REPO}"`\" with \"${TAG}\""
       ( cd "${REPO}" ; exekutor git tag "${TAG}" ) || exit 1
 
       if  dir_has_files "${CLONES_SUBDIR}"
@@ -184,7 +184,7 @@ tag()
             then
                if [ -d "${i}/.git" -o -d "${i}/refs" ]
                then
-                  log_info "Tagging \"`basename "${i}"`\" with \"${VENDOR_TAG}\""
+                  log_info "Tagging \"`basename -- "${i}"`\" with \"${VENDOR_TAG}\""
                   (cd "$i" ; exekutor git tag "${VENDOR_TAG}" ) || fail "tag failed"
                fi
             fi
@@ -202,7 +202,7 @@ main()
 
    ensure_repos_clean
 
-   echo "Will tag `basename "${PWD}"` with ${TAG}" >&2
+   echo "Will tag `basename -- "${PWD}"` with ${TAG}" >&2
    if  dir_has_files "${CLONES_SUBDIR}"
    then
       echo "Will tag clones with ${VENDOR_TAG}" >&2

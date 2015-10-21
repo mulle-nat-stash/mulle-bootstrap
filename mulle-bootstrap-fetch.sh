@@ -272,7 +272,7 @@ link_command()
    tag="$3"
 
    local dstdir
-   dstdir="`dirname "${dst}"`"
+   dstdir="`dirname -- "${dst}"`"
 
    if [ ! -e "${dstdir}/${src}" ]
    then
@@ -300,7 +300,7 @@ link_command()
       then
          local name
 
-         name="`basename "${dst}"`"
+         name="`basename -- "${dst}"`"
          log_warning "tag ${tag} will be ignored, due to symlink" >&2
          log_warning "if you want to checkout this tag do:" >&2
          log_warning "${C_RESET}(cd .repos/${name}; git ${GITFLAGS} checkout \"${tag}\" )${C_WARNING}" >&2
@@ -419,9 +419,9 @@ bootstrap_auto_update()
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
       if [ -f "${srcfile}" ]
       then
-         log_fluff "Inheriting \"`basename ${i}`\" from \"${srcfile}\""
+         log_fluff "Inheriting \"`basename -- ${i}`\" from \"${srcfile}\""
 
-         mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/`dirname "${i}"`"
+         mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/`dirname -- "${i}"`"
          if [ -f "${BOOTSTRAP_SUBDIR}.auto/${i}" ]
          then
             local tmpfile
@@ -506,7 +506,7 @@ mark_all_zombies()
       do
          if [ -d "${i}" -o -L "${i}" ]
          then
-            name="`basename "${i}"`"
+            name="`basename -- "${i}"`"
             exekutor touch "${CLONES_FETCH_SUBDIR}/.zombies/${name}"
          fi
       done
@@ -524,7 +524,7 @@ mark_alive()
 
    local zombie
 
-   zombie="`dirname "${dstdir}"`/.zombies/${name}"
+   zombie="`dirname -- "${dstdir}"`/.zombies/${name}"
 
    # mark as alive
    if [ -d "${dstdir}" -o -L "${dstdir}" ]
@@ -583,13 +583,13 @@ checkout()
    local relative
    local name2
 
-   relative="`dirname "${dstdir}"`"
+   relative="`dirname -- "${dstdir}"`"
    relative="`compute_relative "${relative}"`"
    if [ ! -z "${relative}" ]
    then
       relative="${relative}/"
    fi
-   name2="`basename "${url}"`"  # only works for git really
+   name2="`basename -- "${url}"`"  # only works for git really
 
    #
    # this implicitly ensures, that these folders are
@@ -721,6 +721,14 @@ checkout_repository()
 
       if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
       then
+         local old
+
+         old="${BOOTSTRAP_SUBDIR}"
+
+         BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
+         install_embedded_repositories "${dstdir}/"
+         BOOTSTRAP_SUBDIR="${old}"
+
          bootstrap_auto_update "${name}" "${url}" "${dstdir}"
          flag=$?
       fi
@@ -837,11 +845,16 @@ clone_repositories()
 
 install_embedded_repositories()
 {
+   local dstprefix
+
+   dstprefix="$1"
+
    local clones
    local clone
    local old
    local name
    local url
+   local dstdir
 
    old="${IFS:-" "}"
 
@@ -857,7 +870,7 @@ install_embedded_repositories()
          url="`url_from_clone "${clone}"`"
 
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-         dstdir="${name}"
+         dstdir="${dstprefix}${name}"
          log_fetch_action "${name}" "${dstdir}"
 
          if [ ! -d "${dstdir}" ]
@@ -964,6 +977,17 @@ update_repository()
    log_fetch_action "${url}" "${dstdir}"
 
    update "${name}" "${url}" "${dstdir}" "${tag}"
+
+   if [ "${DONT_RECURSE}" = "" ]
+   then
+      local old
+
+      old="${BOOTSTRAP_SUBDIR}"
+
+      BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
+      update_embedded_repositories "${dstdir}/"
+      BOOTSTRAP_SUBDIR="${old}"
+   fi
 }
 
 
@@ -1052,6 +1076,10 @@ update_repositories()
 
 update_embedded_repositories()
 {
+   local dstprefix
+
+   dstprefix="$1"
+
    local clones
    local clone
    local old
@@ -1072,7 +1100,7 @@ update_embedded_repositories()
          url="`url_from_clone "${clone}"`"
 
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-         dstdir="${name}"
+         dstdir="${dstprefix}${name}"
          log_fetch_action "${name}" "${dstdir}"
 
          update "${name}" "${url}" "${dstdir}" "${tag}"

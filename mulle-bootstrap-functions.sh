@@ -209,7 +209,7 @@ path_depth()
    then
       while [ "$name" != "." ]
       do
-         name=`dirname "$name"`
+         name=`dirname -- "$name"`
          depth=`expr $depth + 1`
       done
    fi
@@ -221,7 +221,7 @@ extension_less_basename()
 {
    local  file
 
-   file="`basename "$1"`"
+   file="`basename -- "$1"`"
    echo "${file%.*}"
 }
 
@@ -251,7 +251,7 @@ resolve_symlinks()
    path="`readlink "$1"`"
    if [ $? -eq 0 ]
    then
-      dir_context=`dirname "$1"`
+      dir_context=`dirname -- "$1"`
       resolve_symlinks "`_prepend_path_if_relative "$dir_context" "$path"`"
    else
       echo "$1"
@@ -270,7 +270,7 @@ _canonicalize_file_path()
     local dir file
 
     dir="` dirname "$1"`"
-    file="`basename "$1"`"
+    file="`basename -- "$1"`"
     (cd "${dir}" 2>/dev/null && echo "`pwd -P`/${file}")
 }
 
@@ -335,7 +335,7 @@ remove_absolute_path_prefix_up_to()
    s="$1"
    prefix="$2"
 
-   if [ "`basename "${s}"`" = "${prefix}" ]
+   if [ "`basename -- "${s}"`" = "${prefix}" ]
    then
       return 0
    fi
@@ -486,7 +486,7 @@ find_xcodeproj()
 
    for i in `find . -name "*.xcodeproj" -print`
    do
-      match=`basename "${i}" .xcodeproj`
+      match=`basename -- "${i}" .xcodeproj`
       if [ "$match" = "$expect" ]
       then
          echo "$i"

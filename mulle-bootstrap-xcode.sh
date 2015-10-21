@@ -213,7 +213,7 @@ patch_xcode_project()
    read_yes_no_config_setting "terse" "NO"
    terse=$?
 
-   name=`basename "${PWD}"`
+   name=`basename -- "${PWD}"`
 
    if [ ! -z "${PROJECT}" ]
    then
@@ -227,7 +227,7 @@ patch_xcode_project()
       fi
    fi
 
-   projectname="`basename "${project}"`"
+   projectname="`basename -- "${project}"`"
 
    # mod_pbxproj can only do Debug/Release/All...
 
@@ -283,7 +283,7 @@ Release"
    local relative_subdir
 
    absolute="`realpath "${project}"`"
-   absolute="`dirname "${absolute}"`"
+   absolute="`dirname -- "${absolute}"`"
    absolute2="`pwd -P`/${DEPENDENCY_SUBDIR}"
    relative_subdir="`relative_path_between "${absolute2}" "${absolute}" `"
 

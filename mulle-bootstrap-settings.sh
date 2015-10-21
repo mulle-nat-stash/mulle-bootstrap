@@ -39,7 +39,7 @@ warn_user_setting()
    file="$1"
    if [ "$MULLE_BOOTSTRAP_NO_WARN_USER_SETTINGS" != "YES" ]
    then
-      log_warning "Using `dirname "${file}"` for `basename "${file}"`"
+      log_warning "Using `dirname -- "${file}"` for `basename -- "${file}"`"
    fi
 }
 
@@ -51,7 +51,7 @@ warn_local_setting()
    file="$1"
    if [ "$MULLE_BOOTSTRAP_NO_WARN_LOCAL_SETTINGS" != "YES" ]
    then
-      log_warning "Using `dirname "${file}"` for `basename "${file}"`"
+      log_warning "Using `dirname -- "${file}"` for `basename -- "${file}"`"
    fi
 }
 
@@ -112,7 +112,7 @@ _read_setting()
       then
          local os
          os="`uname`"
-         log_fluff "${C_MAGENTA}`basename "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
+         log_fluff "${C_MAGENTA}`basename -- "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
       fi
    else
       value=`egrep -v '^#|^[ ]*$' "${file}"`
@@ -120,7 +120,7 @@ _read_setting()
       then
          local os
          os="`uname`"
-         log_fluff "Setting ${C_MAGENTA}`basename "${file}" ".${os}"`${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${value}${C_FLUFF}"
+         log_fluff "Setting ${C_MAGENTA}`basename -- "${file}" ".${os}"`${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${value}${C_FLUFF}"
       fi
    fi
 
