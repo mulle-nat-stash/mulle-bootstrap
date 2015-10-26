@@ -86,7 +86,7 @@ dispense_headers()
 
          log_fluff "Copying \"${src}\" to \"${dst}\""
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
-            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
          [ $? -eq 0 ]  || exit 1
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type f -o -type l \) -print0 | \
             exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
@@ -117,9 +117,14 @@ dispense_binaries()
    local dst
    local usrlocal
    local findtype2
+   local copyflag
 
    findtype2="l"
-
+   copyflag="-f"
+   if [ "${findtype}" = "-d"  ]
+   then
+      copyflag="-n"
+   fi
    log_fluff "Consider copying binaries from \"${src}\" for type \"${findtype}/${findtype2}\""
 
    if [ -d "${src}" ]
@@ -131,7 +136,7 @@ dispense_binaries()
          log_fluff "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
-            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}"
          [ $? -eq 0 ]  || exit 1
       else
          log_fluff "But threre are none"
