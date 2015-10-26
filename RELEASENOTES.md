@@ -22,6 +22,9 @@
 
    Install dummy dirs for xcodebuild too, to avoid boring compiler warnings.
 
+   Always overwrite headers, otherwise old and stale headers make life
+   unnecessarily more complicated.
+
 0.9.8
 ===
    Brings more Linux fixes

@@ -86,10 +86,10 @@ dispense_headers()
 
          log_fluff "Copying \"${src}\" to \"${dst}\""
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
-            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
          [ $? -eq 0 ]  || exit 1
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type f -o -type l \) -print0 | \
-            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
          [ $? -eq 0 ]  || exit 1
 
          rmdir_safer "${src}"
@@ -131,7 +131,7 @@ dispense_binaries()
          log_fluff "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
-            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -n % "${dst}"
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
          [ $? -eq 0 ]  || exit 1
       else
          log_fluff "But threre are none"
@@ -249,7 +249,7 @@ collect_and_dispense_product()
 
          log_fluff "Copying everything from \"${src}\" to \"${dst}\""
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -print0 | \
-               exekutor xargs -0 -I % mv -v -n % "${dst}"
+               exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
       fi
 
