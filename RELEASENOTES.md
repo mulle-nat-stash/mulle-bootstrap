@@ -1,3 +1,8 @@
+0.11
+===
+   Fixes another stale headers problem. Project is creeping towards a 1.0.
+
+
 0.10
 ===
    Fetch settings can be platform specific by using the `uname` as a file
