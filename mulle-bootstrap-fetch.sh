@@ -689,7 +689,10 @@ Use it ?"
          ;;
       esac
 
-      "${operation}" "${src}" "${dstdir}" "${tag}"
+      local scmflags
+
+      scmflags="`read_repo_setting "${name}" "checkout" "--recursive"`"
+      "${operation}" "${src}" "${dstdir}" "${tag}" "${scmflags}"
       mulle-bootstrap-warn-scripts.sh "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
    fi
 }
@@ -893,6 +896,9 @@ install_embedded_repositories()
                   append_dir_to_gitignore_if_needed "${dstdir}"
                fi
             fi
+
+            run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
+
          else
             log_fluff "\"${dstdir}\" already exists"
          fi

@@ -1,3 +1,16 @@
+0.12
+===
+   Run post-install.sh also on embedded repositories. Sometimes useful, when
+   you need ./configure to produce some headers.
+   Add parameters to "Executing script" line.
+   Add "checkout" git flags, to fine tune the clone. But use --recursive
+   per default.
+
+0.11
+===
+   Fixes another stale headers problem. Project is creeping towards a 1.0.
+
+
 0.10
 ===
    Fetch settings can be platform specific by using the `uname` as a file

@@ -58,16 +58,18 @@ git_clone()
    local src
    local dst
    local tag
+   local flags
 
    src="$1"
    dst="$2"
    tag="$3"
+   flags="$4"
 
    [ ! -z "$src" ] || internal_fail "src is empty"
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
    log_info "Cloning ${C_MAGENTA}${src}${C_INFO} ..."
-   exekutor git clone ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
+   exekutor git clone ${flags} ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
 
    if [ "${tag}" != "" ]
    then

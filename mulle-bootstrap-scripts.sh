@@ -200,7 +200,7 @@ run_build_settings_script()
    script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      run_script "${script}" "$@" || exit 1
+      run_script "${script}" "${name}" "${url}" "${srcdir}" "$@" || exit 1
    fi
 }
 

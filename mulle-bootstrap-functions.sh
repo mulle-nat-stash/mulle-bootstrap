@@ -568,7 +568,7 @@ run_script()
 
    if [ -x "${script}" ]
    then
-      log_info "Executing script \"${script}\""
+      log_info "Executing script \"${script}\" $1"
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]
