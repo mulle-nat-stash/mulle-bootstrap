@@ -3,18 +3,25 @@
 # (c) 2015, coded by Nat!, Mulle KybernetiK
 #
 
-# Escape sequence and resets
-C_RESET="\033[0m"
+if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
+then
+   case `uname` in
+      Darwin|Linux)
+         # Escape sequence and resets
+         C_RESET="\033[0m"
 
-# Foreground colours
-C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
-C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
-C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
+         # Foreground colours
+         C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
+         C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
+         C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
 
-#
-# restore colors if stuff gets wonky
-#
-trap 'printf "${C_RESET}"' TERM EXIT
+         #
+         # restore colors if stuff gets wonky
+         #
+         trap 'printf "${C_RESET}"' TERM EXIT
+         ;;
+   esac
+fi
 
 #
 # https://github.com/hoelzro/useful-scripts/blob/master/decolorize.pl

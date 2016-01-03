@@ -117,8 +117,10 @@ install_taps()
 "
       for tap in ${taps}
       do
+         IFS="${old}"
          exekutor brew tap "${tap}" > /dev/null || exit 1
       done
+      IFS="${old}"
    else
       log_fluff "No taps found"
    fi
@@ -144,6 +146,7 @@ install_brews()
 "
       for brew in ${brews}
       do
+         IFS="${old}"
          if [ "`which "${brew}"`" = "" ]
          then
             brew_update_if_needed "${brew}"
@@ -182,6 +185,7 @@ check_tars()
 "
       for tar in ${tarballs}
       do
+         IFS="${old}"
          if [ ! -f "$tar" ]
          then
             fail "tarball \"$tar\" not found"
@@ -215,6 +219,7 @@ install_gems()
 "
       for gem in ${gems}
       do
+         IFS="${old}"
          log_fluff "gem install \"${gem}\""
 
          echo "gem needs sudo to install ${gem}" >&2
@@ -247,6 +252,7 @@ install_pips()
 "
       for pip in ${pips}
       do
+         IFS="${old}"
          log_fluff "pip install \"${gem}\""
 
          echo "pip needs sudo to install ${pip}" >&2
@@ -382,25 +388,31 @@ bootstrap_auto_update()
 
    #
    # prepare auto folder if it doesn't exist yet
-   # means copy our own files to .auto first
+   # means copy our own files to .auto first,
    #
    if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
       log_info "Found a .bootstrap folder for \"${name}\" will set up ${BOOTSTRAP_SUBDIR}.auto"
 
-      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
+
       for i in $INHERIT_SETTINGS
       do
          if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
          then
-            exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+            exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
          else
             if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
             then
-               exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+               exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
+            else
+               log_fluff "Setting \"`basename -- ${i}`\" is not specified, so not inherited"
             fi
          fi
       done
+
+      # now move it
+      exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
 
       # leave .scm files behind
    fi
@@ -434,6 +446,8 @@ bootstrap_auto_update()
          else
             exekutor cp "${srcfile}" "${dstfile}" || exit 1
          fi
+      else
+         log_fluff "Setting \"`basename -- ${i}`\" is not specified, so not inherited"
       fi
    done
 
@@ -1152,7 +1166,6 @@ main()
       then
          log_warning "Folder \"${BOOTSTRAP_SUBDIR}.auto\" already exists!"
       fi
-
 
       clone_repositories
 

@@ -29,19 +29,24 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-# Escape sequence and resets
+# Escape sequence and resets, should use tput here instead of ANSI
+
 if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
 then
-   C_RESET="\033[0m"
+   case `uname` in
+      Darwin|Linux)
+         C_RESET="\033[0m"
 
-   # Foreground colours
-   C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
-   C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
-   C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
+         # Foreground colours
+         C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
+         C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
+         C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
 
-   C_BR_RED="\033[0;91m" C_BR_YELLOW="\033[0;93m"
+         C_BR_RED="\033[0;91m" C_BR_YELLOW="\033[0;93m"
 
-   trap 'printf "${C_RESET}"' TERM EXIT
+         trap 'printf "${C_RESET}"' TERM EXIT
+         ;;
+   esac
 fi
 
 
