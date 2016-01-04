@@ -117,8 +117,10 @@ install_taps()
 "
       for tap in ${taps}
       do
+         IFS="${old}"
          exekutor brew tap "${tap}" > /dev/null || exit 1
       done
+      IFS="${old}"
    else
       log_fluff "No taps found"
    fi
@@ -144,6 +146,7 @@ install_brews()
 "
       for brew in ${brews}
       do
+         IFS="${old}"
          if [ "`which "${brew}"`" = "" ]
          then
             brew_update_if_needed "${brew}"
@@ -182,6 +185,7 @@ check_tars()
 "
       for tar in ${tarballs}
       do
+         IFS="${old}"
          if [ ! -f "$tar" ]
          then
             fail "tarball \"$tar\" not found"
@@ -215,6 +219,7 @@ install_gems()
 "
       for gem in ${gems}
       do
+         IFS="${old}"
          log_fluff "gem install \"${gem}\""
 
          echo "gem needs sudo to install ${gem}" >&2
@@ -247,6 +252,7 @@ install_pips()
 "
       for pip in ${pips}
       do
+         IFS="${old}"
          log_fluff "pip install \"${gem}\""
 
          echo "pip needs sudo to install ${pip}" >&2
@@ -389,6 +395,7 @@ bootstrap_auto_update()
       log_info "Found a .bootstrap folder for \"${name}\" will set up ${BOOTSTRAP_SUBDIR}.auto"
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
+
       for i in $INHERIT_SETTINGS
       do
          if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
@@ -398,6 +405,8 @@ bootstrap_auto_update()
             if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
             then
                exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
+            else
+               log_fluff "Setting \"`basename -- ${i}`\" is not specified, so not inherited"
             fi
          fi
       done
@@ -438,7 +447,7 @@ bootstrap_auto_update()
             exekutor cp "${srcfile}" "${dstfile}" || exit 1
          fi
       else
-         log_fluff "Don't inherit \"`basename -- ${i}`\" as it's not specified"
+         log_fluff "Setting \"`basename -- ${i}`\" is not specified, so not inherited"
       fi
    done
 
