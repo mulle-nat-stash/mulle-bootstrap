@@ -48,7 +48,7 @@ do
    mkdir -p "${bin}" 2> /dev/null
    sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
    chmod "${mode}" "${bin}/${i}" || exit 1
-   echo "install: ${C_MAGENTA}$bin/$i${C_RESET}" >&2
+   printf "install: ${C_MAGENTA}%s${C_RESET}\n" "$bin/$i" >&2
 done
 
 
@@ -61,8 +61,8 @@ done
 if [ -d "test" ]
 then
    # use attractive colors :)
-   echo "${C_GREEN}If you are new to mulle-bootstrap I would suggest checking out" >&2
-   echo "the ${C_YELLOW}README.md${C_GREEN} in ${C_CYAN}./test${C_GREEN} and doing the examples." >&2
+   printf "${C_GREEN}If you are new to mulle-bootstrap I would suggest checking out\n" >&2
+   printf "the ${C_YELLOW}README.md${C_GREEN} in ${C_CYAN}./test${C_GREEN} and doing the examples.\n" >&2
 fi
 
 # for people who source us

@@ -1,3 +1,7 @@
+0.13
+===
+   Fix colorization by using printf, instead of echo.
+
 0.12
 ===
    Run post-install.sh also on embedded repositories. Sometimes useful, when
