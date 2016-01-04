@@ -382,25 +382,28 @@ bootstrap_auto_update()
 
    #
    # prepare auto folder if it doesn't exist yet
-   # means copy our own files to .auto first
+   # means copy our own files to .auto first,
    #
    if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
       log_info "Found a .bootstrap folder for \"${name}\" will set up ${BOOTSTRAP_SUBDIR}.auto"
 
-      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
       for i in $INHERIT_SETTINGS
       do
          if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
          then
-            exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+            exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
          else
             if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
             then
-               exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.auto/${i}" || exit 1
+               exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
             fi
          fi
       done
+
+      # now move it
+      exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
 
       # leave .scm files behind
    fi
@@ -434,6 +437,8 @@ bootstrap_auto_update()
          else
             exekutor cp "${srcfile}" "${dstfile}" || exit 1
          fi
+      else
+         log_fluff "Don't inherit \"`basename -- ${i}`\" as it's not specified"
       fi
    done
 
@@ -1152,7 +1157,6 @@ main()
       then
          log_warning "Folder \"${BOOTSTRAP_SUBDIR}.auto\" already exists!"
       fi
-
 
       clone_repositories
 
