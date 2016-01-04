@@ -34,7 +34,7 @@
 if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
 then
    case `uname` in
-      Darwin|Linux)
+      Darwin|Linux|FreeBSD)
          C_RESET="\033[0m"
 
          # Foreground colours
@@ -53,7 +53,7 @@ fi
 C_ERROR="${C_RED}"
 log_error()
 {
-   echo "${C_ERROR}$*${C_RESET}" >&2
+   printf "${C_ERROR}%b${C_RESET}\n" "$*" >&2
 }
 
 
@@ -62,7 +62,7 @@ log_warning()
 {
    if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
    then
-      echo "${C_WARNING}$*${C_RESET}" >&2
+      printf "${C_WARNING}%b${C_RESET}\n" "$*" >&2
    fi
 }
 
@@ -72,7 +72,7 @@ log_info()
 {
    if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
    then
-      echo "${C_INFO}$*${C_RESET}" >&2
+      printf "${C_INFO}%b${C_RESET}\n" "$*" >&2
    fi
 }
 
@@ -82,7 +82,7 @@ log_fluff()
 {
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
    then
-      echo "${C_FLUFF}$*${C_RESET}" >&2
+      printf "${C_FLUFF}%b${C_RESET}\n" "$*" >&2
    fi
 }
 
@@ -90,14 +90,14 @@ log_fluff()
 C_TRACE="${C_FLUFF}"
 log_trace()
 {
-   echo "${C_TRACE}$*${C_RESET}" >&2
+   printf "${C_TRACE}%b${C_RESET}" "$*" >&2
 }
 
 
 C_TRACE2="${C_RESET}"
 log_trace2()
 {
-   echo "${C_TRACE2}$*${C_RESET}" >&2
+   printf "${C_TRACE2}%b${C_RESET}" "$*" >&2
 }
 
 
@@ -430,7 +430,7 @@ user_say_yes()
   x=`read_config_setting "answer" "ASK"`
   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
   do
-     echo "${C_BR_YELLOW}$* ${C_YELLOW}(${C_RESET}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET}" >&2
+     printf "${C_BR_YELLOW}%b ${C_YELLOW}(${C_RESET}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET} >" "$*" >&2
      read x
      x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
   done

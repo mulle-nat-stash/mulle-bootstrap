@@ -393,6 +393,7 @@ bootstrap_auto_update()
    log_info "Recursively acquiring ${dir} .bootstrap settings ..."
 
    local old
+   local name
 
    old="${IFS:-" "}"
 
@@ -419,7 +420,8 @@ bootstrap_auto_update()
             then
                exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
             else
-               log_fluff "Setting \"`basename -- ${i}`\" is not specified, so not inherited"
+               name="`basename -- "${i}"`"
+               log_fluff "Setting \"${name}\" is not specified, so not inherited"
             fi
          fi
       done
@@ -446,9 +448,10 @@ bootstrap_auto_update()
       IFS="{old}"
       srcfile="${dir}/.bootstrap/${i}"
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
+      name="`basename -- "${i}"`"
       if [ -f "${srcfile}" ]
       then
-         log_fluff "Inheriting \"`basename -- ${i}`\" from \"${srcfile}\""
+         log_fluff "Inheriting \"${name}\" from \"${srcfile}\""
 
          mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/`dirname -- "${i}"`"
          if [ -f "${BOOTSTRAP_SUBDIR}.auto/${i}" ]
@@ -464,7 +467,7 @@ bootstrap_auto_update()
             exekutor cp "${srcfile}" "${dstfile}" || exit 1
          fi
       else
-         log_fluff "Setting \"`basename -- ${i}`\" is not specified, so not inherited"
+         log_fluff "Setting \"${name}\" is not specified, so not inherited"
       fi
    done
    IFS="{old}"
