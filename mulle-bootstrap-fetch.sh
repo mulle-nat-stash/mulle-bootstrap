@@ -361,7 +361,13 @@ ask_symlink_it()
 }
 
 
-INHERIT_SETTINGS='taps brews repositories pips gems settings/build_order settings/build_ignore'
+INHERIT_SETTINGS='taps
+brews
+repositories
+pips
+gems
+settings/build_order
+settings/build_ignore'
 
 bootstrap_auto_update()
 {
@@ -386,6 +392,10 @@ bootstrap_auto_update()
 
    log_info "Recursively acquiring ${dir} .bootstrap settings ..."
 
+   local old
+
+   old="${IFS:-" "}"
+
    #
    # prepare auto folder if it doesn't exist yet
    # means copy our own files to .auto first,
@@ -396,8 +406,11 @@ bootstrap_auto_update()
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
 
+      IFS="
+"
       for i in $INHERIT_SETTINGS
       do
+         IFS="${old}"
          if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
          then
             exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
@@ -410,6 +423,7 @@ bootstrap_auto_update()
             fi
          fi
       done
+      IFS="${old}"
 
       # now move it
       exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
@@ -425,8 +439,11 @@ bootstrap_auto_update()
    local dstfile
    local i
 
+   IFS="
+"
    for i in $INHERIT_SETTINGS
    do
+      IFS="{old}"
       srcfile="${dir}/.bootstrap/${i}"
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
       if [ -f "${srcfile}" ]
@@ -450,6 +467,7 @@ bootstrap_auto_update()
          log_fluff "Setting \"`basename -- ${i}`\" is not specified, so not inherited"
       fi
    done
+   IFS="{old}"
 
    # link scm files over, that we find
    local relative
