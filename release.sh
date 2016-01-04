@@ -28,9 +28,14 @@ git_must_be_clean()
 set -e
 
 git_must_be_clean
+git push public master
+
+# seperate step, as it's tedious to remove tag when
+# previous push fails
 
 git tag "${TAG}"
 git push public master --tags
+
 ./generate-brew-formula.sh  > ../homebrew-software/mulle-bootstrap.rb
 (
 	cd ../homebrew-software ; \
