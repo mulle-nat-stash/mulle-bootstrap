@@ -90,14 +90,14 @@ log_fluff()
 C_TRACE="${C_FLUFF}"
 log_trace()
 {
-   printf "${C_TRACE}%b${C_RESET}" "$*" >&2
+   printf "${C_TRACE}%b${C_RESET}\n" "$*" >&2
 }
 
 
 C_TRACE2="${C_RESET}"
 log_trace2()
 {
-   printf "${C_TRACE2}%b${C_RESET}" "$*" >&2
+   printf "${C_TRACE2}%b${C_RESET}\n" "$*" >&2
 }
 
 
@@ -430,7 +430,7 @@ user_say_yes()
   x=`read_config_setting "answer" "ASK"`
   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
   do
-     printf "${C_BR_YELLOW}%b ${C_YELLOW}(${C_RESET}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET} >" "$*" >&2
+     printf "${C_BR_YELLOW}%b ${C_YELLOW}(${C_RESET}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET} > " "$*" >&2
      read x
      x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
   done

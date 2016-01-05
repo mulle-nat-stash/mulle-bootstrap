@@ -891,7 +891,7 @@ ${info} in \"${builddir}\" ..."
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
    logfile="`build_log_name "xcodebuild" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
-   log_info "Build log will be in \"${logfile}\""
+   log_info "Build log will be in ${C_RESET}\"${logfile}\""
 
    set -f
 
