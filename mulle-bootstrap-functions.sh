@@ -37,27 +37,29 @@ then
       Darwin|Linux|FreeBSD)
          C_RESET="\033[0m"
 
-         # Foreground colours
-         C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
-         C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
-         C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
+         # Useable Foreground colours, for black/white white/black
+         C_RED="\033[0;31m"     C_GREEN="\033[0;32m"
+         C_BLUE="\033[0;34m"    C_MAGENTA="\033[0;35m"
+         C_CYAN="\033[0;36m"    
 
          C_BR_RED="\033[0;91m" C_BR_YELLOW="\033[0;93m"
+         C_BOLD="\033[1m" 
 
+         C_RESET_BOLD="${C_RESET}${C_BOLD}"
          trap 'printf "${C_RESET}"' TERM EXIT
          ;;
    esac
 fi
 
 
-C_ERROR="${C_RED}"
+C_ERROR="${C_RED}${C_BOLD}"
 log_error()
 {
    printf "${C_ERROR}%b${C_RESET}\n" "$*" >&2
 }
 
 
-C_WARNING="${C_YELLOW}"
+C_WARNING="${C_MAGENTA}${C_BOLD}"
 log_warning()
 {
    if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
@@ -67,7 +69,7 @@ log_warning()
 }
 
 
-C_INFO="${C_CYAN}"
+C_INFO="${C_CYAN}${C_BOLD}"
 log_info()
 {
    if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
@@ -430,7 +432,7 @@ user_say_yes()
   x=`read_config_setting "answer" "ASK"`
   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
   do
-     printf "${C_BR_YELLOW}%b ${C_YELLOW}(${C_RESET}y${C_YELLOW}/${C_GREEN}N${C_YELLOW})${C_RESET} > " "$*" >&2
+     printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
      read x
      x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
   done

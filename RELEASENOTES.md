@@ -1,3 +1,9 @@
+0.14
+===
+   Fix various uglies.
+   Make white terminals more happening with color choices.
+   -v circumvents building into a logfile, which is sometimes more convenient.
+
 0.13
 ===
    Fix colorization by using printf, instead of echo.

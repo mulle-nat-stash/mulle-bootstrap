@@ -122,7 +122,7 @@ run_build_root_settings_script()
    script="`find_build_root_setting_file "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      run_script "${script}" "%@"
+      run_script "${script}" "$@"
    fi
 }
 

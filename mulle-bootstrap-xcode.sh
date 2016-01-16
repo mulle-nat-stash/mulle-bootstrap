@@ -349,9 +349,9 @@ Release"
          printf  "-----------------------------------------------------------${C_RESET}\n"  >&2
       fi
 
-      query="Add ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_YELLOW} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Add ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    else
-      query="Remove ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_YELLOW} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Remove ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    fi
 
    user_say_yes "$query"

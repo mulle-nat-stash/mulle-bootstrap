@@ -40,21 +40,27 @@ warn_scripts()
    local phases
    local ack
    local i
+   local old
 
    if [ -d "$1" ]
    then
-      scripts=`find "$1" -name "*.sh" \( -perm +u+x -o -perm +g+x -o -perm +o+x \) -type f -print`
+      scripts="`find "$1" -name "*.sh" \( -perm +u+x -o -perm +g+x -o -perm +o+x \) -type f -print`"
       if [ ! -z "${scripts}" ]
       then
-         echo "this .bootstrap contains shell scripts:" >&2
-         echo $scripts | while read i
+         log_warning "this .bootstrap contains shell scripts:" 
+         old="${IFS:-" "}"         
+         IFS="
+"
+         echo "${C_BOLD}--------------------------------------------------------${C_RESET}" >&2
+         for i in $scripts
          do
-            echo "$i:" >&2
-            echo "--------------------------------------------------------" >&2
+            echo "${C_BOLD}$i:${C_RESET}" >&2
+            echo "${C_BOLD}--------------------------------------------------------${C_RESET}" >&2
             cat "$i" >&2
-            echo "--------------------------------------------------------" >&2
+            echo "${C_BOLD}--------------------------------------------------------${C_RESET}" >&2
          done
          echo "" >&2
+         IFS="${old}"
       fi
    fi
 
@@ -64,10 +70,10 @@ warn_scripts()
 
       if dir_has_files "$2"
       then
-         phases=`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}'  \; -print)`
+         phases="`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}'  \; -print)`"
          if [ ! -z "${phases}" ]
          then
-            echo "this repository contains xcode projects with shellscript phases" >&2
+            log_warning "this repository contains xcode projects with shellscript phases" 
 
             ack=`which ack`
             if [ -z "${ack}" ]
@@ -110,7 +116,7 @@ main()
    then
       warn_scripts "$@"
    else
-      log_warning "Script checking by autoanswer YES disabled"
+      log_fluff "Script checking by autoanswer YES disabled"
    fi
 }
 

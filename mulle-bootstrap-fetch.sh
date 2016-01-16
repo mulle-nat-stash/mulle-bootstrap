@@ -982,7 +982,7 @@ update()
    log_info "Updating \"${dstdir}\""
    if [ ! -L "${dstdir}"  ]
    then
-      run_repo_settings_script "${name}" "${dstdir}" "pre-update" "%@"
+      run_repo_settings_script "${name}" "${dstdir}" "pre-update" "$@"
 
       script="`find_repo_setting_file "${name}" "bin/update.sh"`"
       if [ ! -z "${script}" ]
@@ -992,7 +992,7 @@ update()
          "${operation}" "${dstdir}" "${tag}"
       fi
 
-      run_repo_settings_script "${name}" "${dstdir}" "post-update" "%@"
+      run_repo_settings_script "${name}" "${dstdir}" "post-update" "$@"
    fi
 }
 
@@ -1204,7 +1204,7 @@ main()
    #
    # Run prepare scripts if present
    #
-   run_fetch_settings_script "post-${COMMAND}" "%@"
+   run_fetch_settings_script "post-${COMMAND}" "$@"
 
    if read_yes_no_config_setting "update_gitignore" "YES"
    then

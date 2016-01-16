@@ -10,10 +10,13 @@ then
          # Escape sequence and resets
          C_RESET="\033[0m"
 
-         # Foreground colours
-         C_BLACK="\033[0;30m"   C_RED="\033[0;31m"    C_GREEN="\033[0;32m"
-         C_YELLOW="\033[0;33m"  C_BLUE="\033[0;34m"   C_MAGENTA="\033[0;35m"
-         C_CYAN="\033[0;36m"    C_WHITE="\033[0;37m"  C_BR_BLACK="\033[0;90m"
+         # Useable Foreground colours, for black/white white/black
+         C_RED="\033[0;31m"     C_GREEN="\033[0;32m"
+         C_BLUE="\033[0;34m"    C_MAGENTA="\033[0;35m"
+         C_CYAN="\033[0;36m"    
+
+         C_BR_RED="\033[0;91m" C_BR_YELLOW="\033[0;93m"
+         C_BOLD="\033[1m" 
 
          #
          # restore colors if stuff gets wonky
@@ -48,7 +51,7 @@ do
    mkdir -p "${bin}" 2> /dev/null
    sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
    chmod "${mode}" "${bin}/${i}" || exit 1
-   printf "install: ${C_MAGENTA}%s${C_RESET}\n" "$bin/$i" >&2
+   printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
 done
 
 

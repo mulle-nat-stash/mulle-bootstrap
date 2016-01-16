@@ -414,7 +414,7 @@ build_cmake()
 
    enforce_build_sanity "${builddir}"
 
-   log_info "Let ${C_YELLOW}cmake${C_INFO} do a ${C_MAGENTA}${configuration}${C_INFO} build of \
+   log_info "Let ${C_CYAN}cmake${C_INFO} do a ${C_MAGENTA}${configuration}${C_INFO} build of \
 ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    local sdkparameter
@@ -456,6 +456,12 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} in \"${builddir
 
       logfile1="${owd}/${logfile1}"
       logfile2="${owd}/${logfile2}"
+
+      if [ "$MULLE_BOOTSTRAP_VERBOSE" != "" ]
+      then
+         logfile1="`tty`"
+         logfile2="$logfile1"
+      fi
       if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
       then
          logfile1="/dev/null"
@@ -522,7 +528,7 @@ build_configure()
 
    enforce_build_sanity "${builddir}"
 
-   log_info "Let ${C_YELLOW}configure${C_INFO} do a ${C_MAGENTA}${configuration}${C_INFO} build of \
+   log_info "Let ${C_CYAN}configure${C_INFO} do a ${C_MAGENTA}${configuration}${C_INFO} build of \
 ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} in \"${builddir}\" ..."
 
 
@@ -558,6 +564,12 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} in \"${builddir
 
       logfile1="${owd}/${logfile1}"
       logfile2="${owd}/${logfile2}"
+
+      if [ "$MULLE_BOOTSTRAP_TRACE" != "" ]
+      then
+         logfile1="`tty`"
+         logfile2="$logfile1"
+      fi
       if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
       then
          logfile1="/dev/null"
@@ -771,17 +783,19 @@ build_xcodebuild()
    info=""
    if [ ! -z "${targetname}" ]
    then
-      info="Target ${C_MAGENTA}${targetname}${C_INFO}"
+      info=" Target ${C_MAGENTA}${targetname}${C_INFO}"
    fi
 
    if [ ! -z "${schemename}" ]
    then
-      info="Scheme ${C_MAGENTA}${schemename}${C_INFO}"
+      info=" Scheme ${C_MAGENTA}${schemename}${C_INFO}"
    fi
 
-   log_info "Let ${C_YELLOW}xcodebuild${C_INFO} do a ${C_MAGENTA}${configuration}${C_INFO} build of \
-${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} \
-${info} in \"${builddir}\" ..."
+   log_info "Let ${C_CYAN}xcodebuild${C_INFO} do a \
+${C_MAGENTA}${configuration}${C_INFO} build of \
+${C_MAGENTA}${name}${C_INFO} for SDK \
+${C_MAGENTA}${sdk}${C_INFO}${info} in \
+\"${builddir}\" ..."
 
    local projectname
 
@@ -891,7 +905,7 @@ ${info} in \"${builddir}\" ..."
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
    logfile="`build_log_name "xcodebuild" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
-   log_info "Build log will be in ${C_RESET}\"${logfile}\""
+   log_info "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
    set -f
 
@@ -955,6 +969,11 @@ ${info} in \"${builddir}\" ..."
 
 
       logfile="${owd}/${logfile}"
+
+      if [ "${MULLE_BOOTSTRAP_TRACE}" != "" ]
+      then
+         logfile="`tty`"
+      fi
       if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
       then
          logfile="/dev/null"
@@ -1134,12 +1153,13 @@ build_script()
    name="$5"
    sdk="$6"
 
+
    local logfile
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
-   logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
 
-   log_info "Build log will be in \"${logfile}\""
+   logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
+   log_info "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
    local owd
 
@@ -1147,12 +1167,17 @@ build_script()
    exekutor cd "${srcdir}" || exit 1
 
       logfile="${owd}/${logfile}"
+
+      if [ "$MULLE_BOOTSTRAP_TRACE" != "" ]
+      then
+         logfile="`tty`"
+      fi
       if [ "$MULLE_BOOTSTRAP_DRY_RUN" = "YES" ]
       then
          logfile="/dev/null"
       fi
 
-      log_info "Running build script for ${C_MAGENTA}${configuration}${C_INFO}"
+      log_info "Running build script for ${C_MAGENTA}${C_BOLD}${configuration}${C_INFO}"
       run_log_script "${owd}/${script}" \
          "${configuration}" \
          "${owd}/${srcdir}" \
@@ -1331,7 +1356,7 @@ build_wrapper()
 
    log_fluff "Setting up BUILD_DEPENDENCY_SUBDIR as \"${BUILD_DEPENDENCY_SUBDIR}\""
 
-   if [ -d "${BUILD_DEPENDENCY_SUBDIR}" ]
+   if [ "${COMMAND}" != "ibuild" -a -d "${BUILD_DEPENDENCY_SUBDIR}" ]
    then
       log_info "Cleaning up orphaned \"${BUILD_DEPENDENCY_SUBDIR}\""
       rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
@@ -1350,12 +1375,16 @@ build_wrapper()
 
    run_repo_settings_script "${name}" "${srcdir}" "post-build" "$@" || exit 1
 
-   log_fluff "Remove \"${BUILD_DEPENDENCY_SUBDIR}\""
+   if [ "${COMMAND}" != "ibuild"  ]
+   then
+      log_fluff "Remove \"${BUILD_DEPENDENCY_SUBDIR}\""
+   fi
 
    rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
 
    DEPENDENCY_SUBDIR="${REFERENCE_DEPENDENCY_SUBDIR}"
 
+   # for mulle-bootstrap developers
    REFERENCE_DEPENDENCY_SUBDIR="WRONG_DONT_USE_REFERENCE_DEPENDENCY_SUBDIR_AFTER_BUILD"
    BUILD_DEPENDENCY_SUBDIR="WRONG_DONT_USE_BUILD_DEPENDENCY_SUBDIR_AFTER_BUILD"
 }
