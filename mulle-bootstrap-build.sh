@@ -313,9 +313,13 @@ determine_suffix()
 
 cmake_sdk_parameter()
 {
+   local sdk
+
+   sdk="$1"
+
    local sdkpath
 
-   sdkpath=`gcc_sdk_parameter "$1"`
+   sdkpath=`gcc_sdk_parameter "${sdk}"`
    if [ "${sdkpath}" != "" ]
    then
       log_fluff "Set cmake -DCMAKE_OSX_SYSROOT to \"${sdkpath}\""
@@ -326,7 +330,8 @@ cmake_sdk_parameter()
 
 create_dummy_dirs_against_warnings()
 {
-   local relative
+   local builddir
+   local configuration
    local suffix
 
    builddir="$1"
@@ -531,10 +536,12 @@ build_configure()
    log_info "Let ${C_CYAN}configure${C_INFO} do a ${C_MAGENTA}${configuration}${C_INFO} build of \
 ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} in \"${builddir}\" ..."
 
+   local sdkpath
 
    mapped="`read_build_setting "$name" "configure-${configuration}.map" "${configuration}"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
-   sdk="`gcc_sdk_parameter "${sdk}"`"
+   sdkpath="`gcc_sdk_parameter "${sdk}"`"
+   sdkpath="`echo "${sdkpath}" | sed -e 's/ /\\ /g'`"
 
    local other_cflags
    local other_cppflags
@@ -583,14 +590,14 @@ ${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} in \"${builddir
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
-${sdk}\" \
+-isysroot ${sdkpath}\" \
       CPPFLAGS=\"\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
-${sdk}\" \
+-isysroot ${sdkpath}\" \
       LDFLAGS=\"\
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
@@ -599,7 +606,7 @@ ${sdk}\" \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
-${sdk}\"" >> "${logfile1}"
+-isysroot ${sdkpath}\"" >> "${logfile1}"
 
 
        CFLAGS="\
@@ -608,14 +615,14 @@ ${sdk}\"" >> "${logfile1}"
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
-${sdk}" \
+-isysroot ${sdkpath}" \
       CPPFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
-${sdk}" \
+-isysroot ${sdkpath}" \
       LDFLAGS="\
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
@@ -624,7 +631,7 @@ ${sdk}" \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
-${sdk}" \
+-isysroot ${sdkpath}" \
        logging_exekutor "${owd}/${srcdir}/configure" \
           --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
@@ -1153,7 +1160,6 @@ build_script()
    name="$5"
    sdk="$6"
 
-
    local logfile
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
@@ -1208,7 +1214,6 @@ build()
    [ "${name}" != "${CLONES_SUBDIR}" ] || internal_fail "missing repo argument (${srcdir})"
 
    local preferences
-   local configurations
 
    #
    # repo may override how it wants to be build
@@ -1228,6 +1233,8 @@ cmake
 configure"`"
       fi
    fi
+
+   local configurations
 
    configurations="`read_build_root_setting "configurations" "Debug
 Release"`"
@@ -1255,14 +1262,14 @@ Release"`"
    do
       for configuration in ${configurations}
       do
-         if [ "$/{configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_DIR_NAME}" ]
+         if [ "/${configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_DIR_NAME}" ]
          then
-            fail "You are just asking for trouble."
+            fail "You are just asking for trouble naming your configuration \"${configuration}\"."
          fi
 
          if [ "${configuration}" = "lib" -o "${configuration}" = "include" -o "${configuration}" = "Frameworks" ]
          then
-            fail "You are just asking for major trouble."
+            fail "You are just asking for major trouble naming your configuration \"${configuration}\"."
          fi
 
          builddir="${CLONESBUILD_SUBDIR}/${configuration}/${name}"
