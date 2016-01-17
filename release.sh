@@ -14,13 +14,13 @@ git_must_be_clean()
 
    if [ ! -d .git ]
    then
-      fail "\"${name}${C_ERROR} is not a git repository"
+      fail "\"${name}\" is not a git repository"
    fi
 
    clean=`git status -s`
    if [ "${clean}" != "" ]
    then
-      fail "repository \"${name}${C_ERROR} is tainted"
+      fail "repository \"${name}\" is tainted"
    fi
 }
 

@@ -14,6 +14,17 @@ installs to `./dependencies`
 * compiles dependents using the output of previous dependents
 * written in portable shell script, will run eventually also on Linux
 
+## How to install (OS X)
+
+```console
+brew tap mulle-kybernetik/software
+brew install mulle-bootstrap
+```
+
+> If that doesn't work for some reason, try to
+> `brew untap mulle-kybernetik/software` it and then retry. 
+
+
 ## What mulle-bootstrap can do for you
 
 So you need a bunch of first and third party repositories to build your own
@@ -40,34 +51,25 @@ repositories dependencies.
 
 Everything you need should be present at this time. so **mulle-bootstrap** will
 now build a **Debug** and a **Release** version for each library, and place
-the headers and the produced libraries into "./dependencies".
+the headers and the produced libraries into  the "./dependencies" folder.
 
 Your Xcode project can be optionally massaged by
 **mulle-bootstrap xcode add** to have the "./dependencies" folder in its
 search paths.
 
-## What a project user needs to do
+
+## Commands for a project user 
+
+#### mulle-bootstrap 
+
+Download a project which is mulle-bootstrap enabled. Execute mulle-bootstrap 
+in it and you are all set:
 
 ```console
-brew tap mulle-kybernetik/software
-brew install mulle-bootstrap
-```
-
-> If that doesn't work for some reason, try to
-> `brew untap mulle-kybernetik/software` it and then retry. I made some
-> mistakes early on, when setting up the tap.
-
-Download a project which is mulle-bootstrap enabled.
-
-```console
-cd <project>
 mulle-bootstrap
 ```
-
-
-And all dependencies should be recreated as they were on your development
-machine (if you set it up correctly). `mulle-bootstrap` is a shortened command
-of `mulle-bootstrap bootstrap`, which in turn executes:
+`mulle-bootstrap` is a the shortened command of `mulle-bootstrap bootstrap`, which 
+in turn executes:
 
 #### mulle-bootstrap fetch
 
@@ -81,7 +83,8 @@ Compiles the required libraries contained in the `.repos` folder into
 
 
 
-## What a project maintainer needs to do
+
+## Commands for a project maintainer
 
 #### mulle-bootstrap init
 
@@ -109,6 +112,7 @@ openssl
 Prepares a Xcode project to use the libraries that are compiled into the
 `./dependencies` folder. You still need to add the libraries to your targets
 though.
+
 
 #### mulle-bootstrap tag
 
