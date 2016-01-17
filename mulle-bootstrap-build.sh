@@ -419,8 +419,10 @@ build_cmake()
 
    enforce_build_sanity "${builddir}"
 
-   log_info "Let ${C_CYAN}cmake${C_INFO} do a ${C_MAGENTA}${configuration}${C_INFO} build of \
-${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} in \"${builddir}\" ..."
+   log_info "Let ${C_RESET_BOLD}cmake${C_INFO} do a \
+${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
+${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
+${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    local sdkparameter
    local suffix
@@ -533,8 +535,10 @@ build_configure()
 
    enforce_build_sanity "${builddir}"
 
-   log_info "Let ${C_CYAN}configure${C_INFO} do a ${C_MAGENTA}${configuration}${C_INFO} build of \
-${C_MAGENTA}${name}${C_INFO} for SDK ${C_MAGENTA}${sdk}${C_INFO} in \"${builddir}\" ..."
+   log_info "Let ${C_RESET_BOLD}configure${C_INFO} do a \
+${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
+${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
+${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    local sdkpath
 
@@ -798,10 +802,10 @@ build_xcodebuild()
       info=" Scheme ${C_MAGENTA}${schemename}${C_INFO}"
    fi
 
-   log_info "Let ${C_CYAN}xcodebuild${C_INFO} do a \
-${C_MAGENTA}${configuration}${C_INFO} build of \
-${C_MAGENTA}${name}${C_INFO} for SDK \
-${C_MAGENTA}${sdk}${C_INFO}${info} in \
+   log_info "Let ${C_RESET_BOLD}xcodebuild${C_INFO} do a \
+${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
+${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
+${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 \"${builddir}\" ..."
 
    local projectname

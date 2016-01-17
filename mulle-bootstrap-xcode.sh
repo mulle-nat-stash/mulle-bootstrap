@@ -256,19 +256,21 @@ Release"
 
       if [ $terse -ne 0 ]
       then
-         #     012345678901234567890123456789012345678901234567890123456789
-         printf "${C_RESET}Settings will be added to ${C_MAGENTA}${projectname}${C_RESET}.\n" >&2
-         printf "In the long term it may be more useful to copy/paste the following\n" >&2
-         printf "lines into a local .xcconfig file, that is inherited by all configurations.${C_RESET}\n" >&2
+         #         012345678901234567890123456789012345678901234567890123456789
+         log_info "Settings will be added to ${C_MAGENTA}${projectname}${C_RESET}."
+         log_info "In the long term it may be more useful to copy/paste the "
+         log_info "following lines into a set of local .xcconfig file, that is "
+         log_info "inherited by all configurations."
       fi
    else
       flag="remove"
 
       if [ $terse -ne 0 ]
       then
-         #     012345678901234567890123456789012345678901234567890123456789
-         printf "${C_RESET}Settings will be removed from ${projectname}.\n" >&2
-         printf "You may want to check afterwards, that this has worked out OK :).${C_RESET}\n" >&2
+         #         012345678901234567890123456789012345678901234567890123456789
+         log_info "Settings will be removed from ${projectname}."
+         log_info "You may want to check afterwards, that this has worked out"
+         log_info "OK :)."
       fi
    fi
 
@@ -318,15 +320,17 @@ Release"
          local mapped
          local i
 
-         printf  "${C_RESET}-----------------------------------------------------------\n"  >&2
+         printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
 
          #  make these echos easily grabable by stdout
          #     012345678901234567890123456789012345678901234567890123456789
-         echo "// Common.xcconfig:"
+         printf "${C_RESET_BOLD}Common.xcconfig:${C_RESET}\n"
+         printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
          echo "DEPENDENCIES_DIR=${dependencies_dir}"
          echo "HEADER_SEARCH_PATHS=${header_search_paths}"
          echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
          echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
+         printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
 
          local old
 
@@ -337,16 +341,16 @@ Release"
          do
             mapped=`map_configuration "${configurations}" "${i}"`
 
-            echo ""
-            echo ""
             #     012345678901234567890123456789012345678901234567890123456789
-            echo "// ${i}.xcconfig:"
+            printf "${C_RESET_BOLD}${i}.xcconfig:${C_RESET}\n"
+            printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
             echo "#include \"Common.xcconfig\""
+            echo ""
             echo "LIBRARY_CONFIGURATION=${mapped}"
+            printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
          done
 
          IFS="${old}"
-         printf  "-----------------------------------------------------------${C_RESET}\n"  >&2
       fi
 
       query="Add ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
@@ -371,14 +375,14 @@ Release"
       if [ $terse -ne 0 ]
       then
          #     012345678901234567890123456789012345678901234567890123456789
-         printf "${C_RESET}\n"
-         echo "Hint:"
-         echo "If you add a configuration to your project, remember to edit" >&2
-         echo "the LIBRARY_CONFIGURATION setting for that configuration." >&2
-         echo "" >&2
-         echo "You can rerun setup-xcode at later times and it should not" >&2
-         echo "unduly duplicate setting contents." >&2
-         printf "${C_RESET}\n" >&2
+         printf "${C_RESET_BOLD}${C_CYAN}\n" >&2
+         echo "Hint:" >&2
+         echo "If you add a configuration to your project, remember to" >&2
+         echo "edit the ${C_RESET_BOLD}LIBRARY_CONFIGURATION${C_CYAN} setting for that" >&2
+         echo "configuration." >&2
+         echo "You can rerun \"mulle-bootstrap xcode add\" at later times" >&2
+         echo "and it should not unduly duplicate setting contents." >&2
+         printf "\n${C_RESET}" >&2
       fi
    fi
 }

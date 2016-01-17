@@ -32,10 +32,10 @@
 gcc_sdk_parameter()
 {
    local sdk
-   local sdkpath
 
    sdk="$1"
 
+   local sdkpath
    if [ "`uname`" = "Darwin" ]
    then
       if [ "${sdk}" = "Default" ]

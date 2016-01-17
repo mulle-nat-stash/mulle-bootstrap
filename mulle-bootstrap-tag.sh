@@ -134,7 +134,12 @@ git_must_be_clean()
    clean=`git status -s`
    if [ "${clean}" != "" ]
    then
-      fail "repository $name is tainted"
+      log_error "Repository \"$name\" is not ready to be tagged yet."
+      if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
+      then
+         git status -s >&2
+      fi
+      exit 1
    fi
 }
 

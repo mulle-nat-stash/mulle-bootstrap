@@ -53,10 +53,11 @@ Initially none of the folders contain a `.bootstrap` folder.
 Try to build B with `xcodebuild`. It will not work, because the header
 `<A/A.h>` will not be found.
 
-The first step is to initalize A for **mulle-bootstrap**. You use
+The first step is to initalize B for **mulle-bootstrap**. You use inside the B
+folder
 
 ```console
-$ mulle-bootstrap init
+$ mulle-bootstrap init#
 ```
 
 At that point a `.bootstrap` will be created with some default

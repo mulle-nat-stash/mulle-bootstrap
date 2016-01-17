@@ -164,6 +164,7 @@ check_and_usage_and_help()
    cat <<EOF
 usage: bootstrap
    There is nothing more to it.
+}
 EOF
 }
 
@@ -209,7 +210,7 @@ main()
       "${command}" != "version"  -a \
       "${command}" != "convert-pre-0.10" ]
    then
-      echo "there is no ${BOOTSTRAP_SUBDIR} here, can't continue" >&2
+      echo "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue" >&2
       exit 1
    fi
 
