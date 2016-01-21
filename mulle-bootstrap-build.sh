@@ -1264,6 +1264,12 @@ Release"`"
 
    for sdk in ${sdks}
    do
+      # remap macosx to Default, as EFFECTIVE_PLATFORM_NAME will not be appeneded by Xcode
+      if [ "$sdk" = "macosx" ]
+      then
+         sdk="Default"
+      fi
+
       for configuration in ${configurations}
       do
          if [ "/${configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_DIR_NAME}" ]

@@ -81,7 +81,7 @@ list_configurations()
 
    project="${1}"
   #
-  # Figure out all configuration
+  # Figure out all configurations
   #
    xcodebuild -list -project "${project}" 2> /dev/null | \
    grep -A100 'Build Configurations' | \
@@ -131,15 +131,17 @@ map_configuration()
 {
    local xcode_configuration
    local configurations
-   local mapped
-   local i
+   local default
 
    configurations="$1"
    xcode_configuration="$2"
+   default="$3"
+
+   local mapped
+   local i
+   local old
 
    mapped=""
-
-   local old
 
    old="${IFS:-" "}"
    IFS="
@@ -180,11 +182,13 @@ patch_library_configurations()
    local configurations
    local i
    local mapped
+   local default
 
    xcode_configurations="$1"
    configurations="$2"
    project="$3"
-   flag="$4"
+   default="$4"
+   flag="$5"
 
    local old
 
@@ -193,7 +197,7 @@ patch_library_configurations()
 "
    for i in ${xcode_configurations}
    do
-      mapped=`map_configuration "${configurations}" "${i}"`
+      mapped=`map_configuration "${configurations}" "${i}" "${default}"`
       exekutor mulle-xcode-settings -configuration "${i}" "${flag}" "LIBRARY_CONFIGURATION" "${mapped}" "${project}" || exit 1
    done
    IFS="${old}"
@@ -235,8 +239,6 @@ patch_xcode_project()
 
    configurations=`read_build_root_setting "configurations" "Debug
 Release"`
-
-   default=`echo "${configurations}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//'`
 
    #
    # Add LIBRARY_CONFIGURATION mapping
@@ -294,6 +296,10 @@ Release"
    header_search_paths="\$(DEPENDENCIES_DIR)/${HEADER_DIR_NAME}"
    header_search_paths="${header_search_paths} /usr/local/include"
    header_search_paths="${header_search_paths} \$(inherited)"
+
+   local default
+
+   default=`echo "${configurations}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//'`
 
    library_search_paths="\$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)"
    library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/\$(LIBRARY_CONFIGURATION)"
@@ -362,7 +368,7 @@ Release"
    [ $? -eq 0 ] || exit 1
 
 
-   patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${flag}"
+   patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${default}" "${flag}"
 
    exekutor mulle-xcode-settings "${flag}" "DEPENDENCIES_DIR" "${dependencies_dir}" "${project}"  || exit 1
    exekutor mulle-xcode-settings "${flag}" "HEADER_SEARCH_PATHS" "${header_search_paths}" "${project}"  || exit 1
