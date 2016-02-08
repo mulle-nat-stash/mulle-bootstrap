@@ -165,7 +165,7 @@ _read_environment_setting()
 
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES" ]
    then
-      log_trace "Setting ${C_MAGENTA}${name}${C_TRACE} found in environment variable \"${envname}\" as ${C_MAGENTA}${value}${C_TRACE}"
+      log_trace "Setting ${C_MAGENTA_BOLD}${name}${C_TRACE} found in environment variable \"${envname}\" as ${C_MAGENTA_BOLD}${value}${C_TRACE}"
    fi
 
    warn_environment_setting "${envname}"
@@ -200,7 +200,7 @@ _read_local_setting()
 
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES" ]
    then
-      log_trace "Setting ${C_MAGENTA}${name}${C_TRACE} found in \"~/.mulle-bootstrap\" as ${C_MAGENTA}${value}${C_TRACE}"
+      log_trace "Setting ${C_MAGENTA_BOLD}${name}${C_TRACE} found in \"~/.mulle-bootstrap\" as ${C_MAGENTA_BOLD}${value}${C_TRACE}"
    fi
    warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
 

@@ -168,7 +168,7 @@ Now add your repositories to \"${BOOTSTRAP_SUBDIR}/repositories${C_INFO}"
   open="`read_config_setting "open_repositories_file" "ASK"`"
   if [ "${open}" = "ASK" ]
   then
-    user_say_yes "Edit the ${C_MAGENTA}repositories${C_RESET} file now ?"
+    user_say_yes "Edit the ${C_MAGENTA}${C_BOLD}repositories${C_RESET_BOLD} file now ?"
     if [ $? -eq 0 ]
     then
        open="YES"

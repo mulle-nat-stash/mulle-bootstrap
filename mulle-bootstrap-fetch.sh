@@ -398,40 +398,39 @@ bootstrap_auto_update()
    old="${IFS:-" "}"
 
    #
-   # prepare auto folder if it doesn't exist yet
-   # means copy our own files to .auto first,
+   # if an auto folder exists it could be stale, due to user edits
+   # it's better to completely redo it
    #
-   if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
-   then
-      log_info "Found a .bootstrap folder for \"${name}\" will set up ${BOOTSTRAP_SUBDIR}.auto"
 
-      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
+   mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
 
-      IFS="
+   IFS="
 "
-      for i in $INHERIT_SETTINGS
-      do
-         IFS="${old}"
-         if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
-         then
-            exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
-         else
-            if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
-            then
-               exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
-            else
-               name="`basename -- "${i}"`"
-               log_fluff "Setting \"${name}\" is not specified, so not inherited"
-            fi
-         fi
-      done
+   for i in $INHERIT_SETTINGS
+   do
       IFS="${old}"
+      if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
+      then
+         exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
+      else
+         if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
+         then
+            exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
+         else
+            name="`basename -- "${i}"`"
+            log_fluff "Setting \"${name}\" is not specified, so not inherited"
+         fi
+      fi
+   done
+   IFS="${old}"
 
-      # now move it
-      exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
-
-      # leave .scm files behind
+   # now move it
+   if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
+   then
+      executor rm -rf  "${BOOTSTRAP_SUBDIR}.auto"
    fi
+   exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
+
 
    #
    # prepend new contents to old contents
@@ -440,7 +439,7 @@ bootstrap_auto_update()
    local srcfile
    local dstfile
    local i
-
+   local settingname
    IFS="
 "
    for i in $INHERIT_SETTINGS
@@ -448,10 +447,10 @@ bootstrap_auto_update()
       IFS="{old}"
       srcfile="${dir}/.bootstrap/${i}"
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
-      name="`basename -- "${i}"`"
+      settingname="`basename -- "${i}"`"
       if [ -f "${srcfile}" ]
       then
-         log_fluff "Inheriting \"${name}\" from \"${srcfile}\""
+         log_fluff "Inheriting \"${settingname}\" from \"${srcfile}\""
 
          mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/`dirname -- "${i}"`"
          if [ -f "${BOOTSTRAP_SUBDIR}.auto/${i}" ]
@@ -467,7 +466,7 @@ bootstrap_auto_update()
             exekutor cp "${srcfile}" "${dstfile}" || exit 1
          fi
       else
-         log_fluff "Setting \"${name}\" is not specified, so not inherited"
+         log_fluff "Setting \"${settingname}\" is not specified, so not inherited"
       fi
    done
    IFS="{old}"
@@ -635,7 +634,7 @@ checkout()
    then
       log_error "Stale folders \"${DEPENDENCY_SUBDIR}\" and/or \"${CLONESBUILD_SUBDIR}\" found."
       log_error "Please remove them before continuing."
-      log_info  "Suggested command: ${C_RESET}mulle-bootstrap clean output${C_INFO}"
+      log_info  "Suggested command: ${C_RESET_BOLD}mulle-bootstrap clean output${C_INFO}"
       exit 1
    fi
 
@@ -1181,11 +1180,6 @@ main()
          log_error  "Additional parameters not allowed for install"
          usage >&2
          exit 1
-      fi
-
-      if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
-      then
-         log_warning "Folder \"${BOOTSTRAP_SUBDIR}.auto\" already exists!"
       fi
 
       clone_repositories

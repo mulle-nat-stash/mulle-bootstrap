@@ -24,13 +24,13 @@ SHELLFLAGS=-x -e SC2164,SC2166,SC2006 -s sh
 
 %.chk:	%.sh
 		- shellcheck $(SHELLFLAGS) $<
-		(shellcheck -f json $(SHELLFLAGS) $< | jq '.[].level' | grep error > /dev/null ) && exit 1 || touch $@
+		(shellcheck -f json $(SHELLFLAGS) $< | jq '.[].level' | grep -w error > /dev/null ) && exit 1 || touch $@
 
 all:	$(CHECKSTAMPS) mulle-bootstrap.chk shellcheck_check jq_check
 
 mulle-bootstrap.chk:	mulle-bootstrap
 		- shellcheck $(SHELLFLAGS) $<
-		(shellcheck -f json $(SHELLFLAGS) $< | jq '.[].level' | grep error > /dev/null ) && exit 1 || touch $@
+		(shellcheck -f json $(SHELLFLAGS) $< | jq '.[].level' | grep -w error > /dev/null ) && exit 1 || touch $@
 
 install:
 	@ ./install.sh

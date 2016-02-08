@@ -1,3 +1,13 @@
+0.15
+===
+   `tag` checks in all repositories, that a tag does not exist.
+   Remove some fluff from regular output.
+   Fix a bug involving settings copy  (build_ignore became a directory bug)
+   Executed commands are now prefixed with ==> for better readability.
+   Always redo bootstrap.auto folder on fetch, which means that you don't need
+   to clean dist anymore after editing .bootstrap files.
+   Forgot to write-protect dependencies, when only partial builds were done.
+
 0.14
 ===
    Fix various uglies.
@@ -20,12 +30,11 @@
 ===
    Fixes another stale headers problem. Project is creeping towards a 1.0.
 
-
 0.10
 ===
    Fetch settings can be platform specific by using the `uname` as a file
-   extension. e.g. repositories.Darwin. Other settings may follow, if the need arises.
-   So far it hasn't.
+   extension. e.g. repositories.Darwin. Other settings may follow, if the need
+   arises. So far it hasn't.
 
    Added "embedded_repositories" for those special moments, where you don't want
    to link another project, but just steal a few files. These gits are installed

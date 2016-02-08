@@ -111,12 +111,34 @@ then
 
    check_and_usage_and_help
 
-   log_info "Set vendortag to \"${VENDOR_TAG}\""
+   log_info "Will use \"${VENDOR_TAG}\" to tag clones"
 else
    check_and_usage_and_help
 fi
 
 REPO="."
+
+
+git_tag_unknown()
+{
+   local name
+   local tag
+
+   name="${1:-${PWD}}"
+   tag="${2}"
+
+   if [ ! -d .git ]
+   then
+      fail "\"${name}\" is not a git repository"
+   fi
+
+   git reflog "${tag}" -- > /dev/null  2>&1
+   if [ "$?" -eq 0 ]
+   then
+      log_error "Repository \"$name\" is already tagged with \"$2\"."
+      exit 1
+   fi
+}
 
 
 git_must_be_clean()
@@ -166,6 +188,35 @@ ensure_repos_clean()
 }
 
 
+ensure_tags_unknown()
+{
+   local tag
+   local vendortag
+
+   tag="$1"
+   vendortag="$2"
+
+   #
+   # Make sure that tagging is OK
+   # all git repos must be clean
+   #
+   (cd "${REPO}" ; git_tag_unknown "${REPO}" "${tag}" ) || exit 1
+
+   if  dir_has_files "${CLONES_SUBDIR}"
+   then
+      for i in "${CLONES_SUBDIR}"/*
+      do
+         # only tag what looks like a git repo
+         if [ -d "${i}/.git" -o -d "${i}/refs" ]
+         then
+            (cd "${i}" ; git_tag_unknown "${i}" "${vendortag}" ) || exit 1
+         fi
+      done
+   fi
+}
+
+
+
 tag()
 {
    local i
@@ -205,6 +256,7 @@ main()
 {
    log_fluff "::: tag :::"
 
+   ensure_tags_unknown "${TAG}" "${VENDOR_TAG}"
    ensure_repos_clean
 
    echo "Will tag `basename -- "${PWD}"` with ${TAG}" >&2

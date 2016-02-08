@@ -362,10 +362,11 @@ build_fail()
    if [ -f "${1}" ]
    then
       printf "${C_RED}"
-      grep -A5 "error:" "${1}" >&2
+      egrep -B1 -A5 -w "[Ee]rror" "${1}" >&2
       printf "${C_RESET}"
    fi
 
+   log_info "Check the build log: ${C_RESET_BOLD}${1}${C_INFO}"
    fail "$2 failed"
 }
 
@@ -450,7 +451,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    logfile1="`build_log_name "cmake" "${name}" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
 
-   log_info "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
+   log_fluff "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
@@ -565,7 +566,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    logfile1="`build_log_name "configure" "${name}" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
 
-   log_info "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
+   log_fluff "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
    owd="${PWD}"
    mkdir_if_missing "${builddir}"
@@ -794,12 +795,12 @@ build_xcodebuild()
    info=""
    if [ ! -z "${targetname}" ]
    then
-      info=" Target ${C_MAGENTA}${targetname}${C_INFO}"
+      info=" Target ${C_MAGENTA}${C_BOLD}${targetname}${C_INFO}"
    fi
 
    if [ ! -z "${schemename}" ]
    then
-      info=" Scheme ${C_MAGENTA}${schemename}${C_INFO}"
+      info=" Scheme ${C_MAGENTA}${C_BOLD}${schemename}${C_INFO}"
    fi
 
    log_info "Let ${C_RESET_BOLD}xcodebuild${C_INFO} do a \
@@ -916,7 +917,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
    logfile="`build_log_name "xcodebuild" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
-   log_info "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
+   log_fluff "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
    set -f
 
@@ -1169,7 +1170,7 @@ build_script()
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
    logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
-   log_info "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
+   log_fluff "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
    local owd
 
@@ -1187,7 +1188,12 @@ build_script()
          logfile="/dev/null"
       fi
 
-      log_info "Running build script for ${C_MAGENTA}${C_BOLD}${configuration}${C_INFO}"
+      log_info "Let ${C_RESET_BOLD}script${C_INFO} do a \
+${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
+${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
+${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
+\"${builddir}\" ..."
+
       run_log_script "${owd}/${script}" \
          "${configuration}" \
          "${owd}/${srcdir}" \
@@ -1608,14 +1614,8 @@ main()
 
    build_clones "$@"
 
-   if [ $# -eq 0 ]
-   then
-      if [ "${clean}" = "YES" -a -d "${DEPENDENCY_SUBDIR}" ]
-      then
-         log_info "Write-protecting \"${DEPENDENCY_SUBDIR}\" to avoid spurious header edits"
-         exekutor chmod -R a-w "${DEPENDENCY_SUBDIR}"
-      fi
-   fi
+   log_info "Write-protecting ${C_RESET_BOLD}${DEPENDENCY_SUBDIR}${C_INFO} to avoid spurious header edits"
+   exekutor chmod -R a-w "${DEPENDENCY_SUBDIR}"
 }
 
 main "$@"

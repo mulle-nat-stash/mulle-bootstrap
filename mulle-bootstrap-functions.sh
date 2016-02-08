@@ -42,7 +42,7 @@ then
          C_BLUE="\033[0;34m"    C_MAGENTA="\033[0;35m"
          C_CYAN="\033[0;36m"
 
-         C_BR_RED="\033[0;91m" C_BR_YELLOW="\033[0;93m"
+         C_BR_RED="\033[0;91m"
          C_BOLD="\033[1m"
          C_FAINT="\033[2m"
 
@@ -125,7 +125,7 @@ eval_exekutor()
 {
    if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE}" = "YES" ]
    then
-      echo "$@" >&2
+      echo "==> " "$@" >&2
    fi
 
    if [ "${MULLE_BOOTSTRAP_DRY_RUN}" != "YES" ]
@@ -137,7 +137,7 @@ eval_exekutor()
 
 logging_eval_exekutor()
 {
-   echo "$@"
+   echo "==>" "$@"
    eval_exekutor "$@"
 }
 
@@ -146,7 +146,7 @@ exekutor()
 {
    if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE}" = "YES" ]
    then
-      echo "$@" >&2
+      echo "==>" "$@" >&2
    fi
 
    if [ "${MULLE_BOOTSTRAP_DRY_RUN}" != "YES" ]
@@ -158,7 +158,7 @@ exekutor()
 
 logging_exekutor()
 {
-   echo "$@"
+   echo "==>" "$@"
    exekutor "$@"
 }
 
@@ -576,7 +576,7 @@ run_script()
 
    if [ -x "${script}" ]
    then
-      log_info "Executing script \"${script}\" $1"
+      log_fluff "Executing script \"${script}\" $1"
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]

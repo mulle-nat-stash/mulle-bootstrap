@@ -37,12 +37,21 @@ git_checkout_tag()
    dst="$1"
    tag="$2"
 
-   log_info "Checking out ${C_MAGENTA}${tag}${C_INFO} ..."
-   ( exekutor cd "${dst}" ; exekutor git checkout ${GITFLAGS} "${tag}" )
+   local flags
+
+   # checkout don't know -v
+   flags="${GITFLAGS}"
+   if [ "${flags}" = "-v" ]
+   then
+      flags=""
+   fi
+
+   log_info "Checking out ${C_MAGENTA}${C_BOLD}${tag}${C_INFO} ..."
+   ( exekutor cd "${dst}" ; exekutor git checkout ${flags} "${tag}" )
 
    if [ $? -ne 0 ]
    then
-      log_error "Checkout failed, moving ${C_CYAN}${dst}${C_ERROR} to {C_CYAN}${dst}.failed${C_ERROR}"
+      log_error "Checkout failed, moving ${C_CYAN}${C_BOLD}${dst}${C_ERROR} to ${C_CYAN}${C_BOLD}${dst}.failed${C_ERROR}"
       log_error "You need to fix this manually and then move it back."
       log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename -- "${dst}"`/TAG" >&2
 
@@ -68,7 +77,7 @@ git_clone()
    [ ! -z "$src" ] || internal_fail "src is empty"
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
-   log_info "Cloning ${C_MAGENTA}${src}${C_INFO} ..."
+   log_info "Cloning ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
    exekutor git clone ${flags} ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
 
    if [ "${tag}" != "" ]
@@ -88,7 +97,7 @@ git_pull()
 
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
-   log_info "Updating ${C_MAGENTA}${dst}${C_INFO} ..."
+   log_info "Updating ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
    ( exekutor cd "${dst}" ; exekutor git pull ${GITFLAGS} ) || fail "git pull of \"${dst}\" failed"
 
    if [ "${tag}" != "" ]
@@ -135,7 +144,7 @@ svn_update()
 
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
-   log_info "SVN updating ${C_MAGENTA}${dst}${C_INFO} ..."
+   log_info "SVN updating ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
 
    local flags
 
