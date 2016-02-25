@@ -80,7 +80,7 @@ echo "YES" > .bootstrap/settings/{reponame}/proper_skip_install
 ```
 
 
-### I changed something in .bootstrap but it nothing happens ?
+### I changed something in .bootstrap but nothing happens ?
 
 This can happen, when a .bootstrap.auto was created. The easy solution
 is to say `mulle-bootstrap clean dist`.
@@ -153,9 +153,4 @@ mulle-bootstrap -V
 mulle-bootstrap -t
 ```
 
-
-### Can I get some help ?
-
-Try http://stackoverflow.com and create a question with the tag "mulle-bootstrap".
-I am subscribed to that and should get an email.
 

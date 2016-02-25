@@ -427,7 +427,7 @@ bootstrap_auto_update()
    # now move it
    if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
-      executor rm -rf  "${BOOTSTRAP_SUBDIR}.auto"
+      exekutor rm -rf  "${BOOTSTRAP_SUBDIR}.auto"
    fi
    exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
 
@@ -440,6 +440,8 @@ bootstrap_auto_update()
    local dstfile
    local i
    local settingname
+   local directory
+
    IFS="
 "
    for i in $INHERIT_SETTINGS
@@ -448,11 +450,13 @@ bootstrap_auto_update()
       srcfile="${dir}/.bootstrap/${i}"
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
       settingname="`basename -- "${i}"`"
+
       if [ -f "${srcfile}" ]
       then
          log_fluff "Inheriting \"${settingname}\" from \"${srcfile}\""
 
-         mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/`dirname -- "${i}"`"
+         directory="`dirname -- "${i}"`"
+         mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/${directory}"
          if [ -f "${BOOTSTRAP_SUBDIR}.auto/${i}" ]
          then
             local tmpfile
@@ -487,7 +491,7 @@ bootstrap_auto_update()
 
       log_fluff "Link up build settings of \"${name}\" to \"${BOOTSTRAP_SUBDIR}.auto/settings/${name}\""
 
-      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
       exekutor find "${dir}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 

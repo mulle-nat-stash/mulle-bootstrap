@@ -1,3 +1,8 @@
+0.16
+===
+   Fixed misnamed exekutor.
+   Fix old favorite bug build_ignore became a directory bug) again ...
+
 0.15
 ===
    `tag` checks in all repositories, that a tag does not exist.
