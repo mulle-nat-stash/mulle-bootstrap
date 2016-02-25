@@ -60,17 +60,17 @@ check_and_usage_and_help()
 {
    case "$COMMAND" in
       install)
-      ;;
+         ;;
       nonrecursive)
         COMMAND=install
         DONT_RECURSE="YES"
-      ;;
-      update)
-      ;;
+         ;;
+         update)
+         ;;
       *)
-      usage >&2
-      exit 1
-      ;;
+         usage >&2
+         exit 1
+         ;;
    esac
 }
 
@@ -264,6 +264,7 @@ install_pips()
    fi
 }
 
+
 #
 ###
 #
@@ -369,28 +370,29 @@ gems
 settings/build_order
 settings/build_ignore'
 
+
 bootstrap_auto_update()
 {
    local name
    local url
-   local dir
+   local directory
 
    name="$1"
    url="$2"
-   dir="$3"
+   directory="$3"
 
-   [ ! -z "${dir}" ]        || internal_fail "src was empty"
-   [ "${PWD}" != "${dir}" ] || internal_fail "configuration error"
+   [ ! -z "${directory}" ]        || internal_fail "src was empty"
+   [ "${PWD}" != "${directory}" ] || internal_fail "configuration error"
 
 
    # contains own bootstrap ? and not a symlink
-   if [ ! -d "${dir}/.bootstrap" ] # -a ! -L "${dst}" ]
+   if [ ! -d "${directory}/.bootstrap" ] # -a ! -L "${dst}" ]
    then
-      log_fluff "no .bootstrap folder in \"${dir}\" found"
+      log_fluff "no .bootstrap folder in \"${directory}\" found"
       return 1
    fi
 
-   log_info "Recursively acquiring ${dir} .bootstrap settings ..."
+   log_info "Recursively acquiring ${directory} .bootstrap settings ..."
 
    local old
    local name
@@ -398,39 +400,40 @@ bootstrap_auto_update()
    old="${IFS:-" "}"
 
    #
-   # if an auto folder exists it could be stale, due to user edits
-   # it's better to completely redo it
+   # prepare auto folder if it doesn't exist yet
+   # means copy our own files to .auto first,
    #
-
-   mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
-
-   IFS="
-"
-   for i in $INHERIT_SETTINGS
-   do
-      IFS="${old}"
-      if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
-      then
-         exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
-      else
-         if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
-         then
-            exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
-         else
-            name="`basename -- "${i}"`"
-            log_fluff "Setting \"${name}\" is not specified, so not inherited"
-         fi
-      fi
-   done
-   IFS="${old}"
-
-   # now move it
-   if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
+   if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
-      exekutor rm -rf  "${BOOTSTRAP_SUBDIR}.auto"
-   fi
-   exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
+      log_info "Found a .bootstrap folder for \"${name}\" will set up ${BOOTSTRAP_SUBDIR}.auto"
 
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
+
+      IFS="
+"
+      for i in $INHERIT_SETTINGS
+      do
+         IFS="${old}"
+         if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
+         then
+            exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
+         else
+            if [ -f "${BOOTSTRAP_SUBDIR}/${i}" ]
+            then
+               exekutor cp "${BOOTSTRAP_SUBDIR}/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
+            else
+               name="`basename -- "${i}"`"
+               log_fluff "Setting \"${name}\" is not specified, so not inherited"
+            fi
+         fi
+      done
+      IFS="${old}"
+
+      # now move it
+      exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
+
+      # leave .scm files behind
+   fi
 
    #
    # prepend new contents to old contents
@@ -439,24 +442,21 @@ bootstrap_auto_update()
    local srcfile
    local dstfile
    local i
-   local settingname
-   local directory
 
    IFS="
 "
    for i in $INHERIT_SETTINGS
    do
       IFS="{old}"
-      srcfile="${dir}/.bootstrap/${i}"
+      srcfile="${directory}/.bootstrap/${i}"
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
-      settingname="`basename -- "${i}"`"
+      name="`basename -- "${i}"`"
 
       if [ -f "${srcfile}" ]
       then
-         log_fluff "Inheriting \"${settingname}\" from \"${srcfile}\""
+         log_fluff "Inheriting \"${name}\" from \"${srcfile}\""
 
-         directory="`dirname -- "${i}"`"
-         mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/${directory}"
+         mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/`dirname -- "${i}"`"
          if [ -f "${BOOTSTRAP_SUBDIR}.auto/${i}" ]
          then
             local tmpfile
@@ -470,7 +470,7 @@ bootstrap_auto_update()
             exekutor cp "${srcfile}" "${dstfile}" || exit 1
          fi
       else
-         log_fluff "Setting \"${settingname}\" is not specified, so not inherited"
+         log_fluff "Setting \"${name}\" is not specified, so not inherited"
       fi
    done
    IFS="{old}"
@@ -479,30 +479,30 @@ bootstrap_auto_update()
    local relative
 
    relative="`compute_relative "${BOOTSTRAP_SUBDIR}"`"
-   exekutor find "${dir}/.bootstrap" -xdev -mindepth 1 -maxdepth 1 -name "*.scm" -type f -print0 | \
+   exekutor find "${directory}/.bootstrap" -xdev -mindepth 1 -maxdepth 1 -name "*.scm" -type f -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/${name}"
 
    #
    # link up other non-inheriting settings
    #
-   if dir_has_files "${dir}/.bootstrap/settings"
+   if dir_has_files "${directory}/.bootstrap/settings"
    then
       local relative
 
       log_fluff "Link up build settings of \"${name}\" to \"${BOOTSTRAP_SUBDIR}.auto/settings/${name}\""
 
-      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
-      exekutor find "${dir}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
+      exekutor find "${directory}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
-      if [ -e "${dir}/.bootstrap/settings/bin"  ]
+      if [ -e "${directory}/.bootstrap/settings/bin"  ]
       then
-         exekutor ln -s -f "${relative}/../../${dir}/.bootstrap/settings/bin" "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
+         exekutor ln -s -f "${relative}/../../${directory}/.bootstrap/settings/bin" "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
       fi
 
       # flatten other folders into our own settings
       # don't force though, keep first
-      exekutor find "${dir}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
+      exekutor find "${directory}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
          exekutor xargs -0 -I % ln -s "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
 
@@ -1184,6 +1184,14 @@ main()
          log_error  "Additional parameters not allowed for install"
          usage >&2
          exit 1
+      fi
+
+      #
+      # remove .auto because it's contents could be stale
+      #
+      if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
+      then
+         exekutor rm -rf "${BOOTSTRAP_SUBDIR}.auto"
       fi
 
       clone_repositories

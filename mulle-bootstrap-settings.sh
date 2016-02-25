@@ -112,7 +112,7 @@ _read_setting()
       then
          local os
          os="`uname`"
-         log_fluff "${C_MAGENTA}`basename -- "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
+         log_fluff "${C_MAGENTA_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
       fi
    else
       value=`egrep -v '^#|^[ ]*$' "${file}"`
@@ -120,7 +120,7 @@ _read_setting()
       then
          local os
          os="`uname`"
-         log_fluff "Setting ${C_MAGENTA}`basename -- "${file}" ".${os}"`${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${value}${C_FLUFF}"
+         log_fluff "Setting ${C_MAGENTA_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found in \"${file}\" as ${C_MAGENTA_BOLD}${value}${C_FLUFF}"
       fi
    fi
 

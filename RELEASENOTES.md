@@ -1,3 +1,9 @@
+0.17
+===
+   Fixed the broken inheritance. The "Always redo bootstrap.auto folder
+   on fetch" fix in 0.15, was in the wrong position. So 0.15 and 0.16 are
+   totally broken releases. Sorry.
+
 0.16
 ===
    Fixed misnamed exekutor.
