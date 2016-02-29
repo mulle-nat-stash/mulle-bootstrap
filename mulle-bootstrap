@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.17
+VERSION=0.18
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -153,6 +153,7 @@ cat <<EOF
    build     : builds fetched repositories
    fetch     : fetches required repositories recursively.
    update    : updates repositories (pull).
+   refresh   : rebuild .bootstrap.auto
 
  Specify the -h or --help option after each command to get more help.
 EOF
@@ -224,18 +225,26 @@ main()
          ;;
 
       build)
+         COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
          COMMAND="${command}" mulle-bootstrap-build.sh "$@" || exit 1
          ;;
 
       ibuild)
+         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          COMMAND="${command}" mulle-bootstrap-build.sh "$@" || exit 1
          ;;
 
+      refresh)
+         COMMAND="${command}" mulle-bootstrap-refresh.sh || exit 1
+         ;;
+
       clean)
+         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          mulle-bootstrap-clean.sh "$@" || exit 1
          ;;
 
       dist-clean)
+         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          mulle-bootstrap-clean.sh "dist"  || exit 1
          ;;
 
@@ -244,6 +253,7 @@ main()
          ;;
 
       update)
+         COMMAND="refresh" mulle-bootstrap-refresh.sh "$@" || exit 1
          COMMAND="${command}" mulle-bootstrap-fetch.sh "$@" || exit 1
          ;;
 

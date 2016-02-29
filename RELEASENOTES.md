@@ -1,3 +1,9 @@
+0.18
+===
+   Refixed: Fix old favorite bug build_ignore became a directory bug) again ...
+   Added refresh, which will be called before build and update automatically
+   to rebuild .bootstrap.auto.
+
 0.17
 ===
    Fixed the broken inheritance. The "Always redo bootstrap.auto folder
