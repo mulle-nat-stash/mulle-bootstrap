@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.18
+VERSION=0.19
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -131,6 +131,7 @@ usage: mulle-bootstrap [-a|-y][-n][-v|-s|-t] [command] [--help]
                -t turns on shell tracing for development
 
  Common user commands:
+   clone     : git clone a remote repository and try to bootstrap and build it
    bootstrap : does fetch and build recursively [default]
    nomagic   : does fetch and build, but not recursively
    clean     : cleans mulle-bootstrap produced files.
@@ -193,6 +194,8 @@ bootstrap()
       mulle-bootstrap-warn-scripts.sh "${BOOTSTRAP_SUBDIR}" || exit 1
    fi
 
+   COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
+
    if [ "${DONT_RECURSE}" = "" ]
    then
       mulle-bootstrap-fetch.sh || exit 1
@@ -208,6 +211,7 @@ main()
 
    if [ ! -d "${BOOTSTRAP_SUBDIR}" -a \
       "${command}" != "init" -a \
+      "${command}" != "clone" -a \
       "${command}" != "version"  -a \
       "${command}" != "convert-pre-0.10" ]
    then
@@ -222,6 +226,19 @@ main()
 
       nomagic)
          DONT_RECURSE=YES bootstrap "$@" || exit 1
+         ;;
+
+      clone)
+         set -e
+         git clone "$1"
+         cd "`basename "$1"`"
+         mulle-bootstrap-fetch.sh || exit 1
+         if [ -x "./build.sh" ]
+         then
+            ./build.sh
+         else
+            COMMAND="install" mulle-bootstrap-build.sh || exit 1
+         fi
          ;;
 
       build)
@@ -249,6 +266,7 @@ main()
          ;;
 
       fetch)
+         COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
          DONT_ASK_AFTER_WARNING=YES mulle-bootstrap-fetch.sh "$@" || exit 1
          ;;
 
@@ -266,10 +284,12 @@ main()
          ;;
 
       setup-xcode|xcode)
+         COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
          mulle-bootstrap-xcode.sh "$@"|| exit 1
          ;;
 
       tag)
+         COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
          mulle-bootstrap-tag.sh "$@" || exit 1
          ;;
 

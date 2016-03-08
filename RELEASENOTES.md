@@ -1,3 +1,13 @@
+0.19
+===
+   Forgot a -f on a ln -s , which could result in an irritating output.
+   Now also refresh before fetching. mulle-bootstrap will now be able to
+   pick up changes in recursive repositories. And fetch additional repos as
+   needed, so you don't need to clean dist.
+   Produce more helpful output if cmake is missing.
+   Experimental support for "mulle-bootstrap clone", which will clone and build
+   a remote repository.
+
 0.18
 ===
    Refixed: Fix old favorite bug build_ignore became a directory bug) again ...

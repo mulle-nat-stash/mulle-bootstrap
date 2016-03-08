@@ -42,7 +42,7 @@ usage: build [repos]*
    You can optionally specify the names of the repositories to build.
    Currently available names are:
 EOF
-   (cd "${CLONES_SUBDIR}" ; ls -1d ) 2> /dev/null
+   (cd "${CLONES_SUBDIR}" ; ls -1 ) 2> /dev/null
 }
 
 
@@ -1336,13 +1336,18 @@ Release"`"
                fi
             fi
 
-            if [ "${preference}" = "cmake" -a -x "${cmake}" ]
+            if [ "${preference}" = "cmake" ]
             then
                if [ -f "${srcdir}/CMakeLists.txt" ]
                then
-                  build_cmake "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}"  || exit 1
-                  hasbuilt=yes
-                  break
+                  if [ ! -x "${cmake}" ]
+                  then
+                     log_warning "Found a CMakeLists.txt, but cmake is not installed"
+                  else
+                     build_cmake "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}"  || exit 1
+                     hasbuilt=yes
+                     break
+                  fi
                fi
             fi
          done

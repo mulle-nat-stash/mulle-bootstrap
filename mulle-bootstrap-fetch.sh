@@ -45,15 +45,15 @@
 usage()
 {
    cat <<EOF
-usage: fetch <install|nonrecursive|update> [repos]*
+usage: fetch <install|nonrecursive|update>
    install      : clone or symlink non-exisiting repositories and other resources
    nonrecursive : like above, but ignore .bootstrap folders of repositories
-   update       : pull repositories
+   update       : pull in fetched repositories
 
-   You can specify the names of the repositories to update or fetch.
+   You can specify the names of the repositories to update.
    Currently available names are:
 EOF
-   (cd "${CLONES_SUBDIR}" ; ls -1d ) 2> /dev/null
+   (cd "${CLONES_FETCH_SUBDIR}" ; ls -1 ) 2> /dev/null
 }
 
 
@@ -879,8 +879,8 @@ update_repository()
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
    dstdir="${CLONES_FETCH_SUBDIR}/${name}"
-   exekutor [ -e "${dstdir}" ] || fail "You need to install first, before updating"
-   exekutor [ -x "${dstdir}" ] || fail "${name} is not anymore in \"repositories\""
+   exekutor [ -e "${dstdir}" ] || fail "You need to fetch \"${name}\" first, before updating"
+   exekutor [ -x "${dstdir}" ] || fail "\"${name}\" is not anymore in \"repositories\""
 
    log_fetch_action "${url}" "${dstdir}"
 
@@ -1048,14 +1048,6 @@ main()
          log_error  "Additional parameters not allowed for install"
          usage >&2
          exit 1
-      fi
-
-      #
-      # remove .auto because it's contents could be stale
-      #
-      if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
-      then
-         exekutor rm -rf "${BOOTSTRAP_SUBDIR}.auto"
       fi
 
       clone_repositories
