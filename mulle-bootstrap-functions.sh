@@ -360,6 +360,9 @@ escaped_spaces()
 
 combined_escaped_search_path()
 {
+   local i
+   local path
+
    for i in "$@"
    do
       if [ ! -z "$i" ]
@@ -492,6 +495,9 @@ find_xcodeproj()
    depth=1000
    #     IFS='\0'
 
+   local match
+   local new_depth
+
    for i in `find . -name "*.xcodeproj" -print`
    do
       match=`basename -- "${i}" .xcodeproj`
@@ -593,4 +599,17 @@ run_log_script()
 {
    echo "$@"
    run_script "$@"
+}
+
+
+ensure_clones_directory()
+{
+   if [ ! -d "${CLONESFETCH_SUBDIR}" ]
+   then
+      if [ "${COMMAND}" = "update" ]
+      then
+         fail "install first before upgrading"
+      fi
+      mkdir_if_missing "${CLONESFETCH_SUBDIR}"
+   fi
 }

@@ -1,10 +1,10 @@
 # mulle-bootstrap, yet another dependency manager for developers
 
-* downloads [github](http://rants.arantius.com/github-sucks) repositories
-(called here the "dependents")
-* can deal with [cmake](http://blog.cppcms.com/post/54),
-[xcodebuild](http://devcodehack.com/xcode-sucks-and-heres-why/) and
-[configure](http://quetzalcoatal.blogspot.de/2011/06/why-autoconf-sucks.html)
+* checkout [git]](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories
+(called here the "dependents"). In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
+* can deal with [cmake](//blog.cppcms.com/post/54),
+[xcodebuild](//devcodehack.com/xcode-sucks-and-heres-why/) and
+[configure](//quetzalcoatal.blogspot.de/2011/06/why-autoconf-sucks.html)
 projects
 * instead of installing headers and libraries to `/usr/local`, mulle-bootstrap
 installs to `./dependencies`
@@ -12,7 +12,8 @@ installs to `./dependencies`
 * installs brew taps and formulae
 * installs gems and pips
 * compiles dependents using the output of previous dependents
-* written in portable shell script, will run eventually also on Linux
+* written in portable shell script, runs also on Linux
+
 
 ## How to install (OS X)
 
@@ -22,7 +23,7 @@ brew install mulle-bootstrap
 ```
 
 > If that doesn't work for some reason, try to
-> `brew untap mulle-kybernetik/software` it and then retry. 
+> `brew untap mulle-kybernetik/software` and then retry.
 
 
 ## What mulle-bootstrap can do for you
@@ -58,17 +59,17 @@ Your Xcode project can be optionally massaged by
 search paths.
 
 
-## Commands for a project user 
+## Commands for a project user
 
-#### mulle-bootstrap 
+#### mulle-bootstrap
 
-Download a project which is mulle-bootstrap enabled. Execute mulle-bootstrap 
+Download a project which is mulle-bootstrap enabled. Execute mulle-bootstrap
 in it and you are all set:
 
 ```console
 mulle-bootstrap
 ```
-`mulle-bootstrap` is a the shortened command of `mulle-bootstrap bootstrap`, which 
+`mulle-bootstrap` is a the shortened command of `mulle-bootstrap bootstrap`, which
 in turn executes:
 
 #### mulle-bootstrap fetch

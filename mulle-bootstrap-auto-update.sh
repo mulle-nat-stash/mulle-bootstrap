@@ -186,5 +186,3 @@ bootstrap_auto_update()
 
    return 0
 }
-
-

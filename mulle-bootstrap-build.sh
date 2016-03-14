@@ -478,6 +478,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       logging_exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
+"-DDEPENDENCIES_DIR=${owd}/${REFERENCE_DEPENDENCY_SUBDIR}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
 "-DCMAKE_C_FLAGS=\
 -I${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
@@ -589,7 +590,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       fi
 
       # use absolute paths for configure, safer (and easier to read IMO)
-       echo "CFLAGS=\"\
+       echo "DEPENDENCIES_DIR=\"'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'\" \
+      CFLAGS=\"\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
@@ -614,6 +616,7 @@ ${other_ldflags} \
 -isysroot ${sdkpath}\"" >> "${logfile1}"
 
 
+       DEPENDENCIES_DIR="'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'" \
        CFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
@@ -1063,6 +1066,7 @@ DSTROOT='${owd}/${BUILD_DEPENDENCY_SUBDIR}' \
 INSTALL_PATH='/${LIBRARY_DIR_NAME}${suffix}' \
 SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
+DEPENDENCIES_DIR='${owd}/${REFERENCE_DEPENDENCY_SUBDIR}' \
 ONLY_ACTIVE_ARCH=NO \
 ${skip_install} \
 ${other_cflags} \

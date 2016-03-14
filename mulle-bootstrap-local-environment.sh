@@ -33,7 +33,7 @@
 # read local environment
 # source this file
 #
-if [ "${BOOTSTRAP_SUBDIR}" = "" ]
+if [ -z "${BOOTSTRAP_SUBDIR}" ]
 then
    BOOTSTRAP_SUBDIR=.bootstrap
 fi
@@ -71,15 +71,22 @@ then
    log_trace "Dry run is active."
 fi
 
-CLONES_SUBDIR=`read_sane_config_path_setting "repos_foldername" ".repos"`
+# can't rename this because of embedded reposiories
+CLONES_SUBDIR=.repos
+
 CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "build/.repos"`
 DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "dependencies"`
 BUILDLOG_SUBDIR=`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`
 
 
-if [ "${CLONES_FETCH_SUBDIR}" = "" ]
+if [ "${CLONESFETCH_SUBDIR}" = "" ]
 then
-   CLONES_FETCH_SUBDIR="${CLONES_SUBDIR}"
+   CLONESFETCH_SUBDIR="${CLONES_SUBDIR}"
+fi
+
+if [ "${CLONESFETCH_RELATIVE}" = "" ]
+then
+   CLONESFETCH_RELATIVE=`compute_relative "${CLONESFETCH_SUBDIR}"`
 fi
 
 #
@@ -118,7 +125,7 @@ FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 # export stuff for scripts
 #
 export CLONES_SUBDIR
-export CLONES_FETCH_SUBDIR
+export CLONESFETCH_SUBDIR
 export CLONESBUILD_SUBDIR
 export BUILDLOG_SUBDIR
 export DEPENDENCY_SUBDIR

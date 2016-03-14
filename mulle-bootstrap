@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.19
+VERSION=0.20
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -171,10 +171,6 @@ EOF
 }
 
 
-command=${1:-"bootstrap"}
-[ $# -eq 0 ] || shift
-
-
 bootstrap()
 {
    if [ "$1" = "-h" -o "$1" = "--help" ]
@@ -206,17 +202,29 @@ bootstrap()
 }
 
 
+
 main()
 {
+   local command
 
-   if [ ! -d "${BOOTSTRAP_SUBDIR}" -a \
-      "${command}" != "init" -a \
-      "${command}" != "clone" -a \
-      "${command}" != "version"  -a \
-      "${command}" != "convert-pre-0.10" ]
+   command=${1:-"bootstrap"}
+   [ $# -eq 0 ] || shift
+
+   #
+   # some commands only run when we have a .bootstrap folder
+   #
+   if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
    then
-      echo "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue" >&2
-      exit 1
+      case "${command}" in
+         bootstrap|nomagic|build|ibuild|refresh)
+            echo "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue" >&2
+            exit 1
+         ;;
+         dist-clean|fetch|update|setup-xcode|xcode|tag)
+            echo "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue" >&2
+            exit 1
+         ;;
+      esac
    fi
 
    case "${command}" in
@@ -228,17 +236,8 @@ main()
          DONT_RECURSE=YES bootstrap "$@" || exit 1
          ;;
 
-      clone)
-         set -e
-         git clone "$1"
-         cd "`basename "$1"`"
-         mulle-bootstrap-fetch.sh || exit 1
-         if [ -x "./build.sh" ]
-         then
-            ./build.sh
-         else
-            COMMAND="install" mulle-bootstrap-build.sh || exit 1
-         fi
+      project)
+         mulle-bootstrap-project.sh "$@" || exit 1
          ;;
 
       build)

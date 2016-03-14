@@ -43,7 +43,7 @@ usage()
 {
    cat <<EOF
 usage: refresh <refresh|nonrecursive>
-   install      : default, install settings into .bootstrap.auto
+   refresh      : update settings, remove unused repositories (default)
    nonrecursive : ignore .bootstrap folders of fetched repositories
 EOF
 }
@@ -112,7 +112,7 @@ refresh_repositories_settings()
          name="`canonical_name_from_clone "${clone}"`"
          url="`url_from_clone "${clone}"`"
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-         dstdir="${CLONES_FETCH_SUBDIR}/${name}"
+         dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
          bootstrap_auto_update "${name}" "${url}" "${dstdir}" "$INHERIT_SETTINGS"
       done
@@ -122,6 +122,348 @@ refresh_repositories_settings()
 }
 
 
+# ----------------
+
+#
+# used to do this with chmod -h, alas Linux can't do that
+# So we create a special directory .zombies
+# and create files there
+#
+mark_all_repositories_zombies()
+{
+   local i
+   local name
+
+      # first mark all repos as stale
+   if dir_has_files "${CLONESFETCH_SUBDIR}"
+   then
+      log_fluff "Marking all repositories as zombies for now"
+
+      mkdir_if_missing "${CLONESFETCH_SUBDIR}/.zombies"
+
+      for i in `ls -1d "${CLONESFETCH_SUBDIR}/"*`
+      do
+         if [ -d "${i}" -o -L "${i}" ]
+         then
+            name="`basename -- "${i}"`"
+            exekutor touch "${CLONESFETCH_SUBDIR}/.zombies/${name}"
+         fi
+      done
+   fi
+}
+
+
+mark_repository_alive()
+{
+   local dstdir
+   local name
+
+   name="$1"
+   dstdir="$2"
+
+   local zombie
+
+   zombie="`dirname -- "${dstdir}"`/.zombies/${name}"
+
+   # mark as alive
+   if [ -d "${dstdir}" -o -L "${dstdir}" ]
+   then
+      if [ -e "${zombie}" ]
+      then
+         log_fluff "Mark \"${dstdir}\" as alive"
+
+         exekutor rm -f "${zombie}" || fail "failed to delete zombie ${zombie}"
+      else
+         log_fluff "Marked \"${dstdir}\" is already alive"
+      fi
+   else
+      log_fluff "\"${dstdir}\" is neither a symlink nor a directory"
+   fi
+}
+
+
+bury_zombies()
+{
+   local i
+   local name
+   local dstdir
+   local zombiepath
+   local gravepath
+
+      # first mark all repos as stale
+   zombiepath="${CLONESFETCH_SUBDIR}/.zombies"
+   if dir_has_files "${zombiepath}"
+   then
+      log_fluff "Burying zombies into graveyard"
+
+      gravepath="${CLONESFETCH_SUBDIR}/.graveyard"
+      mkdir_if_missing "${gravepath}"
+
+      for i in `ls -1 "${zombiepath}/"*`
+      do
+         if [ -e "${i}" ]
+         then
+            name="`basename -- "${i}"`"
+            dstdir="${CLONESFETCH_SUBDIR}/${name}"
+            if [ -d "${dstdir}" ]
+            then
+               log_info "Removing unused repository ${C_MAGENTA_BOLD}${name}${C_INFO}"
+
+               if [ -e "${gravepath}/${name}" ]
+               then
+                  exekutor rm -rf "${gravepath}/${name}"
+                  log_fluff "Made for a new grave at \"${gravepath}/${name}\""
+               fi
+
+               exekutor mv "${dstdir}" "${gravepath}"
+               exekutor rm "${i}"
+            else
+               log_fluff "\"${dstdir}\" zombie vanished or never existed"
+            fi
+         fi
+      done
+   fi
+
+   if [ -d "${zombiepath}" ]
+   then
+      exekutor rm -rf "${zombiepath}"
+   fi
+}
+
+#
+# ###
+#
+
+mark_all_embedded_repositories_zombies()
+{
+   local i
+   local name
+   local symlink
+   local path
+   local zombiepath
+
+      # first mark all repos as stale
+   path="${CLONESFETCH_SUBDIR}/.embedded"
+   if dir_has_files "${CLONESFETCH_SUBDIR}/.embedded"
+   then
+      log_fluff "Marking all embedded repositories as zombies for now"
+
+      zombiepath="${CLONESFETCH_SUBDIR}/.embedded/.zombies"
+      mkdir_if_missing "${zombiepath}"
+
+      for symlink in `ls -1d "${path}/"*`
+      do
+         i="`readlink "$symlink"`"
+         name="`basename "$i"`"
+         exekutor touch "${zombiepath}/${name}"
+      done
+   fi
+}
+
+
+mark_embedded_repository_alive()
+{
+   local dstdir
+   local name
+
+   name="$1"
+   dstdir="$2"
+
+   local zombie
+
+   zombie="${CLONESFETCH_SUBDIR}/.embedded/.zombies/${name}"
+
+   # mark as alive
+   if [ -d "${dstdir}" -o -L "${dstdir}" ]
+   then
+      if [ -e "${zombie}" ]
+      then
+         log_fluff "Mark \"${dstdir}\" as alive"
+
+         exekutor rm -f "${zombie}" || fail "failed to delete zombie ${zombie}"
+      else
+         log_fluff "Marked \"${dstdir}\" is already alive"
+      fi
+   else
+      log_fluff "\"${dstdir}\" is neither a symlink nor a directory"
+   fi
+}
+
+
+bury_embedded_zombies()
+{
+   local i
+   local name
+   local dstdir
+   local path
+   local zombiepath
+   local gravepath
+   local path2
+
+      # first mark all repos as stale
+   zombiepath="${CLONESFETCH_SUBDIR}/.embedded/.zombies"
+   if dir_has_files "${zombiepath}"
+   then
+      log_fluff "Burying embedded zombies into graveyard"
+
+      gravepath="${CLONESFETCH_SUBDIR}/.embedded/.graveyard"
+      mkdir_if_missing "${gravepath}"
+
+      for i in `ls -1 "${zombiepath}/"*`
+      do
+         if [ -f "${i}" ]
+         then
+            name="`basename -- "${i}"`"
+            dstdir="${name}"
+            log_info "Removing unused embedded repository ${C_MAGENTA_BOLD}${name}${C_INFO}"
+
+            if [ -d "${dstdir}" ]
+            then
+               if [ -e "${gravepath}/${name}" ]
+               then
+                  exekutor rm -rf "${gravepath}/${name}"
+                  log_fluff "Made for a new grave at \"${gravepath}/${name}\""
+               fi
+               exekutor mv "${dstdir}" "${gravepath}"
+               exekutor rm "${i}"
+               exekutor rm "${CLONESFETCH_SUBDIR}/.embedded/${name}"
+            else
+               log_fluff "\"${dstdir}\" embedded zombie vanished or never existed"
+            fi
+         fi
+      done
+   fi
+
+   if [ -d "${zombiepath}" ]
+   then
+      exekutor rm -rf "${zombiepath}"
+   fi
+}
+
+#
+# ###
+#
+
+refresh_repositories()
+{
+   local clones
+   local clone
+   local old
+   local name
+   local url
+   local dstdir
+
+   mark_all_repositories_zombies
+
+   old="${IFS:-" "}"
+
+   clones="`read_fetch_setting "repositories"`"
+   if [ "${clones}" != "" ]
+   then
+      ensure_clones_directory
+
+      IFS="
+"
+      for clone in ${clones}
+      do
+         IFS="${old}"
+         name="`canonical_name_from_clone "${clone}"`"
+         dstdir="${CLONESFETCH_SUBDIR}/${name}"
+
+         # if it's not there it's not fetched yet, that's OK
+         mark_repository_alive "${name}" "${dstdir}"
+      done
+   fi
+
+   IFS="${old}"
+
+   bury_zombies
+}
+
+
+_refresh_embedded_repositories()
+{
+   local clones
+   local clone
+   local old
+   local name
+   local dstdir
+
+   old="${IFS:-" "}"
+
+   clones="`read_fetch_setting "embedded_repositories"`"
+   if [ "${clones}" != "" ]
+   then
+      IFS="
+"
+      for clone in ${clones}
+      do
+         IFS="${old}"
+
+         ensure_clones_directory
+
+         name="`canonical_name_from_clone "${clone}"`"
+         dstdir="${name}"
+         mark_embedded_repository_alive "${name}" "${dstdir}"
+      done
+   fi
+
+   IFS="${old}"
+}
+
+
+refresh_embedded_repositories()
+{
+   mark_all_embedded_repositories_zombies
+
+   _refresh_embedded_repositories
+
+   bury_embedded_zombies
+}
+
+
+refresh_deeply_embedded_repositories()
+{
+   local clones
+   local clone
+   local old
+   local name
+   local url
+   local dstprefix
+   local previous_bootstrap
+   local previous_clones
+
+   old="${IFS:-" "}"
+
+   clones="`read_fetch_setting "repositories"`"
+   if [ "${clones}" != "" ]
+   then
+      IFS="
+"
+      for clone in ${clones}
+      do
+         IFS="${old}"
+         name="`canonical_name_from_clone "${clone}"`"
+         dstprefix="${CLONESFETCH_SUBDIR}/${name}/"
+
+         previous_bootstrap="${BOOTSTRAP_SUBDIR}"
+         previous_clones="${CLONESFETCH_SUBDIR}"
+         BOOTSTRAP_SUBDIR="${dstprefix}.bootstrap"
+         CLONESFETCH_SUBDIR="${dstprefix}${CLONESFETCH_SUBDIR}"
+
+         refresh_embedded_repositories
+
+         BOOTSTRAP_SUBDIR="${previous_bootstrap}"
+         CLONESFETCH_SUBDIR="${previous_clones}"
+      done
+   fi
+
+   IFS="${old}"
+}
+
+
+
+# -------------------
 
 main()
 {
@@ -137,7 +479,20 @@ main()
 
    if [ "${DONT_RECURSE}" = "" ]
    then
+      log_fluff "Refreshing repository settings"
       refresh_repositories_settings
+   fi
+
+   log_fluff "Detect zombie repositories"
+   refresh_repositories
+
+   log_fluff "Detect embedded zombie repositories"
+   refresh_embedded_repositories
+
+   if [ "${DONT_RECURSE}" = "" ]
+   then
+      log_fluff "Detect deeply embedded zombie repositories"
+      refresh_deeply_embedded_repositories
    fi
 }
 

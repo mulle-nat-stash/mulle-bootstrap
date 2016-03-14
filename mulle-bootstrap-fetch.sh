@@ -53,7 +53,7 @@ usage: fetch <install|nonrecursive|update>
    You can specify the names of the repositories to update.
    Currently available names are:
 EOF
-   (cd "${CLONES_FETCH_SUBDIR}" ; ls -1 ) 2> /dev/null
+   (cd "${CLONESFETCH_SUBDIR}" ; ls -1 ) 2> /dev/null
 }
 
 
@@ -372,79 +372,6 @@ settings/build_order
 settings/build_ignore'
 
 
-
-
-ensure_clones_directory()
-{
-   if [ ! -d "${CLONES_FETCH_SUBDIR}" ]
-   then
-      if [ "${COMMAND}" = "update" ]
-      then
-         fail "install first before upgrading"
-      fi
-      mkdir_if_missing "${CLONES_FETCH_SUBDIR}"
-   fi
-}
-
-
-#
-# used to do this with chmod -h, alas Linux can't do that
-# So we create a special directory .zombies
-# and create files there
-#
-mark_all_zombies()
-{
-   local i
-   local name
-
-      # first mark all repos as stale
-   if dir_has_files "${CLONES_FETCH_SUBDIR}"
-   then
-      log_fluff "Marking all repositories as zombies for now"
-
-      mkdir_if_missing "${CLONES_FETCH_SUBDIR}/.zombies"
-
-      for i in `ls -1d "${CLONES_FETCH_SUBDIR}/"*`
-      do
-         if [ -d "${i}" -o -L "${i}" ]
-         then
-            name="`basename -- "${i}"`"
-            exekutor touch "${CLONES_FETCH_SUBDIR}/.zombies/${name}"
-         fi
-      done
-   fi
-}
-
-
-mark_alive()
-{
-   local dstdir
-   local name
-
-   name="$1"
-   dstdir="$2"
-
-   local zombie
-
-   zombie="`dirname -- "${dstdir}"`/.zombies/${name}"
-
-   # mark as alive
-   if [ -d "${dstdir}" -o -L "${dstdir}" ]
-   then
-      if [ -e "${zombie}" ]
-      then
-         log_fluff "Mark \"${dstdir}\" as alive"
-
-         exekutor rm -f "${zombie}" || fail "failed to delete zombie ${zombie}"
-      else
-         log_fluff "Marked \"${dstdir}\" is already alive"
-      fi
-   else
-      log_fluff "\"${dstdir}\" is neither a symlink nor a directory"
-   fi
-}
-
-
 log_fetch_action()
 {
    local dstdir
@@ -666,13 +593,11 @@ clone_repository()
    local flag
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-   dstdir="${CLONES_FETCH_SUBDIR}/${name}"
+   dstdir="${CLONESFETCH_SUBDIR}/${name}"
    log_fetch_action "${name}" "${dstdir}"
 
    checkout_repository "${name}" "${url}" "${dstdir}" "${tag}"
    flag=$?
-
-   mark_alive "${name}" "${dstdir}"
 
    return $flag
 }
@@ -688,7 +613,7 @@ did_clone_repository()
 
    local dstdir
 
-   dstdir="${CLONES_FETCH_SUBDIR}/${name}"
+   dstdir="${CLONESFETCH_SUBDIR}/${name}"
    run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
 }
 
@@ -703,8 +628,6 @@ clone_repositories()
    local url
 
    old="${IFS:-" "}"
-
-   mark_all_zombies
 
    stop=0
    while [ $stop -eq 0 ]
@@ -799,8 +722,21 @@ install_embedded_repositories()
                fi
             fi
 
-            run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
+            # memo that we did this with a symlink
+            # store it inside the possibly recursed dstprefix dependency
+            local symlinkcontent
+            local symlinkdir
+            local symlinkrelative
 
+            symlinkrelative=`compute_relative "${CLONESFETCH_SUBDIR}/.embedded"`
+            symlinkdir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
+            mkdir_if_missing "${symlinkdir}"
+            symlinkcontent="${symlinkrelative}/${dstdir}"
+
+            log_fluff "Remember embedded repository \"${name}\" via \"${symlinkdir}/${name}\""
+            exekutor ln -s "${symlinkcontent}" "${symlinkdir}/${name}"
+
+            run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
          else
             log_fluff "\"${dstdir}\" already exists"
          fi
@@ -878,7 +814,7 @@ update_repository()
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
-   dstdir="${CLONES_FETCH_SUBDIR}/${name}"
+   dstdir="${CLONESFETCH_SUBDIR}/${name}"
    exekutor [ -e "${dstdir}" ] || fail "You need to fetch \"${name}\" first, before updating"
    exekutor [ -x "${dstdir}" ] || fail "\"${name}\" is not anymore in \"repositories\""
 
@@ -893,6 +829,8 @@ update_repository()
       old="${BOOTSTRAP_SUBDIR}"
 
       BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
+      CLONESFETCH_SUBDIR="${dstdir}/.repos"
+
       update_embedded_repositories "${dstdir}/"
       BOOTSTRAP_SUBDIR="${old}"
    fi
@@ -909,7 +847,7 @@ did_update_repository()
 
    local dstdir
 
-   dstdir="${CLONES_FETCH_SUBDIR}/${name}"
+   dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
    run_build_settings_script "${name}" "${url}" "${dstdir}" "did-update" "${dstdir}" "${name}"
 }
@@ -940,7 +878,7 @@ update_repositories()
       for name in "$@"
       do
          IFS="${old}"
-         update_repository "${name}" "${CLONES_FETCH_SUBDIR}/${name}"
+         update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
       done
 
       IFS="
@@ -948,7 +886,7 @@ update_repositories()
       for name in "$@"
       do
          IFS="${old}"
-         did_update_repository "${name}" "${CLONES_FETCH_SUBDIR}/${name}"
+         did_update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
       done
    else
       clones="`read_fetch_setting "repositories"`"
