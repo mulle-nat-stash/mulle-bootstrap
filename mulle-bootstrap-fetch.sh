@@ -303,7 +303,9 @@ link_command()
          src="${real}"
       fi
 
+      log_info "Symlinking ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
       exekutor ln -s -f "$src" "$dst" || fail "failed to setup symlink \"$dst\" (to \"$src\")"
+
       if [ "$tag" != "" ]
       then
          local name
