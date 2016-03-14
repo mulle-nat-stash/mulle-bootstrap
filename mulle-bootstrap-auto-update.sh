@@ -49,13 +49,15 @@ bootstrap_auto_update()
    local name
    local url
    local directory
-   local settings
 
 
    name="$1"
    url="$2"
    directory="$3"
-   settings="$4"
+
+   local settings
+
+   settings="$INHERIT_SETTINGS"
 
    [ ! -z "${directory}" ]        || internal_fail "src was empty"
    [ "${PWD}" != "${directory}" ] || internal_fail "configuration error"

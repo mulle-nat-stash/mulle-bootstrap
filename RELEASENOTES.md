@@ -12,6 +12,8 @@
 *  Started mulle-bootstrap project. The general idea is to do also manage
    the project that contains the .bootstrap folder (at least a little bit). So
    `mulle-bootstrap clone` is now `mulle-bootstrap project clone
+*  Better deep fetch and refresh avoids redoing repositories (could be
+   better though still)
 
 0.19
 ===

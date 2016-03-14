@@ -365,14 +365,6 @@ ask_symlink_it()
 }
 
 
-INHERIT_SETTINGS='taps
-brews
-repositories
-pips
-gems
-settings/build_order
-settings/build_ignore'
-
 
 log_fetch_action()
 {
@@ -563,7 +555,7 @@ checkout_repository()
          install_embedded_repositories "${dstdir}/"
          BOOTSTRAP_SUBDIR="${old}"
 
-         bootstrap_auto_update "${name}" "${url}" "${dstdir}" "$INHERIT_SETTINGS"
+         bootstrap_auto_update "${name}" "${url}" "${dstdir}"
          flag=$?
       fi
 
@@ -628,8 +620,12 @@ clone_repositories()
    local old
    local name
    local url
+   local fetched
+   local match
 
    old="${IFS:-" "}"
+
+   fetched=""
 
    stop=0
    while [ $stop -eq 0 ]
@@ -646,22 +642,32 @@ clone_repositories()
          for clone in ${clones}
          do
             IFS="${old}"
-            name="`canonical_name_from_clone "${clone}"`"
-            url="`url_from_clone "${clone}"`"
-            clone_repository "${name}" "${url}"
-            if [ $? -eq 1 ]
+
+            # avoid superflous updates
+            match="`echo "${fetched}" | grep "${clone}"`"
+            # could remove prefixes here https:// http://
+
+            if [ "${match}" != "${clone}" ]
             then
-               stop=0
-               break
+               fetched="${fetched}
+${clone}"
+
+               name="`canonical_name_from_clone "${clone}"`"
+               url="`url_from_clone "${clone}"`"
+               clone_repository "${name}" "${url}"
+               if [ $? -eq 1 ]
+               then
+                  stop=0
+                  break
+               fi
             fi
          done
       fi
    done
 
-   clones="`read_fetch_setting "repositories"`"
    IFS="
 "
-   for clone in ${clones}
+   for clone in ${fetched}
    do
       IFS="${old}"
       name="`canonical_name_from_clone "${clone}"`"

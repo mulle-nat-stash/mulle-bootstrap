@@ -92,31 +92,60 @@ refresh_repositories_settings()
    local clones
    local clone
    local old
+   local stop
+   local refreshed
+   local match
 
    old="${IFS:-" "}"
 
-   clones="`read_fetch_setting "repositories"`"
-   if [ "${clones}" != "" ]
-   then
-      IFS="
-"
-      for clone in ${clones}
-      do
-         IFS="${old}"
+   refreshed=""
 
-         local name
-         local url
-         local tag
-         local dstdir
+   stop=0
+   while [ $stop -eq 0 ]
+   do
+      stop=1
 
-         name="`canonical_name_from_clone "${clone}"`"
-         url="`url_from_clone "${clone}"`"
-         tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-         dstdir="${CLONESFETCH_SUBDIR}/${name}"
+      clones="`read_fetch_setting "repositories"`"
+      if [ "${clones}" != "" ]
+      then
+         IFS="
+   "
+         for clone in ${clones}
+         do
+            IFS="${old}"
 
-         bootstrap_auto_update "${name}" "${url}" "${dstdir}" "$INHERIT_SETTINGS"
-      done
-   fi
+            # avoid superflous updates
+            match="`echo "${refreshed}" | grep "${clone}"`"
+            # could remove prefixes here https:// http://
+
+            if [ "${match}" != "${clone}" ]
+            then
+               refreshed="${refreshed}
+${clone}"
+
+               local name
+               local url
+               local tag
+               local dstdir
+               local flag
+
+               name="`canonical_name_from_clone "${clone}"`"
+               url="`url_from_clone "${clone}"`"
+               tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
+               dstdir="${CLONESFETCH_SUBDIR}/${name}"
+
+               bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+               flag=$?
+
+               if [ $flag -eq 0 ]
+               then
+                  stop=0
+                  break
+               fi
+            fi
+         done
+      fi
+   done
 
    IFS="${old}"
 }
@@ -383,6 +412,10 @@ refresh_repositories()
 
 _refresh_embedded_repositories()
 {
+   local dstprefix
+
+   dstprefix="$1"
+
    local clones
    local clone
    local old
@@ -403,7 +436,7 @@ _refresh_embedded_repositories()
          ensure_clones_directory
 
          name="`canonical_name_from_clone "${clone}"`"
-         dstdir="${name}"
+         dstdir="${dstprefix}${name}"
          mark_embedded_repository_alive "${name}" "${dstdir}"
       done
    fi
@@ -416,7 +449,7 @@ refresh_embedded_repositories()
 {
    mark_all_embedded_repositories_zombies
 
-   _refresh_embedded_repositories
+   _refresh_embedded_repositories "$@"
 
    bury_embedded_zombies
 }
@@ -451,7 +484,7 @@ refresh_deeply_embedded_repositories()
          BOOTSTRAP_SUBDIR="${dstprefix}.bootstrap"
          CLONESFETCH_SUBDIR="${dstprefix}${CLONESFETCH_SUBDIR}"
 
-         refresh_embedded_repositories
+         refresh_embedded_repositories "${dstprefix}"
 
          BOOTSTRAP_SUBDIR="${previous_bootstrap}"
          CLONESFETCH_SUBDIR="${previous_clones}"
