@@ -613,3 +613,4 @@ ensure_clones_directory()
       mkdir_if_missing "${CLONESFETCH_SUBDIR}"
    fi
 }
+

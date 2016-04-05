@@ -144,7 +144,7 @@ bootstrap_auto_update()
             tmpfile="${BOOTSTRAP_SUBDIR}.auto/${i}.tmp"
 
             exekutor mv "${dstfile}" "${tmpfile}" || exit 1
-            exekutor cat "${srcfile}" "${tmpfile}" > "${dstfile}"  || exit 1
+            exekutor merge_settings_in_front "${srcfile}" "${tmpfile}" > "${dstfile}"  || exit 1
             exekutor rm "${tmpfile}" || exit 1
          else
             exekutor cp "${srcfile}" "${dstfile}" || exit 1

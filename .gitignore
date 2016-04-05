@@ -7,3 +7,4 @@ build/
 dependencies/
 .bootstrap.local/
 mulle-bootstrap.sublime-workspace
+mulle-project

@@ -1,5 +1,6 @@
 0.20
 ===
+
 *  Replace CLONES_FETCH_SUBDIR with CLONESFETCH_SUBDIR
 *  mulle-bootstrap now uses the zombie repository detection to actually bury
    unused repositories. Check out "tests/refresh/refresh.sh" how this
@@ -14,6 +15,11 @@
    `mulle-bootstrap clone` is now `mulle-bootstrap project clone
 *  Better deep fetch and refresh avoids redoing repositories (could be
    better though still)
+*  Don't append to log files, overwrite them.
+*  script build shows better info on failure
+*  Fix recursive repository agglomeration to not output duplicate lines
+*  Grep those lines with an exact line match
+
 
 0.19
 ===

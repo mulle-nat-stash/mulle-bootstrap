@@ -513,6 +513,37 @@ read_sane_config_path_setting()
 
 
 
+
+merge_settings_in_front()
+{
+   local settings1
+   local settings2
+   local result
+
+   settings1="`_read_setting "$1"`"
+   settings2="`_read_setting "$2"`"
+
+   result="${settings2}"
+
+   local old
+   local line1
+
+   old="${IFS:-" "}"
+   IFS="
+"
+   for line in $settings1
+   do
+      result="`echo "${result}" | grep -v -x "${line}"`"
+      result="${line}
+${result}"
+   done
+
+   IFS="${old}"
+
+   echo "${result}"
+}
+
+
 ###
 #
 #

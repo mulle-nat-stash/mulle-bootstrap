@@ -303,7 +303,7 @@ link_command()
          src="${real}"
       fi
 
-      log_info "Symlinking ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+      log_info "Symlinking ${C_MAGENTA}${C_BOLD}`basename -- ${src}`${C_INFO} ..."
       exekutor ln -s -f "$src" "$dst" || fail "failed to setup symlink \"$dst\" (to \"$src\")"
 
       if [ "$tag" != "" ]
@@ -331,9 +331,22 @@ ask_symlink_it()
       fail "You need to check out ${clone} yourself, as it's not there."
    fi
 
+   #
    # check if checked out
+   #
    if [ -d "${clone}"/.git ]
    then
+      local is_bare
+
+       # if bare repo, we can only clone anyway
+      is_bare=`( cd "${clone}"; git rev-parse --is-bare-repository )`
+      if [ "${is_bare}" = "true" ]
+      then
+         log_info "${clone} is a bare git repository. So cloning"
+         log_info "is the only way to go."
+         return 1
+      fi
+
       flag=1  # mens clone it
       if [ "${SYMLINK_FORBIDDEN}" != "YES" ]
       then
@@ -343,14 +356,6 @@ ask_symlink_it()
       fi
       [ $flag -eq 0 ]
       return $?
-   fi
-
-    # if bare repo, we can only clone anyway
-   if [ -f "${clone}"/HEAD -a -d "${clone}/refs" ]
-   then
-      log_info "${clone} looks like a bare git repository. So cloning"
-      log_info "is the only way to go."
-      return 1
    fi
 
    # can only symlink because not a .git repo yet
@@ -421,10 +426,14 @@ checkout()
 
    if [ -e "${DEPENDENCY_SUBDIR}" -o -e "${CLONESBUILD_SUBDIR}" ]
    then
-      log_error "Stale folders \"${DEPENDENCY_SUBDIR}\" and/or \"${CLONESBUILD_SUBDIR}\" found."
-      log_error "Please remove them before continuing."
-      log_info  "Suggested command: ${C_RESET_BOLD}mulle-bootstrap clean output${C_INFO}"
-      exit 1
+      # if this is a "refetch" don't bother to warn
+      if [ ! -e "${BOOTSTRAP_SUBDIR}.auto" ]
+      then
+         log_error "Stale folders \"${DEPENDENCY_SUBDIR}\" and/or \"${CLONESBUILD_SUBDIR}\" found."
+         log_error "Please remove them before continuing."
+         log_info  "Suggested command: ${C_RESET_BOLD}mulle-bootstrap clean output${C_INFO}"
+         exit 1
+      fi
    fi
 
    local operation
@@ -644,7 +653,7 @@ clone_repositories()
             IFS="${old}"
 
             # avoid superflous updates
-            match="`echo "${fetched}" | grep "${clone}"`"
+            match="`echo "${fetched}" | grep -x "${clone}"`"
             # could remove prefixes here https:// http://
 
             if [ "${match}" != "${clone}" ]
@@ -655,6 +664,7 @@ ${clone}"
                name="`canonical_name_from_clone "${clone}"`"
                url="`url_from_clone "${clone}"`"
                clone_repository "${name}" "${url}"
+
                if [ $? -eq 1 ]
                then
                   stop=0

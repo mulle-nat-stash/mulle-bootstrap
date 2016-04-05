@@ -115,7 +115,7 @@ refresh_repositories_settings()
             IFS="${old}"
 
             # avoid superflous updates
-            match="`echo "${refreshed}" | grep "${clone}"`"
+            match="`echo "${refreshed}" | grep -x "${clone}"`"
             # could remove prefixes here https:// http://
 
             if [ "${match}" != "${clone}" ]

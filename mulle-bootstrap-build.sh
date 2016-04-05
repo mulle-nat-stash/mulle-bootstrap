@@ -500,9 +500,9 @@ ${other_cppflags}" \
 -F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
 -F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_ldflags}" \
-"${relative}/${srcdir}" >> "${logfile1}" || build_fail "${logfile1}" "cmake"
+"${relative}/${srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
 
-      logging_exekutor make VERBOSE=1 install >> "${logfile2}" || build_fail "${logfile2}" "make"
+      logging_exekutor make VERBOSE=1 install > "${logfile2}" || build_fail "${logfile2}" "make"
 
       set +f
 
@@ -613,7 +613,7 @@ ${other_cppflags} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
--isysroot ${sdkpath}\"" >> "${logfile1}"
+-isysroot ${sdkpath}\"" > "${logfile1}"
 
 
        DEPENDENCIES_DIR="'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'" \
@@ -644,7 +644,7 @@ ${other_ldflags} \
           --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
 
-      logging_exekutor make install >> "${logfile2}" \
+      logging_exekutor make install > "${logfile2}" \
       || build_fail "${logfile2}" "make"
 
       set +f
@@ -1076,7 +1076,7 @@ HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
-      logging_eval_exekutor "${cmdline}" >> "${logfile}" \
+      logging_eval_exekutor "${cmdline}" > "${logfile}" \
       || build_fail "${logfile}" "xcodebuild"
 
       set +f
@@ -1145,6 +1145,37 @@ build_xcodebuild_schemes_or_target()
 }
 
 
+run_build_script()
+{
+   local script
+
+   script="$1"
+   shift
+
+   [ ! -z "$script" ] || internal_fail "script is empty"
+
+   if [ -x "${script}" ]
+   then
+      log_fluff "Executing script \"${script}\" $1"
+      exekutor "${script}" "$@"
+   else
+      if [ ! -e "${script}" ]
+      then
+         fail "script \"${script}\" not found ($PWD)"
+      else
+         fail "script \"${script}\" not executable"
+      fi
+   fi
+}
+
+
+run_log_build_script()
+{
+   echo "$@"
+   run_build_script "$@"
+}
+
+
 build_script()
 {
    local script
@@ -1198,13 +1229,13 @@ ${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
 ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 \"${builddir}\" ..."
 
-      run_log_script "${owd}/${script}" \
+      run_log_build_script "${owd}/${script}" \
          "${configuration}" \
          "${owd}/${srcdir}" \
          "${owd}/${builddir}" \
          "${owd}/${BUILD_DEPENDENCY_SUBDIR}" \
          "${name}" \
-         "${sdk}" >> "${logfile}" \
+         "${sdk}" > "${logfile}" \
       || build_fail "${logfile}" "build.sh"
 
    exekutor cd "${owd}"
