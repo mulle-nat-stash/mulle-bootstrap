@@ -46,18 +46,27 @@ git_checkout_tag()
       flags=""
    fi
 
-   log_info "Checking out ${C_MAGENTA}${C_BOLD}${tag}${C_INFO} ..."
-   ( exekutor cd "${dst}" ; exekutor git checkout ${flags} "${tag}" )
+   local branch
 
-   if [ $? -ne 0 ]
+   branch="`( cd "$dst" ; git rev-parse --abbrev-ref HEAD )`"
+
+   if [ "${branch}" != "${tag}" ]
    then
-      log_error "Checkout failed, moving ${C_CYAN}${C_BOLD}${dst}${C_ERROR} to ${C_CYAN}${C_BOLD}${dst}.failed${C_ERROR}"
-      log_error "You need to fix this manually and then move it back."
-      log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename -- "${dst}"`/TAG" >&2
+      log_info "Checking out version ${C_WHITE}${C_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
+      ( exekutor cd "${dst}" ; exekutor git checkout ${flags} "${tag}" )
 
-      rmdir_safer "${dst}.failed"
-      exekutor mv "${dst}" "${dst}.failed"
-      exit 1
+      if [ $? -ne 0 ]
+      then
+         log_error "Checkout failed, moving ${C_CYAN}${C_BOLD}${dst}${C_ERROR} to ${C_CYAN}${C_BOLD}${dst}.failed${C_ERROR}"
+         log_error "You need to fix this manually and then move it back."
+         log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename -- "${dst}"`/TAG" >&2
+
+         rmdir_safer "${dst}.failed"
+         exekutor mv "${dst}" "${dst}.failed"
+         exit 1
+      fi
+   else
+      log_fluff "Already on proper branch \"${branch}\""
    fi
 }
 

@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.20
+VERSION=0.21
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -43,39 +43,46 @@ export PATH
 #
 # simple option handling
 #
-if [ "$1" = "-a" ]
-then
-   MULLE_BOOTSTRAP_ANSWER="NO"
-   export MULLE_BOOTSTRAP_ANSWER
-   [ $# -eq 0 ] || shift
-else
+while :
+do
+   if [ "$1" = "-a" ]
+   then
+      MULLE_BOOTSTRAP_ANSWER="NO"
+      export MULLE_BOOTSTRAP_ANSWER
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
    if [ "$1" = "-y" ] #  basically auto symlink everything
    then
       MULLE_BOOTSTRAP_ANSWER="YES"
       export MULLE_BOOTSTRAP_ANSWER
       [ $# -eq 0 ] || shift
+      continue
    fi
-fi
 
 
-if [ "$1" = "-n" ]
-then
-   MULLE_BOOTSTRAP_DRY_RUN="YES"
-   export MULLE_BOOTSTRAP_DRY_RUN
-   [ $# -eq 0 ] || shift
-fi
+   if [ "$1" = "-n" ]
+   then
+      MULLE_BOOTSTRAP_DRY_RUN="YES"
+      export MULLE_BOOTSTRAP_DRY_RUN
+      [ $# -eq 0 ] || shift
+      continue
+   fi
 
-if [ "$1" = "-t" ]
-then
-   MULLE_BOOTSTRAP_TRACE="1848"
-   export MULLE_BOOTSTRAP_TRACE
+   if [ "$1" = "-t" ]
+   then
+      MULLE_BOOTSTRAP_TRACE="1848"
+      export MULLE_BOOTSTRAP_TRACE
 
-   COPYMOVEFLAGS="-v"
-   export COPYMOVEFLAGS
-   GITFLAGS="-v"
-   export GITFLAGS
-   [ $# -eq 0 ] || shift
-else
+      COPYMOVEFLAGS="-v"
+      export COPYMOVEFLAGS
+      GITFLAGS="-v"
+      export GITFLAGS
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
    if [ "$1" = "-v" ]
    then
       if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
@@ -89,35 +96,39 @@ else
       GITFLAGS="-v"
       export GITFLAGS
       [ $# -eq 0 ] || shift
-   else
-      if [ "$1" = "-V" ]
-      then
-         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-         then
-            MULLE_BOOTSTRAP_TRACE="ALL"
-            export MULLE_BOOTSTRAP_TRACE
-         fi
-
-         COPYMOVEFLAGS="-v"
-         export COPYMOVEFLAGS
-         GITFLAGS="-v"
-         export GITFLAGS
-         [ $# -eq 0 ] || shift
-      else
-         if [ "$1" = "-s" ] # silent
-         then
-            MULLE_BOOTSTRAP_TRACE=
-            MULLE_BOOTSTRAP_TERSE="YES"
-            export MULLE_BOOTSTRAP_TERSE
-
-            GITFLAGS="-q"
-            export GITFLAGS
-            [ $# -eq 0 ] || shift
-         fi
-      fi
+      continue
    fi
-fi
 
+   if [ "$1" = "-V" ]
+   then
+      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+      then
+         MULLE_BOOTSTRAP_TRACE="ALL"
+         export MULLE_BOOTSTRAP_TRACE
+      fi
+
+      COPYMOVEFLAGS="-v"
+      export COPYMOVEFLAGS
+      GITFLAGS="-v"
+      export GITFLAGS
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
+   if [ "$1" = "-s" ] # silent
+   then
+      MULLE_BOOTSTRAP_TRACE=
+      MULLE_BOOTSTRAP_TERSE="YES"
+      export MULLE_BOOTSTRAP_TERSE
+
+      GITFLAGS="-q"
+      export GITFLAGS
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
+   break
+done
 
 usage()
 {

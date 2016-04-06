@@ -1,3 +1,17 @@
+0.21
+===
+
+*  Fix a bug when updating
+*  When updating ignore symlinked repositories and do not update embedded
+   repositories of said symlinks.
+*  Fixed option handling, so now -y -v and -v -y are possible. It used to be
+   that the order was -y -v.
+*  Embeded repository settings do not get inherited, from other repos, which is
+   just confusing.
+*  Make the zombiefication code a bit more clever, when expected repos aren't
+   there (yet).
+
+
 0.20
 ===
 

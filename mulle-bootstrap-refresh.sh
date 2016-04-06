@@ -182,17 +182,15 @@ mark_all_repositories_zombies()
 }
 
 
-mark_repository_alive()
+_mark_repository_alive()
 {
    local dstdir
    local name
+   local zombie
 
    name="$1"
    dstdir="$2"
-
-   local zombie
-
-   zombie="`dirname -- "${dstdir}"`/.zombies/${name}"
+   zombie="$3"
 
    # mark as alive
    if [ -d "${dstdir}" -o -L "${dstdir}" ]
@@ -206,8 +204,37 @@ mark_repository_alive()
          log_fluff "Marked \"${dstdir}\" is already alive"
       fi
    else
-      log_fluff "\"${dstdir}\" is neither a symlink nor a directory"
+      if [ -e "${dstdir}" ]
+      then
+         log_fail "\"${dstdir}\" is neither a symlink nor a directory"
+      fi
+
+      # repository should be there but hasn't been fetched yet
+      # so not really a zmbie
+      if [ -e "${zombie}" ]
+      then
+         log_fluff "\"${dstdir}\" is not there, so not a zombie"
+
+         exekutor rm -f "${zombie}" || fail "failed to delete zombie ${zombie}"
+      fi
    fi
+}
+
+
+
+mark_repository_alive()
+{
+   local dstdir
+   local name
+
+   name="$1"
+   dstdir="$2"
+
+   local zombie
+
+   zombie="`dirname -- "${dstdir}"`/.zombies/${name}"
+
+   _mark_repository_alive "${name}" "${dstdir}" "${zombie}"
 }
 
 
@@ -302,20 +329,7 @@ mark_embedded_repository_alive()
 
    zombie="${CLONESFETCH_SUBDIR}/.embedded/.zombies/${name}"
 
-   # mark as alive
-   if [ -d "${dstdir}" -o -L "${dstdir}" ]
-   then
-      if [ -e "${zombie}" ]
-      then
-         log_fluff "Mark \"${dstdir}\" as alive"
-
-         exekutor rm -f "${zombie}" || fail "failed to delete zombie ${zombie}"
-      else
-         log_fluff "Marked \"${dstdir}\" is already alive"
-      fi
-   else
-      log_fluff "\"${dstdir}\" is neither a symlink nor a directory"
-   fi
+   _mark_repository_alive "${name}" "${dstdir}" "${zombie}"
 }
 
 

@@ -228,6 +228,15 @@ _read_bootstrap_setting()
       suffix="${1}"
       shift
 
+      if [ "${MULLE_BOOTSTRAP_SETTINGS_NO_AUTO}" = "YES" ]
+      then
+         case "$suffix" in
+            .auto*)
+               continue
+               ;;
+         esac
+      fi
+
       value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix}/${name}"`"
       if [ $? -eq 0 ]
       then
@@ -250,7 +259,6 @@ _read_repo_setting()
 
    [ ! -z "$name" ]    || internal_fail "empty name in _read_repo_setting( $*)"
    [ ! -z "$package" ] || internal_fail "empty package in _read_repo_setting( $*)"
-
    # need to conserve return value 2 if empty
    _read_bootstrap_setting  "settings/${package}/${name}" ".local" "" ".auto"
 }

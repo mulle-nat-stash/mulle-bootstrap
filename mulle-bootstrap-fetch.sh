@@ -704,6 +704,9 @@ install_embedded_repositories()
 
    old="${IFS:-" "}"
 
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+   export MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
+
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
    then
@@ -762,6 +765,8 @@ install_embedded_repositories()
    fi
 
    IFS="${old}"
+
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }
 
 
@@ -800,8 +805,7 @@ update()
 
    local script
 
-   log_info "Updating \"${dstdir}\""
-   if [ ! -L "${dstdir}"  ]
+   if [ ! -L "${dstdir}" ]
    then
       run_repo_settings_script "${name}" "${dstdir}" "pre-update" "$@"
 
@@ -814,6 +818,9 @@ update()
       fi
 
       run_repo_settings_script "${name}" "${dstdir}" "post-update" "$@"
+   else
+      log_fluff "Repository \"${name}\" exists, so not updated."
+      return 1
    fi
 }
 
@@ -840,17 +847,23 @@ update_repository()
 
    update "${name}" "${url}" "${dstdir}" "${tag}"
 
-   if [ "${DONT_RECURSE}" = "" ]
+   #update will return 1 if repo is symlinked
+
+   if [ $? -eq 0 -a "${DONT_RECURSE}" = "" ]
    then
       local old
+      local oldfetch
 
       old="${BOOTSTRAP_SUBDIR}"
+      oldfetch="${CLONESFETCH_SUBDIR}"
 
       BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
-      CLONESFETCH_SUBDIR="${dstdir}/.repos"
+#      CLONESFETCH_SUBDIR="${dstdir}/.repos"
 
       update_embedded_repositories "${dstdir}/"
+
       BOOTSTRAP_SUBDIR="${old}"
+#      CLONESFETCH_SUBDIR="${oldfetch}"
    fi
 }
 
@@ -950,6 +963,9 @@ update_embedded_repositories()
    local name
    local url
 
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+   export MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
+
    old="${IFS:-" "}"
 
    clones="`read_fetch_setting "embedded_repositories"`"
@@ -972,6 +988,7 @@ update_embedded_repositories()
    fi
 
    IFS="${old}"
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }
 
 
