@@ -336,11 +336,8 @@ ask_symlink_it()
    #
    if [ -d "${clone}"/.git ]
    then
-      local is_bare
-
        # if bare repo, we can only clone anyway
-      is_bare=`( cd "${clone}"; git rev-parse --is-bare-repository )`
-      if [ "${is_bare}" = "true" ]
+      if git_is_bare_repository "${clone}"
       then
          log_info "${clone} is a bare git repository. So cloning"
          log_info "is the only way to go."
@@ -392,17 +389,56 @@ log_fetch_action()
 }
 
 
+search_git_repo_in_parent_directory()
+{
+   local name
+   local branch
+
+   name="$1"
+   branch="$2"
+
+   local found
+
+   if [ ! -z "${branch}" ]
+   then
+      found="../${name}.${branch}"
+      if [ -d "${found}" ]
+      then
+         echo "${found}"
+         return
+      fi
+   fi
+
+   found="../${name}"
+   if [ -d "${found}" ]
+   then
+      echo "${found}"
+      return
+   fi
+
+   found="../${name}.git"
+   if [ -d "${found}" ]
+   then
+      echo "${found}"
+      return
+   fi
+}
+
+
+
 checkout()
 {
    local url
    local name
    local dstdir
+   local branch
    local tag
 
    name="$1"
    url="$2"
    dstdir="$3"
-   tag="$4"
+   branch="$4"
+   tag="$5"
 
    [ ! -z "$name" ]   || internal_fail "name is empty"
    [ ! -z "$url" ]    || internal_fail "url is empty"
@@ -418,6 +454,8 @@ checkout()
       relative="${relative}/"
    fi
    name2="`basename -- "${url}"`"  # only works for git really
+
+   local scmflagsdefault
 
    #
    # this implicitly ensures, that these folders are
@@ -443,6 +481,7 @@ checkout()
    case "${map}" in
       git|"" )
          operation="git_clone"
+         scmflagsdefault="--recursive"
          ;;
       svn)
          operation="svn_checkout"
@@ -466,43 +505,40 @@ checkout()
    else
       case "${url}" in
          /*)
-            ask_symlink_it "${src}"
-            if [ $? -eq 0 ]
+            if git_is_bare_repository "${url}"
             then
-               operation=link_command
+               :
+            else
+               ask_symlink_it "${src}"
+               if [ $? -eq 0 ]
+               then
+                  operation=link_command
+               fi
             fi
          ;;
 
          ../*|./*)
-            src="${url}"
-            ask_symlink_it "${src}"
-            if [ $? -eq 0 ]
+            if git_is_bare_repository "${url}"
             then
-               operation=link_command
-               src="${relative}${url}"
+               :
+            else
+               ask_symlink_it "${src}"
+               if [ $? -eq 0 ]
+               then
+                  operation=link_command
+                  src="${relative}${url}"
+               fi
             fi
          ;;
 
          *)
-            found="../${name}.${tag}"
-            if [ ! -d "${found}" ]
+            found="`search_git_repo_in_parent_directory "${name}" "${branch}"`"
+            if [ -z "${found}" ]
             then
-               found="../${name}"
-               if [ ! -d "${found}" ]
-               then
-                  found="../${name2}.${tag}"
-                  if [ ! -d "${found}" ]
-                  then
-                     found="../${name2}"
-                     if [ ! -d "${found}" ]
-                     then
-                        found=""
-                     fi
-                  fi
-               fi
+               found="`search_git_repo_in_parent_directory "${name2}" "${branch}"`"
             fi
 
-            if [ "${found}" != ""  ]
+            if [ ! -z "${found}" ]
             then
                user_say_yes "There is a ${found} folder in the parent
 directory of this project.
@@ -510,25 +546,56 @@ Use it ?"
                if [ $? -eq 0 ]
                then
                   src="${found}"
-                  ask_symlink_it "${src}"
-                  if [ $? -eq 0 ]
+
+                  if git_is_bare_repository "${src}"
                   then
-                     operation=link_command
-                     src="${relative}${found}"
+                     :
+                  else
+                     ask_symlink_it "${src}"
+                     if [ $? -eq 0 ]
+                     then
+                        operation=link_command
+                        src="${relative}${found}"
+                     fi
                   fi
                fi
             fi
+
          ;;
       esac
 
       local scmflags
 
-      scmflags="`read_repo_setting "${name}" "checkout" "--recursive"`"
-      "${operation}" "${src}" "${dstdir}" "${tag}" "${scmflags}"
+      scmflags="`read_repo_setting "${name}" "checkout" "${scmflagsdefault}"`"
+      "${operation}" "${src}" "${dstdir}" "${branch}" "${tag}" "${scmflags}"
       mulle-bootstrap-warn-scripts.sh "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
    fi
 }
 
+
+ensure_clone_branch_is_correct()
+{
+   local dstdir
+   local branch
+
+   dstdir="${1}"
+   branch="${2}"
+
+   local actual
+
+   if [ ! -z "${branch}" ]
+   then
+      actual="`git_get_branch "${dstdir}"`"
+      if [ "${actual}" != "${branch}" ]
+      then
+         fail "Repository \"${dstdir}\" checked-out branch is \"${actual}\".
+But \"${branch}\" is specified.
+Suggested fix:
+   mulle-bootstrap clean dist
+   mulle-bootstrap"
+      fi
+   fi
+}
 
 #
 # Use git clones for stuff that gets tagged
@@ -544,10 +611,14 @@ checkout_repository()
    local name
    local flag
    local url
+   local branch
+   local tag
 
    name="$1"
    url="$2"
    dstdir="$3"
+   branch="$4"
+   tag="$5"
 
    if [ ! -e "${dstdir}" ]
    then
@@ -575,8 +646,9 @@ checkout_repository()
       then
          return 1
       fi
-
    else
+      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+
       log_fluff "Repository \"${dstdir}\" already exists"
    fi
    return 0
@@ -587,9 +659,11 @@ clone_repository()
 {
    local name
    local url
+   local branch
 
    name="$1"
    url="$2"
+   branch="$3"
 
    local tag
    local dstdir
@@ -599,7 +673,10 @@ clone_repository()
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
    log_fetch_action "${name}" "${dstdir}"
 
-   checkout_repository "${name}" "${url}" "${dstdir}" "${tag}"
+   # mark the checkout progress, so that we don't do incomplete fetches and
+   # later on happily build
+
+   checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
    flag=$?
 
    return $flag
@@ -610,9 +687,11 @@ did_clone_repository()
 {
    local name
    local url
+   local branch
 
    name="$1"
    url="$2"
+   branch="$3"
 
    local dstdir
 
@@ -631,6 +710,7 @@ clone_repositories()
    local url
    local fetched
    local match
+   local branch
 
    old="${IFS:-" "}"
 
@@ -663,7 +743,9 @@ ${clone}"
 
                name="`canonical_name_from_clone "${clone}"`"
                url="`url_from_clone "${clone}"`"
-               clone_repository "${name}" "${url}"
+               branch="`branch_from_clone "${clone}"`"
+
+               clone_repository "${name}" "${url}" "${branch}"
 
                if [ $? -eq 1 ]
                then
@@ -682,7 +764,7 @@ ${clone}"
       IFS="${old}"
       name="`canonical_name_from_clone "${clone}"`"
       url="`url_from_clone "${clone}"`"
-      did_clone_repository "${name}" "${url}"
+      did_clone_repository "${name}" "${url}" "${branch}"
    done
 
    IFS="${old}"
@@ -701,6 +783,7 @@ install_embedded_repositories()
    local name
    local url
    local dstdir
+   local branch
 
    old="${IFS:-" "}"
 
@@ -717,6 +800,7 @@ install_embedded_repositories()
          IFS="${old}"
          name="`canonical_name_from_clone "${clone}"`"
          url="`url_from_clone "${clone}"`"
+         branch="`branch_from_clone "${clone}"`"
 
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
          dstdir="${dstprefix}${name}"
@@ -732,7 +816,7 @@ install_embedded_repositories()
             old="${SYMLINK_FORBIDDEN}"
 
             SYMLINK_FORBIDDEN="YES"
-            checkout "${name}" "${url}" "${dstdir}" "${tag}"
+            checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
             SYMLINK_FORBIDDEN="$old"
 
             if read_yes_no_config_setting "update_gitignore" "YES"
@@ -759,7 +843,9 @@ install_embedded_repositories()
 
             run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
          else
-            log_fluff "\"${dstdir}\" already exists"
+            ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+
+           log_fluff "Repository \"${dstdir}\" already exists"
          fi
       done
    fi
@@ -774,13 +860,15 @@ update()
 {
    local name
    local url
+   local branch
    local tag
    local dstdir
 
    name="$1"
    url="$2"
    dstdir="$3"
-   tag="$4"
+   branch="$4"
+   tag="$5"
 
    [ ! -z "$url" ]           || internal_fail "url is empty"
    exekutor [ -d "$dstdir" ] || internal_fail "dstdir \"${dstdir}\" is wrong ($PWD)"
@@ -814,11 +902,12 @@ update()
       then
          run_script "${script}" "$@"
       else
-         "${operation}" "${dstdir}" "${tag}"
+         "${operation}" "${dstdir}" "${branch}" "${tag}"
       fi
 
       run_repo_settings_script "${name}" "${dstdir}" "post-update" "$@"
    else
+      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       log_fluff "Repository \"${name}\" exists, so not updated."
       return 1
    fi
@@ -829,9 +918,11 @@ update_repository()
 {
    local name
    local url
+   local branch
 
    name="$1"
    url="$2"
+   branch="$3"
 
    local name
    local tag
@@ -845,7 +936,7 @@ update_repository()
 
    log_fetch_action "${url}" "${dstdir}"
 
-   update "${name}" "${url}" "${dstdir}" "${tag}"
+   update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
 
    #update will return 1 if repo is symlinked
 
@@ -865,6 +956,8 @@ update_repository()
       BOOTSTRAP_SUBDIR="${old}"
 #      CLONESFETCH_SUBDIR="${oldfetch}"
    fi
+
+   ensure_clone_branch_is_correct "${dstdir}" "${branch}"
 }
 
 
@@ -930,7 +1023,9 @@ update_repositories()
             IFS="${old}"
             name="`canonical_name_from_clone "${clone}"`"
             url="`url_from_clone "${clone}"`"
-            update_repository "${name}" "${url}"
+            branch="`branch_from_clone "${clone}"`"
+
+            update_repository "${name}" "${url}" "${branch}"
          done
 
          # reread because of auto
@@ -942,7 +1037,9 @@ update_repositories()
             IFS="${old}"
             name="`canonical_name_from_clone "${clone}"`"
             url="`url_from_clone "${clone}"`"
-            did_update_repository "${name}" "${url}"
+            branch="`branch_from_clone "${clone}"`"
+
+            did_update_repository "${name}" "${url}" "${branch}"
          done
       fi
    fi
@@ -962,6 +1059,7 @@ update_embedded_repositories()
    local old
    local name
    local url
+   local branch
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
    export MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
@@ -978,12 +1076,13 @@ update_embedded_repositories()
          IFS="${old}"
          name="`canonical_name_from_clone "${clone}"`"
          url="`url_from_clone "${clone}"`"
+         branch="`branch_from_clone "${clone}"`"
 
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
          dstdir="${dstprefix}${name}"
          log_fetch_action "${name}" "${dstdir}"
 
-         update "${name}" "${url}" "${dstdir}" "${tag}"
+         update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
       done
    fi
 
@@ -1010,10 +1109,6 @@ main()
    SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
    export SYMLINK_FORBIDDEN
 
-
-   #
-   # Run prepare scripts if present
-   #
    if [ "${COMMAND}" = "install" ]
    then
       if [ $# -ne 0 ]
@@ -1022,6 +1117,16 @@ main()
          usage >&2
          exit 1
       fi
+   fi
+
+   ensure_consistency
+   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+   #
+   # Run prepare scripts if present
+   #
+   if [ "${COMMAND}" = "install" ]
+   then
 
       clone_repositories
 
@@ -1030,6 +1135,7 @@ main()
       install_gems
       install_pips
       check_tars
+
    else
       update_repositories "$@"
 
@@ -1040,6 +1146,8 @@ main()
    # Run prepare scripts if present
    #
    run_fetch_settings_script "post-${COMMAND}" "$@"
+
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
    if read_yes_no_config_setting "update_gitignore" "YES"
    then

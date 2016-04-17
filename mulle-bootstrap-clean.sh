@@ -52,7 +52,7 @@ embedded_repositories()
    then
       for clone in ${clones}
       do
-         name="`extension_less_basename "${clone}"`"
+         name="`canonical_name_from_clone "${clone}"`"
          dir="${name}"
          echo "${dir}"
       done

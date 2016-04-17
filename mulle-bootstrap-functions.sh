@@ -391,6 +391,27 @@ mkdir_if_missing()
 }
 
 
+create_file_if_missing()
+{
+   if [ ! -f "${1}" ]
+   then
+      log_fluff "Creating \"$1\" (`pwd -P`)"
+      exekutor touch "$1" || fail "failed to create \"$1\""
+   fi
+}
+
+
+remove_file_if_present()
+{
+   if [ -f "${1}" ]
+   then
+      log_fluff "Removing \"$1\" (`pwd -P`)"
+      exekutor rm -f "$1" || fail "failed to remove \"$1\""
+   fi
+}
+
+
+
 #
 # consider . .. ~ or absolute paths as unsafe
 # anything starting with a $ is probably also bad
@@ -525,22 +546,50 @@ find_xcodeproj()
 }
 
 
+# deal with stuff like
+# foo
+# https://www./foo.git
+# host:foo
+#
 canonical_clone_name()
 {
-   extension_less_basename "${1}"
+   local  url
+
+   url="$1"
+
+   # cut off scheme part
+
+   case "$url" in
+      *:*)
+         url="`echo "$@" | sed 's/^\(.*\):\(.*\)/\2/'`"
+         ;;
+   esac
+
+   extension_less_basename "$url"
 }
 
+
+count_clone_components()
+{
+  echo "$@" | tr ';' '\012' | wc -l | awk '{ print $1 }'
+}
 
 
 url_from_clone()
 {
-   echo "$@" | sed 's/^\(.*\);\(.*\)/\1/'
+   echo "$@" | tr ';' '\012' | head -1
 }
 
 
 _name_part_from_clone()
 {
-   echo "$@" | sed 's/^\(.*\);\(.*\)/\2/'
+   echo "$@" | tr ';' '\012' | head -2 | tail -1
+}
+
+
+_branch_part_from_clone()
+{
+   echo "$@" | tr ';' '\012' | head -3 | tail -1
 }
 
 
@@ -548,11 +597,12 @@ canonical_name_from_clone()
 {
    local url
    local name
+   local branch
 
    url="`url_from_clone "$@"`"
    name="`_name_part_from_clone "$@"`"
 
-   if [ "${name}" != "${url}" ]
+   if [ ! -z "${name}" -a "${name}" != "${url}" ]
    then
       canonical_clone_name "${name}"
       return
@@ -560,6 +610,19 @@ canonical_name_from_clone()
 
    canonical_clone_name "${url}"
 }
+
+
+branch_from_clone()
+{
+   local count
+
+   count="`count_clone_components "$@"`"
+   if [ "$count" -ge 3 ]
+   then
+      _branch_part_from_clone "$@"
+   fi
+}
+
 
 
 # http://askubuntu.com/questions/152001/how-can-i-get-octal-file-permissions-from-command-line
@@ -614,3 +677,19 @@ ensure_clones_directory()
    fi
 }
 
+
+ensure_consistency()
+{
+   if [ -f "${CLONESFETCH_SUBDIR}/.fetch_update_started" ]
+   then
+      log_error "A previous fetch or update was incomplete.
+Suggested resolution:
+    ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
+    ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
+
+Or do you feel lucky ? ${C_RESET_BOLD}rm ${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
+and try again. But you've gotta ask yourself one question: Do I feel lucky ?
+Well, do ya, punk? "
+      exit 1
+   fi
+}

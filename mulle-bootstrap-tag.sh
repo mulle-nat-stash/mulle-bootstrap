@@ -256,6 +256,7 @@ main()
 {
    log_fluff "::: tag :::"
 
+   ensure_consistency
    ensure_tags_unknown "${TAG}" "${VENDOR_TAG}"
    ensure_repos_clean
 

@@ -112,7 +112,7 @@ _read_setting()
       then
          local os
          os="`uname`"
-         log_fluff "${C_MAGENTA_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
+         log_fluff "${C_MAGENTA}${C_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
       fi
    else
       value=`egrep -v '^#|^[ ]*$' "${file}"`
@@ -120,7 +120,7 @@ _read_setting()
       then
          local os
          os="`uname`"
-         log_fluff "Setting ${C_MAGENTA_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found in \"${file}\" as ${C_MAGENTA_BOLD}${value}${C_FLUFF}"
+         log_fluff "Setting ${C_MAGENTA}${C_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
       fi
    fi
 
@@ -165,7 +165,7 @@ _read_environment_setting()
 
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES" ]
    then
-      log_trace "Setting ${C_MAGENTA_BOLD}${name}${C_TRACE} found in environment variable \"${envname}\" as ${C_MAGENTA_BOLD}${value}${C_TRACE}"
+      log_trace "Setting ${C_MAGENTA}${C_BOLD}${name}${C_TRACE} found in environment variable \"${envname}\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
    fi
 
    warn_environment_setting "${envname}"
@@ -200,7 +200,7 @@ _read_local_setting()
 
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES" ]
    then
-      log_trace "Setting ${C_MAGENTA_BOLD}${name}${C_TRACE} found in \"~/.mulle-bootstrap\" as ${C_MAGENTA_BOLD}${value}${C_TRACE}"
+      log_trace "Setting ${C_MAGENTA}${C_BOLD}${name}${C_TRACE} found in \"~/.mulle-bootstrap\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
    fi
    warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
 
@@ -492,7 +492,6 @@ read_yes_no_config_setting()
 }
 
 
-
 read_sane_config_path_setting()
 {
    local name
@@ -520,8 +519,6 @@ read_sane_config_path_setting()
 }
 
 
-
-
 merge_settings_in_front()
 {
    local settings1
@@ -536,10 +533,12 @@ merge_settings_in_front()
    local old
    local line1
 
+   # https://stackoverflow.com/questions/742466/how-can-i-reverse-the-order-of-lines-in-a-file/744093#744093
+
    old="${IFS:-" "}"
    IFS="
 "
-   for line in $settings1
+   for line in `echo "${settings1}" | sed -n '1!G;h;$p'`
    do
       result="`echo "${result}" | grep -v -x "${line}"`"
       result="${line}

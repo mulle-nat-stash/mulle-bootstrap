@@ -178,6 +178,8 @@ mark_all_repositories_zombies()
             exekutor touch "${CLONESFETCH_SUBDIR}/.zombies/${name}"
          fi
       done
+   else
+      log_fluff "No projects found in \"${CLONESFETCH_SUBDIR}\""
    fi
 }
 
@@ -263,7 +265,7 @@ bury_zombies()
             dstdir="${CLONESFETCH_SUBDIR}/${name}"
             if [ -d "${dstdir}" ]
             then
-               log_info "Removing unused repository ${C_MAGENTA_BOLD}${name}${C_INFO}"
+               log_info "Removing unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO}"
 
                if [ -e "${gravepath}/${name}" ]
                then
@@ -298,7 +300,7 @@ mark_all_embedded_repositories_zombies()
    local path
    local zombiepath
 
-      # first mark all repos as stale
+   # first mark all repos as stale
    path="${CLONESFETCH_SUBDIR}/.embedded"
    if dir_has_files "${CLONESFETCH_SUBDIR}/.embedded"
    then
@@ -313,6 +315,8 @@ mark_all_embedded_repositories_zombies()
          name="`basename "$i"`"
          exekutor touch "${zombiepath}/${name}"
       done
+   else
+      log_fluff "No files in \"${CLONESFETCH_SUBDIR}/.embedded\", hmm"
    fi
 }
 
@@ -358,7 +362,6 @@ bury_embedded_zombies()
          then
             name="`basename -- "${i}"`"
             dstdir="${name}"
-            log_info "Removing unused embedded repository ${C_MAGENTA_BOLD}${name}${C_INFO}"
 
             if [ -d "${dstdir}" ]
             then
@@ -370,6 +373,7 @@ bury_embedded_zombies()
                exekutor mv "${dstdir}" "${gravepath}"
                exekutor rm "${i}"
                exekutor rm "${CLONESFETCH_SUBDIR}/.embedded/${name}"
+               log_info "Removed unused embedded repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"${dstdir}\""
             else
                log_fluff "\"${dstdir}\" embedded zombie vanished or never existed"
             fi
@@ -493,15 +497,20 @@ refresh_deeply_embedded_repositories()
          name="`canonical_name_from_clone "${clone}"`"
          dstprefix="${CLONESFETCH_SUBDIR}/${name}/"
 
-         previous_bootstrap="${BOOTSTRAP_SUBDIR}"
-         previous_clones="${CLONESFETCH_SUBDIR}"
-         BOOTSTRAP_SUBDIR="${dstprefix}.bootstrap"
-         CLONESFETCH_SUBDIR="${dstprefix}${CLONESFETCH_SUBDIR}"
+         if [ ! -L "${CLONESFETCH_SUBDIR}/${name}" ]
+         then
+            previous_bootstrap="${BOOTSTRAP_SUBDIR}"
+            previous_clones="${CLONESFETCH_SUBDIR}"
+            BOOTSTRAP_SUBDIR="${dstprefix}.bootstrap"
+            CLONESFETCH_SUBDIR="${dstprefix}${CLONESFETCH_SUBDIR}"
 
-         refresh_embedded_repositories "${dstprefix}"
+            refresh_embedded_repositories "${dstprefix}"
 
-         BOOTSTRAP_SUBDIR="${previous_bootstrap}"
-         CLONESFETCH_SUBDIR="${previous_clones}"
+            BOOTSTRAP_SUBDIR="${previous_bootstrap}"
+            CLONESFETCH_SUBDIR="${previous_clones}"
+         else
+            log_fluff  "Don't refresh embedded repositories of symlinked \"${name}\""
+         fi
       done
    fi
 

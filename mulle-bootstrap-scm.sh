@@ -28,6 +28,22 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #
+git_is_bare_repository()
+{
+   local is_bare
+
+       # if bare repo, we can only clone anyway
+    is_bare=`( cd "${1}"; git rev-parse --is-bare-repository )`
+    [ "${is_bare}" = "true" ]
+}
+
+
+git_get_branch()
+{
+   ( cd "$1" ; git rev-parse --abbrev-ref HEAD )
+}
+
+
 
 git_checkout_tag()
 {
@@ -48,7 +64,7 @@ git_checkout_tag()
 
    local branch
 
-   branch="`( cd "$dst" ; git rev-parse --abbrev-ref HEAD )`"
+   branch="`git_get_branch "${dst}"`"
 
    if [ "${branch}" != "${tag}" ]
    then
@@ -75,18 +91,27 @@ git_clone()
 {
    local src
    local dst
+   local branch
    local tag
    local flags
 
    src="$1"
    dst="$2"
-   tag="$3"
-   flags="$4"
+   branch="$3"
+   tag="$4"
+   flags="$5"
 
-   [ ! -z "$src" ] || internal_fail "src is empty"
-   [ ! -z "$dst" ] || internal_fail "dst is empty"
+   [ ! -z "${src}" ] || internal_fail "src is empty"
+   [ ! -z "${dst}" ] || internal_fail "dst is empty"
 
-   log_info "Cloning ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+   if [ ! -z "${branch}" ]
+   then
+      log_info "Cloning branch ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+      flags="${flags} -b ${branch}"
+   else
+      log_info "Cloning ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+   fi
+
    exekutor git clone ${flags} ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
 
    if [ "${tag}" != "" ]
@@ -99,14 +124,19 @@ git_clone()
 git_pull()
 {
    local dst
+   local branch
    local tag
+   local flags
 
    dst="$1"
-   tag="$2"
+   branch="$2"
+   tag="$3"
+   tag="$4"
 
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
    log_info "Updating ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
+
    ( exekutor cd "${dst}" ; exekutor git pull ${GITFLAGS} ) || fail "git pull of \"${dst}\" failed"
 
    if [ "${tag}" != "" ]
@@ -122,46 +152,64 @@ svn_checkout()
    local src
    local dst
    local tag
+   local branch
+   local flags
 
    src="$1"
    dst="$2"
-   tag="$3"
+   branch="$3"
+   tag="$4"
+   flags="$5"
 
    [ ! -z "$src" ] || internal_fail "src is empty"
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
-   log_info "SVN checkout ${C_MAGENTA}${src}${C_INFO} ..."
 
-   local flags
-
-   flags="${SVNFLAGS}"
-   if [ ! -z "${tag}" ]
+   if [ ! -z "${branch}" ]
    then
-      flags="-r ${tag} ${flags}"
+      log_info "SVN checkout ${C_RESET_BOLD}${branch}${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+      flags="${flags} -r ${branch}"
+   else
+      if [ ! -z "${tag}" ]
+      then
+         log_info "SVN checkout ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+         flags="${flags} -r ${tag}"
+      else
+         log_info "SVN checkout ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+      fi
    fi
-   exekutor svn checkout ${flags} "${src}" "${dst}" || fail "svn clone of \"${src}\" into \"${dst}\" failed"
+
+
+   exekutor svn checkout ${flags} ${SVNFLAGS} "${src}" "${dst}" || fail "svn clone of \"${src}\" into \"${dst}\" failed"
 }
 
 
 svn_update()
 {
    local dst
+   local branch
    local tag
+   local flags
 
    dst="$1"
-   tag="$2"
+   branch="$2"
+   tag="$3"
+   flags="$4"
 
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
    log_info "SVN updating ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
 
-   local flags
 
-   flags="${SVNFLAGS}"
-   if [ ! -z "$tag" ]
+   if [ ! -z "$branch" ]
    then
-      flags="-r ${tag} ${flags}"
+      flags="-r ${branch} ${flags}"
+   else
+      if [ ! -z "$tag" ]
+      then
+         flags="-r ${tag} ${flags}"
+      fi
    fi
 
-   ( exekutor cd "${dst}" ; exekutor svn update ${flags} ) || fail "svn update of \"${dst}\" failed"
+   ( exekutor cd "${dst}" ; exekutor svn update ${flags} ${SVNFLAGS} ) || fail "svn update of \"${dst}\" failed"
 }

@@ -1,3 +1,29 @@
+0.22
+===
+*  Fix repository order when merging. You should know, that the
+   repository order in `.bootstrap/repositories` needs to be in proper sorted
+   order. Only than can mulle-bootstrap figure out the recursive dependencies
+   correctly.
+*  Allow clone of specific branches by changing the repository spec line to
+   url;name;branch
+
+      ```
+      https://www.mulle-kybernetik.com/repositories/mulle-configuration;;MulleFoundation
+      ```
+      uses the default name, but fetches the MulleFoundation branch.
+*  Huge change:  CMake (and configure) are now the prefered build systems even
+   on OS X (if a `CMakeLists.txtà is available). xcodebuild becomes a fallback
+   preference. The reasons are:
+      1.  CMake + Make are seem faster than xcodebuild
+      2.  It forces me to keep up the CMakeLists.txt with the Xcode project
+   If you don't like it change the build setting 'build_preferences'.
+*  mulle-bootstrap recognizes that bare repositories need to be cloned more
+   often now, if not always.
+*  Make mulle-bootstrap more resilient against aborted fetches, added Dirty
+   Harry quote.
+*  Uses CMAKE_EXE_LINKER_FLAGS and DCMAKE_SHARED_LINKER_FLAGS instead of CMAKE_LD_FLAGS.
+*  Fix wrong --recursive for svn checkout.
+
 0.21
 ===
 

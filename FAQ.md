@@ -133,6 +133,23 @@ echo "Finch Demo" > .bootstrap/Finch/targets
 Use `mulle-bootstrap -V` to get an extensive trace.
 
 
+### I want to only build with cmake
+
+Any setting can be overriden by the environment:
+
+```
+MULLE_BOOTSTRAP_BUILD_PREFERENCES=cmake mulle-bootstrap build
+```
+
+### Is the order of the repositories important ?
+
+Sometimes yes. Try to keep them in order of interdependency.
+
+f.e. mulle-aba is dependent on mulle-allocator and mulle-thread,
+but mulle-allocator is also dependent on mulle-thread, then put
+mulle-thread ahead of mulle-allocator in the `repositories` file.
+
+
 
 ### It's not working as I expect now what ?
 

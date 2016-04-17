@@ -366,7 +366,10 @@ build_fail()
       printf "${C_RESET}"
    fi
 
-   log_info "Check the build log: ${C_RESET_BOLD}${1}${C_INFO}"
+   if [ -z "$MULLE_BOOTSTRAP_TRACE" ]
+   then
+      log_info "Check the build log: ${C_RESET_BOLD}${1}${C_INFO}"
+   fi
    fail "$2 failed"
 }
 
@@ -454,6 +457,13 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    log_fluff "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
    owd="${PWD}"
+
+#   cmake_keep_builddir="`read_build_setting "$name" "cmake_keep_builddir" "YES"`"
+#   if [ "${cmake_keep_builddir}" != "YES" ]
+#   then
+#      rmdir_safer "${builddir}"
+#   fi
+
    mkdir_if_missing "${builddir}"
    exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
 
@@ -481,28 +491,31 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "-DDEPENDENCIES_DIR=${owd}/${REFERENCE_DEPENDENCY_SUBDIR}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
 "-DCMAKE_C_FLAGS=\
--I${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags}" \
 "-DCMAKE_CXX_FLAGS=\
--I${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags}" \
-"-DCMAKE_LD_FLAGS=\
--L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
--L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
--L${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
--F${relative}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+"-DCMAKE_EXE_LINKER_FLAGS=\
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
+"-DCMAKE_SHARED_LINKER_FLAGS=\
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+${other_ldflags}" \
+${CMAKE_FLAGS} \
 "${relative}/${srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
 
-      logging_exekutor make VERBOSE=1 install > "${logfile2}" || build_fail "${logfile2}" "make"
+      logging_exekutor make ${MAKE_FLAGS} VERBOSE=1 install > "${logfile2}" || build_fail "${logfile2}" "make"
 
       set +f
 
@@ -1097,12 +1110,6 @@ build_xcodebuild_schemes_or_target()
    name="$5"
    project="$7"
 
-   if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" = "YES" ]
-   then
-      log_fluff "Cleaning build directory \"${builddir}\""
-      rmdir_safer "${builddir}"
-   fi
-
    local scheme
    local schemes
 
@@ -1207,6 +1214,8 @@ build_script()
    logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
    log_fluff "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
+   mkdir_if_missing "${builddir}"
+
    local owd
 
    owd=`pwd`
@@ -1269,9 +1278,9 @@ build()
       if [ "`uname`" = 'Darwin' ]
       then
          preferences="`read_config_setting "build_preferences" "script
-xcodebuild
 cmake
-configure"`"
+configure
+xcodebuild"`"
       else
          preferences="`read_config_setting "build_preferences" "script
 cmake
@@ -1325,6 +1334,12 @@ Release"`"
 
          builddir="${CLONESBUILD_SUBDIR}/${configuration}/${name}"
          relative="${CLONESBUILD_RELATIVE}/../.."
+
+         if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" = "YES" ]
+         then
+            log_fluff "Cleaning build directory \"${builddir}\""
+            rmdir_safer "${builddir}"
+         fi
 
          hasbuilt=no
          for preference in ${preferences}
@@ -1625,6 +1640,8 @@ main()
       log_info "No repositories in \"${CLONES_SUBDIR}\", so nothing to build."
       return 0
    fi
+
+   ensure_consistency
 
    if [ $# -eq 0 ]
    then
