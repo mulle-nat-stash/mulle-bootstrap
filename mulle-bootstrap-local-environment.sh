@@ -74,8 +74,12 @@ fi
 # can't rename this because of embedded reposiories
 CLONES_SUBDIR=.repos
 
-CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "build/.repos"`
-DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "dependencies"`
+# future: shared dependencies folder for many projects
+
+RELATIVE_ROOT=""
+
+CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "${RELATIVE_ROOT}build/.repos"`
+DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "${RELATIVE_ROOT}dependencies"`
 BUILDLOG_SUBDIR=`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`
 
 

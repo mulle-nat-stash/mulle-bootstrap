@@ -50,12 +50,19 @@ embedded_repositories()
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
    then
+      local old
+
+      old="${IFS:-" "}"
+      IFS="
+"
       for clone in ${clones}
       do
+         IFS="${old}"
          name="`canonical_name_from_clone "${clone}"`"
          dir="${name}"
          echo "${dir}"
       done
+      IFS="${old}"
    fi
 }
 
@@ -69,12 +76,12 @@ usage()
    cat <<EOF
 clean [build|output|dist]
 
-   build   : is the default, it cleans
+   build   : it cleans
 ---
 ${BUILD_CLEANABLE_SUBDIRS}
 ---
 
-   output  : cleans additionaly
+   output  : is the default, it cleans additionaly
 ---
 ${OUTPUT_CLEANABLE_SUBDIRS}
 ---
@@ -95,7 +102,6 @@ check_and_usage_and_help()
       dist)
       ;;
       build)
-      COMMAND="build"
       ;;
       *)
       usage >&2
@@ -105,7 +111,7 @@ check_and_usage_and_help()
 }
 
 
-COMMAND=${1:-"build"}
+COMMAND=${1:-"output"}
 [ $# -eq 0 ] || shift
 
 check_and_usage_and_help

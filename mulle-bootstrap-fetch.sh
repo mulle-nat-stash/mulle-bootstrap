@@ -102,16 +102,15 @@ install_taps()
 {
    local tap
    local taps
-   local old
 
    log_fluff "Looking for taps"
 
    taps=`read_fetch_setting "taps" | sort | sort -u`
    if [ "${taps}" != "" ]
    then
-      local old
-
       fetch_brew_if_needed
+
+      local old
 
       old="${IFS:-" "}"
       IFS="
@@ -627,13 +626,13 @@ checkout_repository()
 
       if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
       then
-         local old
+         local old_bootstrap
 
-         old="${BOOTSTRAP_SUBDIR}"
+         old_bootstrap="${BOOTSTRAP_SUBDIR}"
 
          BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
          install_embedded_repositories "${dstdir}/"
-         BOOTSTRAP_SUBDIR="${old}"
+         BOOTSTRAP_SUBDIR="${old_bootstrap}"
 
          bootstrap_auto_update "${name}" "${url}" "${dstdir}"
          flag=$?
@@ -713,7 +712,6 @@ clone_repositories()
    local branch
 
    old="${IFS:-" "}"
-
    fetched=""
 
    stop=0
@@ -762,6 +760,7 @@ ${clone}"
    for clone in ${fetched}
    do
       IFS="${old}"
+
       name="`canonical_name_from_clone "${clone}"`"
       url="`url_from_clone "${clone}"`"
       did_clone_repository "${name}" "${url}" "${branch}"
@@ -798,6 +797,7 @@ install_embedded_repositories()
       for clone in ${clones}
       do
          IFS="${old}"
+
          name="`canonical_name_from_clone "${clone}"`"
          url="`url_from_clone "${clone}"`"
          branch="`branch_from_clone "${clone}"`"
@@ -811,13 +811,13 @@ install_embedded_repositories()
             #
             # embedded_repositories are just cloned, no symlinks,
             #
-            local old
+            local old_forbidden
 
-            old="${SYMLINK_FORBIDDEN}"
+            old_forbidden="${SYMLINK_FORBIDDEN}"
 
             SYMLINK_FORBIDDEN="YES"
             checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
-            SYMLINK_FORBIDDEN="$old"
+            SYMLINK_FORBIDDEN="$old_forbidden"
 
             if read_yes_no_config_setting "update_gitignore" "YES"
             then
@@ -942,19 +942,19 @@ update_repository()
 
    if [ $? -eq 0 -a "${DONT_RECURSE}" = "" ]
    then
-      local old
-      local oldfetch
+      local old_bootstrap
+#      local old_fetch
 
-      old="${BOOTSTRAP_SUBDIR}"
-      oldfetch="${CLONESFETCH_SUBDIR}"
+      old_bootstrap="${BOOTSTRAP_SUBDIR}"
+#      old_fetch="${CLONESFETCH_SUBDIR}"
 
       BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
 #      CLONESFETCH_SUBDIR="${dstdir}/.repos"
 
       update_embedded_repositories "${dstdir}/"
 
-      BOOTSTRAP_SUBDIR="${old}"
-#      CLONESFETCH_SUBDIR="${oldfetch}"
+      BOOTSTRAP_SUBDIR="${old_bootstrap}"
+#      CLONESFETCH_SUBDIR="${old_fetch}"
    fi
 
    ensure_clone_branch_is_correct "${dstdir}" "${branch}"

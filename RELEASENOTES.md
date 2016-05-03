@@ -1,3 +1,17 @@
+0.23
+===
+*  Added -k options to build, to control cleaning before build.
+   You can now specify the default configurations to build with -c.
+   e.g. `mulle-bootstrap -c "Debug"
+*  Improved library and frameworks searchpath generation.
+*  You can pass build a "-j <cores>" flag, for cmake/make to parallelize
+   the build.
+*  Specify `ARCHS='${NATIVE_ARCH_ACTUAL}' mulle-bootstrap build`, when you
+   want to override the ARCHS setting for an Xcode build. Kinda hackish.
+*  xcodebuild routine does not overwrite `INSTALL_PATH anymore.
+*  `clean has **output** as the new default
+*  Fix accidental IFS overwrite problem, resulting in git calls failing
+
 0.22
 ===
 *  Fix repository order when merging. You should know, that the

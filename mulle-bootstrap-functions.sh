@@ -412,6 +412,74 @@ remove_file_if_present()
 
 
 
+simplify_path()
+{
+   local file
+
+   file="${1}"
+
+   local modification
+
+   # foo/ -> foo
+   modification="`echo "${1}" | sed 's|^\(.*\)/$|\1|'`"
+   if  [ "${modification}" != "${file}" ]
+   then
+      simplify_path "${modification}"
+      return
+   fi
+
+   # ./foo -> foo
+   modification="`echo "${1}" | sed 's|^\./\(.*\)$|\1|'`"
+   if  [ "${modification}" != "${file}" ]
+   then
+      simplify_path "${modification}"
+      return
+   fi
+
+   # foo/. -> foo
+   modification="`echo "${1}" | sed 's|^\(.*\)/\.$|\1|'`"
+   if  [ "${modification}" != "${file}" ]
+   then
+      simplify_path "${modification}"
+      return
+   fi
+
+   # bar/./foo -> bar/foo
+   modification="`echo "${1}" | sed 's|^\(.*\)/\./\(.*\)$|\1/\2|'`"
+   if  [ "${modification}" != "${file}" ]
+   then
+      simplify_path "${modification}"
+      return
+   fi
+
+   # bar/.. -> ""
+   modification="`echo "${1}" | sed 's|^\([^/]*\)/\.\.$||'`"
+   if  [ "${modification}" != "${file}" ]
+   then
+      simplify_path "${modification}"
+      return
+   fi
+
+   # bar/../foo -> foo
+   modification="`echo "${1}" | sed 's|^\([^/]*\)/\.\./\(.*\)$|\2|'`"
+   if  [ "${modification}" != "${file}" ]
+   then
+      simplify_path "${modification}"
+      return
+   fi
+
+   # bar/baz/../foo -> bar/foo
+   modification="`echo "${1}" | sed 's|^\(.*\)/\([^/]*\)/\.\./\(.*\)$|\1/\3|'`"
+   if  [ "${modification}" != "${file}" ]
+   then
+      simplify_path "${modification}"
+      return
+   fi
+
+   echo "${modification}"
+}
+
+
 #
 # consider . .. ~ or absolute paths as unsafe
 # anything starting with a $ is probably also bad
@@ -419,9 +487,19 @@ remove_file_if_present()
 #
 assert_sane_subdir_path()
 {
-   case "$1"  in
-      \$*|~/.|..|./|../|/*)
-         log_error "refuse unsafe path \"$1\""
+   local file
+
+   file="`simplify_path "${1}"`"
+
+   if [ -z "${file}" ]
+   then
+         log_error "refuse unsafe subdirectory path \"$1\""
+         exit 1
+   fi
+
+   case "$file"  in
+      \$*|~|..|.|/*)
+         log_error "refuse unsafe subdirectory path \"$1\""
          exit 1
       ;;
    esac
@@ -430,8 +508,18 @@ assert_sane_subdir_path()
 
 assert_sane_path()
 {
-   case "$1"  in
-      \$*|~/*|..|.|/|./|../*)
+   local file
+
+   file="`simplify_path "${1}"`"
+
+   if [ -z "${file}" ]
+   then
+         log_error "refuse unsafe path \"$1\""
+         exit 1
+   fi
+
+   case "$file"  in
+      \$*|~|${HOME}|..|.|/)
          log_error "refuse unsafe path \"$1\""
          exit 1
       ;;
@@ -687,9 +775,26 @@ Suggested resolution:
     ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
     ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
 
-Or do you feel lucky ? ${C_RESET_BOLD}rm ${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
+Or do you feel lucky ?
+   ${C_RESET_BOLD}rm ${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
 and try again. But you've gotta ask yourself one question: Do I feel lucky ?
 Well, do ya, punk? "
       exit 1
    fi
+}
+
+
+get_core_count()
+{
+    count="`nproc 2> /dev/null`"
+    if [ -z "$count" ]
+    then
+       count="`sysctl -n hw.ncpu 2> /dev/null`"
+    fi
+
+    if [ -z "$count" ]
+    then
+       count=2
+    fi
+    echo $count
 }

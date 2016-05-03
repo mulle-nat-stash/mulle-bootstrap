@@ -34,16 +34,45 @@
 . mulle-bootstrap-scripts.sh
 
 
+
+CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build" "YES"`
+CONFIGURATIONS="`read_build_root_setting "configurations" "Debug
+Release"`"
+
+# get number of cores, use 50% more for make -j
+CORES="`get_core_count`"
+CORES="`expr $CORES + $CORES / 2`"
+
 check_and_usage_and_help()
 {
+   local defk
+   local defc
+   local defkk
+
+   defc="`printf "$CONFIGURATIONS" | tr '\012' ','`"
+   if [ "${CLEAN_BEFORE_BUILD}" = "YES" ]
+   then
+      defk=""
+      defkk="(default)"
+   else
+      defk="(default)"
+      defkk=""
+   fi
+
    cat <<EOF
-usage: build [repos]*
+usage: build [-ck] [repos]*
+
+   -k         :  don't clean before building $defk
+   -K         :  always clean before building $defkk
+   -c <name>  :  configurations to build ($defc)
+   -j         :  number of cores parameter for make (${CORES})
 
    You can optionally specify the names of the repositories to build.
    Currently available names are:
 EOF
    (cd "${CLONES_SUBDIR}" ; ls -1 ) 2> /dev/null
 }
+
 
 
 if [ "$1" = "-h" -o "$1" = "--help" ]
@@ -54,7 +83,53 @@ fi
 
 
 
-CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build" "YES"`
+while :
+do
+   if [ "$1" = "-K" ]
+   then
+      CLEAN_BEFORE_BUILD="YES"
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
+   if [ "$1" = "-k" ]
+   then
+      CLEAN_BEFORE_BUILD=
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
+   if [ "$1" = "-j" ]
+   then
+      if [ $# -eq 0 ]
+      then
+         fail "core count missing"
+      fi
+      shift
+
+      CORES="$1"
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
+   #
+   # specify configuration to build
+   #
+   if [ "$1" = "-c"  ]
+   then
+      if [ $# -eq 0 ]
+      then
+         fail "configuration name missing"
+      fi
+      shift
+
+      CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
+   break
+done
 
 #
 # move stuff produced my cmake and configure to places
@@ -190,6 +265,19 @@ collect_and_dispense_product()
 
       src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks${subdir}"
       dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+
+      src="${BUILD_DEPENDENCY_SUBDIR}${subdir}/Library/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+
+      src="${BUILD_DEPENDENCY_SUBDIR}${subdir}/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+
+
+      src="${BUILD_DEPENDENCY_SUBDIR}/Library/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+
+      src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
    else
       log_fluff "Choosing cmake/configure dispense path"
 
@@ -198,16 +286,6 @@ collect_and_dispense_product()
 
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/lib"
       dispense_binaries "${name}" "${src}" "f" "/${LIBRARY_DIR_NAME}"
-
-      # coming from Cmake and configure ?
-      src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/Frameworks"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
-
-      src="${BUILD_DEPENDENCY_SUBDIR}/Library/Frameworks"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
-
-      src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
    fi
 
    #
@@ -431,7 +509,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local sdkparameter
    local suffix
    local mapped
+   local fallback
 
+   fallback="`echo "${CONFIGURATIONS}" | tail -1`"
+   fallback="`read_build_setting "$name" "fallback-configuration" "${fallback}"`"
    mapped="`read_build_setting "$name" "cmake-${configuration}.map" "${configuration}"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    sdkparameter="`cmake_sdk_parameter "${sdk}"`"
@@ -455,6 +536,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
 
    log_fluff "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
+
+   local   local_make_flags
+
+   local_make_flags="${MAKE_FLAGS} -j ${CORES}"
 
    owd="${PWD}"
 
@@ -488,34 +573,39 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       logging_exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
+"-DCMAKE_C_FLAGS_DEBUG=-DDEBUG -g -O0" \
 "-DDEPENDENCIES_DIR=${owd}/${REFERENCE_DEPENDENCY_SUBDIR}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
 "-DCMAKE_C_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags}" \
 "-DCMAKE_CXX_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags}" \
 "-DCMAKE_EXE_LINKER_FLAGS=\
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
 "-DCMAKE_SHARED_LINKER_FLAGS=\
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
 ${CMAKE_FLAGS} \
 "${relative}/${srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
 
-      logging_exekutor make ${MAKE_FLAGS} VERBOSE=1 install > "${logfile2}" || build_fail "${logfile2}" "make"
+      logging_exekutor make ${local_make_flags} VERBOSE=1 install > "${logfile2}" || build_fail "${logfile2}" "make"
 
       set +f
 
@@ -539,7 +629,6 @@ build_configure()
    local relative
    local name
    local sdk
-   local mapped
 
    configuration="$1"
    srcdir="$2"
@@ -556,6 +645,13 @@ ${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
 ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    local sdkpath
+   local fallback
+   local mapped
+   local suffix
+   local fallback
+
+   fallback="`echo "${CONFIGURATIONS}" | tail -1`"
+   fallback="`read_build_setting "$name" "fallback-configuration" "${fallback}"`"
 
    mapped="`read_build_setting "$name" "configure-${configuration}.map" "${configuration}"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
@@ -608,6 +704,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
 -isysroot ${sdkpath}\" \
@@ -615,15 +712,18 @@ ${other_cflags} \
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
 -isysroot ${sdkpath}\" \
       LDFLAGS=\"\
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 -isysroot ${sdkpath}\"" > "${logfile1}"
@@ -633,23 +733,27 @@ ${other_ldflags} \
        CFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
 -isysroot ${sdkpath}" \
       CPPFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
 -isysroot ${sdkpath}" \
       LDFLAGS="\
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 -isysroot ${sdkpath}" \
@@ -831,6 +935,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    projectname=`read_repo_setting "${name}" "project" "${project}"`
 
    local mapped
+   local fallback
+
+   fallback="`echo "${CONFIGURATIONS}" | tail -1`"
+   fallback="`read_build_setting "$name" "fallback-configuration" "${fallback}"`"
 
    mapped=`read_build_setting "${name}" "${configuration}.map" "${configuration}"`
    [ -z "${mapped}" ] && internal_fail "mapped configuration is empty"
@@ -1033,6 +1141,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}" \
 "/usr/local/lib"`
       if [ ! -z "$sdk" ]
@@ -1050,6 +1159,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`
       if [ ! -z "$sdk" ]
       then
@@ -1074,13 +1184,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${xcodebuild}\" \"${command}\" ${arguments} \
-ARCHS='\${ARCHS_STANDARD_32_64_BIT}' \
+ARCHS='${ARCHS:-\${ARCHS_STANDARD_32_64_BIT\}}' \
 DSTROOT='${owd}/${BUILD_DEPENDENCY_SUBDIR}' \
-INSTALL_PATH='/${LIBRARY_DIR_NAME}${suffix}' \
 SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
 DEPENDENCIES_DIR='${owd}/${REFERENCE_DEPENDENCY_SUBDIR}' \
-ONLY_ACTIVE_ARCH=NO \
+ONLY_ACTIVE_ARCH=${ONLY_ACTIVE_ARCH:-NO} \
 ${skip_install} \
 ${other_cflags} \
 ${other_cppflags} \
@@ -1288,11 +1397,6 @@ configure"`"
       fi
    fi
 
-   local configurations
-
-   configurations="`read_build_root_setting "configurations" "Debug
-Release"`"
-
    local xcodebuild
    local cmake
 
@@ -1311,6 +1415,10 @@ Release"`"
    local hasbuilt
    local configuration
    local preference
+   local configurations
+
+   # settings can override the commandline default
+   configurations="`read_build_setting "${name}" "configurations" "${CONFIGURATIONS}"`"
 
    for sdk in ${sdks}
    do

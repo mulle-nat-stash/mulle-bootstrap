@@ -91,6 +91,7 @@ bootstrap_auto_update()
       for i in $settings
       do
          IFS="${old}"
+
          if [ -f "${BOOTSTRAP_SUBDIR}.local/${i}" ]
          then
             exekutor cp "${BOOTSTRAP_SUBDIR}.local/${i}" "${BOOTSTRAP_SUBDIR}.tmp/${i}" || exit 1
@@ -127,7 +128,8 @@ bootstrap_auto_update()
 "
    for i in $settings
    do
-      IFS="{old}"
+      IFS="${old}"
+
       srcfile="${directory}/.bootstrap/${i}"
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${i}"
       settingname="`basename -- "${i}"`"
@@ -153,7 +155,7 @@ bootstrap_auto_update()
          log_fluff "Setting \"${settingname}\" is not specified, so not inherited"
       fi
    done
-   IFS="{old}"
+   IFS="${old}"
 
    # link scm files over, that we find
    local relative
