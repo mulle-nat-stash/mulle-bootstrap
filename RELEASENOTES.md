@@ -1,3 +1,10 @@
+0.24
+===
+
+*  Fix releasenotes underscores
+*  Fix xcodebuild path
+
+
 0.23
 ===
 *  Added -k options to build, to control cleaning before build.

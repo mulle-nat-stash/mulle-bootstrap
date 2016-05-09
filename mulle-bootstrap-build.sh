@@ -868,7 +868,7 @@ build_xcodebuild()
    configuration="$1"
    srcdir="$2"
    builddir="$3"
-   name="$5"
+   name="$4"
    sdk="$5"
    project="$6"
    schemename="$7"

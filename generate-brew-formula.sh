@@ -5,7 +5,7 @@
 PROJECT=MulleBootstrap
 TARGET=mulle-bootstrap
 HOMEPAGE="http://www.mulle-kybernetik.com/software/git/${TARGET}"
-DESC="A shell script based dependency manager for projects"
+DESC="Dependency manager for cross-platform projects"
 
 VERSION="${1:-`./mulle-bootstrap version`}"
 [ $# -eq 0 ] || shift
