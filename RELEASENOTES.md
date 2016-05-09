@@ -8,15 +8,17 @@
    the build.
 *  Specify `ARCHS='${NATIVE_ARCH_ACTUAL}' mulle-bootstrap build`, when you
    want to override the ARCHS setting for an Xcode build. Kinda hackish.
-*  xcodebuild routine does not overwrite `INSTALL_PATH anymore.
-*  `clean has **output** as the new default
+*  xcodebuild routine does not overwrite `INSTALL_PATH` anymore.
+*  `mulle-bootstrap clean` has **output** as the new default
 *  Fix accidental IFS overwrite problem, resulting in git calls failing
 *  Install brews first, since they might load prerequisites for shell scripts.
-*  Allow user to specify "source_dir" build setting for projects, that do
+*  Allow user to specify `source_dir` build setting for projects, that do
    not have CMakeLists.txt or .xcodeproj or configure in the top level.
 *  the Source Code Management system is no longer read from a .scm file, but
    instead specified in the fourth field of repositories. The default is still
    git and the only available alternative is still svn.
+      url;name;branch;scm
+
 *  Improve repository merge order again.
 *  Fix cmake to not always compile with DEBUG options. Allow to supply
    cmake flags via "cmakeflags" root build setting.
@@ -36,16 +38,17 @@
       ```
       uses the default name, but fetches the MulleFoundation branch.
 *  Huge change:  CMake (and configure) are now the prefered build systems even
-   on OS X (if a `CMakeLists.txtà is available). xcodebuild becomes a fallback
+   on OS X (if a `CMakeLists.txt` is available). xcodebuild becomes a fallback
    preference. The reasons are:
-      1.  CMake + Make are seem faster than xcodebuild
+      1.  CMake + Make seem faster than xcodebuild
       2.  It forces me to keep up the CMakeLists.txt with the Xcode project
    If you don't like it change the build setting 'build_preferences'.
 *  mulle-bootstrap recognizes that bare repositories need to be cloned more
    often now, if not always.
 *  Make mulle-bootstrap more resilient against aborted fetches, added Dirty
    Harry quote.
-*  Uses CMAKE_EXE_LINKER_FLAGS and DCMAKE_SHARED_LINKER_FLAGS instead of CMAKE_LD_FLAGS.
+*  Uses `CMAKE_EXE_LINKER_FLAGS` and `CMAKE_SHARED_LINKER_FLAGS` instead of
+   `CMAKE_LD_FLAGS`.
 *  Fix wrong --recursive for svn checkout.
 
 0.21
@@ -65,14 +68,14 @@
 0.20
 ===
 
-*  Replace CLONES_FETCH_SUBDIR with CLONESFETCH_SUBDIR
+*  Replace `CLONES_FETCH_SUBDIR` with `CLONESFETCH_SUBDIR`.
 *  mulle-bootstrap now uses the zombie repository detection to actually bury
    unused repositories. Check out "tests/refresh/refresh.sh" how this
    actually works. The upshot is, all changes in the repositories settings
    are now reflected on refresh.
 *  Fix a bug in `combined_escaped_search_path`, which produced ugly and
    wrong search paths (that didn't matter).
-*  Pass DEPENDENCIES_DIR via command line, which fixes some subtle problems
+*  Pass `DEPENDENCIES_DIR` via command line, which fixes some subtle problems
    with missing libraries, due to -force_load and friends.
 *  Started mulle-bootstrap project. The general idea is to do also manage
    the project that contains the .bootstrap folder (at least a little bit). So
@@ -150,7 +153,7 @@
 *  Fetch settings can be platform specific by using the `uname` as a file
    extension. e.g. repositories.Darwin. Other settings may follow, if the need
    arises. So far it hasn't.
-*  Added "embedded_repositories" for those special moments, where you don't want
+*  Added `embedded_repositories`` for those special moments, where you don't want
    to link another project, but just steal a few files. These gits are installed
    in your projects root and they are not built. You can not symlink them into
    your project, just clone them.
@@ -184,8 +187,8 @@
 *  Messed up the tagging somewhat... 0.9.1 and 0.9.2 were the same and
 *  0.9.3 doesn't even exist. So now 0.9.5 is the one.
 
-*  Don't trace environment reads of MULLE_BOOTSTRAP_ANSWER and
-*  MULLE_BOOTSTRAP_VERBOSE.
+*  Don't trace environment reads of `MULLE_BOOTSTRAP_ANSWER` and
+*  `MULLE_BOOTSTRAP_VERBOSE`.
 *  Fix xcodebuild log filename generation
 *  Fix dry run some more.
 *  Less output during dispensal, when not using -v.
