@@ -665,19 +665,25 @@ count_clone_components()
 
 url_from_clone()
 {
-   echo "$@" | tr ';' '\012' | head -1
+   echo "$@" | cut '-d;' -f 1
 }
 
 
 _name_part_from_clone()
 {
-   echo "$@" | tr ';' '\012' | head -2 | tail -1
+   echo "$@" | cut '-d;' -f 2
 }
 
 
 _branch_part_from_clone()
 {
-   echo "$@" | tr ';' '\012' | head -3 | tail -1
+   echo "$@" | cut '-d;' -f 3
+}
+
+
+_scm_part_from_clone()
+{
+   echo "$@" | cut '-d;' -f 4
 }
 
 
@@ -711,6 +717,17 @@ branch_from_clone()
    fi
 }
 
+
+scm_from_clone()
+{
+   local count
+
+   count="`count_clone_components "$@"`"
+   if [ "$count" -ge 4 ]
+   then
+      _scm_part_from_clone "$@"
+   fi
+}
 
 
 # http://askubuntu.com/questions/152001/how-can-i-get-octal-file-permissions-from-command-line

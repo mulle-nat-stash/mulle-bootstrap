@@ -70,7 +70,7 @@ bootstrap_auto_update()
       return 1
    fi
 
-   log_fluff "Recursively acquiring ${directory} .bootstrap settings ..."
+   log_fluff "Acquiring ${directory} .bootstrap settings ..."
 
    local old
 
@@ -187,6 +187,8 @@ bootstrap_auto_update()
       exekutor find "${directory}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
          exekutor xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
    fi
+
+   log_fluff "Acquisition of ${directory} .bootstrap settings finished"
 
    return 0
 }

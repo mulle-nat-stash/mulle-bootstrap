@@ -11,6 +11,16 @@
 *  xcodebuild routine does not overwrite `INSTALL_PATH anymore.
 *  `clean has **output** as the new default
 *  Fix accidental IFS overwrite problem, resulting in git calls failing
+*  Install brews first, since they might load prerequisites for shell scripts.
+*  Allow user to specify "source_dir" build setting for projects, that do
+   not have CMakeLists.txt or .xcodeproj or configure in the top level.
+*  the Source Code Management system is no longer read from a .scm file, but
+   instead specified in the fourth field of repositories. The default is still
+   git and the only available alternative is still svn.
+*  Improve repository merge order again.
+*  Fix cmake to not always compile with DEBUG options. Allow to supply
+   cmake flags via "cmakeflags" root build setting.
+
 
 0.22
 ===

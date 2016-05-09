@@ -488,16 +488,14 @@ build_cmake()
    local configuration
    local srcdir
    local builddir
-   local relative
    local name
    local sdk
 
    configuration="$1"
    srcdir="$2"
    builddir="$3"
-   relative="$4"
-   name="$5"
-   sdk="$6"
+   name="$4"
+   sdk="$5"
 
    enforce_build_sanity "${builddir}"
 
@@ -510,10 +508,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local suffix
    local mapped
    local fallback
+   local localcmakeflags
 
    fallback="`echo "${CONFIGURATIONS}" | tail -1`"
-   fallback="`read_build_setting "$name" "fallback-configuration" "${fallback}"`"
-   mapped="`read_build_setting "$name" "cmake-${configuration}.map" "${configuration}"`"
+   fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
+   mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
+   localcmakeflags="`read_build_root_setting "cmakeflags"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    sdkparameter="`cmake_sdk_parameter "${sdk}"`"
 
@@ -543,7 +543,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    owd="${PWD}"
 
-#   cmake_keep_builddir="`read_build_setting "$name" "cmake_keep_builddir" "YES"`"
+#   cmake_keep_builddir="`read_build_setting "${name}" "cmake_keep_builddir" "YES"`"
 #   if [ "${cmake_keep_builddir}" != "YES" ]
 #   then
 #      rmdir_safer "${builddir}"
@@ -571,9 +571,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          logfile2="/dev/null"
       fi
 
+      local relative_srcdir
+
+      relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
+
       logging_exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
-"-DCMAKE_C_FLAGS_DEBUG=-DDEBUG -g -O0" \
 "-DDEPENDENCIES_DIR=${owd}/${REFERENCE_DEPENDENCY_SUBDIR}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
 "-DCMAKE_C_FLAGS=\
@@ -602,8 +605,10 @@ ${other_ldflags}" \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
+"-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH};\${CMAKE_MODULE_PATH}" \
 ${CMAKE_FLAGS} \
-"${relative}/${srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
+${localcmakeflags} \
+"${relative_srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
 
       logging_exekutor make ${local_make_flags} VERBOSE=1 install > "${logfile2}" || build_fail "${logfile2}" "make"
 
@@ -626,16 +631,14 @@ build_configure()
    local configuration
    local srcdir
    local builddir
-   local relative
    local name
    local sdk
 
    configuration="$1"
    srcdir="$2"
    builddir="$3"
-   relative="$4"
-   name="$5"
-   sdk="$6"
+   name="$4"
+   sdk="$5"
 
    enforce_build_sanity "${builddir}"
 
@@ -649,11 +652,14 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local mapped
    local suffix
    local fallback
+   local configureflags
 
    fallback="`echo "${CONFIGURATIONS}" | tail -1`"
-   fallback="`read_build_setting "$name" "fallback-configuration" "${fallback}"`"
+   fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
 
-   mapped="`read_build_setting "$name" "configure-${configuration}.map" "${configuration}"`"
+   configureflags="`read_build_setting "${name}" "configure_flags"`"
+
+   mapped="`read_build_setting "${name}" "configure-${configuration}.map" "${configuration}"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    sdkpath="`gcc_sdk_parameter "${sdk}"`"
    sdkpath="`echo "${sdkpath}" | sed -e 's/ /\\ /g'`"
@@ -699,36 +705,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       fi
 
       # use absolute paths for configure, safer (and easier to read IMO)
-       echo "DEPENDENCIES_DIR=\"'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'\" \
-      CFLAGS=\"\
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
-${other_cflags} \
--isysroot ${sdkpath}\" \
-      CPPFLAGS=\"\
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
-${other_cppflags} \
--isysroot ${sdkpath}\" \
-      LDFLAGS=\"\
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
-${other_ldflags} \
--isysroot ${sdkpath}\"" > "${logfile1}"
-
-
        DEPENDENCIES_DIR="'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'" \
        CFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
@@ -757,7 +733,7 @@ ${other_cppflags} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 -isysroot ${sdkpath}" \
-       logging_exekutor "${owd}/${srcdir}/configure" \
+       logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
           --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
 
@@ -883,7 +859,6 @@ build_xcodebuild()
    local configuration
    local srcdir
    local builddir
-   local relative
    local name
    local sdk
    local project
@@ -893,17 +868,15 @@ build_xcodebuild()
    configuration="$1"
    srcdir="$2"
    builddir="$3"
-   relative="$4"
    name="$5"
-   sdk="$6"
-   project="$7"
-   schemename="$8"
-   targetname="$9"
+   sdk="$5"
+   project="$6"
+   schemename="$7"
+   targetname="$8"
 
    [ ! -z "${configuration}" ] || internal_fail "configuration is empty"
    [ ! -z "${srcdir}" ]        || internal_fail "srcdir is empty"
    [ ! -z "${builddir}" ]      || internal_fail "builddir is empty"
-   [ ! -z "${relative}" ]      || internal_fail "relative is empty"
    [ ! -z "${name}" ]          || internal_fail "name is empty"
    [ ! -z "${sdk}" ]           || internal_fail "sdk is empty"
    [ ! -z "${project}" ]       || internal_fail "project is empty"
@@ -938,7 +911,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local fallback
 
    fallback="`echo "${CONFIGURATIONS}" | tail -1`"
-   fallback="`read_build_setting "$name" "fallback-configuration" "${fallback}"`"
+   fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
 
    mapped=`read_build_setting "${name}" "${configuration}.map" "${configuration}"`
    [ -z "${mapped}" ] && internal_fail "mapped configuration is empty"
@@ -1216,8 +1189,8 @@ build_xcodebuild_schemes_or_target()
    local project
 
    builddir="$3"
-   name="$5"
-   project="$7"
+   name="$4"
+   project="$6"
 
    local scheme
    local schemes
@@ -1302,7 +1275,6 @@ build_script()
    local configuration
    local srcdir
    local builddir
-   local relative
    local name
    local sdk
    local project
@@ -1312,9 +1284,8 @@ build_script()
    configuration="$1"
    srcdir="$2"
    builddir="$3"
-   relative="$4"
-   name="$5"
-   sdk="$6"
+   name="$4"
+   sdk="$5"
 
    local logfile
 
@@ -1411,7 +1382,6 @@ configure"`"
    [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
    local builddir
-   local relative
    local hasbuilt
    local configuration
    local preference
@@ -1441,7 +1411,6 @@ configure"`"
          fi
 
          builddir="${CLONESBUILD_SUBDIR}/${configuration}/${name}"
-         relative="${CLONESBUILD_RELATIVE}/../.."
 
          if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" = "YES" ]
          then
@@ -1459,7 +1428,7 @@ configure"`"
                script="`find_build_setting_file "${name}" "bin/build.sh"`"
                if [ -x "${script}" ]
                then
-                  build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" || exit 1
+                  build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" || exit 1
                   hasbuilt=yes
                   break
                else
@@ -1473,7 +1442,7 @@ configure"`"
 
                if [ "$project" != "" ]
                then
-                  build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}" "${project}"  || exit 1
+                  build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" "${project}"  || exit 1
                   hasbuilt=yes
                   break
                fi
@@ -1488,7 +1457,7 @@ configure"`"
                fi
                if [ -x "${srcdir}/configure" ]
                then
-                  build_configure "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}"  || exit 1
+                  build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
                   hasbuilt=yes
                   break
                fi
@@ -1502,7 +1471,7 @@ configure"`"
                   then
                      log_warning "Found a CMakeLists.txt, but cmake is not installed"
                   else
-                     build_cmake "${configuration}" "${srcdir}" "${builddir}" "${relative}" "${name}" "${sdk}"  || exit 1
+                     build_cmake "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
                      hasbuilt=yes
                      break
                   fi
@@ -1550,6 +1519,7 @@ build_wrapper()
 
    export BUILD_DEPENDENCY_SUBDIR
    export REFERENCE_DEPENDENCY_SUBDIR
+
    #
    # move dependencies we have so far away into safety,
    # need that path for includes though
@@ -1605,12 +1575,32 @@ ${BUILT}"
 }
 
 
+get_source_dir()
+{
+   local name
+
+   name="${1}"
+
+   local srcdir
+   local srcsubdir
+
+   srcdir="${CLONES_SUBDIR}/${name}"
+   srcsubdir="`read_build_setting "${name}" "source_dir"`"
+   if [ ! -z "${srcsubdir}" ]
+   then
+      srcdir="${srcdir}/${srcsubdir}"
+   fi
+   echo "${srcdir}"
+}
+
+
 build_clones()
 {
    local clone
    local xdone
    local name
    local srcdir
+   local srcsubdir
    local old
 
    old="${IFS:-" "}"
@@ -1643,8 +1633,7 @@ build_clones()
       do
          IFS="$old"
          name="`canonical_clone_name "${clone}"`"
-         srcdir="${CLONES_SUBDIR}/${name}"
-
+         srcdir="`get_source_dir "${name}"`"
          if [ -d "${srcdir}" ]
          then
             build_if_alive  "${name}" "${srcdir}" || exit 1
@@ -1667,7 +1656,7 @@ build_clones()
             IFS="$old"
 
             name="`canonical_name_from_clone "${clone}"`"
-            srcdir="${CLONES_SUBDIR}/${name}"
+            srcdir="`get_source_dir "${name}"`"
 
             if [ -d "${srcdir}" ]
             then
@@ -1680,7 +1669,7 @@ build_clones()
    else
       for name in "$@"
       do
-         srcdir="${CLONES_SUBDIR}/${name}"
+         srcdir="`get_source_dir "${name}"`"
 
          if [ -d "${srcdir}" ]
          then

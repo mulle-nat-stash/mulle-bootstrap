@@ -88,23 +88,6 @@ then
    CLONESFETCH_SUBDIR="${CLONES_SUBDIR}"
 fi
 
-if [ "${CLONESFETCH_RELATIVE}" = "" ]
-then
-   CLONESFETCH_RELATIVE=`compute_relative "${CLONESFETCH_SUBDIR}"`
-fi
-
-#
-#
-#
-if [ "${CLONESBUILD_RELATIVE}" = "" ]
-then
-   CLONESBUILD_RELATIVE=`compute_relative "${CLONESBUILD_SUBDIR}"`
-fi
-
-if [ "${CLONES_RELATIVE}" = "" ]
-then
-   CLONES_RELATIVE=`compute_relative "${CLONES_SUBDIR}"`
-fi
 
 #
 # some checks
@@ -114,8 +97,6 @@ fi
 [ -z "${CLONESBUILD_SUBDIR}" ]   && internal_fail "variable CLONESBUILD_SUBDIR is empty"
 [ -z "${BUILDLOG_SUBDIR}" ]      && internal_fail "variable BUILDLOG_SUBDIR is empty"
 [ -z "${DEPENDENCY_SUBDIR}" ]    && internal_fail "variable DEPENDENCY_SUBDIR is empty"
-[ -z "${CLONES_RELATIVE}" ]      && internal_fail "variable CLONES_RELATIVE is empty"
-[ -z "${CLONESBUILD_RELATIVE}" ] && internal_fail "CLONESBUILD_RELATIVE is empty"
 
 #
 # Global Settings

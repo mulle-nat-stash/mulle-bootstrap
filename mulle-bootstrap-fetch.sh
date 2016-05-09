@@ -432,12 +432,14 @@ checkout()
    local dstdir
    local branch
    local tag
+   local scm
 
    name="$1"
    url="$2"
    dstdir="$3"
    branch="$4"
    tag="$5"
+   scm="$6"
 
    [ ! -z "$name" ]   || internal_fail "name is empty"
    [ ! -z "$url" ]    || internal_fail "url is empty"
@@ -454,7 +456,6 @@ checkout()
    fi
    name2="`basename -- "${url}"`"  # only works for git really
 
-   local scmflagsdefault
 
    #
    # this implicitly ensures, that these folders are
@@ -475,9 +476,9 @@ checkout()
 
    local operation
    local map
+   local scmflagsdefault
 
-   map="`read_fetch_setting "${name}.scm"`"
-   case "${map}" in
+   case "${scm}" in
       git|"" )
          operation="git_clone"
          scmflagsdefault="--recursive"
@@ -487,7 +488,7 @@ checkout()
          ;;
 
       *)
-         fail "unknown scm system ${map}"
+         fail "unknown scm system ${scm}"
          ;;
    esac
 
@@ -606,18 +607,17 @@ Suggested fix:
 #
 checkout_repository()
 {
-   local dstdir
    local name
-   local flag
    local url
+   local dstdir
    local branch
-   local tag
 
    name="$1"
    url="$2"
    dstdir="$3"
    branch="$4"
-   tag="$5"
+
+   local flag
 
    if [ ! -e "${dstdir}" ]
    then
@@ -659,10 +659,12 @@ clone_repository()
    local name
    local url
    local branch
+   local scm
 
    name="$1"
    url="$2"
    branch="$3"
+   scm="$4"
 
    local tag
    local dstdir
@@ -675,7 +677,7 @@ clone_repository()
    # mark the checkout progress, so that we don't do incomplete fetches and
    # later on happily build
 
-   checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
+   checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
    flag=$?
 
    return $flag
@@ -710,6 +712,7 @@ clone_repositories()
    local fetched
    local match
    local branch
+   local scm
 
    old="${IFS:-" "}"
    fetched=""
@@ -742,8 +745,9 @@ ${clone}"
                name="`canonical_name_from_clone "${clone}"`"
                url="`url_from_clone "${clone}"`"
                branch="`branch_from_clone "${clone}"`"
+               scm="`scm_from_clone "${clone}"`"
 
-               clone_repository "${name}" "${url}" "${branch}"
+               clone_repository "${name}" "${url}" "${branch}" "${scm}"
 
                if [ $? -eq 1 ]
                then
@@ -763,6 +767,8 @@ ${clone}"
 
       name="`canonical_name_from_clone "${clone}"`"
       url="`url_from_clone "${clone}"`"
+      branch="`branch_from_clone "${clone}"`"
+
       did_clone_repository "${name}" "${url}" "${branch}"
    done
 
@@ -783,6 +789,7 @@ install_embedded_repositories()
    local url
    local dstdir
    local branch
+   local scm
 
    old="${IFS:-" "}"
 
@@ -801,6 +808,7 @@ install_embedded_repositories()
          name="`canonical_name_from_clone "${clone}"`"
          url="`url_from_clone "${clone}"`"
          branch="`branch_from_clone "${clone}"`"
+         scm="`scm_from_clone "${clone}"`"
 
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
          dstdir="${dstprefix}${name}"
@@ -816,7 +824,7 @@ install_embedded_repositories()
             old_forbidden="${SYMLINK_FORBIDDEN}"
 
             SYMLINK_FORBIDDEN="YES"
-            checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
+            checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
             SYMLINK_FORBIDDEN="$old_forbidden"
 
             if read_yes_no_config_setting "update_gitignore" "YES"
@@ -863,22 +871,22 @@ update()
    local branch
    local tag
    local dstdir
+   local scm
 
    name="$1"
    url="$2"
    dstdir="$3"
    branch="$4"
    tag="$5"
+   scm="$6"
 
    [ ! -z "$url" ]           || internal_fail "url is empty"
    exekutor [ -d "$dstdir" ] || internal_fail "dstdir \"${dstdir}\" is wrong ($PWD)"
    [ ! -z "$name" ]          || internal_fail "name is empty"
 
-   local map
    local operation
 
-   map="`read_fetch_setting "${name}.scm"`"
-   case "${map}" in
+   case "${scm}" in
       git|"" )
          operation="git_pull"
          ;;
@@ -887,7 +895,7 @@ update()
          ;;
 
       *)
-         fail "unknown scm system ${map}"
+         fail "unknown scm system ${scm}"
          ;;
    esac
 
@@ -1127,15 +1135,15 @@ main()
    #
    if [ "${COMMAND}" = "install" ]
    then
+      install_brews
+      install_gems
+      install_pips
 
       clone_repositories
 
       install_embedded_repositories
-      install_brews
-      install_gems
-      install_pips
-      check_tars
 
+      check_tars
    else
       update_repositories "$@"
 

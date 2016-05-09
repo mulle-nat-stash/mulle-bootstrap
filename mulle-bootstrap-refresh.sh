@@ -109,7 +109,7 @@ refresh_repositories_settings()
       if [ "${clones}" != "" ]
       then
          IFS="
-   "
+"
          for clone in ${clones}
          do
             IFS="${old}"
@@ -140,7 +140,6 @@ ${clone}"
                if [ $flag -eq 0 ]
                then
                   stop=0
-                  break
                fi
             fi
          done
