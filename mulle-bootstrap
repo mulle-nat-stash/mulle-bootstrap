@@ -134,7 +134,7 @@ usage()
 {
    cat <<EOF
 usage: mulle-bootstrap [-a|-y][-n][-v|-s|-t] [command] [--help]
- Flags (-n must be first, if present)
+ Flags
    -a -y     : default answer to questions (scripts wont be checked)
                -a (clone preferred) -y (symlink preferred)
    -n        : do nothing creative or destructive
