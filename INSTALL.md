@@ -11,6 +11,8 @@ Here is an example, that installs **mulle-bootstrap** into /tmp:
 ```console
 ./mulle-bootstrap bootstrap /tmp
 ```
+
+
 ## What now ?
 
 Make sure /usr/local/bin is in your PATH, and try the examples contained in

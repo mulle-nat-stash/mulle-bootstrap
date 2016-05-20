@@ -3,6 +3,7 @@
 
 *  Fix releasenotes underscores
 *  Fix xcodebuild path
+*  Remove python dependency
 
 
 0.23

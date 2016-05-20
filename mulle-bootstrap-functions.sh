@@ -300,10 +300,33 @@ realpath()
 }
 
 # ----
-
+# stolen from: https://stackoverflow.com/questions/2564634/convert-absolute-path-into-relative-path-given-a-current-directory-using-bash
+# because the python dependency irked me
+#
 relative_path_between()
 {
-   python -c "import os.path; print os.path.relpath( '$1', '$2')"
+    [ $# -ge 1 ] && [ $# -le 2 ] || return 1
+    current="${2:+"$1"}"
+    target="${2:-"$1"}"
+    [ "$target" != . ] || target=/
+    target="/${target##/}"
+    [ "$current" != . ] || current=/
+    current="${current:="/"}"
+    current="/${current##/}"
+    appendix="${target##/}"
+    relative=''
+    while appendix="${target#"$current"/}"
+        [ "$current" != '/' ] && [ "$appendix" = "$target" ]; do
+        if [ "$current" = "$appendix" ]; then
+            relative="${relative:-.}"
+            echo "${relative#/}"
+            return 0
+        fi
+        current="${current%/*}"
+        relative="$relative${relative:+/}.."
+    done
+    relative="$relative${relative:+${appendix:+/}}${appendix#/}"
+    echo "$relative"
 }
 
 
@@ -788,7 +811,7 @@ ensure_consistency()
    if [ -f "${CLONESFETCH_SUBDIR}/.fetch_update_started" ]
    then
       log_error "A previous fetch or update was incomplete.
-Suggested resolution:
+Suggested resolution (in $PWD):
     ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
     ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
 
