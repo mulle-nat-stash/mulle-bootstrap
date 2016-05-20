@@ -332,7 +332,7 @@ _relative_path_between()
 
 relative_path_between()
 {
-   __relative_path_between "$2" "$1"
+   _relative_path_between "$2" "$1"
 }
 
 
