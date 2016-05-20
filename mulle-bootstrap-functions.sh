@@ -303,7 +303,7 @@ realpath()
 # stolen from: https://stackoverflow.com/questions/2564634/convert-absolute-path-into-relative-path-given-a-current-directory-using-bash
 # because the python dependency irked me
 #
-relative_path_between()
+_relative_path_between()
 {
     [ $# -ge 1 ] && [ $# -le 2 ] || return 1
     current="${2:+"$1"}"
@@ -327,6 +327,12 @@ relative_path_between()
     done
     relative="$relative${relative:+${appendix:+/}}${appendix#/}"
     echo "$relative"
+}
+
+
+relative_path_between()
+{
+   __relative_path_between "$2" "$1"
 }
 
 
