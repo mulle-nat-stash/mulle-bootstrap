@@ -1,8 +1,8 @@
-# mulle-bootstrap, yet another dependency manager for developers
+# mulle-bootstrap, cross platform dependency manager
 
-* checkout [git]](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories
+* fetchesB [git]](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories
 (called here the "dependents"). In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
-* can deal with [cmake](//blog.cppcms.com/post/54),
+* builds [cmake](//blog.cppcms.com/post/54),
 [xcodebuild](//devcodehack.com/xcode-sucks-and-heres-why/) and
 [configure](//quetzalcoatal.blogspot.de/2011/06/why-autoconf-sucks.html)
 projects
@@ -12,7 +12,7 @@ installs to `./dependencies`
 * installs brew taps and formulae
 * installs gems and pips
 * compiles dependents using the output of previous dependents
-* written in portable shell script, runs also on Linux
+* written in portable shell script, runs on OS X, FreeBSD, Linux
 
 
 ## How to install (OS X)
