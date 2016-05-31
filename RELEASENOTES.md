@@ -4,6 +4,7 @@
 *  Fix releasenotes underscores
 *  Fix xcodebuild path
 *  Remove python dependency
+*  **bootstrap: refresh between fetch and build**
 
 
 0.23

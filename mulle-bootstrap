@@ -209,6 +209,10 @@ bootstrap()
    else
       mulle-bootstrap-fetch.sh nonrecursive  || exit 1
    fi
+
+   # do it again now!
+
+   COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
    mulle-bootstrap-build.sh  || exit 1
 }
 
