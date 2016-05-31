@@ -1,6 +1,6 @@
 # mulle-bootstrap, cross platform dependency manager
 
-* fetchesB [git]](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories
+* fetches [git](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories
 (called here the "dependents"). In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
 * builds [cmake](//blog.cppcms.com/post/54),
 [xcodebuild](//devcodehack.com/xcode-sucks-and-heres-why/) and
