@@ -876,6 +876,11 @@ install_embedded_repositories()
 }
 
 
+# return 0, all cool
+# return 1, is symlinked
+# return 2, .bootstrap/repositories changed
+# return 3, is symlinked and .bootstrap/repositories changed
+
 update()
 {
    local name
@@ -905,14 +910,22 @@ update()
       svn)
          operation="svn_update"
          ;;
-
       *)
          fail "unknown scm system ${scm}"
          ;;
    esac
 
    local script
+   local before_r
+   local before_e
+   local after_r
+   local after_e
+   local rval
 
+   before_r=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"`
+   before_e=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/embedded_repositories"`
+
+   rval=0
    if [ ! -L "${dstdir}" ]
    then
       run_repo_settings_script "${name}" "${dstdir}" "pre-update" "$@"
@@ -929,8 +942,18 @@ update()
    else
       ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       log_fluff "Repository \"${name}\" exists, so not updated."
-      return 1
+
+      rval=1
    fi
+
+   after_r=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"`
+   after_e=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/embedded_repositories"`
+
+   if [ "${before_r}" = "${after_r}" -a "${before_e}" = "${after_e}" ]
+   then
+      rval="`expr "$rval" + 2`"
+   fi
+   return "$rval"
 }
 
 
@@ -947,6 +970,8 @@ update_repository()
    local name
    local tag
    local dstdir
+   local rval
+
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
@@ -957,27 +982,32 @@ update_repository()
    log_fetch_action "${url}" "${dstdir}"
 
    update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
-
+   rval=$?
    #update will return 1 if repo is symlinked
 
-   if [ $? -eq 0 -a "${DONT_RECURSE}" = "" ]
+   if [ "${DONT_RECURSE}" = "" ]
    then
-      local old_bootstrap
+      if [ $rval -eq 0 -o $rval -eq 2 ]
+      then
+         local old_bootstrap
 #      local old_fetch
 
-      old_bootstrap="${BOOTSTRAP_SUBDIR}"
+         old_bootstrap="${BOOTSTRAP_SUBDIR}"
 #      old_fetch="${CLONESFETCH_SUBDIR}"
 
-      BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
+         BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
 #      CLONESFETCH_SUBDIR="${dstdir}/.repos"
 
-      update_embedded_repositories "${dstdir}/"
+         update_embedded_repositories "${dstdir}/"
 
-      BOOTSTRAP_SUBDIR="${old_bootstrap}"
+         BOOTSTRAP_SUBDIR="${old_bootstrap}"
 #      CLONESFETCH_SUBDIR="${old_fetch}"
+      fi
    fi
 
    ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+   [ $rval -eq 0 -o $rval -eq 2 ]
+   return $?
 }
 
 
@@ -1032,7 +1062,24 @@ update_repositories()
          IFS="${old}"
          did_update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
       done
-   else
+      IFS="${old}"
+      return
+   fi
+
+   local stop
+   local url
+   local updated
+   local match
+   local branch
+   local scm
+
+   updated=""
+
+   stop=0
+   while [ $stop -eq 0 ]
+   do
+      stop=1
+
       clones="`read_fetch_setting "repositories"`"
       clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
 
@@ -1043,30 +1090,30 @@ update_repositories()
          for clone in ${clones}
          do
             IFS="${old}"
-            name="`canonical_name_from_clone "${clone}"`"
-            url="`url_from_clone "${clone}"`"
-            branch="`branch_from_clone "${clone}"`"
 
-            update_repository "${name}" "${url}" "${branch}"
-         done
+            # avoid superflous updates
+            match="`echo "${updated}" | grep -x "${clone}"`"
 
-         # reread because of auto
-         IFS="
-"
-         clones="`read_fetch_setting "repositories"`"
-         clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
+            if [ "${match}" != "${clone}" ]
+            then
+               fetched="${updated}
+${clone}"
 
-         for clone in ${clones}
-         do
-            IFS="${old}"
-            name="`canonical_name_from_clone "${clone}"`"
-            url="`url_from_clone "${clone}"`"
-            branch="`branch_from_clone "${clone}"`"
+               name="`canonical_name_from_clone "${clone}"`"
+               url="`url_from_clone "${clone}"`"
+               branch="`branch_from_clone "${clone}"`"
 
-            did_update_repository "${name}" "${url}" "${branch}"
+               update_repository "${name}" "${url}" "${branch}"
+
+               if [ $? -eq 1 ]
+               then
+                  stop=0
+                  break
+               fi
+            fi
          done
       fi
-   fi
+   done
 
    IFS="${old}"
 }

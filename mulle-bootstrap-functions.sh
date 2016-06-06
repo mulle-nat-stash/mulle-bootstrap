@@ -440,6 +440,18 @@ remove_file_if_present()
 }
 
 
+modification_timestamp()
+{
+   case "`uname`" in
+      Linux )
+         stat --printf "%Y\n" "$1"
+         ;;
+      * )
+         stat -f "%m" "$1"
+         ;;
+   esac
+}
+
 
 simplify_path()
 {
