@@ -29,7 +29,8 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=0.25
+VERSION=0.26
+export VERSION
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -129,6 +130,7 @@ do
 
    break
 done
+
 
 usage()
 {
@@ -319,5 +321,3 @@ main()
 }
 
 main "$@"
-
-

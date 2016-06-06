@@ -37,7 +37,7 @@ find compiler flags, targets, sdks et.c.
 .bootstrap of the dependencies.
 * .bootstrap/config should not exist
 * Folders in `.bootstrap.auto/repos` are the settings inherited from
-.bootstrap.
+`.bootstrap`.
 
 
 
@@ -82,9 +82,7 @@ echo "YES" > .bootstrap/settings/{reponame}/proper_skip_install
 
 ### I changed something in .bootstrap but nothing happens ?
 
-This can happen, when a .bootstrap.auto was created. The easy solution
-is to say `mulle-bootstrap clean dist`.
-
+This shouldn't really happen. Say `mulle-bootstrap clean dist` and try again.
 
 
 ### My Xcode project's headers do not show up ?
@@ -114,7 +112,6 @@ mkdir -p  ".bootstrap/settings/MulleScion" 2> /dev/null
 echo "MulleScion (iOS Library)
 MulleScion (iOS Framework)" > .bootstrap/settings/MulleScion/targets"
 ```
-
 
 
 ### mulle-bootstrap does not do what I want  ?
@@ -149,6 +146,13 @@ f.e. mulle-aba is dependent on mulle-allocator and mulle-thread,
 but mulle-allocator is also dependent on mulle-thread, then put
 mulle-thread ahead of mulle-allocator in the `repositories` file.
 
+
+### Is it a problem if a repository appears twice ?
+
+Sometimes yes. The dependency manager of mulle-bootstrap is not very
+sophisticated. If you have dependencies like A -> B -> C and  A -> C, it's
+better for mulle-bootstrap if you just specify A->B and B->C. If you also
+declare A->C, you may run into problems.
 
 
 ### It's not working as I expect now what ?

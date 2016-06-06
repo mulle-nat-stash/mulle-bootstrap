@@ -57,42 +57,54 @@ EOF
 }
 
 
-check_and_usage_and_help()
-{
-   case "$COMMAND" in
-      install)
-         ;;
-      nonrecursive)
-        COMMAND=install
-        DONT_RECURSE="YES"
-         ;;
-         update)
-         ;;
-      *)
-         usage >&2
-         exit 1
-         ;;
-   esac
-}
 
-
-if [ "$1" = "-h" -o "$1" = "--help" ]
-then
-   COMMAND=help
-else
-   if [ -z "${COMMAND}" ]
+while :
+do
+   if [ "$1" = "-h" -o "$1" = "--help" ]
    then
-      COMMAND=${1:-"install"}
+      usage >&2
+      exit 1
+   fi
+
+   if [ "$1" = "-f" ]
+   then
+      FORCE="YES"
       [ $# -eq 0 ] || shift
+      continue
    fi
 
-   if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
-   then
-      COMMAND="install"
-   fi
+   break
+done
+
+
+
+if [ -z "${COMMAND}" ]
+then
+   COMMAND=${1:-"install"}
+   [ $# -eq 0 ] || shift
 fi
 
-check_and_usage_and_help
+if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
+then
+   COMMAND="install"
+fi
+
+
+case "$COMMAND" in
+   install)
+      ;;
+   nonrecursive)
+     COMMAND=install
+     DONT_RECURSE="YES"
+      ;;
+   update)
+      ;;
+   *)
+      usage >&2
+      exit 1
+      ;;
+esac
+
 
 
 #
@@ -1022,6 +1034,8 @@ update_repositories()
       done
    else
       clones="`read_fetch_setting "repositories"`"
+      clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
+
       if [ "${clones}" != "" ]
       then
          IFS="
@@ -1040,6 +1054,8 @@ update_repositories()
          IFS="
 "
          clones="`read_fetch_setting "repositories"`"
+         clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
+
          for clone in ${clones}
          do
             IFS="${old}"
@@ -1075,6 +1091,8 @@ update_embedded_repositories()
    old="${IFS:-" "}"
 
    clones="`read_fetch_setting "embedded_repositories"`"
+   clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
+
    if [ "${clones}" != "" ]
    then
       IFS="
@@ -1127,8 +1145,7 @@ main()
       fi
    fi
 
-   ensure_consistency
-   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   [ -z "${FORCE}" ] && ensure_consistency
 
    #
    # Run prepare scripts if present
@@ -1139,14 +1156,16 @@ main()
       install_gems
       install_pips
 
-      clone_repositories
+      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
+      clone_repositories
       install_embedded_repositories
 
       check_tars
    else
-      update_repositories "$@"
+      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
+      update_repositories "$@"
       update_embedded_repositories
    fi
 

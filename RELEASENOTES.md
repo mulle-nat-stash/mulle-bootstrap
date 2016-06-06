@@ -1,3 +1,12 @@
+0.26
+===
+
+* Check library scripts version vs. executable version (paranoia)
+* Skip Dirty Harry with -f flag.
+* improve FAQ a little
+* Reverse oder of repositories when updating, because this catches deep
+  renames.
+
 0.25
 ===
 

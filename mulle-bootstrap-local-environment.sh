@@ -29,6 +29,14 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
+EXEC_VERSION=0.26
+
+if [ "${EXEC_VERSION}" != "${VERSION}" ]
+then
+   echo "mulle-bootstrap is misinstalled (${EXEC_VERSION} vs ${VERSION})" >&2
+   exit 1
+fi
+
 #
 # read local environment
 # source this file
