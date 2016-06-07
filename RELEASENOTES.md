@@ -5,7 +5,11 @@
 * Skip Dirty Harry with -f flag.
 * improve FAQ a little
 * Reverse oder of repositories when updating, because this catches deep
-  renames.
+  renames. Update now also fetches repositories, if they aren't there
+  yet.
+* Make the Dirty Harry check less foolproof, but also less annoying.
+
+
 
 0.25
 ===

@@ -759,7 +759,11 @@ ${clone}"
                branch="`branch_from_clone "${clone}"`"
                scm="`scm_from_clone "${clone}"`"
 
+               create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
                clone_repository "${name}" "${url}" "${branch}" "${scm}"
+
+               remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
                if [ $? -eq 1 ]
                then
@@ -826,6 +830,8 @@ install_embedded_repositories()
          dstdir="${dstprefix}${name}"
          log_fetch_action "${name}" "${dstdir}"
 
+         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
          if [ ! -d "${dstdir}" ]
          then
             #
@@ -868,6 +874,9 @@ install_embedded_repositories()
            log_fluff "Repository \"${dstdir}\" already exists"
          fi
       done
+
+      remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
    fi
 
    IFS="${old}"
@@ -949,10 +958,11 @@ update()
    after_r=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"`
    after_e=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/embedded_repositories"`
 
-   if [ "${before_r}" = "${after_r}" -a "${before_e}" = "${after_e}" ]
+   if [ "${before_r}" != "${after_r}" -o "${before_e}" != "${after_e}" ]
    then
       rval="`expr "$rval" + 2`"
    fi
+
    return "$rval"
 }
 
@@ -962,22 +972,21 @@ update_repository()
    local name
    local url
    local branch
+   local dstdir
 
    name="$1"
    url="$2"
    branch="$3"
+   dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
    local name
    local tag
-   local dstdir
    local rval
 
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
-   dstdir="${CLONESFETCH_SUBDIR}/${name}"
-   exekutor [ -e "${dstdir}" ] || fail "You need to fetch \"${name}\" first, before updating"
-   exekutor [ -x "${dstdir}" ] || fail "\"${name}\" is not anymore in \"repositories\""
+   exekutor [ -x "${dstdir}" ] || fail "\"${name}\" is not accesible anymore in \"repositories\""
 
    log_fetch_action "${url}" "${dstdir}"
 
@@ -1052,7 +1061,9 @@ update_repositories()
       for name in "$@"
       do
          IFS="${old}"
-         update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
+         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+            update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
+         remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
       done
 
       IFS="
@@ -1060,8 +1071,10 @@ update_repositories()
       for name in "$@"
       do
          IFS="${old}"
-         did_update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
-      done
+         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+            did_update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
+         remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+         done
       IFS="${old}"
       return
    fi
@@ -1072,6 +1085,8 @@ update_repositories()
    local match
    local branch
    local scm
+   local dstdir
+   local rval
 
    updated=""
 
@@ -1096,16 +1111,31 @@ update_repositories()
 
             if [ "${match}" != "${clone}" ]
             then
-               fetched="${updated}
+               updated="${updated}
 ${clone}"
 
                name="`canonical_name_from_clone "${clone}"`"
                url="`url_from_clone "${clone}"`"
                branch="`branch_from_clone "${clone}"`"
 
-               update_repository "${name}" "${url}" "${branch}"
+               dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
-               if [ $? -eq 1 ]
+               create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+                  if [ -e "${dstdir}" ]
+                  then
+                     update_repository "${name}" "${url}" "${branch}"
+                     rval=$?
+                  else
+                     scm="`scm_from_clone "${clone}"`"
+                     clone_repository  "${name}" "${url}" "${branch}" "${scm}"
+                     rval=1
+                  fi
+
+               remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+
+               if [ $rval -eq 1 ]
                then
                   stop=0
                   break
@@ -1155,7 +1185,11 @@ update_embedded_repositories()
          dstdir="${dstprefix}${name}"
          log_fetch_action "${name}" "${dstdir}"
 
-         update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
+         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+            update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
+
+         remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
       done
    fi
 
@@ -1203,15 +1237,11 @@ main()
       install_gems
       install_pips
 
-      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
       clone_repositories
       install_embedded_repositories
 
       check_tars
    else
-      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
       update_repositories "$@"
       update_embedded_repositories
    fi
@@ -1219,6 +1249,8 @@ main()
    #
    # Run prepare scripts if present
    #
+   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
    run_fetch_settings_script "post-${COMMAND}" "$@"
 
    remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
