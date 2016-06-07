@@ -422,8 +422,16 @@ mkdir_if_missing()
 
 create_file_if_missing()
 {
+   local dir
+
    if [ ! -f "${1}" ]
    then
+      dir="`dirname "${1}"`"
+      if [ ! -z "${dir}" ]
+      then
+         mkdir_if_missing "${dir}"
+      fi
+
       log_fluff "Creating \"$1\" (`pwd -P`)"
       exekutor touch "$1" || fail "failed to create \"$1\""
    fi
