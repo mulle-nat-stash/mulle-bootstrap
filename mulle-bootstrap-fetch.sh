@@ -1161,6 +1161,7 @@ update_embedded_repositories()
    local name
    local url
    local branch
+   local scm
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
    export MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
@@ -1187,7 +1188,14 @@ update_embedded_repositories()
 
          create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
+         if [ -e "${dstdir}" ]
+         then
             update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
+         else
+            scm="`scm_from_clone "${clone}"`"
+            clone_repository  "${name}" "${url}" "${branch}" "${scm}"
+         fi
+
 
          remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
       done
