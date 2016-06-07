@@ -931,8 +931,8 @@ update()
    local after_e
    local rval
 
-   before_r=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"`
-   before_e=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/embedded_repositories"`
+   before_r=`modification_timestamp "${dstdir}/.bootstrap/repositories" 2> /dev/null`
+   before_e=`modification_timestamp "${dstdir}/.bootstrap/embedded_repositories" 2> /dev/null`
 
    rval=0
    if [ ! -L "${dstdir}" ]
@@ -955,8 +955,8 @@ update()
       rval=1
    fi
 
-   after_r=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"`
-   after_e=`modification_timestamp "${dstdir}/${BOOTSTRAP_SUBDIR}/embedded_repositories"`
+   after_r=`modification_timestamp "${dstdir}/.bootstrap/repositories" 2> /dev/null`
+   after_e=`modification_timestamp "${dstdir}/.bootstrap/embedded_repositories" 2> /dev/null`
 
    if [ "${before_r}" != "${after_r}" -o "${before_e}" != "${after_e}" ]
    then
