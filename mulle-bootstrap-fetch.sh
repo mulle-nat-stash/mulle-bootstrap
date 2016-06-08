@@ -436,7 +436,6 @@ search_git_repo_in_parent_directory()
 }
 
 
-
 checkout()
 {
    local url
@@ -467,24 +466,6 @@ checkout()
       relative="${relative}/"
    fi
    name2="`basename -- "${url}"`"  # only works for git really
-
-
-   #
-   # this implicitly ensures, that these folders are
-   # movable and cleanable by mulle-bootstrap
-   # so ppl can't really use  src mistakenly
-
-   if [ -e "${DEPENDENCY_SUBDIR}" -o -e "${CLONESBUILD_SUBDIR}" ]
-   then
-      # if this is a "refetch" don't bother to warn
-      if [ ! -e "${BOOTSTRAP_SUBDIR}.auto" ]
-      then
-         log_error "Stale folders \"${DEPENDENCY_SUBDIR}\" and/or \"${CLONESBUILD_SUBDIR}\" found."
-         log_error "Please remove them before continuing."
-         log_info  "Suggested command: ${C_RESET_BOLD}mulle-bootstrap clean output${C_INFO}"
-         exit 1
-      fi
-   fi
 
    local operation
    local map
@@ -609,6 +590,23 @@ Suggested fix:
    fi
 }
 
+
+did_clone_repository()
+{
+   local name
+   local url
+   local branch
+
+   name="$1"
+   url="$2"
+   branch="$3"
+
+   local dstdir
+
+   dstdir="${CLONESFETCH_SUBDIR}/${name}"
+   run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
+}
+
 #
 # Use git clones for stuff that gets tagged
 # if you specify ../ it will assume you have
@@ -643,7 +641,7 @@ checkout_repository()
          old_bootstrap="${BOOTSTRAP_SUBDIR}"
 
          BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
-         install_embedded_repositories "${dstdir}/"
+         clone_embedded_repositories "${dstdir}/"
          BOOTSTRAP_SUBDIR="${old_bootstrap}"
 
          bootstrap_auto_update "${name}" "${url}" "${dstdir}"
@@ -662,21 +660,27 @@ checkout_repository()
 
       log_fluff "Repository \"${dstdir}\" already exists"
    fi
+
    return 0
 }
 
 
+
 clone_repository()
 {
+   local clone
+
+   clone="${1}"
+
    local name
    local url
    local branch
    local scm
 
-   name="$1"
-   url="$2"
-   branch="$3"
-   scm="$4"
+   name="`canonical_name_from_clone "${clone}"`"
+   url="`url_from_clone "${clone}"`"
+   branch="`branch_from_clone "${clone}"`"
+   scm="`scm_from_clone "${clone}"`"
 
    local tag
    local dstdir
@@ -689,28 +693,16 @@ clone_repository()
    # mark the checkout progress, so that we don't do incomplete fetches and
    # later on happily build
 
+   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
    checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
    flag=$?
+
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
    return $flag
 }
 
-
-did_clone_repository()
-{
-   local name
-   local url
-   local branch
-
-   name="$1"
-   url="$2"
-   branch="$3"
-
-   local dstdir
-
-   dstdir="${CLONESFETCH_SUBDIR}/${name}"
-   run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
-}
 
 
 clone_repositories()
@@ -725,6 +717,7 @@ clone_repositories()
    local match
    local branch
    local scm
+   local rval
 
    old="${IFS:-" "}"
    fetched=""
@@ -754,17 +747,7 @@ clone_repositories()
                fetched="${fetched}
 ${clone}"
 
-               name="`canonical_name_from_clone "${clone}"`"
-               url="`url_from_clone "${clone}"`"
-               branch="`branch_from_clone "${clone}"`"
-               scm="`scm_from_clone "${clone}"`"
-
-               create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-               clone_repository "${name}" "${url}" "${branch}" "${scm}"
-
-               remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
+               clone_repository "${clone}"
                if [ $? -eq 1 ]
                then
                   stop=0
@@ -792,7 +775,79 @@ ${clone}"
 }
 
 
-install_embedded_repositories()
+clone_embedded_repository()
+{
+   local dstprefix
+   local clone
+
+   dstprefix="$1"
+   clone="$2"
+
+   local name
+   local url
+   local dstdir
+   local branch
+   local tag
+   local scm
+
+   name="`canonical_name_from_clone "${clone}"`"
+   url="`url_from_clone "${clone}"`"
+   branch="`branch_from_clone "${clone}"`"
+   scm="`scm_from_clone "${clone}"`"
+   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
+   dstdir="${dstprefix}${name}"
+
+   log_fetch_action "${name}" "${dstdir}"
+
+   if [ ! -d "${dstdir}" ]
+   then
+      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+      #
+      # embedded_repositories are just cloned, no symlinks,
+      #
+      local old_forbidden
+
+      old_forbidden="${SYMLINK_FORBIDDEN}"
+
+      SYMLINK_FORBIDDEN="YES"
+      checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
+      SYMLINK_FORBIDDEN="${old_forbidden}"
+
+      if read_yes_no_config_setting "update_gitignore" "YES"
+      then
+         if [ -d .git ]
+         then
+            append_dir_to_gitignore_if_needed "${dstdir}"
+         fi
+      fi
+
+      # memo that we did this with a symlink
+      # store it inside the possibly recursed dstprefix dependency
+      local symlinkcontent
+      local symlinkdir
+      local symlinkrelative
+
+      symlinkrelative=`compute_relative "${CLONESFETCH_SUBDIR}/.embedded"`
+      symlinkdir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
+      mkdir_if_missing "${symlinkdir}"
+      symlinkcontent="${symlinkrelative}/${dstdir}"
+
+      log_fluff "Remember embedded repository \"${name}\" via \"${symlinkdir}/${name}\""
+      exekutor ln -s "${symlinkcontent}" "${symlinkdir}/${name}"
+
+      run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
+   else
+      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+
+      log_fluff "Repository \"${dstdir}\" already exists"
+   fi
+
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+}
+
+
+clone_embedded_repositories()
 {
    local dstprefix
 
@@ -801,11 +856,6 @@ install_embedded_repositories()
    local clones
    local clone
    local old
-   local name
-   local url
-   local dstdir
-   local branch
-   local scm
 
    old="${IFS:-" "}"
 
@@ -821,58 +871,7 @@ install_embedded_repositories()
       do
          IFS="${old}"
 
-         name="`canonical_name_from_clone "${clone}"`"
-         url="`url_from_clone "${clone}"`"
-         branch="`branch_from_clone "${clone}"`"
-         scm="`scm_from_clone "${clone}"`"
-
-         tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-         dstdir="${dstprefix}${name}"
-         log_fetch_action "${name}" "${dstdir}"
-
-         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-         if [ ! -d "${dstdir}" ]
-         then
-            #
-            # embedded_repositories are just cloned, no symlinks,
-            #
-            local old_forbidden
-
-            old_forbidden="${SYMLINK_FORBIDDEN}"
-
-            SYMLINK_FORBIDDEN="YES"
-            checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
-            SYMLINK_FORBIDDEN="$old_forbidden"
-
-            if read_yes_no_config_setting "update_gitignore" "YES"
-            then
-               if [ -d .git ]
-               then
-                  append_dir_to_gitignore_if_needed "${dstdir}"
-               fi
-            fi
-
-            # memo that we did this with a symlink
-            # store it inside the possibly recursed dstprefix dependency
-            local symlinkcontent
-            local symlinkdir
-            local symlinkrelative
-
-            symlinkrelative=`compute_relative "${CLONESFETCH_SUBDIR}/.embedded"`
-            symlinkdir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
-            mkdir_if_missing "${symlinkdir}"
-            symlinkcontent="${symlinkrelative}/${dstdir}"
-
-            log_fluff "Remember embedded repository \"${name}\" via \"${symlinkdir}/${name}\""
-            exekutor ln -s "${symlinkcontent}" "${symlinkdir}/${name}"
-
-            run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
-         else
-            ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-
-           log_fluff "Repository \"${dstdir}\" already exists"
-         fi
+         clone_embedded_repository "${dstprefix}" "${clone}"
       done
 
       remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
@@ -950,7 +949,7 @@ update()
       run_repo_settings_script "${name}" "${dstdir}" "post-update" "$@"
    else
       ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-      log_fluff "Repository \"${name}\" exists, so not updated."
+      log_info "Repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} exists and is symlinked, so not updated."
 
       rval=1
    fi
@@ -982,7 +981,6 @@ update_repository()
    local name
    local tag
    local rval
-
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
@@ -1192,10 +1190,8 @@ update_embedded_repositories()
          then
             update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
          else
-            scm="`scm_from_clone "${clone}"`"
-            clone_repository  "${name}" "${url}" "${branch}" "${scm}"
+            clone_embedded_repository "${dstprefix}" "${clone}"
          fi
-
 
          remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
       done
@@ -1246,7 +1242,7 @@ main()
       install_pips
 
       clone_repositories
-      install_embedded_repositories
+      clone_embedded_repositories
 
       check_tars
    else

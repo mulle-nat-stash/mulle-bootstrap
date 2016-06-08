@@ -10,7 +10,6 @@
 * Make the Dirty Harry check less foolproof, but also less annoying.
 
 
-
 0.25
 ===
 
