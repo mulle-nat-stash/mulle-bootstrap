@@ -74,17 +74,14 @@ EOF
 }
 
 
-
-if [ "$1" = "-h" -o "$1" = "--help" ]
-then
-   check_and_usage_and_help >&2
-   exit 1
-fi
-
-
-
 while :
 do
+   if [ "$1" = "-h" -o "$1" = "--help" ]
+   then
+      check_and_usage_and_help >&2
+      exit 1
+   fi
+
    if [ "$1" = "-K" ]
    then
       CLEAN_BEFORE_BUILD="YES"
@@ -130,6 +127,7 @@ do
 
    break
 done
+
 
 #
 # move stuff produced my cmake and configure to places

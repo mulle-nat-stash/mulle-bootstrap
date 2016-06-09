@@ -37,7 +37,7 @@ find compiler flags, targets, sdks et.c.
 .bootstrap of the dependencies.
 * .bootstrap/config should not exist
 * Folders in `.bootstrap.auto/repos` are the settings inherited from
-`.bootstrap`.
+.bootstrap`.
 
 
 
