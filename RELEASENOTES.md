@@ -13,6 +13,7 @@ but just into `dependencies/include`
 because that's mulle-bootstraps scope. The tag script facility has been
 eliminated.
 * new clean target "install"
+* removed convert-pre-0.10 and ibuild commands
 
 
 0.26

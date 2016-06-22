@@ -254,6 +254,7 @@ main()
          DONT_RECURSE=YES bootstrap "$@" || exit 1
          ;;
 
+      # experimental stuff
       project)
          mulle-bootstrap-project.sh "$@" || exit 1
          ;;
@@ -264,11 +265,6 @@ main()
 
       build)
          COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
-         COMMAND="${command}" mulle-bootstrap-build.sh "$@" || exit 1
-         ;;
-
-      ibuild)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          COMMAND="${command}" mulle-bootstrap-build.sh "$@" || exit 1
          ;;
 
@@ -294,10 +290,6 @@ main()
       update)
          COMMAND="refresh" mulle-bootstrap-refresh.sh "$@" || exit 1
          COMMAND="${command}" mulle-bootstrap-fetch.sh "$@" || exit 1
-         ;;
-
-      convert-pre-0.10)
-         mulle-bootstrap-convert-pre-0.10.sh "$@" || exit 1
          ;;
 
       init)
