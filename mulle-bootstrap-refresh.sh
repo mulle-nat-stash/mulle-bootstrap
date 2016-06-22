@@ -264,12 +264,12 @@ bury_zombies()
             dstdir="${CLONESFETCH_SUBDIR}/${name}"
             if [ -d "${dstdir}" ]
             then
-               log_info "Removing unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO}"
+               log_info "Removing unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"`pwd`/${dstdir}\""
 
                if [ -e "${gravepath}/${name}" ]
                then
                   exekutor rm -rf "${gravepath}/${name}"
-                  log_fluff "Made for a new grave at \"${gravepath}/${name}\""
+                  log_fluff "Made room for a new grave at \"${gravepath}/${name}\""
                fi
 
                exekutor mv "${dstdir}" "${gravepath}"

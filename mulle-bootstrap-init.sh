@@ -45,7 +45,7 @@ BOOTSTRAP_SUBDIR=.bootstrap
 
 
 CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
-CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "YES"`"
+CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
 
 
 if [ -d "${BOOTSTRAP_SUBDIR}" ]
@@ -77,11 +77,6 @@ main()
    then
       log_fluff "Create default files"
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"
-# add projects that should be installed by brew
-# e.g.
-# zlib
-EOF
 
 #cat <<EOF > "${BOOTSTRAP_SUBDIR}/pips"
 # add projects that should be installed by pip
@@ -90,11 +85,11 @@ EOF
 #EOF
 
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/repositories"
-# add projects that should be cloned with git in order
-# of their inter-dependencies
+# Add git URLs to this file.
 #
-# some possible types of repository specifications:
-# http://www.mulle-kybernetik.com/repositories/MulleScion
+# Possible types of repository specifications:
+#
+# https://www.mulle-kybernetik.com/repositories/MulleScion
 # git@github.com:mulle-nat/MulleScion.git
 # ../MulleScion
 # /Volumes/Source/srcM/MulleScion
@@ -104,7 +99,15 @@ EOF
 
    if [ "${CREATE_EXAMPLE_FILES}" = "YES" ]
    then
-     log_fluff "Create example repository settings"
+      log_fluff "Create example repository files"
+
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"
+# add projects that should be installed by brew
+# e.g.
+# zlib
+EOF
+
+      log_fluff "Create example repository settings"
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin"
 

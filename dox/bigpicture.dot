@@ -1,0 +1,67 @@
+
+digraph install
+{
+   node [shape=folder];
+
+   subgraph cluster_bootstrap
+   {
+      ".bootstrap" -> "repositories"
+      "repositories"  [ shape="note" ]
+   }
+
+   subgraph cluster_bootstrap_auto
+   {
+      ".bootstrap.auto" -> "repositories auto"
+      "repositories auto"  [ shape="note" label="repositories" ]
+   }
+
+   subgraph cluster_src
+   {
+      ".repos" -> "foo src"
+      "foo src"  [ label="foo" ]
+      "foo src" -> "src"
+      "foo src" -> "CMakeLists.txt"
+      "CMakeLists.txt"  [ shape="note" ]
+      "src" -> "foo.h src"
+      "src" -> "foo.c src"
+      "foo.h src"   [ label="foo.h" shape="note" ]
+      "foo.c src"   [ label="foo.c" shape="note" ]
+   }
+
+   subgraph cluster_build
+   {
+      "build" -> ".repos build"
+      ".repos build"  [ label=".repos" ]
+      ".repos build" -> "Release"
+      "Release" -> "foo Release"
+      "foo Release" -> "libfoo.a Release"
+      "foo Release"     [ label="foo" ]
+      "libfoo.a Release"   [ label="libfoo.a" shape="note" ]
+   }
+
+   subgraph cluster_tmp
+   {
+      "dependencies tmp" [ label="dependencies" ]
+      "dependencies tmp" -> "tmp"
+      "tmp" -> "lib"
+      "tmp" -> "include"
+      "lib" ->  "libfoo.a install"
+      "include" ->  "foo.h install"
+      "libfoo.a install"   [ label="libfoo.a" shape="note" ]
+      "foo.h install"   [ label="foo.h" shape="note" ]
+   }
+
+   subgraph cluster_dependencies
+   {
+      "dependencies" -> "lib dependencies"
+      "dependencies" -> "include dependencies"
+      "lib dependencies" ->  "libfoo.a dependencies"
+      "lib dependencies"  [ label="lib" ]
+      "include dependencies"  [ label="include" ]
+      "include dependencies" ->  "foo dependencies"
+      "foo dependencies" ->  "foo.h dependencies"
+      "foo dependencies"     [ label="foo" ]
+      "libfoo.a dependencies"   [ label="libfoo.a" shape="note" ]
+      "foo.h dependencies"   [ label="foo.h" shape="note" ]
+   }
+}

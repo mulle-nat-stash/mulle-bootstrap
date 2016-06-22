@@ -33,11 +33,9 @@ find compiler flags, targets, sdks et.c.
 
 ## Where is what in .bootstrap.auto ?
 
-* Files in `.bootstrap.auto` are an amalgamation of .bootstrap and the contents of
-.bootstrap of the dependencies.
-* .bootstrap/config should not exist
-* Folders in `.bootstrap.auto/repos` are the settings inherited from
-.bootstrap`.
+* Files in `.bootstrap.auto` are an amalgamation of .bootstrap and the contents of the `.bootstrap` folders of the dependencies.
+* `.bootstrap/config` should not exist
+* Folders in `.bootstrap.auto/repos` are the settings inherited from `.bootstrap`.
 
 
 
@@ -53,7 +51,7 @@ Release" > .bootstrap/settings/configurations # RIGHT
 ```
 
 
-### Can I change the build folder from build/.repos to something else  ?
+### Can I change the build folder from `build/.repos`to something else  ?
 
 Better not. You can set it with "build_foldername".
 But beware:

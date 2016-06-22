@@ -31,13 +31,17 @@
 
 . mulle-bootstrap-local-environment.sh
 
+CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
+
 
 BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCY_SUBDIR}/tmp"`"
 OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
 DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
 .bootstrap.auto"`"
-CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
+INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${BUILD_CLEANABLE_SUBDIRS}
+${CLONES_SUBDIR}
+.bootstrap.auto"`"
 
 
 embedded_repositories()
@@ -67,28 +71,41 @@ embedded_repositories()
 }
 
 
-DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
-`embedded_repositories`"
+EMBEDDED="`embedded_repositories`"
+
+if [ ! -z "$EMBEDDED" ]
+then
+   DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
+${EMBEDDED}"
+fi
 
 
 usage()
 {
    cat <<EOF
-clean [build|output|dist]
+clean [build|dist|install|output]
 
-   build   : it cleans
+   build   : useful to remove intermediate build files. it cleans
 ---
 ${BUILD_CLEANABLE_SUBDIRS}
 ---
 
-   output  : is the default, it cleans additionaly
+   output  : useful to rebuild. This is the default. It cleans
 ---
+${BUILD_CLEANABLE_SUBDIRS}
 ${OUTPUT_CLEANABLE_SUBDIRS}
 ---
 
-   dist    : cleans additionaly
+   dist    : remove all clones and dependencies. It cleans
 ---
+${BUILD_CLEANABLE_SUBDIRS}
+${OUTPUT_CLEANABLE_SUBDIRS}
 ${DIST_CLEANABLE_SUBDIRS}
+---
+
+   install  : useful if you know, you don't want to rebuild ever. It cleans
+---
+${INSTALL_CLEANABLE_SUBDIRS}
 ---
 EOF
 }
@@ -102,6 +119,8 @@ check_and_usage_and_help()
       dist)
       ;;
       build)
+      ;;
+      install)
       ;;
       *)
       usage >&2
@@ -179,7 +198,7 @@ clean()
 "
 
    flag="NO"
-   if [ ! -z "$BUILD_CLEANABLE_SUBDIRS" ]
+   if [ ! -z "${BUILD_CLEANABLE_SUBDIRS}" ]
    then
       if [ "${COMMAND}" = "build" -o "${COMMAND}" = "dist" -o "${COMMAND}" = "output"  ]
       then
@@ -193,9 +212,9 @@ clean()
    fi
 
 
-   if [ ! -z "$OUTPUT_CLEANABLE_SUBDIRS" ]
+   if [ ! -z "${OUTPUT_CLEANABLE_SUBDIRS}" ]
    then
-      if [ "${COMMAND}" = "dist" -o "${COMMAND}" = "output"  ]
+      if [ "${COMMAND}" = "dist" -o "${COMMAND}" = "output" ]
       then
          for dir in ${OUTPUT_CLEANABLE_SUBDIRS}
          do
@@ -207,7 +226,20 @@ clean()
    fi
 
 
-   if [ ! -z "$DIST_CLEANABLE_SUBDIRS" ]
+   if [ ! -z "${INSTALL_CLEANABLE_SUBDIRS}" ]
+   then
+      if [ "${COMMAND}" = "install" ]
+      then
+         for dir in ${INSTALL_CLEANABLE_SUBDIRS}
+         do
+            clean_asserted_folder "${dir}"
+            clean_parent_folders_if_empty "${dir}" "${PWD}"
+            flag="YES"
+         done
+      fi
+   fi
+
+   if [ ! -z "${DIST_CLEANABLE_SUBDIRS}" ]
    then
       if [ "${COMMAND}" = "dist" ]
       then

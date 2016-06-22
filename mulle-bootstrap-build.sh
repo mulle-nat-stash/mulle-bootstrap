@@ -36,8 +36,8 @@
 
 
 CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build" "YES"`
-CONFIGURATIONS="`read_build_root_setting "configurations" "Debug
-Release"`"
+CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
+N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
 # get number of cores, use 50% more for make -j
 CORES="`get_core_count`"
@@ -139,12 +139,11 @@ dispense_headers()
    local name
    local src
 
-   name="${1}"
+   name="$1"
    src="$2"
 
    local dst
-   local headers
-   local suffix
+   local headerpath
 
    log_fluff "Consider copying headers from \"${src}\""
 
@@ -152,9 +151,9 @@ dispense_headers()
    then
       if dir_has_files "${src}"
       then
-         headers="`read_build_setting "${name}" "dispense_headers_path" "/usr/local/${HEADER_DIR_NAME}"`"
+         headerpath="`read_build_setting "${name}" "dispense_headers_path" "/${HEADER_DIR_NAME}"`"
 
-         dst="${REFERENCE_DEPENDENCY_SUBDIR}${headers}"
+         dst="${REFERENCE_DEPENDENCY_SUBDIR}${headerpath}"
          mkdir_if_missing "${dst}"
 
          # this fails with more nested header set ups, need to fix!
@@ -174,18 +173,19 @@ dispense_headers()
 
 dispense_binaries()
 {
+   local name
    local src
    local findtype
+   local depend_subdir
    local subpath
-   local name
 
    name="$1"
    src="$2"
    findtype="$3"
-   subpath="$4"
+   depend_subdir="$4"
+   subpath="$5"
 
    local dst
-   local usrlocal
    local findtype2
    local copyflag
 
@@ -201,7 +201,7 @@ dispense_binaries()
    then
       if dir_has_files "${src}"
       then
-         dst="${REFERENCE_DEPENDENCY_SUBDIR}${subpath}${subdir}"
+         dst="${REFERENCE_DEPENDENCY_SUBDIR}${depend_subdir}${subpath}"
 
          log_fluff "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
@@ -221,12 +221,14 @@ dispense_binaries()
 collect_and_dispense_product()
 {
    local  name
-   local  subdir
+   local  build_subdir
+   local  depend_subdir
    local  name
 
    name="${1}"
-   subdir="${2}"
-   wasxcode="${3}"
+   build_subdir="${2}"
+   depend_subdir="${3}"
+   wasxcode="${4}"
 
    local  dst
    local  src
@@ -237,17 +239,25 @@ collect_and_dispense_product()
       return 0
    fi
 
-   log_fluff "Collecting and dispensing \"${name}\" \"`basename -- "${subdir}"`\" products "
+   log_fluff "Collecting and dispensing \"${name}\" \"`basename -- "${build_subdir}"`\" products "
+
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref
    # (will this work with signing stuff ?)
    #
-   if [ "${wasxcode}" = "YES" ]
+   if true
    then
       log_fluff "Choosing xcode dispense path"
 
+      # cmake
+
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/include"
       dispense_headers "${name}" "${src}"
+
+      src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/lib"
+      dispense_binaries "${name}" "${src}" "f" "${depend_subdir}" "/${LIBRARY_DIR_NAME}"
+
+      # pretty much xcodetool specific
 
       src="${BUILD_DEPENDENCY_SUBDIR}/usr/include"
       dispense_headers "${name}" "${src}"
@@ -255,35 +265,26 @@ collect_and_dispense_product()
       src="${BUILD_DEPENDENCY_SUBDIR}/include"
       dispense_headers "${name}" "${src}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/lib${subdir}"
-      dispense_binaries "${name}" "${src}" "f" "/${LIBRARY_DIR_NAME}"
+      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/lib"
+      dispense_binaries "${name}" "${src}" "f" "${depend_subdir}" "/${LIBRARY_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/Library/Frameworks${subdir}"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/Library/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks${subdir}"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}${subdir}/Library/Frameworks"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/Library/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}${subdir}/Frameworks"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
-
+      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/Frameworks"
+      dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/Library/Frameworks"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
+      dispense_binaries "${name}" "${src}" "d"  "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
       src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks"
-      dispense_binaries "${name}" "${src}" "d" "/${FRAMEWORK_DIR_NAME}"
-   else
-      log_fluff "Choosing cmake/configure dispense path"
-
-      src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/include"
-      dispense_headers "${name}" "${src}"
-
-      src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/lib"
-      dispense_binaries "${name}" "${src}" "f" "/${LIBRARY_DIR_NAME}"
+      dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
    fi
 
    #
@@ -318,7 +319,7 @@ collect_and_dispense_product()
       src="${BUILD_DEPENDENCY_SUBDIR}"
       if [ "${wasxcode}" = "YES" ]
       then
-         src="${src}${subdir}"
+         src="${src}${build_subdir}"
       fi
 
       if dir_has_files "${src}"
@@ -377,13 +378,36 @@ determine_suffix()
    [ ! -z "$configuration" ] || fail "configuration must not be empty"
    [ ! -z "$sdk" ] || fail "sdk must not be empty"
 
-   suffix="/${configuration}"
+   suffix="${configuration}"
    if [ "${sdk}" != "Default" ]
    then
       hackish=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
       suffix="${suffix}-${hackish}"
    fi
    echo "${suffix}"
+}
+
+
+#
+# if only one configuration is chosen, make it the default
+# if there are multiple configurations, make Release the default
+# if Release is not in multiple configurations, then there is no default
+#
+determine_build_subdir()
+{
+   echo "/$1"
+}
+
+
+determine_dependencies_subdir()
+{
+   if [ "${N_CONFIGURATIONS}" -gt 1 ]
+   then
+      if [ "$1" != "Release" ]
+      then
+         echo "/$1"
+      fi
+   fi
 }
 
 
@@ -407,29 +431,25 @@ cmake_sdk_parameter()
 create_dummy_dirs_against_warnings()
 {
    local builddir
-   local configuration
-   local suffix
+   local mappedsubdir
+   local suffixsubdir
 
    builddir="$1"
-   configuration="$2"
-   suffix="$3"
+   mappedsubdir="$2"
+   suffixsubdir="$3"
 
    local owd
 
    owd="${PWD}"
 
-   # to avoid warnings make sure directories are all there
+   # to avoid warnings, make sure directories are all there
    mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
-   if [ ! -z "${configuration}" ]
-   then
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${configuration}"
-      mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${configuration}"
-   fi
-   if [ ! -z "${suffix}" ]
-   then
-       mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix}"
-       mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix}"
-   fi
+
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
+
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
 }
 
 
@@ -475,11 +495,11 @@ build_log_name()
    echo "${logfile}.${tool}.log"
 }
 
+
 #
 # remove old builddir, create a new one
 # depending on configuration cmake with flags
 # build stuff into dependencies
-#
 #
 build_cmake()
 {
@@ -508,12 +528,21 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local fallback
    local localcmakeflags
 
+
    fallback="`echo "${CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
    mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
    localcmakeflags="`read_build_root_setting "cmakeflags"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    sdkparameter="`cmake_sdk_parameter "${sdk}"`"
+
+   local mappedsubdir
+   local fallbacksubdir
+   local suffixsubdir
+
+   mappedsubdir="`determine_build_subdir "${mapped}"`"
+   suffixsubdir="`determine_build_subdir "${suffix}"`"
+   fallbacksubdir="`determine_build_subdir "${fallback}"`"
 
    local other_cflags
    local other_cppflags
@@ -523,7 +552,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    other_cppflags="`gcc_cppflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
-   create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}"
+   create_dummy_dirs_against_warnings "${builddir}" "${mappedsubdir}" "${suffixsubdir}"
 
    local logfile1
    local logfile2
@@ -579,28 +608,28 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
 "-DCMAKE_C_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags}" \
 "-DCMAKE_CXX_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags}" \
 "-DCMAKE_EXE_LINKER_FLAGS=\
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
 "-DCMAKE_SHARED_LINKER_FLAGS=\
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
 "-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH};\${CMAKE_MODULE_PATH}" \
@@ -614,7 +643,10 @@ ${localcmakeflags} \
 
    exekutor cd "${owd}"
 
-   collect_and_dispense_product "${name}" "${suffix}" || internal_fail "collect failed silently"
+   local depend_subdir
+
+   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
+   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" || internal_fail "collect failed silently"
 }
 
 
@@ -662,6 +694,14 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    sdkpath="`gcc_sdk_parameter "${sdk}"`"
    sdkpath="`echo "${sdkpath}" | sed -e 's/ /\\ /g'`"
 
+   local mappedsubdir
+   local fallbacksubdir
+   local suffixsubdir
+
+   mappedsubdir="`determine_build_subdir "${mapped}"`"
+   suffixsubdir="`determine_build_subdir "${suffix}"`"
+   fallbacksubdir="`determine_build_subdir "${fallback}"`"
+
    local other_cflags
    local other_cppflags
    local other_ldflags
@@ -670,7 +710,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    other_cppflags="`gcc_cppflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
-   create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}"
+   create_dummy_dirs_against_warnings "${builddir}" "${mappedsubdir}" "${suffixsubdir}"
 
    local logfile1
    local logfile2
@@ -706,28 +746,28 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
        DEPENDENCIES_DIR="'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'" \
        CFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
 -isysroot ${sdkpath}" \
       CPPFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
 -isysroot ${sdkpath}" \
       LDFLAGS="\
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}${suffix} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${suffix} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 -isysroot ${sdkpath}" \
@@ -742,7 +782,10 @@ ${other_ldflags} \
 
    exekutor cd "${owd}"
 
-   collect_and_dispense_product "${name}" "${suffix}" || exit 1
+   local depend_subdir
+
+   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
+   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" || exit 1
 }
 
 
@@ -918,7 +961,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local targetname
    local suffix
 
-   suffix="/${configuration}"
+   suffix="${configuration}"
    if [ "${sdk}" != "Default" ]
    then
       hackish="`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`"
@@ -926,6 +969,14 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    else
       sdk=
    fi
+
+   local mappedsubdir
+   local fallbacksubdir
+   local suffixsubdir
+
+   mappedsubdir="`determine_build_subdir "${mapped}"`"
+   suffixsubdir="`determine_build_subdir "${suffix}"`"
+   fallbacksubdir="`determine_build_subdir "${fallback}"`"
 
    local xcode_proper_skip_install
    local skip_install
@@ -1069,7 +1120,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    fi
 
 
-   create_dummy_dirs_against_warnings "${builddir}" "${configuration}" "${suffix}"
+   create_dummy_dirs_against_warnings "${builddir}" "${mappedsubdir}" "${suffixsubdir}"
 
    owd=`pwd`
    exekutor cd "${srcdir}" || exit 1
@@ -1111,13 +1162,13 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
       inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${fallback}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}" \
 "/usr/local/lib"`
       if [ ! -z "$sdk" ]
       then
-         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}/${mapped}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
+         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
          path="${escaped} ${path}" # prepend
       fi
       if [ -z "${inherited}" ]
@@ -1129,12 +1180,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
       inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${fallback}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}" \
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`
       if [ ! -z "$sdk" ]
       then
-         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}/${mapped}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
+         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
          path="${escaped} ${path}" # prepend
       fi
       if [ -z "${inherited}" ]
@@ -1176,7 +1227,10 @@ FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
    exekutor cd "${owd}"
 
-   collect_and_dispense_product "${name}" "${suffix}" "YES" || exit 1
+   local depend_subdir
+
+   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
+   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" "YES" || exit 1
 }
 
 
@@ -1328,9 +1382,13 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    exekutor cd "${owd}"
 
    local suffix
+   local depend_subdir
+   local suffixsubdir
 
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
-   collect_and_dispense_product "${name}" "${suffix}" || internal_fail "collect failed silently"
+   suffixsubdir="`determine_build_subdir "${suffix}"`"
+   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
+   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" || internal_fail "collect failed silently"
 }
 
 
@@ -1660,7 +1718,7 @@ build_clones()
             then
                build_if_alive "${name}" "${srcdir}" || exit  1
             else
-               fail "repo for \"${clone}\" not found (\"${srcdir}\") ($PWD)"
+               fail "build failed for repository\"${clone}\": not found in (\"${srcdir}\") ($PWD)"
             fi
          done
       fi
@@ -1754,8 +1812,6 @@ main()
    # if present then we didnt't want to clean and we do nothing special
    if [ ! -d "${DEPENDENCY_SUBDIR}" ]
    then
-      mkdir_if_missing "${DEPENDENCY_SUBDIR}/usr/local/include"
-      exekutor ln -s "usr/local/include" "${DEPENDENCY_SUBDIR}/include" || fail "failed to symlink future usr/local/include"
       install_tars "$@"
    else
       if have_tars

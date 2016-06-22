@@ -443,6 +443,7 @@ remove_file_if_present()
    if [ -f "${1}" ]
    then
       log_fluff "Removing \"$1\" (`pwd -P`)"
+      exekutor chmod u+w "$1" || fail "Failed to make $1 writable"
       exekutor rm -f "$1" || fail "failed to remove \"$1\""
    fi
 }

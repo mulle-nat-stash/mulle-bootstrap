@@ -1,3 +1,20 @@
+1.0
+===
+
+Version 1.0 breaks compatibility with the previous version. You should "clean" everything.
+
+* **change in the dependencies/ structure**
+   it's now dependencies/Debug/lib for Debug and dependencies/lib for Release
+* The default built is Release only
+* mulle-bootstrap can now '-f' force tags and '-d' delete tags
+* mulle-bootstrap no longer places headers into `dependencies/usr/local/include`
+but just into `dependencies/include`
+* the 'tag' command is now less powerful. It just tags the fetched repositories,
+because that's mulle-bootstraps scope. The tag script facility has been
+eliminated.
+* new clean target "install"
+
+
 0.26
 ===
 
