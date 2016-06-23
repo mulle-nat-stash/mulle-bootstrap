@@ -1,4 +1,4 @@
-#! /bin/sh -x
+#! /bin/sh
 
 create_demo_repo()
 {
@@ -88,6 +88,7 @@ EOF
 ##
 ## Now test
 ##
+echo "--| 1 |--------------------------------"
 mulle-bootstrap -a fetch
 
 [ ! -d .repos/a ]   && echo "failed to fetch a" && exit 1
@@ -99,6 +100,7 @@ mulle-bootstrap -a fetch
 [ ! -d g ]          && echo "failed to fetch f" && exit 1
 [ ! -d .repos/h ]   && echo "failed to fetch h" && exit 1
 
+echo "--| 2 |--------------------------------"
 mulle-bootstrap refresh
 
 [ ! -d .repos/a ]   && echo "wrongly removed a" && exit 1
@@ -116,6 +118,7 @@ cat <<EOF > .bootstrap/embedded_repositories
 ../g
 EOF
 
+echo "--| 3 |--------------------------------"
 mulle-bootstrap refresh
 
 [ ! -d .repos/a ]   && echo "wrongly removed a" && exit 1
@@ -132,6 +135,7 @@ cat <<EOF > .bootstrap/repositories
 ../c
 EOF
 
+echo "--| 4 |--------------------------------"
 mulle-bootstrap refresh
 
 [ ! -d .repos/a ]   && echo "wrongly removed a" && exit 1
@@ -146,6 +150,7 @@ mulle-bootstrap refresh
 # hack
 rm .repos/a/.bootstrap/embedded_repositories
 
+echo "--| 5 |--------------------------------"
 mulle-bootstrap refresh
 
 [ ! -d .repos/a ]   && echo "wrongly removed a" && exit 1
@@ -156,3 +161,5 @@ mulle-bootstrap refresh
 [   -d f ]          && echo "mistakenly refetched f" && exit 1
 [ ! -d g ]          && echo "wrongly removed g" && exit 1
 [   -d .repos/h ]   && echo "mistakenly refetched h" && exit 1
+
+echo "--| PASS |-----------------------------"

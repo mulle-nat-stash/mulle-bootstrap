@@ -338,6 +338,10 @@ mark_embedded_repository_alive()
 
 bury_embedded_zombies()
 {
+   local dst
+
+   dst="$1"
+
    local i
    local name
    local dstdir
@@ -360,21 +364,28 @@ bury_embedded_zombies()
          if [ -f "${i}" ]
          then
             name="`basename -- "${i}"`"
-            dstdir="${name}"
+            dstdir="${dst}${name}"
 
-            if [ -d "${dstdir}" ]
+            if [ -d "${dstdir}" -o -L "${dstdir}" ]
             then
                if [ -e "${gravepath}/${name}" ]
                then
                   exekutor rm -rf "${gravepath}/${name}"
                   log_fluff "Made for a new grave at \"${gravepath}/${name}\""
                fi
-               exekutor mv "${dstdir}" "${gravepath}"
+
+               if [ -d "${dstdir}"  ]
+               then
+                  exekutor mv "${dstdir}" "${gravepath}"
+               else
+                  exekutor rm "${dstdir}"
+               fi
+
                exekutor rm "${i}"
                exekutor rm "${CLONESFETCH_SUBDIR}/.embedded/${name}"
                log_info "Removed unused embedded repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"${dstdir}\""
             else
-               log_fluff "\"${dstdir}\" embedded zombie vanished or never existed"
+               log_fluff "\"${dstdir}\" embedded zombie vanished or never existed ($PWD)"
             fi
          fi
       done
@@ -468,7 +479,7 @@ refresh_embedded_repositories()
 
    _refresh_embedded_repositories "$@"
 
-   bury_embedded_zombies
+   bury_embedded_zombies "$@"
 }
 
 
