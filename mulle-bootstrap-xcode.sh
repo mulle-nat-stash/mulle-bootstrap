@@ -301,19 +301,17 @@ Release"
 
    default=`echo "${configurations}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//'`
 
-   library_search_paths="\$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/\$(LIBRARY_CONFIGURATION)"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/${default}\$(EFFECTIVE_PLATFORM_NAME)"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}/${default}"
+   library_search_paths="\$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)/${LIBRARY_DIR_NAME}"
+   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)/${LIBRARY_DIR_NAME}"
+   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/\$(EFFECTIVE_PLATFORM_NAME)/${LIBRARY_DIR_NAME}"
    library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}"
    library_search_paths="${library_search_paths} /usr/local/lib"
    library_search_paths="${library_search_paths} \$(inherited)"
 
 
-   framework_search_paths="\$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}/\$(LIBRARY_CONFIGURATION)"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}/${default}\$(EFFECTIVE_PLATFORM_NAME)"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}/${default}"
+   framework_search_paths="\$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)/${FRAMEWORK_DIR_NAME}"
+   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)/${FRAMEWORK_DIR_NAME}"
+   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/\$(EFFECTIVE_PLATFORM_NAME)/${FRAMEWORK_DIR_NAME}"
    framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}"
    framework_search_paths="${framework_search_paths} \$(inherited)"
 

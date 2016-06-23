@@ -39,9 +39,6 @@
 . mulle-bootstrap-scripts.sh
 
 
-name=`basename -- "${PWD}"`
-
-
 usage()
 {
    cat <<EOF
@@ -50,7 +47,7 @@ usage: tag [-f] <tag>
    -d           : delete tag
    -f           : force tag
 
-   tag          : the tag for your repository ($name)
+   tag          : the tag for your fetched repositories
 EOF
 }
 
@@ -247,7 +244,7 @@ main()
 
    run_fetch_settings_script "pre-tag"
 
-   tag "${CLONES_SUBDIR}" "${REPO}" "${TAG}" "${VENDOR_TAG}" "$@"
+   tag "${CLONES_SUBDIR}" "${TAG}" "$@"
 
    run_fetch_settings_script "pre-tag"
 }

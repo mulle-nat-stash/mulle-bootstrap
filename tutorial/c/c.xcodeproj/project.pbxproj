@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		41C310891BB444CD00F0B036 /* C.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 41C310881BB444CD00F0B036 /* C.h */; };
-		41C3108B1BB444CD00F0B036 /* C.m in Sources */ = {isa = PBXBuildFile; fileRef = 41C3108A1BB444CD00F0B036 /* C.m */; };
+		41C310891BB444CD00F0B036 /* c.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 41C310881BB444CD00F0B036 /* c.h */; };
+		41C3108B1BB444CD00F0B036 /* c.c in Sources */ = {isa = PBXBuildFile; fileRef = 41C3108A1BB444CD00F0B036 /* c.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -18,7 +18,7 @@
 			dstPath = "include/$(PRODUCT_NAME)";
 			dstSubfolderSpec = 16;
 			files = (
-				41C310891BB444CD00F0B036 /* C.h in CopyFiles */,
+				41C310891BB444CD00F0B036 /* c.h in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -26,8 +26,8 @@
 
 /* Begin PBXFileReference section */
 		41C310851BB444CD00F0B036 /* libC.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libC.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		41C310881BB444CD00F0B036 /* C.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = C.h; sourceTree = "<group>"; };
-		41C3108A1BB444CD00F0B036 /* C.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = C.m; sourceTree = "<group>"; };
+		41C310881BB444CD00F0B036 /* c.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = c.h; sourceTree = "<group>"; };
+		41C3108A1BB444CD00F0B036 /* c.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = c.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,8 +60,8 @@
 		41C310871BB444CD00F0B036 /* C */ = {
 			isa = PBXGroup;
 			children = (
-				41C310881BB444CD00F0B036 /* C.h */,
-				41C3108A1BB444CD00F0B036 /* C.m */,
+				41C310881BB444CD00F0B036 /* c.h */,
+				41C3108A1BB444CD00F0B036 /* c.c */,
 			);
 			name = C;
 			path = src;
@@ -123,7 +123,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				41C3108B1BB444CD00F0B036 /* C.m in Sources */,
+				41C3108B1BB444CD00F0B036 /* c.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -211,7 +211,6 @@
 		41C3109A1BB444CE00F0B036 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -220,7 +219,6 @@
 		41C3109B1BB444CE00F0B036 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};

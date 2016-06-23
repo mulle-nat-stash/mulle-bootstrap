@@ -1,13 +1,13 @@
 cmake_minimum_required (VERSION 3.0)
 
-project (A)
+project (a)
 
 set(HEADERS
-src/A.h)
+src/a.h)
 
 add_library(A
-src/A.m
+src/a.c
 )
 
 INSTALL(TARGETS A DESTINATION lib)
-INSTALL(FILES ${HEADERS} DESTINATION "include/A")
+INSTALL(FILES ${HEADERS} DESTINATION "include/a")

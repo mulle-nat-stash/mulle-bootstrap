@@ -1,0 +1,257 @@
+// !$*UTF8*$!
+{
+    archiveVersion = 1;
+    classes =     (
+    );
+    objectVersion = 42;
+    objects =     {
+        41C310591BB444B500F0B036 =         {
+            children =             (
+                41C310641BB444B500F0B036,
+                41C310631BB444B500F0B036
+            );
+            isa = PBXGroup;
+            project = 41C3105A1BB444B500F0B036;
+            sourceTree = "<group>";
+        };
+        41C3105A1BB444B500F0B036 =         {
+            attributes =             {
+                LastUpgradeCheck = 0640;
+                ORGANIZATIONNAME = "Mulle kybernetiK";
+                TargetAttributes =                 {
+                    41C310611BB444B500F0B036 =                     {
+                        CreatedOnToolsVersion = "6.4";
+                    };
+                };
+            };
+            buildConfigurationList = 41C3105D1BB444B500F0B036;
+            compatibilityVersion = "Xcode 3.2";
+            developmentRegion = English;
+            hasScannedForEncodings = 0;
+            isa = PBXProject;
+            knownRegions =             (
+                en
+            );
+            mainGroup = 41C310591BB444B500F0B036;
+            productRefGroup = 41C310631BB444B500F0B036;
+            projectDirPath = "";
+            projectRoot = "";
+            targets =             (
+                41C310611BB444B500F0B036
+            );
+        };
+        41C3105D1BB444B500F0B036 =         {
+            buildConfigurations =             (
+                41C310741BB444B500F0B036,
+                41C310751BB444B500F0B036
+            );
+            defaultConfigurationIsVisible = 0;
+            defaultConfigurationName = Release;
+            isa = XCConfigurationList;
+        };
+        41C3105E1BB444B500F0B036 =         {
+            buildActionMask = 2147483647;
+            files =             (
+                41C310681BB444B500F0B036
+            );
+            isa = PBXSourcesBuildPhase;
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        41C3105F1BB444B500F0B036 =         {
+            buildActionMask = 2147483647;
+            files =             (
+            );
+            isa = PBXFrameworksBuildPhase;
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        41C310611BB444B500F0B036 =         {
+            buildConfigurationList = 41C310761BB444B500F0B036;
+            buildPhases =             (
+                41C3109F1BB44CCD00F0B036,
+                41C3105E1BB444B500F0B036,
+                41C3105F1BB444B500F0B036
+            );
+            buildRules =             (
+            );
+            dependencies =             (
+            );
+            isa = PBXNativeTarget;
+            name = B;
+            productName = B;
+            productReference = 41C310621BB444B500F0B036;
+            productType = "com.apple.product-type.library.static";
+        };
+        41C310621BB444B500F0B036 =         {
+            explicitFileType = "archive.ar";
+            includeInIndex = 0;
+            isa = PBXFileReference;
+            path = "libB.a";
+            sourceTree = "BUILT_PRODUCTS_DIR";
+        };
+        41C310631BB444B500F0B036 =         {
+            children =             (
+                41C310621BB444B500F0B036
+            );
+            isa = PBXGroup;
+            name = Products;
+            sourceTree = "<group>";
+        };
+        41C310641BB444B500F0B036 =         {
+            children =             (
+                41C310651BB444B500F0B036,
+                41C310671BB444B500F0B036
+            );
+            isa = PBXGroup;
+            name = B;
+            path = src;
+            sourceTree = "<group>";
+        };
+        41C310651BB444B500F0B036 =         {
+            isa = PBXFileReference;
+            lastKnownFileType = "sourcecode.c.h";
+            path = "b.h";
+            sourceTree = "<group>";
+        };
+        41C310671BB444B500F0B036 =         {
+            isa = PBXFileReference;
+            lastKnownFileType = "sourcecode.c.objc";
+            path = "b.c";
+            sourceTree = "<group>";
+        };
+        41C310681BB444B500F0B036 =         {
+            fileRef = 41C310671BB444B500F0B036;
+            isa = PBXBuildFile;
+        };
+        41C310741BB444B500F0B036 =         {
+            buildSettings =             {
+                "ALWAYS_SEARCH_USER_PATHS" = NO;
+                "CLANG_CXX_LANGUAGE_STANDARD" = "gnu++0x";
+                "CLANG_CXX_LIBRARY" = "libc++";
+                "CLANG_ENABLE_MODULES" = YES;
+                "CLANG_ENABLE_OBJC_ARC" = YES;
+                "CLANG_WARN_BOOL_CONVERSION" = YES;
+                "CLANG_WARN_CONSTANT_CONVERSION" = YES;
+                "CLANG_WARN_DIRECT_OBJC_ISA_USAGE" = "YES_ERROR";
+                "CLANG_WARN_EMPTY_BODY" = YES;
+                "CLANG_WARN_ENUM_CONVERSION" = YES;
+                "CLANG_WARN_INT_CONVERSION" = YES;
+                "CLANG_WARN_OBJC_ROOT_CLASS" = "YES_ERROR";
+                "CLANG_WARN_UNREACHABLE_CODE" = YES;
+                "CLANG_WARN__DUPLICATE_METHOD_MATCH" = YES;
+                "COPY_PHASE_STRIP" = NO;
+                "DEBUG_INFORMATION_FORMAT" = "dwarf-with-dsym";
+                "DEPENDENCIES_DIR" = "$(PROJECT_DIR)/dependencies";
+                "ENABLE_STRICT_OBJC_MSGSEND" = YES;
+                "FRAMEWORK_SEARCH_PATHS" = "$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/Frameworks $(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)/Frameworks $(DEPENDENCIES_DIR)/$(EFFECTIVE_PLATFORM_NAME)/Frameworks $(DEPENDENCIES_DIR)/Frameworks $(inherited)";
+                "GCC_C_LANGUAGE_STANDARD" = gnu99;
+                "GCC_DYNAMIC_NO_PIC" = NO;
+                "GCC_NO_COMMON_BLOCKS" = YES;
+                "GCC_OPTIMIZATION_LEVEL" = 0;
+                "GCC_PREPROCESSOR_DEFINITIONS" =                 (
+                    "DEBUG=1",
+                    "$(inherited)"
+                );
+                "GCC_SYMBOLS_PRIVATE_EXTERN" = NO;
+                "GCC_WARN_64_TO_32_BIT_CONVERSION" = YES;
+                "GCC_WARN_ABOUT_RETURN_TYPE" = "YES_ERROR";
+                "GCC_WARN_UNDECLARED_SELECTOR" = YES;
+                "GCC_WARN_UNINITIALIZED_AUTOS" = "YES_AGGRESSIVE";
+                "GCC_WARN_UNUSED_FUNCTION" = YES;
+                "GCC_WARN_UNUSED_VARIABLE" = YES;
+                "HEADER_SEARCH_PATHS" = "$(DEPENDENCIES_DIR)/include /usr/local/include $(inherited)";
+                "IPHONEOS_DEPLOYMENT_TARGET" = "8.4";
+                "LIBRARY_CONFIGURATION" = Debug;
+                "LIBRARY_SEARCH_PATHS" = "$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/lib $(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)/lib $(DEPENDENCIES_DIR)/$(EFFECTIVE_PLATFORM_NAME)/lib $(DEPENDENCIES_DIR)/lib /usr/local/lib $(inherited)";
+                "MTL_ENABLE_DEBUG_INFO" = YES;
+                "ONLY_ACTIVE_ARCH" = YES;
+                SDKROOT = iphoneos;
+            };
+            isa = XCBuildConfiguration;
+            name = Debug;
+        };
+        41C310751BB444B500F0B036 =         {
+            buildSettings =             {
+                "ALWAYS_SEARCH_USER_PATHS" = NO;
+                "CLANG_CXX_LANGUAGE_STANDARD" = "gnu++0x";
+                "CLANG_CXX_LIBRARY" = "libc++";
+                "CLANG_ENABLE_MODULES" = YES;
+                "CLANG_ENABLE_OBJC_ARC" = YES;
+                "CLANG_WARN_BOOL_CONVERSION" = YES;
+                "CLANG_WARN_CONSTANT_CONVERSION" = YES;
+                "CLANG_WARN_DIRECT_OBJC_ISA_USAGE" = "YES_ERROR";
+                "CLANG_WARN_EMPTY_BODY" = YES;
+                "CLANG_WARN_ENUM_CONVERSION" = YES;
+                "CLANG_WARN_INT_CONVERSION" = YES;
+                "CLANG_WARN_OBJC_ROOT_CLASS" = "YES_ERROR";
+                "CLANG_WARN_UNREACHABLE_CODE" = YES;
+                "CLANG_WARN__DUPLICATE_METHOD_MATCH" = YES;
+                "COPY_PHASE_STRIP" = NO;
+                "DEBUG_INFORMATION_FORMAT" = "dwarf-with-dsym";
+                "DEPENDENCIES_DIR" = "$(PROJECT_DIR)/dependencies";
+                "ENABLE_NS_ASSERTIONS" = NO;
+                "ENABLE_STRICT_OBJC_MSGSEND" = YES;
+                "FRAMEWORK_SEARCH_PATHS" = "$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/Frameworks $(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)/Frameworks $(DEPENDENCIES_DIR)/$(EFFECTIVE_PLATFORM_NAME)/Frameworks $(DEPENDENCIES_DIR)/Frameworks $(inherited)";
+                "GCC_C_LANGUAGE_STANDARD" = gnu99;
+                "GCC_NO_COMMON_BLOCKS" = YES;
+                "GCC_WARN_64_TO_32_BIT_CONVERSION" = YES;
+                "GCC_WARN_ABOUT_RETURN_TYPE" = "YES_ERROR";
+                "GCC_WARN_UNDECLARED_SELECTOR" = YES;
+                "GCC_WARN_UNINITIALIZED_AUTOS" = "YES_AGGRESSIVE";
+                "GCC_WARN_UNUSED_FUNCTION" = YES;
+                "GCC_WARN_UNUSED_VARIABLE" = YES;
+                "HEADER_SEARCH_PATHS" = "$(DEPENDENCIES_DIR)/include /usr/local/include $(inherited)";
+                "IPHONEOS_DEPLOYMENT_TARGET" = "8.4";
+                "LIBRARY_CONFIGURATION" = Release;
+                "LIBRARY_SEARCH_PATHS" = "$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/lib $(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)/lib $(DEPENDENCIES_DIR)/$(EFFECTIVE_PLATFORM_NAME)/lib $(DEPENDENCIES_DIR)/lib /usr/local/lib $(inherited)";
+                "MTL_ENABLE_DEBUG_INFO" = NO;
+                SDKROOT = iphoneos;
+                "VALIDATE_PRODUCT" = YES;
+            };
+            isa = XCBuildConfiguration;
+            name = Release;
+        };
+        41C310761BB444B500F0B036 =         {
+            buildConfigurations =             (
+                41C310771BB444B500F0B036,
+                41C310781BB444B500F0B036
+            );
+            defaultConfigurationIsVisible = 0;
+            defaultConfigurationName = Release;
+            isa = XCConfigurationList;
+        };
+        41C310771BB444B500F0B036 =         {
+            buildSettings =             {
+                "PRODUCT_NAME" = "$(TARGET_NAME)";
+                "SKIP_INSTALL" = YES;
+            };
+            isa = XCBuildConfiguration;
+            name = Debug;
+        };
+        41C310781BB444B500F0B036 =         {
+            buildSettings =             {
+                "PRODUCT_NAME" = "$(TARGET_NAME)";
+                "SKIP_INSTALL" = YES;
+            };
+            isa = XCBuildConfiguration;
+            name = Release;
+        };
+        41C3109F1BB44CCD00F0B036 =         {
+            buildActionMask = 2147483647;
+            files =             (
+                41C310A01BB44CD400F0B036
+            );
+            isa = PBXHeadersBuildPhase;
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        41C310A01BB44CD400F0B036 =         {
+            fileRef = 41C310651BB444B500F0B036;
+            isa = PBXBuildFile;
+            settings =             {
+                ATTRIBUTES =                 (
+                    Public
+                );
+            };
+        };
+    };
+    rootObject = 41C3105A1BB444B500F0B036;
+}

@@ -33,16 +33,15 @@ git_is_bare_repository()
    local is_bare
 
        # if bare repo, we can only clone anyway
-    is_bare=`( cd "${1}"; git rev-parse --is-bare-repository )`
+    is_bare=`( cd "${1}"; git rev-parse --is-bare-repository 2> /dev/null )`
     [ "${is_bare}" = "true" ]
 }
 
 
 git_get_branch()
 {
-   ( cd "$1" ; git rev-parse --abbrev-ref HEAD )
+   ( cd "$1" ; git rev-parse --abbrev-ref HEAD 2> /dev/null )
 }
-
 
 
 git_checkout_tag()

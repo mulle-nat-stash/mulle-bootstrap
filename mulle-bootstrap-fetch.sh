@@ -293,9 +293,9 @@ link_command()
    local dstdir
    dstdir="`dirname -- "${dst}"`"
 
-   if [ ! -e "${dstdir}/${src}" ]
+   if [ ! -e "${dstdir}/${src}" -a "${MULLE_BOOTSTRAP_DRY_RUN}" != "YES" ]
    then
-      fail "\"${dstdir}/${src}${C_ERROR} does not exist ($PWD)"
+      fail "${C_RESET}${C_BOLD}${dstdir}/${src}${C_ERROR} does not exist ($PWD)"
    fi
 
    if [ "${COMMAND}" = "install" ]
@@ -324,7 +324,7 @@ link_command()
          name="`basename -- "${dst}"`"
          log_warning "tag ${tag} will be ignored, due to symlink" >&2
          log_warning "if you want to checkout this tag do:" >&2
-         log_warning "${C_RESET}(cd .repos/${name}; git ${GITFLAGS} checkout \"${tag}\" )${C_WARNING}" >&2
+         log_warning "${C_RESET}${C_BOLD}(cd .repos/${name}; git ${GITFLAGS} checkout \"${tag}\" )${C_WARNING}" >&2
       fi
    fi
 

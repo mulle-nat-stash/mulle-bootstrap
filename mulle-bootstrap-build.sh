@@ -430,13 +430,17 @@ cmake_sdk_parameter()
 
 create_dummy_dirs_against_warnings()
 {
-   local builddir
+   local mapped
+   local suffix
+
+   mapped="$1"
+   suffix="$2"
+
    local mappedsubdir
    local suffixsubdir
 
-   builddir="$1"
-   mappedsubdir="$2"
-   suffixsubdir="$3"
+   mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
+   suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
 
    local owd
 
@@ -536,6 +540,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    sdkparameter="`cmake_sdk_parameter "${sdk}"`"
 
+   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
+
    local mappedsubdir
    local fallbacksubdir
    local suffixsubdir
@@ -551,8 +557,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    other_cflags="`gcc_cflags_value "${name}"`"
    other_cppflags="`gcc_cppflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
-
-   create_dummy_dirs_against_warnings "${builddir}" "${mappedsubdir}" "${suffixsubdir}"
 
    local logfile1
    local logfile2
@@ -694,6 +698,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    sdkpath="`gcc_sdk_parameter "${sdk}"`"
    sdkpath="`echo "${sdkpath}" | sed -e 's/ /\\ /g'`"
 
+   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
+
    local mappedsubdir
    local fallbacksubdir
    local suffixsubdir
@@ -710,7 +716,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    other_cppflags="`gcc_cppflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
-   create_dummy_dirs_against_warnings "${builddir}" "${mappedsubdir}" "${suffixsubdir}"
 
    local logfile1
    local logfile2
@@ -970,6 +975,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       sdk=
    fi
 
+   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
+
    local mappedsubdir
    local fallbacksubdir
    local suffixsubdir
@@ -1119,8 +1126,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       other_ldflags="OTHER_LDFLAGS=${other_ldflags}"
    fi
 
-
-   create_dummy_dirs_against_warnings "${builddir}" "${mappedsubdir}" "${suffixsubdir}"
 
    owd=`pwd`
    exekutor cd "${srcdir}" || exit 1
