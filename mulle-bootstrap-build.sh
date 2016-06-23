@@ -546,9 +546,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local fallbacksubdir
    local suffixsubdir
 
-   mappedsubdir="`determine_build_subdir "${mapped}"`"
-   suffixsubdir="`determine_build_subdir "${suffix}"`"
-   fallbacksubdir="`determine_build_subdir "${fallback}"`"
+   mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
+   suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
+   fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
 
    local other_cflags
    local other_cppflags
@@ -704,9 +704,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local fallbacksubdir
    local suffixsubdir
 
-   mappedsubdir="`determine_build_subdir "${mapped}"`"
-   suffixsubdir="`determine_build_subdir "${suffix}"`"
-   fallbacksubdir="`determine_build_subdir "${fallback}"`"
+   mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
+   suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
+   fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
 
    local other_cflags
    local other_cppflags
@@ -981,9 +981,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local fallbacksubdir
    local suffixsubdir
 
-   mappedsubdir="`determine_build_subdir "${mapped}"`"
-   suffixsubdir="`determine_build_subdir "${suffix}"`"
-   fallbacksubdir="`determine_build_subdir "${fallback}"`"
+   mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
+   suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
+   fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
 
    local xcode_proper_skip_install
    local skip_install
