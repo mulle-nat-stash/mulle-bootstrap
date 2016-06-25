@@ -16,7 +16,10 @@ eliminated.
 * new clean target "install"
 * removed convert-pre-0.10 and ibuild commands
 * ConsoleMovies are gone, I am too lazy to maintain them.
-
+* Improve generation of -F and -L flags in cmake and configure
+* cmake and configure always add `/usr/local/include` and link with `/usr/local/lib`
+(mostly due to brew installing dependencies there).
+* redid the verbosity logging with -v, -vv , -vvv, -t
 
 0.26
 ===

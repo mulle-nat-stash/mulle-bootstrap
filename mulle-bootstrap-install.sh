@@ -310,7 +310,7 @@ install_frameworks_by_symlinking()
 main()
 {
 
-   log_fluff "::: install :::"
+   log_verbose "::: install :::"
 
    if [ ! -d "${DEPENDENCY_SUBDIR}" ]
    then

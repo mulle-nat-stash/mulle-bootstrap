@@ -157,7 +157,8 @@ Setting Name                      |  Description                                
 `absolute_symlinks`               | Use absolute symlinks instead of relatives    | NO
 `symlink_forbidden`               | mulle-bootstrap will not attempt to symlink   | NO
 `update_gitignore`                | add cleanable directories to .gitignore       | YES
-
+`check_usr_local_include`         | do not install, if a system header of same    |
+                                  | is present in `/usr/local/include`            | NO
 
 Build Config Settings
 

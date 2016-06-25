@@ -190,7 +190,13 @@ run_build_settings_script()
    scriptname="$1"
    shift
 
-   exekutor [ -e "$srcdir" ]  || internal_fail "srcdir \"${srcdir}\" is wrong ($PWD)"
+   # can happen, if system libs override
+   if [ ! -e "$srcdir" ]
+   then
+      log_verbose "script \${script}\" not executed, because ${srcdir} does not exist"
+      return 0
+   fi
+
    [ ! -z "$name" ]           || internal_fail "name is empty"
    [ ! -z "$url" ]            || internal_fail "url is empty"
    [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"

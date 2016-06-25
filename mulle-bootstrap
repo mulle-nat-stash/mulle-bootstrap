@@ -100,11 +100,27 @@ do
       continue
    fi
 
-   if [ "$1" = "-V" ]
+   if [ "$1" = "-V" -o "$1" = "-vv" ]
    then
       if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
       then
-         MULLE_BOOTSTRAP_TRACE="ALL"
+         MULLE_BOOTSTRAP_TRACE="FLUFF"
+         export MULLE_BOOTSTRAP_TRACE
+      fi
+
+      COPYMOVEFLAGS="-v"
+      export COPYMOVEFLAGS
+      GITFLAGS="-v"
+      export GITFLAGS
+      [ $# -eq 0 ] || shift
+      continue
+   fi
+
+   if [ "$1" = "-vvv" ]
+   then
+      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+      then
+         MULLE_BOOTSTRAP_TRACE="TRACE"
          export MULLE_BOOTSTRAP_TRACE
       fi
 
@@ -140,7 +156,8 @@ usage: mulle-bootstrap [-a|-y][-n][-v|-s|-t] [command] [--help]
    -a -y     : default answer to questions (scripts wont be checked)
                -a (clone preferred) -y (symlink preferred)
    -n        : do nothing creative or destructive
-   -v -s -t  : -v be more verbose (-V even more verbose), -s be more terse
+   -v -s -t  : -v to be more verbose (-vv or -vvv for more verbosity)
+               -s to be more terse
                -t turns on shell tracing for development
 
  Common user commands:

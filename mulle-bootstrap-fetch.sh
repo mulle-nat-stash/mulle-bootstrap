@@ -358,10 +358,20 @@ ask_symlink_it()
       flag=1  # mens clone it
       if [ "${SYMLINK_FORBIDDEN}" != "YES" ]
       then
-         user_say_yes "Should ${clone} be symlinked instead of cloned ?
-   You usually say NO to this, even more so, if tag is set (tag=${tag})"
+         local prompt
+
+         prompt="Should ${clone} be symlinked instead of cloned ?
+You usually say NO to this."
+
+         if [ ! -z "${tag}" ]
+         then
+            prompt="${prompt} (Even more so, since tag is set as ${tag})"
+         fi
+
+         user_say_yes "$prompt"
          flag=$?
       fi
+
       [ $flag -eq 0 ]
       return $?
    fi
@@ -533,9 +543,8 @@ checkout()
 
             if [ ! -z "${found}" ]
             then
-               user_say_yes "There is a ${found} folder in the parent
-directory of this project.
-Use it ?"
+               user_say_yes "There is a \"${found}\" folder in the parent directory of this project.
+(\"${PWD}\"). Use it ?"
                if [ $? -eq 0 ]
                then
                   src="${found}"
@@ -685,20 +694,35 @@ clone_repository()
    local tag
    local dstdir
    local flag
+   local doit
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
-   log_fetch_action "${name}" "${dstdir}"
 
-   # mark the checkout progress, so that we don't do incomplete fetches and
-   # later on happily build
+   doit=1
+   if [ "${DO_CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+   then
+      has_usr_local_include "${name}"
+      doit=$?
+   fi
 
-   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   flag=0
+   if [ $doit -ne 0 ]
+   then
+      log_fetch_action "${name}" "${dstdir}"
 
-   checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
-   flag=$?
+      # mark the checkout progress, so that we don't do incomplete fetches and
+      # later on happily build
 
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+      checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
+      flag=$?
+
+      remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   else
+      log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not fetching it"
+   fi
 
    return $flag
 }
@@ -1182,18 +1206,33 @@ update_embedded_repositories()
 
          tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
          dstdir="${dstprefix}${name}"
-         log_fetch_action "${name}" "${dstdir}"
 
-         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+         local doit
 
-         if [ -e "${dstdir}" ]
+         doit=1
+         if [ "${DO_CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
          then
-            update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
-         else
-            clone_embedded_repository "${dstprefix}" "${clone}"
+            has_usr_local_include "${name}"
+            doit=$?
          fi
 
-         remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+         if [ $doit -ne 0 ]
+         then
+            log_fetch_action "${name}" "${dstdir}"
+
+            create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+            if [ -e "${dstdir}" ]
+            then
+               update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
+            else
+               clone_embedded_repository "${dstprefix}" "${clone}"
+            fi
+
+            remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+         else
+            log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not updating"
+         fi
       done
    fi
 
@@ -1215,10 +1254,17 @@ append_dir_to_gitignore_if_needed()
 
 main()
 {
-   log_fluff "::: fetch :::"
+   log_verbose "::: fetch :::"
 
    SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
    export SYMLINK_FORBIDDEN
+
+   #
+   # should we check for '/usr/local/include/<name>' and don't fetch if
+   # present (somewhat dangerous, because we do not check versions)
+   #
+   DO_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   export DO_CHECK_USR_LOCAL_INCLUDE
 
    if [ "${COMMAND}" = "install" ]
    then
