@@ -598,6 +598,7 @@ rmdir_safer()
 }
 
 
+# returns 0 if said yes
 user_say_yes()
 {
   local  x

@@ -152,6 +152,7 @@ install_brews()
    if [ "${brews}" != "" ]
    then
       local old
+      local flag
 
       old="${IFS:-" "}"
       IFS="
@@ -162,11 +163,16 @@ install_brews()
          if [ "`which "${brew}"`" = "" ]
          then
             brew_update_if_needed "${brew}"
-            if [ $? -ne 2 ]
+            flag=$?
+
+            if [ $? -eq 2 ]
             then
-               log_fluff "brew ${COMMAND} \"${brew}\""
-               exekutor brew "${COMMAND}" "${brew}" || exit 1
+               log_info "No brewing being done."
+               return 1
             fi
+
+            log_fluff "brew ${COMMAND} \"${brew}\""
+            exekutor brew "${COMMAND}" "${brew}" || exit 1
          else
             log_info "\"${brew}\" is already installed."
          fi

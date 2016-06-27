@@ -73,10 +73,13 @@ brew_update_if_needed()
    what="$1"
    last_update="${HOME}/.mulle-bootstrap/brew-update"
 
+   local flag
+
    fetch_brew_if_needed
-   if [ $? -eq 1 ]
+   flag=$?
+   if [ ! -z $flag ]
   	then
-	  	return 0  ## just fetched it
+	  	return $flag  ## just fetched it or not there
 	fi
 
    if [ -f "${last_update}" ]
