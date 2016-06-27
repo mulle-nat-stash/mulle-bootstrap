@@ -47,8 +47,8 @@ warn_scripts()
       scripts="`find "$1" -name "*.sh" \( -perm +u+x -o -perm +g+x -o -perm +o+x \) -type f -print`"
       if [ ! -z "${scripts}" ]
       then
-         log_warning "this .bootstrap contains shell scripts:" 
-         old="${IFS:-" "}"         
+         log_warning "this .bootstrap contains shell scripts:"
+         old="${IFS:-" "}"
          IFS="
 "
          echo "${C_BOLD}--------------------------------------------------------${C_RESET}" >&2
@@ -73,7 +73,7 @@ warn_scripts()
          phases="`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}'  \; -print)`"
          if [ ! -z "${phases}" ]
          then
-            log_warning "this repository contains xcode projects with shellscript phases" 
+            log_warning "This repository contains xcode projects with shellscript phases"
 
             ack=`which ack`
             if [ -z "${ack}" ]

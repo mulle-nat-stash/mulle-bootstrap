@@ -43,8 +43,9 @@ fetch_brew_if_needed()
 Install brew now (Linux or OS X should work) ? "
       if [ $? -ne 0 ]
       then
-         return 1
+         return 2
       fi
+
       if [ "`uname`" = 'Darwin' ]
       then
          log_info "Installing OS X brew"

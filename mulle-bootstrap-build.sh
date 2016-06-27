@@ -591,7 +591,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       logfile1="${owd}/${logfile1}"
       logfile2="${owd}/${logfile2}"
 
-      if [ "$MULLE_BOOTSTRAP_VERBOSE" != "" ]
+      if [ "$MULLE_BOOTSTRAP_VERBOSE_BUILD" = "YES" ]
       then
          logfile1="`tty`"
          logfile2="$logfile1"
@@ -600,6 +600,30 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       then
          logfile1="/dev/null"
          logfile2="/dev/null"
+      fi
+
+      local frameworklines
+      local librarylines
+
+      frameworklines=
+      librarylines=
+
+      if [ ! -z "${suffixsubdir}" ]
+      then
+         frameworklines="-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
+      fi
+
+      if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
+      then
+         frameworklines="${frameworklines} -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+      fi
+
+      if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
+      then
+         frameworklines="${frameworklines} -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
       fi
 
       local relative_srcdir
@@ -612,36 +636,37 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
 "-DCMAKE_C_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
+-I/usr/local/include \
+${frameworklines} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags}" \
 "-DCMAKE_CXX_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
+-I/usr/local/include \
+${frameworklines} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags}" \
 "-DCMAKE_EXE_LINKER_FLAGS=\
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME} \
+${librarylines} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+-L/usr/local/lib \
 ${other_ldflags}" \
 "-DCMAKE_SHARED_LINKER_FLAGS=\
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME} \
+${librarylines} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+-L/usr/local/lib \
 ${other_ldflags}" \
 "-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH};\${CMAKE_MODULE_PATH}" \
 ${CMAKE_FLAGS} \
 ${localcmakeflags} \
 "${relative_srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
 
-      logging_exekutor make ${local_make_flags} VERBOSE=1 install > "${logfile2}" || build_fail "${logfile2}" "make"
+      if [ MULLE_BOOTSTRAP_VERBOSE_BUILD = "YES" ]
+      then
+         local_make_flags="${local_make_flags} VERBOSE=1"
+      fi
+
+      logging_exekutor make ${local_make_flags} install > "${logfile2}" || build_fail "${logfile2}" "make"
 
       set +f
 
@@ -736,7 +761,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       logfile1="${owd}/${logfile1}"
       logfile2="${owd}/${logfile2}"
 
-      if [ "$MULLE_BOOTSTRAP_TRACE" != "" ]
+      if [ "$MULLE_BOOTSTRAP_VERBOSE_BUILD" = "YES" ]
       then
          logfile1="`tty`"
          logfile2="$logfile1"
@@ -747,33 +772,52 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          logfile2="/dev/null"
       fi
 
+      local frameworklines
+      local librarylines
+
+      frameworklines=
+      librarylines=
+
+      if [ ! -z "${suffixsubdir}" ]
+      then
+         frameworklines="-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
+      fi
+
+      if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
+      then
+         frameworklines="${frameworklines} -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+      fi
+
+      if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
+      then
+         frameworklines="${frameworklines} -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
+      fi
+
       # use absolute paths for configure, safer (and easier to read IMO)
        DEPENDENCIES_DIR="'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'" \
        CFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
+-I/usr/local/include \
+${frameworklines}
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
 -isysroot ${sdkpath}" \
       CPPFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
+-I/usr/local/include \
+${frameworklines}
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
 -isysroot ${sdkpath}" \
       LDFLAGS="\
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME} \
+${frameworklines}
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME} \
+${librarylines}
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+-L/usr/local/lib \
 ${other_ldflags} \
 -isysroot ${sdkpath}" \
        logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
@@ -813,7 +857,7 @@ xcode_get_setting()
 
 #
 # Code I didn't want to throw away really
-# In general just uss "public_headers" or
+# In general just use "public_headers" or
 # "private_headers" and set them to a /usr/local/include/whatever
 #
 create_mangled_header_path()
@@ -1133,7 +1177,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
       logfile="${owd}/${logfile}"
 
-      if [ "${MULLE_BOOTSTRAP_TRACE}" != "" ]
+      if [ "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" = "YES" ]
       then
          logfile="`tty`"
       fi
@@ -1360,7 +1404,7 @@ build_script()
 
       logfile="${owd}/${logfile}"
 
-      if [ "$MULLE_BOOTSTRAP_TRACE" != "" ]
+      if [ "$MULLE_BOOTSTRAP_VERBOSE_BUILD" = "YES" ]
       then
          logfile="`tty`"
       fi
@@ -1699,7 +1743,12 @@ build_clones()
          then
             build_if_alive  "${name}" "${srcdir}" || exit 1
          else
-            fail "build_order contains unknown repo \"${clone}\" (\"${srcdir}\")"
+            if has_usr_local_include "${name}"
+            then
+               :
+            else
+               fail "build_order contains unknown repo \"${clone}\" (\"${srcdir}\")"
+            fi
          fi
       done
       IFS="$old"
@@ -1723,7 +1772,12 @@ build_clones()
             then
                build_if_alive "${name}" "${srcdir}" || exit  1
             else
-               fail "build failed for repository\"${clone}\": not found in (\"${srcdir}\") ($PWD)"
+               if has_usr_local_include "${name}"
+               then
+                  :
+               else
+                  fail "build failed for repository \"${clone}\": not found in (\"${srcdir}\") ($PWD)"
+               fi
             fi
          done
       fi
@@ -1736,7 +1790,12 @@ build_clones()
          then
             build_if_alive "${name}" "${srcdir}"|| exit 1
          else
-            fail "unknown repo ${name}"
+            if has_usr_local_include "${name}"
+            then
+               :
+            else
+               fail "unknown repo ${name}"
+            fi
          fi
       done
    fi
@@ -1788,7 +1847,7 @@ main()
 {
    local  clean
 
-   log_fluff "::: build :::"
+   log_verbose "::: build :::"
 
    #
    # START

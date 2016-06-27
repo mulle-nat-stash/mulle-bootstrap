@@ -80,10 +80,20 @@ log_info()
 }
 
 
+C_VERBOSE="${C_GREEN}${C_BOLD}"
+log_verbose()
+{
+   if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
+   then
+      printf "${C_VERBOSE}%b${C_RESET}\n" "$*" >&2
+   fi
+}
+
+
 C_FLUFF="${C_GREEN}${C_BOLD}"
 log_fluff()
 {
-   if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
+   if [ "${MULLE_BOOTSTRAP_FLUFF}" = "YES"  ]
    then
       printf "${C_FLUFF}%b${C_RESET}\n" "$*" >&2
    fi
@@ -800,7 +810,7 @@ run_script()
 
    if [ -x "${script}" ]
    then
-      log_fluff "Executing script \"${script}\" $1"
+      log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]
@@ -817,6 +827,23 @@ run_log_script()
 {
    echo "$@"
    run_script "$@"
+}
+
+
+has_usr_local_include()
+{
+   local name
+
+   name="${1}"
+   if [ -d "/usr/local/include/${name}" ]
+   then
+      return 0
+   fi
+
+   local include_name
+
+   include_name="`echo "${name}" | tr '-' '_'`"
+   [ -d "/usr/local/include/${include_name}" ]
 }
 
 

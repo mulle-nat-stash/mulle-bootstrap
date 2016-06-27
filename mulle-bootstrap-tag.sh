@@ -225,7 +225,7 @@ tag()
 
 main()
 {
-   log_fluff "::: tag :::"
+   log_verbose "::: tag :::"
 
    ensure_consistency
    if [ -z "${GIT_FLAGS}" ]
