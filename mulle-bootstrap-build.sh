@@ -35,7 +35,7 @@
 
 
 
-CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build" "YES"`
+CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
 CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
 N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
@@ -633,7 +633,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       logging_exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
 "-DDEPENDENCIES_DIR=${owd}/${REFERENCE_DEPENDENCY_SUBDIR}" \
-"-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local"  \
+"-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}"  \
 "-DCMAKE_C_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -I/usr/local/include \
@@ -821,7 +821,7 @@ ${librarylines}
 ${other_ldflags} \
 -isysroot ${sdkpath}" \
        logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
-          --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}/usr/local" >> "${logfile1}" \
+          --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
 
       logging_exekutor make install > "${logfile2}" \

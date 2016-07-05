@@ -165,7 +165,7 @@ install_brews()
             brew_update_if_needed "${brew}"
             flag=$?
 
-            if [ $? -eq 2 ]
+            if [ $flag -eq 2 ]
             then
                log_info "No brewing being done."
                return 1

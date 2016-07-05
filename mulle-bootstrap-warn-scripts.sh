@@ -70,7 +70,7 @@ warn_scripts()
 
       if dir_has_files "$2"
       then
-         phases="`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}'  \; -print)`"
+         phases="`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}' \; -print)`"
          if [ ! -z "${phases}" ]
          then
             log_warning "This repository contains xcode projects with shellscript phases"
@@ -78,10 +78,16 @@ warn_scripts()
             ack=`which ack`
             if [ -z "${ack}" ]
             then
-               echo "brew install ack ; ack -A1 \"shellPath|shellScript\"" >&2
-               echo "$phases" >&2
+               log_warning "$phases" >&2
+
+               log_info "To view them inline install \"ack\""
+               case "`uname`" in
+                  Darwin|Linux)
+                     log_info "   brew install ack" >&2
+                     ;;
+               esac
             else
-               ack -A1 "shellPath|shellScript" `echo $phases | tr '\n' ' '` >&2
+               ack -A1 "shellPath|shellScript" `echo "${phases}" | tr '\n' ' '` >&2
             fi
             echo "" >&2
          fi

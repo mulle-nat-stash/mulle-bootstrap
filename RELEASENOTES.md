@@ -20,6 +20,8 @@ eliminated.
 * cmake and configure always add `/usr/local/include` and link with `/usr/local/lib`
 (mostly due to brew installing dependencies there).
 * redid the verbosity logging with -v, -vv , -vvv, -t
+* clean before build is no longer the default
+
 
 0.26
 ===
