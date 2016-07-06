@@ -23,9 +23,6 @@ brew tap mulle-kybernetik/software
 brew install mulle-bootstrap
 ```
 
-> If that doesn't work for some reason, try to
-> `brew untap mulle-kybernetik/software` and then retry.
-
 
 ## What mulle-bootstrap can do for you
 
