@@ -11,17 +11,12 @@ projects
 
 ## Tell me more
 
+* [How to install](INSTALL.md)
+* [What has changed ?](RELEASENOTES.md)
+
 * [mulle-bootstrap: A dependency management tool](https://www.mulle-kybernetik.com/weblog/2015/mulle_bootstrap_work_in_progr.html)
 * [mulle-bootstrap: Understanding mulle-bootstrap (I)](https://www.mulle-kybernetik.com/weblog/2016/mulle_bootstrap_how_it_works.html)
 * [mulle-bootstrap: Understanding mulle-bootstrap (II), Recursion](https://www.mulle-kybernetik.com/weblog/2016/mulle_bootstrap_recursion.html)
-
-
-## How to install (OS X)
-
-```console
-brew tap mulle-kybernetik/software
-brew install mulle-bootstrap
-```
 
 
 ## What mulle-bootstrap can do for you
