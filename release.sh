@@ -17,7 +17,7 @@ git_must_be_clean()
       fail "\"${name}\" is not a git repository"
    fi
 
-   clean=`git status -s`
+   clean=`git status -s --untracked-files=no`
    if [ "${clean}" != "" ]
    then
       fail "repository \"${name}\" is tainted"
