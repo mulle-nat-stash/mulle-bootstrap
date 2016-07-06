@@ -118,5 +118,5 @@ though.
 
 #### mulle-bootstrap tag
 
-Tag your project and all fetched repositories, with a tag.
+Tag all fetched repositories.
 
