@@ -66,7 +66,8 @@ warn_scripts()
 
    if [ ! -z "$2" ]
    then
-       exekutor [ -e "$2" ] || fail "internal error, expected directory missing"
+       exekutor [ -e "$2" ] || fail "Expected directory \"$2\" is missing.
+(hint: use fetch instead of update to track renames)"
 
       if dir_has_files "$2"
       then

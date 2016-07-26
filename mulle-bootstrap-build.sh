@@ -209,7 +209,7 @@ dispense_binaries()
             exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}"
          [ $? -eq 0 ]  || exit 1
       else
-         log_fluff "But threre are none"
+         log_fluff "But there are none"
       fi
       rmdir_safer "${src}"
    else
@@ -1618,7 +1618,7 @@ build_wrapper()
 
    if [ "${COMMAND}" != "ibuild" -a -d "${BUILD_DEPENDENCY_SUBDIR}" ]
    then
-      log_info "Cleaning up orphaned \"${BUILD_DEPENDENCY_SUBDIR}\""
+      log_fluff "Cleaning up orphaned \"${BUILD_DEPENDENCY_SUBDIR}\""
       rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
    fi
 
@@ -1639,9 +1639,8 @@ build_wrapper()
    if [ "${COMMAND}" != "ibuild"  ]
    then
       log_fluff "Remove \"${BUILD_DEPENDENCY_SUBDIR}\""
+      rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
    fi
-
-   rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
 
    DEPENDENCY_SUBDIR="${REFERENCE_DEPENDENCY_SUBDIR}"
 
@@ -1835,6 +1834,7 @@ install_tars()
       then
          fail "tarball \"$tar\" not found"
       else
+         mkdir_if_missing "${DEPENDENCY_SUBDIR}"
          log_info "Installing tarball \"${tar}\""
          exekutor tar -xz -C "${DEPENDENCY_SUBDIR}" -f "${tar}" || fail "failed to extract ${tar}"
       fi

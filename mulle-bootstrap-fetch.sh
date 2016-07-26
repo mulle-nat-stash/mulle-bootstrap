@@ -48,7 +48,7 @@ usage()
 usage: fetch <install|nonrecursive|update>
    install      : clone or symlink non-exisiting repositories and other resources
    nonrecursive : like above, but ignore .bootstrap folders of repositories
-   update       : pull in fetched repositories
+   update       : execute `git pull` in fetched repositories
 
    You can specify the names of the repositories to update.
    Currently available names are:

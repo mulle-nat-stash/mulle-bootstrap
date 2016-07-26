@@ -1,3 +1,10 @@
+1.1
+===
+
+* Fix tar install, which was broken
+* Fix some wordings
+
+
 1.0
 ===
 
