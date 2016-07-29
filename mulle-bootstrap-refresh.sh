@@ -114,6 +114,7 @@ refresh_repositories_settings()
          do
             IFS="${old}"
 
+            clone="`expanded_setting "${clone}"`"
             # avoid superflous updates
             match="`echo "${refreshed}" | grep -x "${clone}"`"
             # could remove prefixes here https:// http://
@@ -424,6 +425,9 @@ refresh_repositories()
       for clone in ${clones}
       do
          IFS="${old}"
+
+         clone="`expanded_setting "${clone}"`"
+
          name="`canonical_name_from_clone "${clone}"`"
          dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
@@ -460,6 +464,8 @@ _refresh_embedded_repositories()
       for clone in ${clones}
       do
          IFS="${old}"
+
+         clone="`expanded_setting "${clone}"`"
 
          ensure_clones_directory
 

@@ -1736,6 +1736,9 @@ build_clones()
       for clone in ${clones}
       do
          IFS="$old"
+
+         clone="`expanded_setting "${clone}"`"
+
          name="`canonical_clone_name "${clone}"`"
          srcdir="`get_source_dir "${name}"`"
          if [ -d "${srcdir}" ]
@@ -1763,6 +1766,8 @@ build_clones()
          for clone in ${clones}
          do
             IFS="$old"
+
+            clone="`expanded_setting "${clone}"`"
 
             name="`canonical_name_from_clone "${clone}"`"
             srcdir="`get_source_dir "${name}"`"

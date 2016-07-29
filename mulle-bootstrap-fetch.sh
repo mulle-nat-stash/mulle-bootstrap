@@ -685,19 +685,15 @@ checkout_repository()
 
 clone_repository()
 {
-   local clone
-
-   clone="${1}"
-
    local name
    local url
    local branch
    local scm
 
-   name="`canonical_name_from_clone "${clone}"`"
-   url="`url_from_clone "${clone}"`"
-   branch="`branch_from_clone "${clone}"`"
-   scm="`scm_from_clone "${clone}"`"
+   name="$1"
+   url="$2"
+   branch="$3"
+   scm="$4"
 
    local tag
    local dstdir
@@ -770,6 +766,8 @@ clone_repositories()
          do
             IFS="${old}"
 
+            clone="`expanded_setting "${clone}"`"
+
             # avoid superflous updates
             match="`echo "${fetched}" | grep -x "${clone}"`"
             # could remove prefixes here https:// http://
@@ -779,7 +777,13 @@ clone_repositories()
                fetched="${fetched}
 ${clone}"
 
-               clone_repository "${clone}"
+               name="`canonical_name_from_clone "${clone}"`"
+               url="`url_from_clone "${clone}"`"
+               branch="`branch_from_clone "${clone}"`"
+               scm="`scm_from_clone "${clone}"`"
+
+               clone_repository "${name}" "${url}" "${branch}" "${scm}"
+
                if [ $? -eq 1 ]
                then
                   stop=0
@@ -795,6 +799,8 @@ ${clone}"
    for clone in ${fetched}
    do
       IFS="${old}"
+
+      clone="`expanded_setting "${clone}"`"
 
       name="`canonical_name_from_clone "${clone}"`"
       url="`url_from_clone "${clone}"`"
@@ -902,6 +908,8 @@ clone_embedded_repositories()
       for clone in ${clones}
       do
          IFS="${old}"
+
+         clone="`expanded_setting "${clone}"`"
 
          clone_embedded_repository "${dstprefix}" "${clone}"
       done
@@ -1136,6 +1144,8 @@ update_repositories()
          do
             IFS="${old}"
 
+            clone="`expanded_setting "${clone}"`"
+
             # avoid superflous updates
             match="`echo "${updated}" | grep -x "${clone}"`"
 
@@ -1158,7 +1168,7 @@ ${clone}"
                      rval=$?
                   else
                      scm="`scm_from_clone "${clone}"`"
-                     clone_repository  "${name}" "${url}" "${branch}" "${scm}"
+                     clone_repository "${name}" "${url}" "${branch}" "${scm}"
                      rval=1
                   fi
 
@@ -1208,6 +1218,9 @@ update_embedded_repositories()
       for clone in ${clones}
       do
          IFS="${old}"
+
+         clone="`expanded_setting "${clone}"`"
+
          name="`canonical_name_from_clone "${clone}"`"
          url="`url_from_clone "${clone}"`"
          branch="`branch_from_clone "${clone}"`"

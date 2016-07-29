@@ -62,6 +62,9 @@ embedded_repositories()
       for clone in ${clones}
       do
          IFS="${old}"
+
+         clone="`expanded_setting "${clone}"`"
+
          name="`canonical_name_from_clone "${clone}"`"
          dir="${name}"
          echo "${dir}"

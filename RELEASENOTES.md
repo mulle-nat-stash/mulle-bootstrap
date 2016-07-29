@@ -3,6 +3,9 @@
 
 * Fix tar install, which was broken
 * Fix some wordings
+* You can now put configuration setting like variables into the URL. Like so:
+   https://${host:-www.mulle-kybernetik.com}:foo.git. Define the host like
+   a regular fetch setting. `echo "x.y.com" > .bootstrap/host`
 
 
 1.0

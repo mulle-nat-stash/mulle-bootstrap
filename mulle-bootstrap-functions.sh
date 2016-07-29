@@ -695,16 +695,51 @@ find_xcodeproj()
 }
 
 
+
+#
+# expands ${LOGNAME} and ${LOGNAME:-foo}
+#
+expand_environment_variables()
+{
+    local string
+
+    string="$1"
+
+    local key
+    local value
+    local prefix
+    local suffix
+    local next
+
+    key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
+    if [ ! -z "${key}" ]
+    then
+       prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
+       suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
+       value="`eval echo \$\{${key}\}`"
+       next="${prefix}${value}${suffix}"
+       if [ "${next}" != "${string}" ]
+       then
+          expand_environment_variables "${prefix}${value}${suffix}"
+          return
+       fi
+    fi
+    echo "$1"
+}
+
+
 # deal with stuff like
 # foo
 # https://www./foo.git
 # host:foo
 #
+
 canonical_clone_name()
 {
    local  url
 
    url="$1"
+
 
    # cut off scheme part
 

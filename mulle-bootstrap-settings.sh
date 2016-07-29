@@ -574,6 +574,50 @@ ${result}"
 }
 
 
+#
+# expands ${setting} and ${setting:-foo}
+#
+expanded_setting()
+{
+   local string
+
+   string="$1"
+
+   local key
+   local value
+   local prefix
+   local suffix
+   local next
+   local default
+   local tmp
+
+   key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
+   if [ -z "${key}" ]
+   then
+      echo "$1"
+      return
+   fi
+
+   prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
+   suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
+
+   tmp="`echo "${key}" | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[:][-]\(.*\)$/\1/p'`"
+   if [ ! -z "${tmp}" ]
+   then
+      default="`echo "${key}" | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[:][-]\(.*\)$/\2/p'`"
+      key="${tmp}"
+   fi
+
+   value="`read_fetch_setting "${key}" "${default}"`"
+   next="${prefix}${value}${suffix}"
+   if [ "${next}" = "${string}" ]
+   then
+      fail "${string} expands to itself"
+   fi
+   expanded_setting "${next}"
+}
+
+
 ###
 #
 #
