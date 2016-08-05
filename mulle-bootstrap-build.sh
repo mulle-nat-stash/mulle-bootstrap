@@ -1891,8 +1891,13 @@ main()
 
    build_clones "$@"
 
-   log_info "Write-protecting ${C_RESET_BOLD}${DEPENDENCY_SUBDIR}${C_INFO} to avoid spurious header edits"
-   exekutor chmod -R a-w "${DEPENDENCY_SUBDIR}"
+   if [ -d "${DEPENDENCY_SUBDIR}" ]
+   then
+      log_info "Write-protecting ${C_RESET_BOLD}${DEPENDENCY_SUBDIR}${C_INFO} to avoid spurious header edits"
+      exekutor chmod -R a-w "${DEPENDENCY_SUBDIR}"
+   else
+      log_fluff "No dependencies have been generated"
+   fi
 }
 
 main "$@"

@@ -45,7 +45,9 @@
 usage()
 {
    cat <<EOF
-usage: fetch <install|nonrecursive|update>
+usage: fetch [-f] <install|nonrecursive|update>
+   -f           : override dirty harry check
+
    install      : clone or symlink non-exisiting repositories and other resources
    nonrecursive : like above, but ignore .bootstrap folders of repositories
    update       : execute `git pull` in fetched repositories

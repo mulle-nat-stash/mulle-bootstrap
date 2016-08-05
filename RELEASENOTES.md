@@ -6,7 +6,8 @@
 * You can now put configuration setting like variables into the URL. Like so:
    https://${host:-www.mulle-kybernetik.com}:foo.git. Define the host like
    a regular fetch setting. `echo "x.y.com" > .bootstrap/host`
-
+* Fix help screen for refresh and update
+* Don't complain if there are no dependencies generated
 
 1.0
 ===

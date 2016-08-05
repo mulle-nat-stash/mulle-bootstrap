@@ -42,49 +42,53 @@
 usage()
 {
    cat <<EOF
-usage: refresh <refresh|nonrecursive>
+usage: <refresh|nonrecursive>
    refresh      : update settings, remove unused repositories (default)
    nonrecursive : ignore .bootstrap folders of fetched repositories
 EOF
 }
 
 
-check_and_usage_and_help()
-{
-   case "$COMMAND" in
-      nonrecursive)
-        DONT_RECURSE="YES"
-         ;;
-      refresh)
-         ;;
-      *)
-         usage >&2
-         exit 1
-         ;;
-   esac
-}
+while :
+do
+   if [ "$1" = "-h" -o "$1" = "--help" ]
+   then
+      usage >&2
+      exit 1
+   fi
+
+   break
+done
 
 
-if [ "$1" = "-h" -o "$1" = "--help" ]
+if [ -z "${COMMAND}" ]
 then
-   COMMAND=help
-else
-   if [ -z "${COMMAND}" ]
-   then
-      COMMAND=${1:-"refresh"}
-      [ $# -eq 0 ] || shift
-   fi
+   COMMAND=${1:-"refresh"}
+   [ $# -eq 0 ] || shift
+fi
 
-   if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
-   then
-      COMMAND="refresh"
-   fi
+if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
+then
+   COMMAND="refresh"
 fi
 
 
-check_and_usage_and_help
+case "$COMMAND" in
+   refresh)
+      ;;
+   nonrecursive)
+     DONT_RECURSE="YES"
+      ;;
 
+   *)
+      usage >&2
+      exit 1
+      ;;
+esac
 
+#
+#
+#
 
 refresh_repositories_settings()
 {

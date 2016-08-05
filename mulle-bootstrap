@@ -291,7 +291,7 @@ main()
          ;;
 
       build)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
+         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          COMMAND="${command}" mulle-bootstrap-build.sh "$@" || exit 1
          ;;
 
@@ -315,7 +315,7 @@ main()
          ;;
 
       update)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh "$@" || exit 1
+         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          COMMAND="${command}" mulle-bootstrap-fetch.sh "$@" || exit 1
          ;;
 
@@ -324,12 +324,12 @@ main()
          ;;
 
       setup-xcode|xcode)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
+         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          mulle-bootstrap-xcode.sh "$@"|| exit 1
          ;;
 
       tag)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
+         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          mulle-bootstrap-tag.sh "$@" || exit 1
          ;;
 
