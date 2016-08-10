@@ -883,6 +883,24 @@ has_usr_local_include()
 }
 
 
+write_protect_directory()
+{
+   if [ -d "$1" ]
+   then
+      #
+      # ensure basic structure is there to squelch linker warnings
+      #
+      log_fluff "Create default lib/include/Frameworks in $1"
+      exekutor mkdir "$1/Frameworks" 2> /dev/null
+      exekutor mkdir "$1/lib" 2> /dev/null
+      exekutor mkdir "$1/include" 2> /dev/null
+
+      log_info "Write-protecting ${C_RESET_BOLD}$1${C_INFO} to avoid spurious header edits"
+      exekutor chmod -R a-w "$1"
+   fi
+}
+
+
 ensure_clones_directory()
 {
    if [ ! -d "${CLONESFETCH_SUBDIR}" ]
@@ -928,3 +946,17 @@ get_core_count()
     fi
     echo $count
 }
+
+
+append_dir_to_gitignore_if_needed()
+{
+   grep -s -x "$1/" .gitignore > /dev/null 2>&1
+   if [ $? -ne 0 ]
+   then
+      exekutor echo "$1/" >> .gitignore || fail "Couldn\'t append to .gitignore"
+      log_info "Added \"$1/\" to \".gitignore\""
+   fi
+}
+
+
+## 962: getting close to 1000 here

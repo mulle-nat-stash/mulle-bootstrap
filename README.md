@@ -1,4 +1,7 @@
-# mulle-bootstrap, cross platform dependency manager
+# mulle-bootstrap, cross platform dependency manager for Linux, OS X, FreeBSD
+
+Everything `mulle-bootstrap` installs is relative to your project root.
+Downloaded packages and binaries don't "pollute" your system.
 
 * fetches [git](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories
 (called here the "dependents"). In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
@@ -6,8 +9,11 @@
 [xcodebuild](//devcodehack.com/xcode-sucks-and-heres-why/) and
 [configure](//quetzalcoatal.blogspot.de/2011/06/why-autoconf-sucks.html)
 projects
-* compiles dependents using the output of previous dependents
-* written in portable shell script, runs on OS X, FreeBSD, Linux
+* compiles dependents using the output of previous dependents into a project
+local "dependencies" folder
+* installs [brew](//dzone.com/articles/why-osx-sucks-and-you-should) binaries and
+libraries locally into an "addictions" folder
+* written in portable shell script, runs on OS X, FreeBSD (without brew), Linux
 
 ## Tell me more
 

@@ -1,4 +1,3 @@
-* Use common dependencies dir
 * cmake use local mulle-configuration of subrepo. WRONG!
 * Use different build dir than just build.
 * Write "doctor" command to find common problems.

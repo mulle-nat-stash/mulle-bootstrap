@@ -38,6 +38,7 @@ BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONE
 ${DEPENDENCY_SUBDIR}/tmp"`"
 OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
 DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
+${ADDICTION_SUBDIR}
 .bootstrap.auto"`"
 INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${BUILD_CLEANABLE_SUBDIRS}
 ${CLONES_SUBDIR}
@@ -99,7 +100,7 @@ ${BUILD_CLEANABLE_SUBDIRS}
 ${OUTPUT_CLEANABLE_SUBDIRS}
 ---
 
-   dist    : remove all clones and dependencies. It cleans
+   dist    : remove all clones, dependencies, addictions. It cleans
 ---
 ${BUILD_CLEANABLE_SUBDIRS}
 ${OUTPUT_CLEANABLE_SUBDIRS}

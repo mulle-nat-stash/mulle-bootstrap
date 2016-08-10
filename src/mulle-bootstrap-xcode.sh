@@ -40,6 +40,7 @@ then
    fail "for now xcode only works on OS X"
 fi
 
+
 usage()
 {
    cat <<EOF
@@ -80,9 +81,9 @@ list_configurations()
    local project
 
    project="${1}"
-  #
-  # Figure out all configurations
-  #
+   #
+   # Figure out all configurations
+   #
    xcodebuild -list -project "${project}" 2> /dev/null | \
    grep -A100 'Build Configurations' | \
    grep -B100 'Schemes' | \
@@ -276,6 +277,7 @@ Release"
       fi
    fi
 
+   local addictions_dir
    local dependencies_dir
    local header_search_paths
    local library_search_paths
@@ -288,13 +290,19 @@ Release"
 
    absolute="`realpath "${project}"`"
    absolute="`dirname -- "${absolute}"`"
+
    absolute2="`pwd -P`/${DEPENDENCY_SUBDIR}"
    relative_subdir="`relative_path_between "${absolute2}" "${absolute}" `"
+   dependencies_dir='$(PROJECT_DIR)'/"${DEPENDENCY_SUBDIR}"
+#   dependencies_dir='$(PROJECT_DIR)'/"${relative_subdir}'"
 
-   dependencies_dir='$(PROJECT_DIR)/'"${relative_subdir}"
+   absolute2="`pwd -P`/${ADDICTION_SUBDIR}"
+   relative_subdir="`relative_path_between "${absolute2}" "${absolute}" `"
+   addictions_dir='$(PROJECT_DIR)'/"${ADDICTION_SUBDIR}"
+#   addictions_dir='$(PROJECT_DIR)/'"${relative_subdir}"
 
    header_search_paths="\$(DEPENDENCIES_DIR)/${HEADER_DIR_NAME}"
-   header_search_paths="${header_search_paths} /usr/local/include"
+   header_search_paths="${header_search_paths} \$(ADDICTIONS_DIR)/include"
    header_search_paths="${header_search_paths} \$(inherited)"
 
    local default
@@ -305,7 +313,7 @@ Release"
    library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)/${LIBRARY_DIR_NAME}"
    library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/\$(EFFECTIVE_PLATFORM_NAME)/${LIBRARY_DIR_NAME}"
    library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}"
-   library_search_paths="${library_search_paths} /usr/local/lib"
+   library_search_paths="${library_search_paths} \$(ADDICTIONS_DIR)/lib"
    library_search_paths="${library_search_paths} \$(inherited)"
 
 
@@ -313,6 +321,7 @@ Release"
    framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)/${FRAMEWORK_DIR_NAME}"
    framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/\$(EFFECTIVE_PLATFORM_NAME)/${FRAMEWORK_DIR_NAME}"
    framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}"
+   framework_search_paths="${framework_search_paths} \$(ADDICTIONS_DIR)/${FRAMEWORK_DIR_NAME}"
    framework_search_paths="${framework_search_paths} \$(inherited)"
 
    local query
@@ -330,6 +339,7 @@ Release"
          #     012345678901234567890123456789012345678901234567890123456789
          printf "${C_RESET_BOLD}Common.xcconfig:${C_RESET}\n"
          printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
+         echo "ADDICTIONS_DIR=${addictions_dir}"
          echo "DEPENDENCIES_DIR=${dependencies_dir}"
          echo "HEADER_SEARCH_PATHS=${header_search_paths}"
          echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
@@ -368,6 +378,7 @@ Release"
 
    patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${default}" "${flag}"
 
+   exekutor mulle-xcode-settings "${flag}" "ADDICTIONS_DIR" "${addictions_dir}" "${project}"  || exit 1
    exekutor mulle-xcode-settings "${flag}" "DEPENDENCIES_DIR" "${dependencies_dir}" "${project}"  || exit 1
    exekutor mulle-xcode-settings "${flag}" "HEADER_SEARCH_PATHS" "${header_search_paths}" "${project}"  || exit 1
    exekutor mulle-xcode-settings "${flag}" "LIBRARY_SEARCH_PATHS" "${library_search_paths}" "${project}"  || exit 1

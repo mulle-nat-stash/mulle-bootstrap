@@ -1,3 +1,16 @@
+2.0
+===
+
+* Add pre-build.sh script phase for libcurl
+* Brew formulas are now installed locally into "addictions". A folder which
+lies besides "dependencies". This is a pretty huge change. By removing pips and
+gems, mulle-bootstrap can now claim to do only project relative installs.
+* mulle-bootstrap xcode changed to emit a non-xcode project relative
+ `$(DEPENDENCIES_DIR)` setting. Admittedly an experimental hack. But the old
+ more proper way, didn't work with cmake generated xcode projects.
+* reorganized repository structure a bit
+
+
 1.1
 ===
 

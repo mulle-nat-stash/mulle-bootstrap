@@ -55,7 +55,7 @@ do
 done
 
 
-for i in mulle*.sh
+for i in src/mulle*.sh
 do
    mkdir -p "${libexec}" 2> /dev/null
    install -v -m "${mode}" "$i" "${libexec}" || exit 1

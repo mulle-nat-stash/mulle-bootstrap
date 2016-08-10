@@ -636,25 +636,27 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}"  \
 "-DCMAKE_C_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I/usr/local/include \
+-I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME} \
 ${frameworklines} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags}" \
 "-DCMAKE_CXX_FLAGS=\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I/usr/local/include \
+-I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME} \
 ${frameworklines} \
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags}" \
 "-DCMAKE_EXE_LINKER_FLAGS=\
 ${librarylines} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L/usr/local/lib \
+-L${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
 "-DCMAKE_SHARED_LINKER_FLAGS=\
 ${librarylines} \
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L/usr/local/lib \
+-L${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
 "-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH};\${CMAKE_MODULE_PATH}" \
 ${CMAKE_FLAGS} \
@@ -800,24 +802,27 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
        DEPENDENCIES_DIR="'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'" \
        CFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I/usr/local/include \
+-I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME} \
 ${frameworklines}
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags} \
 -isysroot ${sdkpath}" \
       CPPFLAGS="\
 -I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I/usr/local/include \
+-I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME} \
 ${frameworklines}
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags} \
 -isysroot ${sdkpath}" \
       LDFLAGS="\
 ${frameworklines}
 -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${librarylines}
 -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L/usr/local/lib \
+-L${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 -isysroot ${sdkpath}" \
        logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
@@ -1201,7 +1206,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       inherited="`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" \
-"/usr/local/include"`
+"${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`
       if [ -z "${inherited}" ]
       then
          dependencies_header_search_path="${path}"
@@ -1214,7 +1219,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}" \
-"/usr/local/lib"`
+"${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"`
       if [ ! -z "$sdk" ]
       then
          escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
@@ -1231,7 +1236,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`
+"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}" \
+"${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`
       if [ ! -z "$sdk" ]
       then
          escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
@@ -1260,6 +1266,7 @@ DSTROOT='${owd}/${BUILD_DEPENDENCY_SUBDIR}' \
 SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
 DEPENDENCIES_DIR='${owd}/${REFERENCE_DEPENDENCY_SUBDIR}' \
+ADDICTIONS_DIR='${owd}/${REFERENCE_ADDICTION_SUBDIR}' \
 ONLY_ACTIVE_ARCH=${ONLY_ACTIVE_ARCH:-NO} \
 ${skip_install} \
 ${other_cflags} \
@@ -1523,13 +1530,22 @@ configure"`"
             rmdir_safer "${builddir}"
          fi
 
+         #
+         # execute pre-build script (f.e. for libcurl)
+         #
+         local script
+
+         script="`find_build_setting_file "${name}" "bin/pre-build.sh"`"
+         if [ -x "${script}" ]
+         then
+            build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" || exit 1
+         fi
+
          hasbuilt=no
          for preference in ${preferences}
          do
             if [ "${preference}" = "script" ]
             then
-               local script
-
                script="`find_build_setting_file "${name}" "bin/build.sh"`"
                if [ -x "${script}" ]
                then
@@ -1609,10 +1625,12 @@ build_wrapper()
    name="$1"
    srcdir="$2"
 
+   REFERENCE_ADDICTION_SUBDIR="${ADDICTION_SUBDIR}"
    REFERENCE_DEPENDENCY_SUBDIR="${DEPENDENCY_SUBDIR}"
    BUILD_DEPENDENCY_SUBDIR="${DEPENDENCY_SUBDIR}/tmp"
 
    DEPENDENCY_SUBDIR="WRONG_DONT_USE_DEPENDENCY_SUBDIR_DURING_BUILD"
+   ADDICTION_SUBDIR="WRONG_DONT_USE_ADDICTION_SUBDIR_DURING_BUILD"
 
    log_fluff "Setting up BUILD_DEPENDENCY_SUBDIR as \"${BUILD_DEPENDENCY_SUBDIR}\""
 
@@ -1624,6 +1642,7 @@ build_wrapper()
 
    export BUILD_DEPENDENCY_SUBDIR
    export REFERENCE_DEPENDENCY_SUBDIR
+   export REFERENCE_ADDICTION_SUBDIR
 
    #
    # move dependencies we have so far away into safety,
@@ -1643,6 +1662,7 @@ build_wrapper()
    fi
 
    DEPENDENCY_SUBDIR="${REFERENCE_DEPENDENCY_SUBDIR}"
+   ADDICTION_SUBDIR="${REFERENCE_ADDICTION_SUBDIR}"
 
    # for mulle-bootstrap developers
    REFERENCE_DEPENDENCY_SUBDIR="WRONG_DONT_USE_REFERENCE_DEPENDENCY_SUBDIR_AFTER_BUILD"
@@ -1893,8 +1913,7 @@ main()
 
    if [ -d "${DEPENDENCY_SUBDIR}" ]
    then
-      log_info "Write-protecting ${C_RESET_BOLD}${DEPENDENCY_SUBDIR}${C_INFO} to avoid spurious header edits"
-      exekutor chmod -R a-w "${DEPENDENCY_SUBDIR}"
+      write_protect_directory "${DEPENDENCY_SUBDIR}"
    else
       log_fluff "No dependencies have been generated"
    fi

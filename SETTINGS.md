@@ -232,6 +232,7 @@ Build Script Settings
 2. `.bootstrap/${reponame}/settings/bin`
 3. `.bootstrap.auto/${reponame}/settings/bin`
 
+`pre-build.sh`
 `pre-install.sh
 `post-install.sh`
 `pre-upgrade.sh`

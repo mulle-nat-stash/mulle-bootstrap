@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-EXEC_VERSION=1.2
+EXEC_VERSION=2.0  # paranoia
 
 if [ "${EXEC_VERSION}" != "${VERSION}" ]
 then
@@ -111,6 +111,7 @@ RELATIVE_ROOT=""
 
 CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "${RELATIVE_ROOT}build/.repos"`
 DEPENDENCY_SUBDIR=`read_sane_config_path_setting "output_foldername" "${RELATIVE_ROOT}dependencies"`
+ADDICTION_SUBDIR=`read_sane_config_path_setting "brew_foldername" "${RELATIVE_ROOT}addictions"`
 BUILDLOG_SUBDIR=`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`
 
 
@@ -128,6 +129,7 @@ fi
 [ -z "${CLONESBUILD_SUBDIR}" ]   && internal_fail "variable CLONESBUILD_SUBDIR is empty"
 [ -z "${BUILDLOG_SUBDIR}" ]      && internal_fail "variable BUILDLOG_SUBDIR is empty"
 [ -z "${DEPENDENCY_SUBDIR}" ]    && internal_fail "variable DEPENDENCY_SUBDIR is empty"
+[ -z "${ADDICTION_SUBDIR}" ]     && internal_fail "variable ADDICTION_SUBDIR is empty"
 
 #
 # Global Settings
@@ -145,6 +147,7 @@ export CLONESFETCH_SUBDIR
 export CLONESBUILD_SUBDIR
 export BUILDLOG_SUBDIR
 export DEPENDENCY_SUBDIR
+export ADDICTION_SUBDIR
 export HEADER_DIR_NAME
 export LIBRARY_DIR_NAME
 export FRAMEWORK_DIR_NAME

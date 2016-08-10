@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=1.2
+VERSION=2.0
 export VERSION
 
 #
@@ -38,7 +38,7 @@ export VERSION
 #
 BOOTSTRAP_SUBDIR=.bootstrap
 
-PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
+PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/addictions/bin:$PATH"
 export PATH
 
 #
@@ -223,10 +223,10 @@ bootstrap()
    #
    # this is run when checking mulle-project itself out
    #
-   if [ -f mulle-bootstrap-local-environment.sh -a -x install.sh ]
+   if [ -f "src/mulle-bootstrap-local-environment.sh" -a -x install.sh ]
    then
       . install.sh "$@"
-      export MULLE_BOOTSTRAP=mulle-bootstrap
+      exit 0
    else
       mulle-bootstrap-warn-scripts.sh "${BOOTSTRAP_SUBDIR}" || exit 1
    fi

@@ -54,6 +54,7 @@ then
    exit 1
 fi
 
+
 main()
 {
    project=""
@@ -85,9 +86,20 @@ main()
 #EOF
 
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/repositories"
-# Add git URLs to this file.
 #
-# Possible types of repository specifications:
+# Add repository URLs to this file.
+#
+# mulle-bootstrap [fetch] will download these into "${CLONES_SUBDIR}"
+# mulle-bootstrap [build] will then build them into "${DEPENDENCY_SUBDIR}"
+#
+# Each line consists of four fields, only the URL is necessary.
+#
+# URL;NAME;TAG;SCM
+# ================
+# ex. foo.com/bla.git;mybla;master;git
+# ex. foo.com/bla.svn;;;svn
+#
+# Possible URLS for repositories:
 #
 # https://www.mulle-kybernetik.com/repositories/MulleScion
 # git@github.com:mulle-nat/MulleScion.git
@@ -95,27 +107,47 @@ main()
 # /Volumes/Source/srcM/MulleScion
 #
 EOF
+
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/embedded_repositories"
+#
+# Add repository URLs to this file.
+#
+# mulle-bootstrap [fetch] will download these into your project root
+# mulle-bootstrap [build] will NOT build them
+#
+# Each line consists of four fields, only the URL is necessary.
+#
+# URL;NAME;TAG;SCM
+# ================
+# ex. foo.com/bla.git;mybla;master;git
+# ex. foo.com/bla.svn;;;svn
+#
+# Possible URLS for repositories:
+#
+# https://www.mulle-kybernetik.com/repositories/MulleScion
+# git@github.com:mulle-nat/MulleScion.git
+# ../MulleScion
+# /Volumes/Source/srcM/MulleScion
+#
+EOF
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"
+#
+# Add homebrew packages to this file (https://brew.sh/)
+#
+# mulle-bootstrap [fetch] will install those into "${ADDICTION_SUBDIR}"
+#
+# e.g.
+# zlib
+#
+EOF
+
    fi
 
    if [ "${CREATE_EXAMPLE_FILES}" = "YES" ]
    then
-      log_fluff "Create example repository files"
-
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"
-# add projects that should be installed by brew
-# e.g.
-# zlib
-EOF
-
       log_fluff "Create example repository settings"
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin"
-
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/tag"
-# specify a tag or branch for a project named MulleScion
-# leave commented out or delete file for default branch (usually master)
-# v1848.5.p3
-EOF
 
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/Release.map"
 # map configuration Release in project MulleScion to DebugRelease
@@ -169,6 +201,7 @@ Now add your repositories to \"${BOOTSTRAP_SUBDIR}/repositories${C_INFO}"
   local open
 
   open="`read_config_setting "open_repositories_file" "ASK"`"
+
   if [ "${open}" = "ASK" ]
   then
     user_say_yes "Edit the ${C_MAGENTA}${C_BOLD}repositories${C_RESET_BOLD} file now ?"

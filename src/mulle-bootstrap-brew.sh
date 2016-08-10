@@ -29,49 +29,64 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-fetch_brew_if_needed()
+
+#
+# Install brew into "addictions" via git clone
+# this has the following advantages:
+#    When fetching libraries or binaries they will
+#    automatically appear in addictions/bin and addictions/lib / addictionsinclude
+#    It's all local (!) to the project. Due to it being a git clone
+#    and dependencies being wiped occasionally, its better to have a second
+#    directory
+#
+
+BREW="${ADDICTION_SUBDIR}/bin/brew"
+
+
+touch_last_update()
 {
    local last_update
-   local binary
 
-   last_update="${HOME}/.mulle-bootstrap/brew-update"
+   last_update="${ADDICTION_SUBDIR}/.last_update"
+   log_fluff "Touching ${last_update}"
+   exekutor touch "${last_update}"
+}
 
-   binary=`which brew`
-   if [ "${binary}" = "" ]
+
+fetch_brew_if_needed()
+{
+   if [ -x "${BREW}" ]
    then
-      user_say_yes "Brew isn't installed on this system.
-Install brew now (Linux or OS X should work) ? "
-      if [ $? -ne 0 ]
-      then
-         return 2
-      fi
-
-      if [ "`uname`" = 'Darwin' ]
-      then
-         log_info "Installing OS X brew"
-         exekutor ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || exit 1
-      else
-         log_info "Installing Linux brew"
-         exekutor ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/linuxbrew/go/install)" || exit 1
-      fi
-
-      log_fluff "Touching ${last_update}"
-      exekutor mkdir_if_missing "`dirname -- "${last_update}"`"
-      exekutor touch "${last_update}"
-      return 1
+      return
    fi
-   return 0
+
+   case "`uname`" in
+      Darwin)
+         log_info "Installing OS X brew"
+         exekutor git clone https://github.com/Homebrew/brew.git "${ADDICTION_SUBDIR}"
+         ;;
+
+      Linux)
+         log_info "Installing Linux brew"
+         exekutor git clone https://github.com/Linuxbrew/brew.git "${ADDICTION_SUBDIR}"
+         ;;
+
+      *)
+         log_fail "Missing brew support for `uname`"
+         ;;
+   esac
+
+   touch_last_update
+   return 1
 }
 
 
 brew_update_if_needed()
 {
    local stale
-   local last_update
    local what
 
    what="$1"
-   last_update="${HOME}/.mulle-bootstrap/brew-update"
 
    local flag
 
@@ -97,9 +112,8 @@ brew_update_if_needed()
    if [ $? -eq 0 ]
    then
       log_fluff "Updating brew, this can take some time..."
-   	exekutor brew update
+   	exekutor "${BREW}" update
 
-	   mkdir_if_missing "`dirname -- "${last_update}"`"
-   	exekutor touch "${last_update}"
+      touch_last_update
    fi
 }

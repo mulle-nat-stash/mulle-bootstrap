@@ -132,7 +132,7 @@ install_taps()
       for tap in ${taps}
       do
          IFS="${old}"
-         exekutor brew tap "${tap}" > /dev/null || exit 1
+         exekutor "${BREW}" tap "${tap}" > /dev/null || exit 1
       done
       IFS="${old}"
    else
@@ -141,48 +141,105 @@ install_taps()
 }
 
 
+
+write_protect_directory()
+{
+   if [ -d "${1}" ]
+   then
+      #
+      # ensure basic structure is there to squelch linker warnings
+      #
+      exekutor mkdir "${1}/Frameworks" 2> /dev/null
+      exekutor mkdir "${1}/lib" 2> /dev/null
+      exekutor mkdir "${1}/include" 2> /dev/null
+
+      log_info "Write-protecting ${C_RESET_BOLD}${1}${C_INFO} to avoid spurious header edits"
+      exekutor chmod -R a-w "${1}"
+   fi
+}
+
+#
+# brews are now installed using a local brew
+# if we are on linx
+#
 install_brews()
 {
    local brew
    local brews
+   local brewcmd
 
    install_taps
 
    log_fluff "Looking for brews"
 
+   case "${COMMAND}" in
+      install)
+         brewcmd="install"
+         ;;
+      update)
+         brewcmd="upgrade"
+         ;;
+   esac
+
    brews=`read_fetch_setting "brews" | sort | sort -u`
-   if [ "${brews}" != "" ]
+   if [ -z "${brews}" ]
    then
-      local old
-      local flag
-
-      old="${IFS:-" "}"
-      IFS="
-"
-      for brew in ${brews}
-      do
-         IFS="${old}"
-         if [ "`which "${brew}"`" = "" ]
-         then
-            brew_update_if_needed "${brew}"
-            flag=$?
-
-            if [ $flag -eq 2 ]
-            then
-               log_info "No brewing being done."
-               return 1
-            fi
-
-            log_fluff "brew ${COMMAND} \"${brew}\""
-            exekutor brew "${COMMAND}" "${brew}" || exit 1
-         else
-            log_info "\"${brew}\" is already installed."
-         fi
-      done
-      IFS="${old}"
-   else
       log_fluff "No brews found"
+      return
    fi
+
+   if [ -d "${ADDICTION_SUBDIR}" ]
+   then
+      log_fluff "Unprotecting \"${ADDICTION_SUBDIR}\" for ${command}."
+      exekutor chmod -R u+w "${ADDICTION_SUBDIR}"
+   fi
+
+   local old
+   local flag
+
+   old="${IFS:-" "}"
+   IFS="
+"
+   for formula in ${brews}
+   do
+      IFS="${old}"
+
+      if [ ! -x "${BREW}" ]
+      then
+         brew_update_if_needed "${formula}"
+         flag=$?
+
+         if [ $flag -eq 2 ]
+         then
+            log_info "No brewing being done."
+            write_protect_directory "${ADDICTION_SUBDIR}"
+            return 1
+         fi
+      fi
+
+      local versions
+
+      versions=""
+      if [ "$brewcmd" = "install" ]
+      then
+         versions="`${BREW} ls --versions "${formula}" 2> /dev/null`"
+      fi
+
+      if [ -z "${versions}" ]
+      then
+         log_fluff "brew ${brewcmd} \"${formula}\""
+         exekutor "${BREW}" "${brewcmd}" "${formula}" || exit 1
+
+         log_info "Force linking it, in case it was keg-only"
+         exekutor "${BREW}" link --force "${formula}" || exit 1
+      else
+         log_info "\"${formula}\" is already installed."
+      fi
+   done
+
+   write_protect_directory "${ADDICTION_SUBDIR}"
+
+   IFS="${old}"
 }
 
 
@@ -1264,17 +1321,6 @@ update_embedded_repositories()
 }
 
 
-append_dir_to_gitignore_if_needed()
-{
-   grep -s -x "$1/" .gitignore > /dev/null 2>&1
-   if [ $? -ne 0 ]
-   then
-      exekutor echo "$1/" >> .gitignore || fail "Couldn\'t append to .gitignore"
-      log_info "Added \"$1/\" to \".gitignore\""
-   fi
-}
-
-
 main()
 {
    log_verbose "::: fetch :::"
@@ -1306,13 +1352,13 @@ main()
    #
    if [ "${COMMAND}" = "install" ]
    then
-      case "`uname`" in
-         Darwin|Linux)
-            install_brews
-            ;;
-      esac
-      install_gems
-      install_pips
+       install_brews
+
+#
+# remove these, as they aren't installing locally
+#
+#      install_gems
+#      install_pips
 
       clone_repositories
       clone_embedded_repositories
@@ -1339,6 +1385,7 @@ main()
          append_dir_to_gitignore_if_needed "${BOOTSTRAP_SUBDIR}.auto"
          append_dir_to_gitignore_if_needed "${BOOTSTRAP_SUBDIR}.local"
          append_dir_to_gitignore_if_needed "${DEPENDENCY_SUBDIR}"
+         append_dir_to_gitignore_if_needed "${ADDICTION_SUBDIR}"
          append_dir_to_gitignore_if_needed "${CLONES_SUBDIR}"
       fi
    fi
