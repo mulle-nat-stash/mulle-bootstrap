@@ -41,8 +41,9 @@ N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
 check_and_usage_and_help()
 {
-   cat <<EOF
-usage: install [libraryprefix] [frameworkprefix]
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap install [libraryprefix] [frameworkprefix]
 
    You may need to run this as sudo.
    The default libraryprefix is ${DEFAULT_PREFIX}

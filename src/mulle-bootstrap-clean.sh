@@ -86,8 +86,9 @@ fi
 
 usage()
 {
-   cat <<EOF
-clean [build|dist|install|output]
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap clean [build|dist|install|output]
 
    build   : useful to remove intermediate build files. it cleans
 ---

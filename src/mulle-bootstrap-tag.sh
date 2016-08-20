@@ -41,8 +41,9 @@
 
 usage()
 {
-   cat <<EOF
-usage: tag [-f] <tag>
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap tag [-f] <tag>
 
    -d           : delete tag
    -f           : force tag

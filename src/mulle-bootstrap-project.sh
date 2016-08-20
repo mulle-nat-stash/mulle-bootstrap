@@ -43,8 +43,9 @@ name=`basename -- "${PWD}"`
 
 usage()
 {
-   cat <<EOF
-usage: project <clone|build|install> <options>
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap project <clone|build|install> <options>
 
    clone   : clone a remote git repoistory and try to build something
    build   : execute ./build.sh, if missing do a mulle-bootstrap build

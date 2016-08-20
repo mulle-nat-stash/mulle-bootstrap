@@ -608,8 +608,19 @@ user_say_yes()
   do
      printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
      read x
-     x=`echo "${x}" | tr '[:lower:]' '[:upper:]'`
+     x=`echo "${x}" | tr '[a-z]' '[A-Z]'`
   done
+
+  if [ "${x}" = "ALL" ]
+  then
+     MULLE_BOOTSTRAP_ANSWER="YES"
+     x="YES"
+  fi
+  if [ "${x}" = "NONE" ]
+  then
+     MULLE_BOOTSTRAP_ANSWER="NO"
+     x="NO"
+  fi
 
   [ "$x" = "Y" -o "$x" = "YES" ]
   return $?
@@ -916,17 +927,22 @@ ensure_clones_directory()
 
 ensure_consistency()
 {
+   local owd
+
+   owd="`pwd -P`"
+
    if [ -f "${CLONESFETCH_SUBDIR}/.fetch_update_started" ]
    then
       log_error "A previous fetch or update was incomplete.
-Suggested resolution (in $PWD):
+Suggested resolution (in $owd):
     ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
     ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
 
 Or do you feel lucky ?
-   ${C_RESET_BOLD}rm ${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
+   ${C_RESET_BOLD}rm $owd/${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
 and try again. But you've gotta ask yourself one question: Do I feel lucky ?
-Well, do ya, punk? "
+Well, do ya, punk?
+(Same difference: if you are in \"${owd}\", ${C_RESET_BOLD}mulle-bootstrap fetch -f{C_ERROR})"
       exit 1
    fi
 }
@@ -958,5 +974,19 @@ append_dir_to_gitignore_if_needed()
    fi
 }
 
+
+which_binary()
+{
+   local toolname
+
+   toolname="$1"
+   case "`uname`" in
+      MINGW*)
+         toolname="${toolname}.exe"
+         ;;
+   esac
+
+   which "${toolname}" 2> /dev/null
+}
 
 ## 962: getting close to 1000 here

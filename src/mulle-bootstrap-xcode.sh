@@ -43,8 +43,9 @@ fi
 
 usage()
 {
-   cat <<EOF
-xcode <add|remove> [xcodeproj]
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap xcode <add|remove> [xcodeproj]
 
    add      : add settings to Xcode project (default)
    remove   : remove settings from Xcode project

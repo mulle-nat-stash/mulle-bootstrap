@@ -41,8 +41,10 @@
 
 usage()
 {
-   cat <<EOF
-usage: <refresh|nonrecursive>
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap <refresh|nonrecursive>
+
    refresh      : update settings, remove unused repositories (default)
    nonrecursive : ignore .bootstrap folders of fetched repositories
 EOF

@@ -59,8 +59,9 @@ check_and_usage_and_help()
       defkk=""
    fi
 
-   cat <<EOF
-usage: build [-ck] [repos]*
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap build [-ck] [repos]*
 
    -k         :  don't clean before building $defk
    -K         :  always clean before building $defkk
@@ -449,11 +450,14 @@ create_dummy_dirs_against_warnings()
    # to avoid warnings, make sure directories are all there
    mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
 
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_ADDICTION_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_ADDICTION_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
 
    mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
    mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
+
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
 }
 
 
@@ -500,6 +504,61 @@ build_log_name()
 }
 
 
+find_binary()
+{
+   local toolname
+   toolname="$1"
+
+   local path
+   path=`which_binary "${toolname}"`
+   if [ -z "${path}" ]
+   then
+      log_warning "${toolname} is an unknown build tool"
+      return 1
+   fi
+   echo "$path"
+}
+
+
+find_cmake()
+{
+   local toolname
+
+   toolname=`read_config_setting "cmake" "cmake"`
+   find_binary "${toolname}"
+}
+
+
+find_xcodebuild()
+{
+   local toolname
+
+   toolname=`read_config_setting "xcodebuild" "xcodebuild"`
+   find_binary "${toolname}"
+}
+
+
+
+find_make()
+{
+   local default_toolname
+   local toolname
+
+   case "`uname`" in
+      MINGW*)
+         default_toolname="nmake"
+         ;;
+
+      *)
+         default_toolname="make"
+         ;;
+   esac
+
+   toolname=`read_config_setting "make" "${default_toolname}"`
+   find_binary "${toolname}"
+}
+
+
 #
 # remove old builddir, create a new one
 # depending on configuration cmake with flags
@@ -520,6 +579,15 @@ build_cmake()
    sdk="$5"
 
    enforce_build_sanity "${builddir}"
+
+   if [ -z "${CMAKE}" ]
+   then
+      fail "No cmake available"
+   fi
+   if [ -z "${MAKE}" ]
+   then
+      fail "No make available"
+   fi
 
    log_info "Let ${C_RESET_BOLD}cmake${C_INFO} do a \
 ${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
@@ -553,6 +621,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local other_cflags
    local other_cppflags
    local other_ldflags
+
 
    other_cflags="`gcc_cflags_value "${name}"`"
    other_cppflags="`gcc_cppflags_value "${name}"`"
@@ -630,7 +699,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
 
-      logging_exekutor cmake "-DCMAKE_BUILD_TYPE=${mapped}" \
+      logging_exekutor "${CMAKE}" -G "${CMAKE_GENERATOR}" "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
 "-DDEPENDENCIES_DIR=${owd}/${REFERENCE_DEPENDENCY_SUBDIR}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}"  \
@@ -668,7 +737,7 @@ ${localcmakeflags} \
          local_make_flags="${local_make_flags} VERBOSE=1"
       fi
 
-      logging_exekutor make ${local_make_flags} install > "${logfile2}" || build_fail "${logfile2}" "make"
+      logging_exekutor "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install > "${logfile2}" || build_fail "${logfile2}" "make"
 
       set +f
 
@@ -700,6 +769,11 @@ build_configure()
    builddir="$3"
    name="$4"
    sdk="$5"
+
+   if [ -z "${MAKE}" ]
+   then
+      fail "No make available"
+   fi
 
    enforce_build_sanity "${builddir}"
 
@@ -829,8 +903,8 @@ ${other_ldflags} \
           --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
 
-      logging_exekutor make install > "${logfile2}" \
-      || build_fail "${logfile2}" "make"
+      logging_exekutor "${MAKE}" ${MAKE_FLAGS} install > "${logfile2}" \
+      || build_fail "${logfile2}" "${MAKE}"
 
       set +f
 
@@ -978,6 +1052,8 @@ build_xcodebuild()
 
    enforce_build_sanity "${builddir}"
 
+   toolname=`read_config_setting "xcodebuild" "xcodebuild"`
+
    local info
 
    info=""
@@ -991,7 +1067,7 @@ build_xcodebuild()
       info=" Scheme ${C_MAGENTA}${C_BOLD}${schemename}${C_INFO}"
    fi
 
-   log_info "Let ${C_RESET_BOLD}xcodebuild${C_INFO} do a \
+   log_info "Let ${C_RESET_BOLD}${toolname}${C_INFO} do a \
 ${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
 ${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
 ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
@@ -1044,16 +1120,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       skip_install="SKIP_INSTALL=NO"
    fi
 
-   local xcodebuild
-   local binary
-
-   xcodebuild=`read_config_setting "xcodebuild" "xcodebuild"`
-   binary=`which "${xcodebuild}"`
-   if [ "${binary}"  = "" ]
-   then
-      echo "${xcodebuild} is an unknown build tool" >& 2
-      exit 1
-   fi
+   local toolname
 
 
    #
@@ -1061,7 +1128,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    # xcodebuild can just use a target
    # xctool is by and large useless fluff IMO
    #
-   if [ "$xcodebuild" = "xctool"  -a "${schemename}" = ""  ]
+   if [ "${toolname}" = "xctool"  -a "${schemename}" = ""  ]
    then
       if [ "$targetname" != "" ]
       then
@@ -1118,7 +1185,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
-   logfile="`build_log_name "xcodebuild" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
+   logfile="`build_log_name "${toolname}" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
    log_fluff "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
    set -f
@@ -1260,7 +1327,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       fi
 
       # if it doesn't install, probably SKIP_INSTALL is set
-      cmdline="\"${xcodebuild}\" \"${command}\" ${arguments} \
+      cmdline="\"${XCODEBUILD}\" \"${command}\" ${arguments} \
 ARCHS='${ARCHS:-\${ARCHS_STANDARD_32_64_BIT\}}' \
 DSTROOT='${owd}/${BUILD_DEPENDENCY_SUBDIR}' \
 SYMROOT='${owd}/${builddir}/' \
@@ -1272,12 +1339,13 @@ ${skip_install} \
 ${other_cflags} \
 ${other_cppflags} \
 ${other_ldflags} \
+${XCODEBUILD_FLAGS} \
 HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
       logging_eval_exekutor "${cmdline}" > "${logfile}" \
-      || build_fail "${logfile}" "xcodebuild"
+      || build_fail "${logfile}" "${toolname}"
 
       set +f
 
@@ -1465,26 +1533,25 @@ build()
    # repo may override how it wants to be build
    #
    preferences="`read_build_setting "${name}" "build_preferences"`"
+
    if [ -z "${preferences}" ]
    then
-      if [ "`uname`" = 'Darwin' ]
-      then
-         preferences="`read_config_setting "build_preferences" "script
+      case "`uname`" in
+         Darwin)
+            preferences="`read_config_setting "build_preferences" "script
 cmake
 configure
 xcodebuild"`"
-      else
-         preferences="`read_config_setting "build_preferences" "script
+         ;;
+
+
+         *)
+            preferences="`read_config_setting "build_preferences" "script
 cmake
 configure"`"
-      fi
+         ;;
+      esac
    fi
-
-   local xcodebuild
-   local cmake
-
-   xcodebuild=`which "xcodebuild"`
-   cmake=`which "cmake"`
 
    local sdk
    local sdks
@@ -1492,6 +1559,26 @@ configure"`"
    # need uniform SDK for our builds
    sdks=`read_build_root_setting "sdks" "Default"`
    [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
+
+   MAKE="`find_make`"
+   CMAKE="`find_cmake`"
+
+   case "`uname`" in
+      MINGW*)
+         CMAKE_FLAGS="${CMAKE_FLAGS} -G \\\"NMake Makefiles\\\""
+         CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "NMake Makefiles"`"
+         ;;
+
+      Darwin)
+         XCODEBUILD="`find_xcodebuild`"
+         CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "Unix Makefiles"`"
+         ;;
+
+      *)
+         CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "Unix Makefiles"`"
+         ;;
+   esac
+
 
    local builddir
    local hasbuilt
@@ -1557,7 +1644,7 @@ configure"`"
                fi
             fi
 
-            if [ "${preference}" = "xcodebuild" -a -x "${xcodebuild}" ]
+            if [ "${preference}" = "xcodebuild" -a -x "${XCODEBUILD}" ]
             then
                project=`(cd "${srcdir}" ; find_xcodeproj "${name}")`
 
@@ -1569,18 +1656,23 @@ configure"`"
                fi
             fi
 
-            if [ "${preference}" = "configure"  ]
+            if [ "${preference}" = "configure" ]
             then
-               if [ ! -f "${srcdir}/configure"  ]
+               if [ ! -f "${srcdir}/configure" ]
                then
                   # try for autogen if installed (not coded yet)
                   :
                fi
                if [ -x "${srcdir}/configure" ]
                then
-                  build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
-                  hasbuilt=yes
-                  break
+                  if [ ! -x "${MAKE}" ]
+                  then
+                     log_warning "Found a configure, but make is not installed"
+                  else
+                     build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
+                     hasbuilt=yes
+                     break
+                  fi
                fi
             fi
 
@@ -1588,7 +1680,7 @@ configure"`"
             then
                if [ -f "${srcdir}/CMakeLists.txt" ]
                then
-                  if [ ! -x "${cmake}" ]
+                  if [ ! -x "${CMAKE}" ]
                   then
                      log_warning "Found a CMakeLists.txt, but cmake is not installed"
                   else

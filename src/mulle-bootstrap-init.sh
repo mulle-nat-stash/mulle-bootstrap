@@ -37,7 +37,8 @@
 #
 if [ "$1" = "-h" -o "$1" = "--help" ]
 then
-   echo "usage: init" >&2
+   echo "usage:
+  mulle_bootstrap init" >&2
    exit 1
 fi
 
@@ -195,8 +196,7 @@ EOF
 
   fi
 
-  log_info "\"${BOOTSTRAP_SUBDIR}${C_INFO} folder has been set up.
-Now add your repositories to \"${BOOTSTRAP_SUBDIR}/repositories${C_INFO}"
+  log_info "\"${BOOTSTRAP_SUBDIR}\" folder has been set up."
 
   local open
 

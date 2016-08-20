@@ -44,8 +44,9 @@
 
 usage()
 {
-   cat <<EOF
-usage: fetch [-f] <install|nonrecursive|update>
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap fetch [-f] <install|nonrecursive|update>
    -f           : override dirty harry check
 
    install      : clone or symlink non-exisiting repositories and other resources
@@ -428,11 +429,11 @@ ask_symlink_it()
          local prompt
 
          prompt="Should ${clone} be symlinked instead of cloned ?
-You usually say NO to this."
+NO is safe, but you often say YES here."
 
          if [ ! -z "${tag}" ]
          then
-            prompt="${prompt} (Even more so, since tag is set as ${tag})"
+            prompt="${prompt} (Since tag ${tag} is set, NO is more reasonable)"
          fi
 
          user_say_yes "$prompt"

@@ -9,6 +9,7 @@ gems, mulle-bootstrap can now claim to do only project relative installs.
  `$(DEPENDENCIES_DIR)` setting. Admittedly an experimental hack. But the old
  more proper way, didn't work with cmake generated xcode projects.
 * reorganized repository structure a bit
+* You can now specify ALL (always YES) or NONE (always NO) at the y/n prompt.
 
 
 1.1
@@ -21,6 +22,7 @@ gems, mulle-bootstrap can now claim to do only project relative installs.
    a regular fetch setting. `echo "x.y.com" > .bootstrap/host`
 * Fix help screen for refresh and update
 * Don't complain if there are no dependencies generated
+
 
 1.0
 ===
