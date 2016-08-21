@@ -26,6 +26,13 @@ then
    esac
 fi
 
+
+fail()
+{
+   echo "${BOLD_RED}$*${C_RESET}" >&2
+   exit 1
+}
+
 #
 # https://github.com/hoelzro/useful-scripts/blob/master/decolorize.pl
 #
@@ -45,10 +52,18 @@ then
    exit 1
 fi
 
+if [ ! -d "${bin}" ]
+then
+   mkdir -p "${bin}" || fail "could not create ${bin}"
+fi
+if [ ! -d "${libexec}" ]
+then
+   mkdir -p "${libexec}" || fail "could not create ${libexec}"
+fi
+
 
 for i in mulle*bootstrap
 do
-   mkdir -p "${bin}" 2> /dev/null
    sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
    chmod "${mode}" "${bin}/${i}" || exit 1
    printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2

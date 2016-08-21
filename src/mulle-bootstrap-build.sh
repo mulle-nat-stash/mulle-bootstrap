@@ -8,7 +8,6 @@
 #
 #   Redistributions of source code must retain the above copyright notice, this
 #   list of conditions and the following disclaimer.
-#
 #   Redistributions in binary form must reproduce the above copyright notice,
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
@@ -39,9 +38,19 @@ CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
 CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
 N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
+UNAME="`uname`"
 # get number of cores, use 50% more for make -j
-CORES="`get_core_count`"
-CORES="`expr $CORES + $CORES / 2`"
+case "${UNAME}" in
+   MINGW*)
+      :
+   ;;
+
+   *)
+      CORES="`get_core_count`"
+      CORES="`expr $CORES + $CORES / 2`"
+   ;;
+esac
+
 
 check_and_usage_and_help()
 {
@@ -66,8 +75,21 @@ usage:
    -k         :  don't clean before building $defk
    -K         :  always clean before building $defkk
    -c <name>  :  configurations to build ($defc)
-   -j         :  number of cores parameter for make (${CORES})
+EOF
 
+   case "${UNAME}" in
+      MINGW*)
+         :
+      ;;
+
+      *)   
+         cat <<EOF >&2
+   -j         :  number of cores parameter for make (${CORES})
+EOF
+      ;;
+   esac
+
+   cat << EOF >&2
    You can optionally specify the names of the repositories to build.
    Currently available names are:
 EOF
@@ -77,56 +99,47 @@ EOF
 
 while :
 do
-   if [ "$1" = "-h" -o "$1" = "--help" ]
-   then
-      check_and_usage_and_help >&2
-      exit 1
-   fi
+   case "$1" in
+      -K)
+         CLEAN_BEFORE_BUILD="YES"
+      ;;
 
-   if [ "$1" = "-K" ]
-   then
-      CLEAN_BEFORE_BUILD="YES"
-      [ $# -eq 0 ] || shift
-      continue
-   fi
+      -k)
+         CLEAN_BEFORE_BUILD=
+      ;;
 
-   if [ "$1" = "-k" ]
-   then
-      CLEAN_BEFORE_BUILD=
-      [ $# -eq 0 ] || shift
-      continue
-   fi
 
-   if [ "$1" = "-j" ]
-   then
-      if [ $# -eq 0 ]
-      then
-         fail "core count missing"
-      fi
-      shift
+      -j)
+         case "${UNAME}" in
+            MINGW*)
+               usage
+            ;;
+         esac
 
-      CORES="$1"
-      [ $# -eq 0 ] || shift
-      continue
-   fi
+         shift
+         [ $# -ne 0 ] || fail "core count missing"
 
-   #
-   # specify configuration to build
-   #
-   if [ "$1" = "-c"  ]
-   then
-      if [ $# -eq 0 ]
-      then
-         fail "configuration name missing"
-      fi
-      shift
+         CORES="$1"
+         ;;
 
-      CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
-      [ $# -eq 0 ] || shift
-      continue
-   fi
+      -c)
+         shift
+         [ $# -ne 0 ] || fail "core count missing"
 
-   break
+         CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
+         ;;
+
+      -*)
+         usage
+      ;;
+
+      ""|*)
+         break
+      ;;
+   esac
+
+   shift
+   continue
 done
 
 
@@ -544,14 +557,14 @@ find_make()
    local default_toolname
    local toolname
 
-   case "`uname`" in
+   case "${UNAME}" in
       MINGW*)
          default_toolname="nmake"
-         ;;
+      ;;
 
       *)
          default_toolname="make"
-         ;;
+      ;;
    esac
 
    toolname=`read_config_setting "make" "${default_toolname}"`
@@ -637,9 +650,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    log_fluff "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
-   local   local_make_flags
+   local local_make_flags
 
-   local_make_flags="${MAKE_FLAGS} -j ${CORES}"
+   if [ ! -z "${CORES}" ]
+   then  
+      local_make_flags="-j ${CORES}"
+   fi
 
    owd="${PWD}"
 
@@ -673,9 +689,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       local frameworklines
       local librarylines
+      local includelines
 
       frameworklines=
       librarylines=
+      includelines=
 
       if [ ! -z "${suffixsubdir}" ]
       then
@@ -695,6 +713,28 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
       fi
 
+      includelines="${includelines} \
+-I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"
+
+      librarylines="${librarylines} \
+-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+-L${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"
+
+      frameworklines="${frameworklines} \
+-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"
+
+      case "${UNAME}" in
+         Darwin)
+            echo "haeh"
+            ;;
+
+         *)
+            frameworklines=
+            ;;
+      esac
+
       local relative_srcdir
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
@@ -704,28 +744,18 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "-DDEPENDENCIES_DIR=${owd}/${REFERENCE_DEPENDENCY_SUBDIR}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}"  \
 "-DCMAKE_C_FLAGS=\
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME} \
+${includelines} \
 ${frameworklines} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cflags}" \
 "-DCMAKE_CXX_FLAGS=\
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME} \
+${includelines} \
 ${frameworklines} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${other_cppflags}" \
 "-DCMAKE_EXE_LINKER_FLAGS=\
 ${librarylines} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
 "-DCMAKE_SHARED_LINKER_FLAGS=\
 ${librarylines} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags}" \
 "-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH};\${CMAKE_MODULE_PATH}" \
 ${CMAKE_FLAGS} \
@@ -1536,7 +1566,7 @@ build()
 
    if [ -z "${preferences}" ]
    then
-      case "`uname`" in
+      case "${UNAME}" in
          Darwin)
             preferences="`read_config_setting "build_preferences" "script
 cmake
@@ -1563,20 +1593,19 @@ configure"`"
    MAKE="`find_make`"
    CMAKE="`find_cmake`"
 
-   case "`uname`" in
+   case "${UNAME}" in
       MINGW*)
-         CMAKE_FLAGS="${CMAKE_FLAGS} -G \\\"NMake Makefiles\\\""
          CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "NMake Makefiles"`"
-         ;;
+      ;;
 
       Darwin)
          XCODEBUILD="`find_xcodebuild`"
          CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "Unix Makefiles"`"
-         ;;
+      ;;
 
       *)
          CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "Unix Makefiles"`"
-         ;;
+      ;;
    esac
 
 

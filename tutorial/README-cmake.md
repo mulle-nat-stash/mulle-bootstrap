@@ -5,7 +5,7 @@
 > developement.
 
 This directory contains a simple test with 3 folders `a`, `b`,  `c`. Each folder
-contains a minimal "C" project of the same name.  Project **c* depends
+contains a minimal C-language project of the same name.  Project **c* depends
 on **b**. And project **b** depends on **a**.
 
 `a.h`:
@@ -90,7 +90,7 @@ cmake ..
 # -- Configuring done
 # -- Generating done
 # -- Build files have been written to: /tutorial/b/build
-# Scanning dependencies of target b
+# Scanning dependencies of target bcd 
 # [ 50%] Building C object CMakeFiles/b.dir/src/b.c.o
 # /tutorial/b/src/b.c:1:10: fatal error: 'a/a.h' file not found
 # include <a/a.h>
@@ -98,9 +98,9 @@ cmake ..
 # 1 error generated.
 # make[2]: *** [CMakeFiles/b.dir/src/b.c.o] Error 1
 # make[1]: *** [CMakeFiles/b.dir/all] Error 2
-# make: *** [all] Error 2
+# make: *** [all] Error 2mu
 #
-cd ..
+cd ../..
 ```
 
 ## mulle-bootstrap to the rescue

@@ -130,7 +130,6 @@ internal_fail()
 }
 
 
-
 eval_exekutor()
 {
    if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE}" = "YES" ]
@@ -147,7 +146,7 @@ eval_exekutor()
 
 logging_eval_exekutor()
 {
-   echo "==>" "$@"
+   echo "==>" "$@" >&2
    eval_exekutor "$@"
 }
 
@@ -168,8 +167,12 @@ exekutor()
 
 logging_exekutor()
 {
-   echo "==>" "$@"
-   exekutor "$@"
+   echo "==>" "$@" >&2
+
+   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" != "YES" ]
+   then
+      "$@"
+   fi
 }
 
 
