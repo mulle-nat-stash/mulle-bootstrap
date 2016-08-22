@@ -5,9 +5,9 @@ project (a)
 set(HEADERS
 src/a.h)
 
-add_library(A
+add_library(a
 src/a.c
 )
 
-INSTALL(TARGETS A DESTINATION lib)
+INSTALL(TARGETS a DESTINATION lib)
 INSTALL(FILES ${HEADERS} DESTINATION "include/a")

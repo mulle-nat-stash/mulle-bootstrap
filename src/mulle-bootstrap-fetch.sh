@@ -282,67 +282,67 @@ check_tars()
 #
 # Use gems for stuff we don't tag
 #
-install_gems()
-{
-   local gems
-   local gem
+# install_gems()
+# {
+#    local gems
+#    local gem
 
-   log_fluff "Looking for gems"
+#    log_fluff "Looking for gems"
 
-   gems="`read_fetch_setting "gems" | sort | sort -u`"
-   if [ "${gems}" != "" ]
-   then
-      local old
+#    gems="`read_fetch_setting "gems" | sort | sort -u`"
+#    if [ "${gems}" != "" ]
+#    then
+#       local old
 
-      old="${IFS:-" "}"
-      IFS="
-"
-      for gem in ${gems}
-      do
-         IFS="${old}"
-         log_fluff "gem install \"${gem}\""
+#       old="${IFS:-" "}"
+#       IFS="
+# "
+#       for gem in ${gems}
+#       do
+#          IFS="${old}"
+#          log_fluff "gem install \"${gem}\""
 
-         echo "gem needs sudo to install ${gem}" >&2
-         exekutor sudo gem install "${gem}" || exit 1
-      done
-      IFS="${old}"
-   else
-      log_fluff "No gems found"
-   fi
-}
+#          echo "gem needs sudo to install ${gem}" >&2
+#          exekutor sudo gem install "${gem}" || exit 1
+#       done
+#       IFS="${old}"
+#    else
+#       log_fluff "No gems found"
+#    fi
+# }
 
 
 #
 # Use pips for stuff we don't tag
 #
-install_pips()
-{
-   local pips
-   local pip
+# install_pips()
+# {
+#    local pips
+#    local pip
 
-   log_fluff "Looking for pips"
+#    log_fluff "Looking for pips"
 
-   pips="`read_fetch_setting "pips" | sort | sort -u`"
-   if [ "${pips}" != "" ]
-   then
-      local old
+#    pips="`read_fetch_setting "pips" | sort | sort -u`"
+#    if [ "${pips}" != "" ]
+#    then
+#       local old
 
-      old="${IFS:-" "}"
-      IFS="
-"
-      for pip in ${pips}
-      do
-         IFS="${old}"
-         log_fluff "pip install \"${gem}\""
+#       old="${IFS:-" "}"
+#       IFS="
+# "
+#       for pip in ${pips}
+#       do
+#          IFS="${old}"
+#          log_fluff "pip install \"${gem}\""
 
-         echo "pip needs sudo to install ${pip}" >&2
-         exekutor sudo pip install "${pip}" || exit 1
-      done
-      IFS="${old}"
-   else
-      log_fluff "No pips found"
-   fi
-}
+#          echo "pip needs sudo to install ${pip}" >&2
+#          exekutor sudo pip install "${pip}" || exit 1
+#       done
+#       IFS="${old}"
+#    else
+#       log_fluff "No pips found"
+#    fi
+# }
 
 
 #

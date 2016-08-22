@@ -43,23 +43,22 @@ int b( void)
 }
 ```
 
-**c** is quite like **b**
+**c** is a little executable, that links with **a** and **b**
 
-`c.h`:
 
-```
-extern int c( void);
-```
-
-`c.c`:
+`main.c`:
 
 ```
 #include <b/b.h>
+#include <stdio.h>
 
-int c( void)
+
+int main( int  arcg, char *argv[])
 {
-   return( b() ? 1848 : 1849);
+   printf( "version: %d\n",  b() ? 1848 : 1849);
+   return( 0);
 }
+
 ```
 
 Initially none of the folders contain a `.bootstrap` folder.
@@ -320,14 +319,24 @@ This will have used the dependency information from b, to automatically also
 build a for you in the proper order.
 
 Since the CMakeLists.txt file is already setup properly, you can now just
-build **c**:
+build and run **c**:
 
 ```
 mkdir build 2> /dev/null
 cd build
 cmake ..
 make
+cd ..
 ```
+
+And see **c** work
+
+```
+cd build
+./c
+cd ..
+```
+
 
 
 

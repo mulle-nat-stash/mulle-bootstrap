@@ -11,15 +11,9 @@ link_directories( ${CMAKE_BINARY_DIR}
 )
 
 
-set(HEADERS
-src/c.h)
-
-add_library(c
-src/c.c
+add_executable(c
+src/main.c
 )
 
 
-target_link_libraries( c LINK_PUBLIC b)
-
-INSTALL( TARGETS c DESTINATION "lib")
-INSTALL( FILES ${HEADERS} DESTINATION "include/c")
+target_link_libraries( c LINK_PUBLIC a b)
