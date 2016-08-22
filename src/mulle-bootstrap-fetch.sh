@@ -1354,7 +1354,6 @@ main()
    if [ "${COMMAND}" = "install" ]
    then
        install_brews
-
 #
 # remove these, as they aren't installing locally
 #
@@ -1363,6 +1362,9 @@ main()
 
       clone_repositories
       clone_embedded_repositories
+
+      # install brews again, in case we inherited some in the meantime
+      install_brews
 
       check_tars
    else
