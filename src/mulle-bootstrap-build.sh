@@ -42,10 +42,12 @@ UNAME="`uname`"
 # get number of cores, use 50% more for make -j
 case "${UNAME}" in
    MINGW*)
+      BUILD_PWD_OPTIONS="-PW"
       :
    ;;
 
    *)
+      BUILD_PWD_OPTIONS="-P"
       CORES="`get_core_count`"
       CORES="`expr $CORES + $CORES / 2`"
    ;;
@@ -657,7 +659,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local_make_flags="-j ${CORES}"
    fi
 
+   local owd
+   local nativewd
+
    owd="${PWD}"
+   nativewd="`pwd ${BUILD_PWD_OPTIONS}`"
 
 #   cmake_keep_builddir="`read_build_setting "${name}" "cmake_keep_builddir" "YES"`"
 #   if [ "${cmake_keep_builddir}" != "YES" ]
@@ -697,52 +703,64 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="${frameworklines} -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="${frameworklines} -F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="${librarylines} -L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="${frameworklines} -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="${frameworklines} -F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="${librarylines} -L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
       fi
 
       includelines="${includelines} \
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"
+-I${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-I${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"
 
       librarylines="${librarylines} \
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"
+-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+-L${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"
 
       frameworklines="${frameworklines} \
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"
+-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-F${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"
+
+      local relative_srcdir
+      local prefixbuild
+      local dependenciesdir
+
+      relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
+      prefixbuild="${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"
+      dependenciesdir="${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"
 
       case "${UNAME}" in
          Darwin)
-            echo "haeh"
-            ;;
+         ;;
 
+         MINGW*)
+            frameworklines=
+            includelines="`echo "${includelines}" | tr '/' '\\'  2> /dev/null`"
+            librarylines="`echo "${librarylines}" | tr '/' '\\'  2> /dev/null`"
+            relative_srcdir="`echo "${relative_srcdir}" | tr '/' '\\'  2> /dev/null`"
+            prefixbuild="`echo "${prefixbuild}" | tr '/' '\\'  2> /dev/null`"
+            dependenciesdir="`echo "${dependenciesdir}" | tr '/' '\\'  2> /dev/null`"
+         ;;
          *)
             frameworklines=
-            ;;
+         ;;
       esac
 
-      local relative_srcdir
-
-      relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
 
       logging_exekutor "${CMAKE}" -G "${CMAKE_GENERATOR}" "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
-"-DDEPENDENCIES_DIR=${owd}/${REFERENCE_DEPENDENCY_SUBDIR}" \
-"-DCMAKE_INSTALL_PREFIX:PATH=${owd}/${BUILD_DEPENDENCY_SUBDIR}"  \
+"-DDEPENDENCIES_DIR=${dependenciesdir}" \
+"-DCMAKE_INSTALL_PREFIX:PATH=${prefixbuild}"  \
 "-DCMAKE_C_FLAGS=\
 ${includelines} \
 ${frameworklines} \
@@ -858,7 +876,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    log_fluff "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
+   local owd
+   local nativewd
+   
    owd="${PWD}"
+   nativewd="`pwd ${BUILD_PWD_OPTIONS}`"
+
    mkdir_if_missing "${builddir}"
    exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
 
@@ -880,57 +903,83 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       local frameworklines
       local librarylines
+      local includelines
 
       frameworklines=
       librarylines=
+      includelines=
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="-F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="-L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="${frameworklines} -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="${frameworklines} -F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="${librarylines} -L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="${frameworklines} -F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="${librarylines} -L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="${frameworklines} -F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"
+         librarylines="${librarylines} -L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
       fi
 
+      includelines="${includelines} \
+-I${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+-I${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"
+
+      librarylines="${librarylines} \
+-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
+-L${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"
+
+      frameworklines="${frameworklines} \
+-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+-F${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"
+
+      local prefixbuild
+      local dependenciesdir
+
+      prefixbuild="${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"
+      dependenciesdir="${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"
+
+      case "${UNAME}" in
+         Darwin)
+         ;;
+
+         MINGW*)
+            frameworklines=
+            includelines="`echo "${includelines}" | tr '/' '\\' 2> /dev/null`"
+            librarylines="`echo "${librarylines}" | tr '/' '\\' 2> /dev/null`"
+            prefixbuild="`echo "${prefixbuild}" | tr '/' '\\' 2> /dev/null`"
+            dependenciesdir="`echo "${dependenciesdir}" | tr '/' '\\' 2> /dev/null`"
+         ;;
+         *)
+            frameworklines=
+         ;;
+      esac
+
       # use absolute paths for configure, safer (and easier to read IMO)
-       DEPENDENCIES_DIR="'${owd}/${REFERENCE_DEPENDENCY_SUBDIR}'" \
+       DEPENDENCIES_DIR="'${dependenciesdir}'" \
        CFLAGS="\
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME} \
-${frameworklines}
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+${includelines} \
+${frameworklines} \
 ${other_cflags} \
 -isysroot ${sdkpath}" \
       CPPFLAGS="\
--I${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME} \
-${frameworklines}
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
+${includelines} \
+${frameworklines} \
 ${other_cppflags} \
 -isysroot ${sdkpath}" \
       LDFLAGS="\
 ${frameworklines}
--F${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--F${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME} \
 ${librarylines}
--L${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} \
 ${other_ldflags} \
 -isysroot ${sdkpath}" \
        logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
-          --prefix "${owd}/${BUILD_DEPENDENCY_SUBDIR}" >> "${logfile1}" \
+          --prefix "${prefixbuild}" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
 
       logging_exekutor "${MAKE}" ${MAKE_FLAGS} install > "${logfile2}" \

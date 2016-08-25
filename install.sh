@@ -37,8 +37,76 @@ fail()
 # https://github.com/hoelzro/useful-scripts/blob/master/decolorize.pl
 #
 
+#
+# stolen from:
+# http://stackoverflow.com/questions/1055671/how-can-i-get-the-behavior-of-gnus-readlink-f-on-a-mac
+# ----
+#
+_prepend_path_if_relative()
+{
+   case "$2" in
+      /* )
+         echo "$2"
+         ;;
+      * )
+         echo "$1/$2"
+         ;;
+   esac
+}
+
+
+resolve_symlinks()
+{
+   local dir_context path
+
+   path="`readlink "$1"`"
+   if [ $? -eq 0 ]
+   then
+      dir_context=`dirname -- "$1"`
+      resolve_symlinks "`_prepend_path_if_relative "$dir_context" "$path"`"
+   else
+      echo "$1"
+   fi
+}
+
+
+_canonicalize_dir_path()
+{
+    (cd "$1" 2>/dev/null && pwd -P)
+}
+
+
+_canonicalize_file_path()
+{
+    local dir file
+
+    dir="` dirname "$1"`"
+    file="`basename -- "$1"`"
+    (cd "${dir}" 2>/dev/null && echo "`pwd -P`/${file}")
+}
+
+
+canonicalize_path()
+{
+   if [ -d "$1" ]
+   then
+      _canonicalize_dir_path "$1"
+   else
+      _canonicalize_file_path "$1"
+   fi
+}
+
+
+realpath()
+{
+   canonicalize_path "`resolve_symlinks "$1"`"
+}
+
+
 prefix=${1:-"/usr/local"}
 [ $# -eq 0 ] || shift
+prefix="`realpath "${prefix}"`"
+
 mode=${1:-755}
 [ $# -eq 0 ] || shift
 bin=${1:-"${prefix}/bin"}
