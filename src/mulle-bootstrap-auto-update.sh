@@ -175,17 +175,19 @@ bootstrap_auto_update()
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
       exekutor find "${directory}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \
-         exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
+         exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}/%"
 
       if [ -e "${directory}/.bootstrap/settings/bin"  ]
       then
-         exekutor ln -s -f "${relative}/../../${directory}/.bootstrap/settings/bin" "${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
+         exekutor ln -s -f "${relative}/../../${directory}/.bootstrap/settings/bin" "${BOOTSTRAP_SUBDIR}.auto/settings/${name}/bin"
       fi
 
+      #
       # flatten other folders into our own settings
       # don't force though, keep first
+      #
       exekutor find "${directory}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
-         exekutor xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings"
+         exekutor xargs -0 -I % ln -s "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings/%"
    fi
 
    log_fluff "Acquisition of ${directory} .bootstrap settings finished"

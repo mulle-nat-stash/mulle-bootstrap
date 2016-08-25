@@ -644,21 +644,42 @@ dir_can_be_rmdir()
 }
 
 
-# this does not check for hidden files
+#
+# this does not check for hidden files, ignores directories
+# optionally give filetype f or d as second agument
+#
 dir_has_files()
 {
+   local path
+   local flag
+
+   path="${1}"
+   shift
+
+   case "$1" in
+      f)
+         flags="-type f"
+         shift
+      ;;
+
+      d)
+         flags="-type d"
+         shift
+      ;;
+   esac
+
    local empty
    local result
 
-   empty=`ls "$1"/* 2> /dev/null` 2> /dev/null
+   empty="`find "${path}" -xdev -mindepth 1 -maxdepth 1 -name "[a-zA-Z0-9_-]*" ${flags} "$@" -print 2> /dev/null`"  
    [ "$empty" != "" ]
    result=$?
 
    if [ "$result" -eq 1 ]
    then
-      log_fluff "Directory \"$1\" has no files"
+      log_fluff "Directory \"$path\" has no files"
    else
-      log_fluff "Directory \"$1\" has files"
+      log_fluff "Directory \"$path\" has files"
    fi
    return "$result"
 }
