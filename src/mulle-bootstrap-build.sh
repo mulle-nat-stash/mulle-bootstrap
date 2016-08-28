@@ -54,7 +54,7 @@ case "${UNAME}" in
 esac
 
 
-check_and_usage_and_help()
+usage()
 {
    local defk
    local defc
@@ -84,7 +84,7 @@ EOF
          :
       ;;
 
-      *)   
+      *)
          cat <<EOF >&2
    -j         :  number of cores parameter for make (${CORES})
 EOF
@@ -655,7 +655,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local local_make_flags
 
    if [ ! -z "${CORES}" ]
-   then  
+   then
       local_make_flags="-j ${CORES}"
    fi
 
@@ -878,7 +878,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    local owd
    local nativewd
-   
+
    owd="${PWD}"
    nativewd="`pwd ${BUILD_PWD_OPTIONS}`"
 
