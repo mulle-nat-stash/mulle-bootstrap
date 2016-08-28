@@ -750,6 +750,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
             relative_srcdir="`echo "${relative_srcdir}" | tr '/' '\\'  2> /dev/null`"
             prefixbuild="`echo "${prefixbuild}" | tr '/' '\\'  2> /dev/null`"
             dependenciesdir="`echo "${dependenciesdir}" | tr '/' '\\'  2> /dev/null`"
+
+            librarylines="`echo "${librarylines}" | sed 's|-L|/LIBPATH:|g' 2> /dev/null`"
+            includelines="`echo "${includelines}" | sed 's|-I|/I|g' 2> /dev/null`"
          ;;
          *)
             frameworklines=
@@ -955,6 +958,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
             librarylines="`echo "${librarylines}" | tr '/' '\\' 2> /dev/null`"
             prefixbuild="`echo "${prefixbuild}" | tr '/' '\\' 2> /dev/null`"
             dependenciesdir="`echo "${dependenciesdir}" | tr '/' '\\' 2> /dev/null`"
+
+            librarylines="`echo "${librarylines}" | sed 's|-L|/LIBPATH:|g' 2> /dev/null`"
+            includelines="`echo "${includelines}" | sed 's|-I|/I|g' 2> /dev/null`"
          ;;
          *)
             frameworklines=
