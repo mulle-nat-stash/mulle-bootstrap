@@ -562,7 +562,7 @@ ${result}"
 
    IFS="${old}"
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
    then
       log_trace2 "----------------"
       log_trace2 "merged settings:"
