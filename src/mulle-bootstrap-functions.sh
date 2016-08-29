@@ -34,7 +34,7 @@
 if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
 then
    case `uname` in
-      Darwin|Linux|FreeBSD)
+      Darwin|Linux|FreeBSD|MINGW*)
          C_RESET="\033[0m"
 
          # Useable Foreground colours, for black/white white/black
