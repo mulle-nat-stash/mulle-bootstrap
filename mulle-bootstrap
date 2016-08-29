@@ -41,121 +41,6 @@ BOOTSTRAP_SUBDIR=.bootstrap
 PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/addictions/bin:$PATH"
 export PATH
 
-#
-# simple option handling
-#
-while :
-do
-   if [ "$1" = "-a" ]
-   then
-      MULLE_BOOTSTRAP_ANSWER="NO"
-      export MULLE_BOOTSTRAP_ANSWER
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   if [ "$1" = "-y" ] #  basically auto symlink everything
-   then
-      MULLE_BOOTSTRAP_ANSWER="YES"
-      export MULLE_BOOTSTRAP_ANSWER
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-
-   if [ "$1" = "-n" ]
-   then
-      MULLE_BOOTSTRAP_DRY_RUN="YES"
-      export MULLE_BOOTSTRAP_DRY_RUN
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   if [ "$1" = "-t" ]
-   then
-      MULLE_BOOTSTRAP_TRACE="1848"
-      export MULLE_BOOTSTRAP_TRACE
-
-      COPYMOVEFLAGS="-v"
-      export COPYMOVEFLAGS
-      GITFLAGS="-v"
-      export GITFLAGS
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   if [ "$1" = "-V" ]
-   then
-      MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
-      export MULLE_BOOTSTRAP_VERBOSE_BUILD
-
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   if [ "$1" = "-v" ]
-   then
-      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-      then
-         MULLE_BOOTSTRAP_TRACE="VERBOSE"
-         export MULLE_BOOTSTRAP_TRACE
-      fi
-
-      COPYMOVEFLAGS="-v"
-      export COPYMOVEFLAGS
-      GITFLAGS="-v"
-      export GITFLAGS
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   if [ "$1" = "-vv" ]
-   then
-      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-      then
-         MULLE_BOOTSTRAP_TRACE="FLUFF"
-         export MULLE_BOOTSTRAP_TRACE
-      fi
-
-      COPYMOVEFLAGS="-v"
-      export COPYMOVEFLAGS
-      GITFLAGS="-v"
-      export GITFLAGS
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   if [ "$1" = "-vvv" ]
-   then
-      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-      then
-         MULLE_BOOTSTRAP_TRACE="TRACE"
-         export MULLE_BOOTSTRAP_TRACE
-      fi
-
-      COPYMOVEFLAGS="-v"
-      export COPYMOVEFLAGS
-      GITFLAGS="-v"
-      export GITFLAGS
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   if [ "$1" = "-s" ] # silent
-   then
-      MULLE_BOOTSTRAP_TRACE=
-      MULLE_BOOTSTRAP_TERSE="YES"
-      export MULLE_BOOTSTRAP_TERSE
-
-      GITFLAGS="-q"
-      export GITFLAGS
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   break
-done
-
 
 usage()
 {
@@ -199,25 +84,130 @@ cat <<EOF
 
  Specify the -h or --help option after each command to get more help.
 EOF
+   exit 1
 }
 
 
-check_and_usage_and_help()
-{
-   cat <<EOF
-usage: bootstrap
-   There is nothing more to it.
-}
-EOF
-}
+#
+# simple option handling
+#
+while :
+do
+   if [ $# -eq 0 ]
+   then
+      break
+   fi
+
+   case "$1" in
+      -a)
+         MULLE_BOOTSTRAP_ANSWER="NO"
+         export MULLE_BOOTSTRAP_ANSWER
+      ;;
+
+      -y)
+         MULLE_BOOTSTRAP_ANSWER="YES"
+         export MULLE_BOOTSTRAP_ANSWER
+      ;;
+
+
+      -n)
+         MULLE_BOOTSTRAP_DRY_RUN="YES"
+         export MULLE_BOOTSTRAP_DRY_RUN
+      ;;
+
+      -tm)
+         MULLE_BOOTSTRAP_TRACE_MERGE="YES"
+         export MULLE_BOOTSTRAP_TRACE_MERGE
+      ;;
+
+      -t)
+         MULLE_BOOTSTRAP_TRACE="1848"
+         export MULLE_BOOTSTRAP_TRACE
+
+         COPYMOVEFLAGS="-v"
+         export COPYMOVEFLAGS
+         GITFLAGS="-v"
+         export GITFLAGS
+      ;;
+
+      -V)
+         MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
+         export MULLE_BOOTSTRAP_VERBOSE_BUILD
+      ;;
+
+
+      -v)
+         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+         then
+            MULLE_BOOTSTRAP_TRACE="VERBOSE"
+            export MULLE_BOOTSTRAP_TRACE
+         fi
+
+         COPYMOVEFLAGS="-v"
+         export COPYMOVEFLAGS
+         GITFLAGS="-v"
+         export GITFLAGS
+      ;;
+
+      -vv)
+         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+         then
+            MULLE_BOOTSTRAP_TRACE="FLUFF"
+            export MULLE_BOOTSTRAP_TRACE
+         fi
+
+         COPYMOVEFLAGS="-v"
+         export COPYMOVEFLAGS
+         GITFLAGS="-v"
+         export GITFLAGS
+      ;;
+
+      -vvv)
+         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+         then
+            MULLE_BOOTSTRAP_TRACE="TRACE"
+            export MULLE_BOOTSTRAP_TRACE
+         fi
+
+         COPYMOVEFLAGS="-v"
+         export COPYMOVEFLAGS
+         GITFLAGS="-v"
+         export GITFLAGS
+      ;;
+
+      -s)
+         MULLE_BOOTSTRAP_TRACE=
+         MULLE_BOOTSTRAP_TERSE="YES"
+         export MULLE_BOOTSTRAP_TERSE
+
+         GITFLAGS="-q"
+         export GITFLAGS
+      ;;
+
+      -*)
+         usage
+      ;;
+
+      *)
+         break
+      ;;
+   esac
+
+   shift
+   continue
+done
+
 
 
 bootstrap()
 {
    if [ "$1" = "-h" -o "$1" = "--help" ]
    then
-       check_and_usage_and_help >&2
-       exit 1
+      cat <<EOF >&2
+usage: bootstrap
+   There is nothing more to it.
+EOF
+      exit 1
    fi
 
    #
@@ -275,72 +265,71 @@ main()
    case "${command}" in
       bootstrap)
          bootstrap "$@" || exit 1
-         ;;
+      ;;
 
       nomagic)
          DONT_RECURSE=YES bootstrap "$@" || exit 1
-         ;;
+      ;;
 
       # experimental stuff
       project)
          mulle-bootstrap-project.sh "$@" || exit 1
-         ;;
+      ;;
 
       install)
          mulle-bootstrap-install.sh "$@" || exit 1
-         ;;
+      ;;
 
       build)
          COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          COMMAND="${command}" mulle-bootstrap-build.sh "$@" || exit 1
-         ;;
+      ;;
 
       refresh)
          COMMAND="${command}" mulle-bootstrap-refresh.sh || exit 1
-         ;;
+      ;;
 
       clean)
          COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          mulle-bootstrap-clean.sh "$@" || exit 1
-         ;;
+      ;;
 
       dist-clean)
          COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          mulle-bootstrap-clean.sh "dist"  || exit 1
-         ;;
+      ;;
 
       fetch)
          COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
          DONT_ASK_AFTER_WARNING=YES mulle-bootstrap-fetch.sh "$@" || exit 1
-         ;;
+      ;;
 
       update)
          COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          COMMAND="${command}" mulle-bootstrap-fetch.sh "$@" || exit 1
-         ;;
+      ;;
 
       init)
          mulle-bootstrap-init.sh "$@" || exit 1
-         ;;
+      ;;
 
       setup-xcode|xcode)
          COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          mulle-bootstrap-xcode.sh "$@"|| exit 1
-         ;;
+      ;;
 
       tag)
          COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
          mulle-bootstrap-tag.sh "$@" || exit 1
-         ;;
+      ;;
 
       version)
          echo "${VERSION}" || exit 1
-         ;;
+      ;;
 
       *)
-         usage >&2
-         exit 1
-         ;;
+         usage
+      ;;
       esac
 }
 

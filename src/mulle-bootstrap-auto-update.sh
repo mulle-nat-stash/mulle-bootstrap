@@ -62,6 +62,10 @@ bootstrap_auto_update()
    [ ! -z "${directory}" ]        || internal_fail "src was empty"
    [ "${PWD}" != "${directory}" ] || internal_fail "configuration error"
 
+   if [ "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES" ]
+   then
+      log_trace2 "bootstrap.auto: ${name}"
+   fi
 
    # contains own bootstrap ? and not a symlink
    if [ ! -d "${directory}/.bootstrap" ] # -a ! -L "${dst}" ]
