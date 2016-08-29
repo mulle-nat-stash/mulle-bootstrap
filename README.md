@@ -38,24 +38,16 @@ git@github.com:mulle-nat/UISS.git
 git@github.com:mulle-nat/Finch.git
 ```
 
-**mulle-bootstrap** will check them out into a common directory `.repos`. If
-there is a local clone of the repository **MulleScion** in the parent directory
-of the project, then mulle-bootstrap can clone (or even symlink) from there,
-if you want.
+**mulle-bootstrap** will check them out into a common directory `.repos`.
 
-After cloning **mulle-bootstrap** does a simple security check with respect to
-`.bootstrap` shell scripts and Xcode script phases. Finally it looks for a
-`.bootstrap` folder in the freshly checked out repositories! They might have
-dependencies too, if they do, those dependencies are added to the source
-repositories dependencies.
+After cloning **mulle-bootstrap** does a simple security check of `.bootstrap`
+shell scripts. Finally it looks for a `.bootstrap` folder in the freshly
+checked out repositories! They might have dependencies too, if they do, those
+dependencies are added and also fetched.
 
-Everything you need should be present at this time. so **mulle-bootstrap** will
-now build a **Debug** and a **Release** version for each library, and place
-the headers and the produced libraries into  the "./dependencies" folder.
-
-Your Xcode project can be optionally massaged by
-**mulle-bootstrap xcode add** to have the "./dependencies" folder in its
-search paths.
+Everything should now be in place so **mulle-bootstrap** that can now build the
+dependencies with **cmake**. It will place the headers and the produced libraries
+into the `dependencies` folder.
 
 
 ## Commands for a project user
@@ -71,9 +63,11 @@ mulle-bootstrap
 `mulle-bootstrap` is a the shortened command of `mulle-bootstrap bootstrap`, which
 in turn executes:
 
+
 #### mulle-bootstrap fetch
 
 Downloads all required libraries into a `.repos` folder.
+
 
 #### mulle-bootstrap build
 
@@ -99,19 +93,12 @@ git@github.com:mulle-nat/MulleScion.git
 ```
 
 In the file `.bootstrap/brews` you can specify homebrew projects that need to
-be installed. These will be installed into `/usr/local` as usual though.
+be installed. These will be installed into `addictions`.
 
 ```console
 zlib
 openssl
 ```
-
-
-#### mulle-bootstrap setup-xcode
-
-Prepares a Xcode project to use the libraries that are compiled into the
-`./dependencies` folder. You still need to add the libraries to your targets
-though.
 
 
 #### mulle-bootstrap tag

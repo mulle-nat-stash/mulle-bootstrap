@@ -239,12 +239,10 @@ _assoc_array_remove()
    local key
 
    array="$1"
-   key="`array_key_check "$2"`"
-
-   local line
 
    if [ ! -z "${array}" ]
    then
+       key="`array_key_check "$2"`"
        echo "${array}" | fgrep -v "<${key}>"
    fi
 }
