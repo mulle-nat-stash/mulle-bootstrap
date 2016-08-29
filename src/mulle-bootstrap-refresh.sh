@@ -101,6 +101,7 @@ refresh_repositories_settings()
    local stop
    local refreshed
    local match
+   local map
 
    old="${IFS:-" "}"
 
@@ -116,6 +117,7 @@ refresh_repositories_settings()
       then
          IFS="
 "
+         map=""
          for clone in ${clones}
          do
             IFS="${old}"
@@ -141,6 +143,19 @@ ${clone}"
                tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
                dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
+               #
+               # dependency management, it could be nicer, but isn't
+               # currently match only URLs
+               #
+               local sub_repos
+
+               sub_repos="`_read_setting "${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"`"
+               if [ ! -z "${sub_repos}" ]
+               then
+                  map="`dependency_add "${map}" "**ROOT**" "${url}"`"
+                  map="`dependency_add "${map}" "${url}" "${sub_repos}"`"
+               fi
+
                bootstrap_auto_update "${name}" "${url}" "${dstdir}"
                flag=$?
 
@@ -154,6 +169,17 @@ ${clone}"
    done
 
    IFS="${old}"
+
+   #
+   # output true repository dependencies
+   #
+   local repositories
+
+   repositories="`dependency_resolve "${map}" "**ROOT**" | fgrep -v -x "**ROOT**"`"
+   if [ ! -z "${repositories}" ]
+   then
+      echo "${repositories}" > "${BOOTSTRAP_SUBDIR}.auto/repositories"
+   fi
 }
 
 

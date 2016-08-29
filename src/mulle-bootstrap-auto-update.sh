@@ -35,11 +35,8 @@
 # You can also specify a list of "brew" dependencies. That
 # will be third party libraries, you don't tag or debug
 #
-INHERIT_SETTINGS='taps
-brews
+INHERIT_SETTINGS='brews
 repositories
-pips
-gems
 settings/build_order
 settings/build_ignore'
 

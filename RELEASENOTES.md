@@ -10,6 +10,8 @@ gems, mulle-bootstrap can now claim to do only project relative installs.
  more proper way, didn't work with cmake generated xcode projects.
 * reorganized repository structure a bit
 * You can now specify ALL (always YES) or NONE (always NO) at the y/n prompt.
+* Support for MINGW (Windows) for cmake (experimental)
+* Finally added a proper dependency resolver
 
 
 1.1

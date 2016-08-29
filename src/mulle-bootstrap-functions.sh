@@ -671,7 +671,7 @@ dir_has_files()
    local empty
    local result
 
-   empty="`find "${path}" -xdev -mindepth 1 -maxdepth 1 -name "[a-zA-Z0-9_-]*" ${flags} "$@" -print 2> /dev/null`"  
+   empty="`find "${path}" -xdev -mindepth 1 -maxdepth 1 -name "[a-zA-Z0-9_-]*" ${flags} "$@" -print 2> /dev/null`"
    [ "$empty" != "" ]
    result=$?
 

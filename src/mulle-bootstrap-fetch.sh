@@ -727,7 +727,9 @@ checkout_repository()
 
       run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
 
+      #
       # means we recursed and should start fetch from top
+      #
       if [ ${flag} -eq 0 ]
       then
          return 1
@@ -740,7 +742,6 @@ checkout_repository()
 
    return 0
 }
-
 
 
 clone_repository()
