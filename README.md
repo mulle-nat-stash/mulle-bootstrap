@@ -1,19 +1,22 @@
 # mulle-bootstrap, cross platform dependency manager for Linux, OS X, FreeBSD
 
-Everything `mulle-bootstrap` installs is relative to your project root.
-Downloaded packages and binaries don't "pollute" your system.
+Everything `mulle-bootstrap` installs is relative to your project root, creating
+a virtual environment. Downloaded packages and binaries don't "pollute" your
+system. Toss vagrant :)
 
-* fetches [git](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories
-(called here the "dependents"). In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
+* fetches [git](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories.
+In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
 * builds [cmake](//blog.cppcms.com/post/54),
 [xcodebuild](//devcodehack.com/xcode-sucks-and-heres-why/) and
 [configure](//quetzalcoatal.blogspot.de/2011/06/why-autoconf-sucks.html)
-projects
-* compiles dependents using the output of previous dependents into a project
-local "dependencies" folder
+projects and installs there outpur project locally into a "dependencies" folder.
 * installs [brew](//dzone.com/articles/why-osx-sucks-and-you-should) binaries and
-libraries locally into an "addictions" folder
-* written in portable shell script, runs on OS X, FreeBSD (without brew), Linux
+libraries project locally into an "addictions" folder
+* runs on **OS X**, **FreeBSD** (without brew), **Linux**, **Windows** with
+  MINGW bash (without brew)
+* certainly not a "lightweight" project with ca. 10000 lines of shell script
+  code
+
 
 ## Tell me more
 
@@ -27,9 +30,10 @@ libraries locally into an "addictions" folder
 
 ## What mulle-bootstrap can do for you
 
-So you need a bunch of first and third party repositories to build your own
-project ? **mulle-bootstrap init** does the initial setup of the `.bootstrap`
-folder. Lets put the git repository URLs in a file called `.bootstrap/repositories`.
+So you need a bunch of third party projects to build your own
+project ? No problem. Use **mulle-bootstrap init** to do the initial setup of
+a `.bootstrap` folder in your project directory. Then put the git repository
+URLs in a file called `.bootstrap/repositories`.
 
 ```console
 cat > .bootstrap/repositories
@@ -46,8 +50,11 @@ checked out repositories! They might have dependencies too, if they do, those
 dependencies are added and also fetched.
 
 Everything should now be in place so **mulle-bootstrap** that can now build the
-dependencies with **cmake**. It will place the headers and the produced libraries
-into the `dependencies` folder.
+dependencies with **cmake**. It will place the headers and the produced
+libraries into the `dependencies` folder.
+
+That's it in a nutshell. But **mulle-bootstrap** is certainly not lightweight.
+It can do a lot more.
 
 
 ## Commands for a project user
