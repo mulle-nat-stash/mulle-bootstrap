@@ -1,4 +1,4 @@
-# mulle-bootstrap, cross platform dependency manager for Linux, OS X, FreeBSD
+# mulle-bootstrap, cross platform dependency manager for Linux, OS X, FreeBSD, Windows
 
 Everything `mulle-bootstrap` installs is relative to your project root, creating
 a virtual environment. Downloaded packages and binaries don't "pollute" your
@@ -9,9 +9,9 @@ In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/su
 * builds [cmake](//blog.cppcms.com/post/54),
 [xcodebuild](//devcodehack.com/xcode-sucks-and-heres-why/) and
 [configure](//quetzalcoatal.blogspot.de/2011/06/why-autoconf-sucks.html)
-projects and installs there outpur project locally into a "dependencies" folder.
+projects and installs there output into a "dependencies" folder.
 * installs [brew](//dzone.com/articles/why-osx-sucks-and-you-should) binaries and
-libraries project locally into an "addictions" folder
+libraries into an "addictions" folder
 * runs on **OS X**, **FreeBSD** (without brew), **Linux**, **Windows** with
   MINGW bash (without brew)
 * certainly not a "lightweight" project with ca. 10000 lines of shell script
