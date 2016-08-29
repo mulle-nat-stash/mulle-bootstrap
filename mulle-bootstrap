@@ -41,6 +41,17 @@ BOOTSTRAP_SUBDIR=.bootstrap
 PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/addictions/bin:$PATH"
 export PATH
 
+MULLE_BOOTSTRAP_PID="$$"
+export MULLE_BOOTSTRAP_PID
+
+
+trap_fail()
+{
+   exit 1
+}
+
+trap trap_fail INT
+
 
 usage()
 {
@@ -86,7 +97,6 @@ cat <<EOF
 EOF
    exit 1
 }
-
 
 #
 # simple option handling

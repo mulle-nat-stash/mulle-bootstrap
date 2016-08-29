@@ -57,6 +57,11 @@ _dependency_resolve()
    map="${1}"
    name="${2}"
 
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+   then
+      log_trace2 "resolve ${name}"
+   fi
+
    local escaped_dependencies
    local dependencies
 
@@ -67,6 +72,10 @@ _dependency_resolve()
 
    local sub_name
    local old
+   #local insert
+
+   #insert="`array_count "${RESOLVED_DEPENDENCIES}"`"
+
 
    old="${IFS}"
    IFS="
@@ -97,12 +106,10 @@ _dependency_resolve()
 dependency_add()
 {
    local map
-
-   map="$1"
-
    local name
    local sub_name
 
+   map="$1"
    name="$2"
    sub_name="$3"
 
@@ -128,6 +135,35 @@ dependency_add()
 }
 
 
+dependency_add_array()
+{
+   local map
+   local name
+   local array
+
+   map="$1"
+   name="$2"
+   array="$3"
+
+   local old
+
+   old="${IFS}"
+   IFS="
+"
+   local sub_name
+
+   for sub_name in ${array}
+   do
+      IFS="${old}"
+      map="`dependency_add "${map}" "${name}" "${sub_name}"`"
+   done
+
+   IFS="${old}"
+
+   echo "${map}"
+}
+
+
 dependency_resolve()
 {
    local map
@@ -139,21 +175,18 @@ dependency_resolve()
    RESOLVED_DEPENDENCIES=
    UNRESOLVED_DEPENDENCIES=
 
+   #
+   # _dependency resolve tries to preserve order, but its sorted in reverse
+   #
    _dependency_resolve "${map}" "${name}"
 
-   local rval
-
-   rval=1
-   if [ -z "${UNRESOLVED_DEPENDENCIES}" ]
+   if [ ! -z "${UNRESOLVED_DEPENDENCIES}" ]
    then
-      echo "${RESOLVED_DEPENDENCIES}"
-      rval=0
+      log_error "unresolved dependencies ${UNRESOLVED_DEPENDENCIES}"
+      return 1
+   else
+      echo "${RESOLVED_DEPENDENCIES}" # | sed -n '1!G;h;$p'
    fi
-
-   RESOLVED_DEPENDENCIES=
-   UNRESOLVED_DEPENDENCIES=
-
-   return $rval
 }
 
 

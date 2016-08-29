@@ -119,8 +119,15 @@ log_trace2()
 #
 fail()
 {
+   set -x
    log_error "$@"
-   exit 1
+   kill -INT "${MULLE_BOOTSTRAP_PID}"  # kill myself (especially, if executing in subshell)
+   if [ $$ -ne ${MULLE_BOOTSTRAP_PID} ]
+   then
+      kill -INT $$  # actually useful
+   fi
+   exit 1        # paranoia
+   # don't ask me why the fail message is printed twice
 }
 
 

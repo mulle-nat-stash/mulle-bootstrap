@@ -158,19 +158,16 @@ MULLE_BOOTSTRAP_BUILD_PREFERENCES=cmake mulle-bootstrap build
 
 ### Is the order of the repositories important ?
 
-Sometimes yes. Try to keep them in order of interdependency.
+Usually not. But in case you have implicit dependencies the order of the
+repositories may be important.
 
-f.e. mulle-aba is dependent on mulle-allocator and mulle-thread,
-but mulle-allocator is also dependent on mulle-thread, then put
-mulle-thread ahead of mulle-allocator in the `repositories` file.
+Say you are dependent on a and b, and a is dependent on b (but a is not a
+.bootstrap project), then keep a ahead of b in the repositories file.
 
 
 ### Is it a problem if a repository appears twice ?
 
-Sometimes yes. The dependency manager of mulle-bootstrap is not very
-sophisticated. If you have dependencies like A -> B -> C and  A -> C, it's
-better for mulle-bootstrap if you just specify A->B and B->C. If you also
-declare A->C, you may run into problems.
+No, if the repositoris entry matches. If it doesn't match, it can be a problem.
 
 
 ### It's not working as I expect now what ?

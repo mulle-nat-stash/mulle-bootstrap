@@ -37,6 +37,7 @@
 #
 . mulle-bootstrap-local-environment.sh
 . mulle-bootstrap-auto-update.sh
+. mulle-bootstrap-dependency-resolve.sh
 
 
 usage()
@@ -101,11 +102,12 @@ refresh_repositories_settings()
    local stop
    local refreshed
    local match
-   local map
+   local dependency_map
 
    old="${IFS:-" "}"
 
    refreshed=""
+   dependency_map=""
 
    stop=0
    while [ $stop -eq 0 ]
@@ -117,7 +119,6 @@ refresh_repositories_settings()
       then
          IFS="
 "
-         map=""
          for clone in ${clones}
          do
             IFS="${old}"
@@ -148,12 +149,23 @@ ${clone}"
                # currently match only URLs
                #
                local sub_repos
+               local filename
 
-               sub_repos="`_read_setting "${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"`"
-               if [ ! -z "${sub_repos}" ]
+               filename="${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"
+               if [ -f "${filename}" ]
                then
-                  map="`dependency_add "${map}" "**ROOT**" "${url}"`"
-                  map="`dependency_add "${map}" "${url}" "${sub_repos}"`"
+                  sub_repos="`_read_setting "${filename}"`"
+                  if [ ! -z "${sub_repos}" ]
+                  then
+                     dependency_map="`dependency_add "${dependency_map}" "**ROOT**" "${url}"`"
+                     dependency_map="`dependency_add_array "${dependency_map}" "${url}" "${sub_repos}"`"
+                     if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+                     then
+                        log_trace2 "add \"${sub_repos}\" for ${url} to ${dependency_map}"
+                     fi
+                  fi
+               else
+                  log_fluff "${name} has no repositories"
                fi
 
                bootstrap_auto_update "${name}" "${url}" "${dstdir}"
@@ -175,9 +187,17 @@ ${clone}"
    #
    local repositories
 
-   repositories="`dependency_resolve "${map}" "**ROOT**" | fgrep -v -x "**ROOT**"`"
+   repositories="`dependency_resolve "${dependency_map}" "**ROOT**" | fgrep -v -x "**ROOT**"`"
    if [ ! -z "${repositories}" ]
    then
+      if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+      then
+         log_trace2 "----------------------"
+         log_trace2 "resolved dependencies:"
+         log_trace2 "----------------------"
+         log_trace2 "${repositories}"
+         log_trace2 "----------------------"
+      fi
       echo "${repositories}" > "${BOOTSTRAP_SUBDIR}.auto/repositories"
    fi
 }

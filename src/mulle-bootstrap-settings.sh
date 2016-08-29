@@ -564,11 +564,11 @@ ${result}"
 
    if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
    then
-      log_trace2 "----------------"
+      log_trace2 "----------------------"
       log_trace2 "merged settings:"
-      log_trace2 "----------------"
+      log_trace2 "----------------------"
       log_trace2 "${result}"
-      log_trace2 "----------------"
+      log_trace2 "----------------------"
    fi
    echo "${result}"
 }
