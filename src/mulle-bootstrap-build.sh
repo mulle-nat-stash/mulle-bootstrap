@@ -574,6 +574,7 @@ find_make()
 }
 
 
+
 #
 # remove old builddir, create a new one
 # depending on configuration cmake with flags
@@ -709,27 +710,24 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="${frameworklines} -F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="${librarylines} -L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="${frameworklines} -F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="${librarylines} -L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="${includelines} \
--I${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+      includelines="-I${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -I${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"
 
-      librarylines="${librarylines} \
--L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"
+      librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} "`"
+      librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} "`"
 
-      frameworklines="${frameworklines} \
--F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--F${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"
+      frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
 
       local relative_srcdir
       local prefixbuild
@@ -761,19 +759,19 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
             memo="${IFS}"
             IFS=";"
 
-            for path in $LIBPATH
+            for path in ${LIBPATH}
             do
                if [ ! -z ${path} ]
                then
-                  librarylines="${librarylines}$ /LIBPATH:${path}"
+                  librarylines="`add_line "${librarylines}" "/LIBPATH:${path}"`"
                fi
             done
 
-            for path in $INCLUDE
+            for path in ${INCLUDE}
             do
                if [ ! -z ${path} ]
                then
-                  includelines="${includelines}$ /I${path}"
+                  includelines="`add_line "${includelines}" "/I${path}"`"
                fi
             done
 
@@ -945,27 +943,24 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="${frameworklines} -F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="${librarylines} -L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="${frameworklines} -F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="${librarylines} -L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="${includelines} \
--I${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
+      includelines="-I${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
 -I${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"
 
-      librarylines="${librarylines} \
--L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} \
--L${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"
+      librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} "`"
+      librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} "`"
 
-      frameworklines="${frameworklines} \
--F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME} \
--F${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"
+      frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
 
       local prefixbuild
       local dependenciesdir
@@ -986,7 +981,33 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
             librarylines="`echo "${librarylines}" | sed 's|-L|/LIBPATH:|g' 2> /dev/null`"
             includelines="`echo "${includelines}" | sed 's|-I|/I|g' 2> /dev/null`"
+
+            # inherit settings from environmen
+            local memo
+            local path
+
+            memo="${IFS}"
+            IFS=";"
+
+            for path in ${LIBPATH}
+            do
+               if [ ! -z ${path} ]
+               then
+                  librarylines="`add_line "${librarylines}" "/LIBPATH:${path}"`"
+               fi
+            done
+
+            for path in ${INCLUDE}
+            do
+               if [ ! -z ${path} ]
+               then
+                  includelines="`add_line "${includelines}" "/I${path}"`"
+               fi
+            done
+
+            IFS="${memo}"
          ;;
+
          *)
             frameworklines=
          ;;

@@ -1020,4 +1020,42 @@ which_binary()
    which "${toolname}" 2> /dev/null
 }
 
+
+add_word()
+{
+   local line
+   local word
+
+   line="${1}"
+   word="${2}"
+
+   if [ -z "${line}" ]
+   then
+      echo "${word}"
+   else
+
+      echo "${line} ${word}"
+   fi
+}
+
+
+add_line()
+{
+   local lines
+   local line
+
+   lines="${1}"
+   line="${2}"
+
+   if [ -z "${lines}" ]
+   then
+      echo "${line}"
+   else
+
+      echo "${lines}
+${line}"
+   fi
+}
+
+
 ## 962: getting close to 1000 here
