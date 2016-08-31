@@ -1039,6 +1039,32 @@ add_word()
 }
 
 
+add_path()
+{
+   local line
+   local path
+  
+   [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
+   [ -z "${UNAME}" ] && fail "UNAME is undefined"
+
+   line="${1}"
+   path="${2}"
+
+   case "${UNAME}" in
+      MINGW*)
+         path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
+      ;;
+   esac
+  
+   if [ -z "${line}" ]
+   then
+      echo "${path}"
+   else
+      echo "${line}${PATH_SEPARATOR}${path}"
+   fi
+}
+
+
 add_line()
 {
    local lines

@@ -42,7 +42,14 @@ UNAME="`uname`"
 # get number of cores, use 50% more for make -j
 case "${UNAME}" in
    MINGW*)
+      if [ -z "${LIBPATH}" -o  -z "${INCLUDE}" ] && [ -z "${DONT_USE_VS}" ]
+      then
+         fail "environment variables INCLUDE and LIBPATH not set, start MINGW inside IDE environment"
+      fi
+
       BUILD_PWD_OPTIONS="-PW"
+      PATH_SEPARATOR=';'
+      export PATH_SEPARATOR
       :
    ;;
 
@@ -50,7 +57,9 @@ case "${UNAME}" in
       BUILD_PWD_OPTIONS="-P"
       CORES="`get_core_count`"
       CORES="`expr $CORES + $CORES / 2`"
-   ;;
+      PATH_SEPARATOR=':'
+      export PATH_SEPARATOR
+      ;;
 esac
 
 
@@ -704,104 +713,110 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="-I${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"
+      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} "`"
-      librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} "`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} "`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} "`"
 
-      frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
-      frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
 
       local relative_srcdir
       local prefixbuild
       local dependenciesdir
+      local cmakemodulepath
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
-      prefixbuild="${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"
-      dependenciesdir="${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"
+
+      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
+      dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
+
+      cmakemodulepath="\${CMAKE_MODULE_PATH}"
+      if [ ! -z "${CMAKE_MODULE_PATH}" ]
+      then
+         cmakemodulepath="${CMAKE_MODULE_PATH}${PATH_SEPARATOR}${cmakemodulepath}"   # prepend    
+      fi
+
+      local frameworkprefix
+      local libraryprefix
+      local includeprefix
+
+      frameworkprefix=
+      libraryprefix="-L"
+      includeprefix="-I"
 
       case "${UNAME}" in
          Darwin)
+            frameworkprefix="-F"         
          ;;
 
          MINGW*)
-            frameworklines=
-            includelines="`echo "${includelines}" | tr '/' '\\'  2> /dev/null`"
-            librarylines="`echo "${librarylines}" | tr '/' '\\'  2> /dev/null`"
             relative_srcdir="`echo "${relative_srcdir}" | tr '/' '\\'  2> /dev/null`"
-            prefixbuild="`echo "${prefixbuild}" | tr '/' '\\'  2> /dev/null`"
-            dependenciesdir="`echo "${dependenciesdir}" | tr '/' '\\'  2> /dev/null`"
-
-            librarylines="`echo "${librarylines}" | sed 's|-L|/LIBPATH:|g' 2> /dev/null`"
-            includelines="`echo "${includelines}" | sed 's|-I|/I|g' 2> /dev/null`"
-
-            # inherit settings from environmen
-            local memo
-            local path
-
-            memo="${IFS}"
-            IFS=";"
-
-            for path in ${LIBPATH}
-            do
-               if [ ! -z ${path} ]
-               then
-                  librarylines="`add_line "${librarylines}" "/LIBPATH:${path}"`"
-               fi
-            done
-
-            for path in ${INCLUDE}
-            do
-               if [ ! -z ${path} ]
-               then
-                  includelines="`add_line "${includelines}" "/I${path}"`"
-               fi
-            done
-
-            IFS="${memo}"
+            libraryprefix="/LIBPATH:"
+            includeprefix="/I"
+            frameworklines=
          ;;
+
          *)
             frameworklines=
          ;;
       esac
+
+      # assemble -I /I and -L /LIBPATH:
+
+      local memo
+
+      memo="${IFS}"
+
+      IFS="${PATH_SEPARATOR}"
+      for path in ${includelines}
+      do
+         other_cflags="`add_word "${other_cflags}" "${includeprefix}${path}"`"
+      done
+
+      for path in ${librarylines}
+      do
+         other_ldflags="`add_word "${other_ldflags}" "${libraryprefix}${path}"`"
+      done
+
+      for path in ${frameworklines}
+      do
+         other_cflags="`add_word "${other_cflags}" "${frameworkprefix}${path}"`"
+         other_ldflags="`add_word "${other_ldflags}" "${frameworkprefix}${path}"`"
+      done
+
+      IFS="${memo}"
 
 
       logging_exekutor "${CMAKE}" -G "${CMAKE_GENERATOR}" "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
 "-DDEPENDENCIES_DIR=${dependenciesdir}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${prefixbuild}"  \
-"-DCMAKE_C_FLAGS=\
-${includelines} \
-${frameworklines} \
-${other_cflags}" \
-"-DCMAKE_CXX_FLAGS=\
-${includelines} \
-${frameworklines} \
-${other_cppflags}" \
-"-DCMAKE_EXE_LINKER_FLAGS=\
-${librarylines} \
-${other_ldflags}" \
-"-DCMAKE_SHARED_LINKER_FLAGS=\
-${librarylines} \
-${other_ldflags}" \
-"-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH};\${CMAKE_MODULE_PATH}" \
+"-DCMAKE_INCLUDE_PATH=${includelines}" \
+"-DCMAKE_LIBRARY_PATH=${librarylines}" \
+"-DCMAKE_FRAMEWORK_PATH=${frameworklines}" \
+"-DCMAKE_C_FLAGS=${other_cflags}" \
+"-DCMAKE_CXX_FLAGS=${other_cppflags}" \
+"-DCMAKE_EXE_LINKER_FLAGS=${other_ldflags}" \
+"-DCMAKE_SHARED_LINKER_FLAGS=${other_ldflags}" \
+"-DCMAKE_MODULE_PATH=${cmakemodulepath}" \
 ${CMAKE_FLAGS} \
 ${localcmakeflags} \
 "${relative_srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
@@ -937,75 +952,39 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
-         librarylines="-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="-I${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME} \
--I${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"
+      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} "`"
-      librarylines="`add_line "${librarylines}" "-L${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} "`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} "`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} "`"
 
-      frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
-      frameworklines="`add_line "${frameworklines}" "-F${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
 
       local prefixbuild
       local dependenciesdir
 
-      prefixbuild="${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"
-      dependenciesdir="${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"
+      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
+      dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
 
       case "${UNAME}" in
          Darwin)
-         ;;
-
-         MINGW*)
-            frameworklines=
-            includelines="`echo "${includelines}" | tr '/' '\\' 2> /dev/null`"
-            librarylines="`echo "${librarylines}" | tr '/' '\\' 2> /dev/null`"
-            prefixbuild="`echo "${prefixbuild}" | tr '/' '\\' 2> /dev/null`"
-            dependenciesdir="`echo "${dependenciesdir}" | tr '/' '\\' 2> /dev/null`"
-
-            librarylines="`echo "${librarylines}" | sed 's|-L|/LIBPATH:|g' 2> /dev/null`"
-            includelines="`echo "${includelines}" | sed 's|-I|/I|g' 2> /dev/null`"
-
-            # inherit settings from environmen
-            local memo
-            local path
-
-            memo="${IFS}"
-            IFS=";"
-
-            for path in ${LIBPATH}
-            do
-               if [ ! -z ${path} ]
-               then
-                  librarylines="`add_line "${librarylines}" "/LIBPATH:${path}"`"
-               fi
-            done
-
-            for path in ${INCLUDE}
-            do
-               if [ ! -z ${path} ]
-               then
-                  includelines="`add_line "${includelines}" "/I${path}"`"
-               fi
-            done
-
-            IFS="${memo}"
          ;;
 
          *)
@@ -2090,19 +2069,6 @@ install_tars()
 }
 
 
-ensure_environment()
-{
-   case "${UNAME}" in
-      MINGW*)
-         if [ -z "${LIBPATH}" -o  -z "${INCLUDE}" ] && [ -z "${DONT_USE_VS}" ]
-         then
-            fail "environment variables INCLUDE and LIBPATH not set, start MINGW inside IDE environment"
-         fi
-      ;;
-   esac
-}
-
-
 main()
 {
    local  clean
@@ -2119,7 +2085,6 @@ main()
    fi
 
    ensure_consistency
-   ensure_environment
 
    if [ $# -eq 0 ]
    then
