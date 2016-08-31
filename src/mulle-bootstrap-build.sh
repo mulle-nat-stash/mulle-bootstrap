@@ -753,6 +753,31 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
             librarylines="`echo "${librarylines}" | sed 's|-L|/LIBPATH:|g' 2> /dev/null`"
             includelines="`echo "${includelines}" | sed 's|-I|/I|g' 2> /dev/null`"
+
+            # inherit settings from environmen
+            local memo
+            local path
+
+            memo="${IFS}"
+            IFS=";"
+
+            for path in $LIBPATH
+            do
+               if [ ! -z ${path} ]
+               then
+                  librarylines="${librarylines}$ /LIBPATH:${path}"
+               fi
+            done
+
+            for path in $INCLUDE
+            do
+               if [ ! -z ${path} ]
+               then
+                  includelines="${includelines}$ /I${path}"
+               fi
+            done
+
+            IFS="${memo}"
          ;;
          *)
             frameworklines=
@@ -2044,6 +2069,19 @@ install_tars()
 }
 
 
+ensure_environment()
+{
+   case "${UNAME}" in
+      MINGW*)
+         if [ -z "${LIBPATH}" -o  -z "${INCLUDE}" ] && [ -z "${DONT_USE_VS}" ]
+         then
+            fail "environment variables INCLUDE and LIBPATH not set, start MINGW inside IDE environment"
+         fi
+      ;;
+   esac
+}
+
+
 main()
 {
    local  clean
@@ -2060,6 +2098,7 @@ main()
    fi
 
    ensure_consistency
+   ensure_environment
 
    if [ $# -eq 0 ]
    then

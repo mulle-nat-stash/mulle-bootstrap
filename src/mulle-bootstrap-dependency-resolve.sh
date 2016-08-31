@@ -34,21 +34,6 @@
 . mulle-bootstrap-array.sh
 
 
-escape_array()
-{
-   local text
-
-   text="`echo "$@" | sed -e 's/|/\\|/g'`"
-   /bin/echo -n "${text}" | tr '\012' '|'
-}
-
-
-unescape_array()
-{
-   echo "$@" | tr '|' '\012' | sed -e 's/\\$/|/g' -e '/^$/d'
-}
-
-
 _dependency_resolve()
 {
    local map
@@ -66,7 +51,7 @@ _dependency_resolve()
    local dependencies
 
    escaped_dependencies="`assoc_array_get "${map}" "${name}"`"
-   dependencies="`unescape_array "${escaped_dependencies}"`"
+   dependencies="`array_unescape_value "${escaped_dependencies}"`"
 
    UNRESOLVED_DEPENDENCIES="`array_add "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
 
@@ -117,7 +102,7 @@ dependency_add()
    local dependencies
 
    escaped_dependencies="`assoc_array_get "${map}" "${name}"`"
-   dependencies="`unescape_array "${escaped_dependencies}"`"
+   dependencies="`array_unescape_value "${escaped_dependencies}"`"
 
    if array_contains "${dependencies}" "${sub_name}"
    then
@@ -129,7 +114,7 @@ dependency_add()
    fi
 
    dependencies="`array_add "${dependencies}" "${sub_name}"`"
-   escaped_dependencies="`escape_array "${dependencies}"`"
+   escaped_dependencies="`array_escape_value "${dependencies}"`"
 
    assoc_array_set "${map}" "${name}" "${escaped_dependencies}"
 }

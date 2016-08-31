@@ -76,7 +76,7 @@ warn_scripts()
          then
             log_warning "This repository contains xcode projects with shellscript phases"
 
-            ack=`which ack`
+            ack=`which ack 2> /dev/null`
             if [ -z "${ack}" ]
             then
                log_warning "$phases" >&2

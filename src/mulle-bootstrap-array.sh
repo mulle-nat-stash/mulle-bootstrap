@@ -76,6 +76,45 @@ array_index_check()
 }
 
 
+array_index_check()
+{
+   local array
+   local i
+
+   array="$1"
+   i="$2"
+
+   [ -z "${i}" ] && fail "empty index"
+
+   local n
+   n="`array_count "${array}"`"
+
+   [ ${i} -ge ${n} ] && fail "index ${i} out of bounds ${n}"
+
+   echo "${i}"
+}
+
+
+#
+# currently escaping is provided for code "outside" of array, but it really
+# should be done within the functions (slow though)
+#
+array_escape_value()
+{
+   local text
+
+   text="`echo "$@" | sed -e 's/|/\\|/g'`"
+   /bin/echo -n "${text}" | tr '\012' '|'
+}
+
+
+array_unescape_value()
+{
+   echo "$@" | tr '|' '\012' | sed -e 's/\\$/|/g' -e '/^$/d'
+}
+
+
+
 array_add()
 {
    local array
