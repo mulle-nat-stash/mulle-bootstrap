@@ -906,7 +906,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    other_cppflags="`gcc_cppflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
-
    local logfile1
    local logfile2
 
@@ -985,6 +984,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       case "${UNAME}" in
          Darwin)
+            other_cflags="`add_word "${other_cflags}" "-isysroot ${sdkpath}"`"
+            other_ldflags="`add_word "${other_ldflags}" "-isysroot ${sdkpath}"`"
          ;;
 
          *)
@@ -992,24 +993,38 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          ;;
       esac
 
+
+      # assemble -I /I and -L /LIBPATH:
+
+      local memo
+
+      memo="${IFS}"
+
+      IFS="${PATH_SEPARATOR}"
+      for path in ${includelines}
+      do
+         other_cflags="`add_word "${other_cflags}" "${includeprefix}${path}"`"
+      done
+
+      for path in ${librarylines}
+      do
+         other_ldflags="`add_word "${other_ldflags}" "${libraryprefix}${path}"`"
+      done
+
+      for path in ${frameworklines}
+      do
+         other_cflags="`add_word "${other_cflags}" "${frameworkprefix}${path}"`"
+         other_ldflags="`add_word "${other_ldflags}" "${frameworkprefix}${path}"`"
+      done
+
+      IFS="${memo}"
+
       # use absolute paths for configure, safer (and easier to read IMO)
-       DEPENDENCIES_DIR="'${dependenciesdir}'" \
-       CFLAGS="\
-${includelines} \
-${frameworklines} \
-${other_cflags} \
--isysroot ${sdkpath}" \
-      CPPFLAGS="\
-${includelines} \
-${frameworklines} \
-${other_cppflags} \
--isysroot ${sdkpath}" \
-      LDFLAGS="\
-${frameworklines}
-${librarylines}
-${other_ldflags} \
--isysroot ${sdkpath}" \
-       logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
+      DEPENDENCIES_DIR="'${dependenciesdir}'" \
+      CFLAGS="${other_cflags}" \
+      CPPFLAGS="${other_cflags} ${other_cppflags}" \
+      LDFLAGS="${other_ldflags}" \ 
+      logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
           --prefix "${prefixbuild}" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
 
@@ -1637,6 +1652,8 @@ build()
 
    [ "${name}" != "${CLONES_SUBDIR}" ] || internal_fail "missing repo argument (${srcdir})"
 
+   log_fluff "Building ${name} ..."
+   
    local preferences
 
    #

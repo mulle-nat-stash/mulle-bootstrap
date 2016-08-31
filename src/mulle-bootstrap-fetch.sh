@@ -459,8 +459,8 @@ NO is safe, but you often say YES here."
 
 log_fetch_action()
 {
-   local dstdir
    local url
+   local dstdir
 
    url="$1"
    dstdir="$2"
@@ -761,6 +761,8 @@ clone_repository()
    local flag
    local doit
 
+   log_fluff "Cloning ${name} ..."
+
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
@@ -774,7 +776,7 @@ clone_repository()
    flag=0
    if [ $doit -ne 0 ]
    then
-      log_fetch_action "${name}" "${dstdir}"
+      log_fetch_action "${url}" "${dstdir}"
 
       # mark the checkout progress, so that we don't do incomplete fetches and
       # later on happily build
@@ -791,7 +793,6 @@ clone_repository()
 
    return $flag
 }
-
 
 
 clone_repositories()
@@ -896,7 +897,7 @@ clone_embedded_repository()
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
    dstdir="${dstprefix}${name}"
 
-   log_fetch_action "${name}" "${dstdir}"
+   log_fetch_action "${url}" "${dstdir}"
 
    if [ ! -d "${dstdir}" ]
    then
@@ -1300,7 +1301,7 @@ update_embedded_repositories()
 
          if [ $doit -ne 0 ]
          then
-            log_fetch_action "${name}" "${dstdir}"
+            log_fetch_action "${url}" "${dstdir}"
 
             create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
