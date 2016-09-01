@@ -29,85 +29,41 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
+MULLE_BOOTSTRAP_FETCH_SH="included"
+
 #
 # this script installs the proper git clones into "clones"
 # it does not to git subprojects.
 # You can also specify a list of "brew" dependencies. That
 # will be third party libraries, you don't tag or debug
 #
-. mulle-bootstrap-local-environment.sh
-. mulle-bootstrap-brew.sh
-. mulle-bootstrap-scm.sh
-. mulle-bootstrap-scripts.sh
-. mulle-bootstrap-auto-update.sh
+
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
+[ -z "${MULLE_BOOTSTRAP_SCM_SH}" ] && . mulle-bootstrap-scm.sh
+[ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+[ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
+[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
 
 
-usage()
+
+fetch_usage()
 {
    cat <<EOF >&2
 usage:
    mulle-bootstrap fetch [-f] <install|nonrecursive|update>
-   -f           : override dirty harry check
+   -f           :  override dirty harry check
 
-   install      : clone or symlink non-exisiting repositories and other resources
-   nonrecursive : like above, but ignore .bootstrap folders of repositories
-   update       : execute `git pull` in fetched repositories
+   install      :  clone or symlink non-exisiting repositories and other resources
+   nonrecursive :  like above, but ignore .bootstrap folders of repositories
+   update       :  execute `git pull` in fetched repositories
 
    You can specify the names of the repositories to update.
    Currently available names are:
 EOF
    (cd "${CLONESFETCH_SUBDIR}" ; ls -1 ) 2> /dev/null
+   exit 1
 }
-
-
-
-while :
-do
-   if [ "$1" = "-h" -o "$1" = "--help" ]
-   then
-      usage >&2
-      exit 1
-   fi
-
-   if [ "$1" = "-f" ]
-   then
-      FORCE="YES"
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   break
-done
-
-
-
-if [ -z "${COMMAND}" ]
-then
-   COMMAND=${1:-"install"}
-   [ $# -eq 0 ] || shift
-fi
-
-if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
-then
-   COMMAND="install"
-fi
-
-
-case "$COMMAND" in
-   install)
-      ;;
-   nonrecursive)
-     COMMAND=install
-     DONT_RECURSE="YES"
-      ;;
-   update)
-      ;;
-   *)
-      usage >&2
-      exit 1
-      ;;
-esac
-
 
 
 #
@@ -761,7 +717,7 @@ clone_repository()
    local flag
    local doit
 
-   log_fluff "Cloning ${name} ..."
+   log_verbose "Clone ${name} if needed ..."
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
@@ -960,7 +916,6 @@ clone_embedded_repositories()
    old="${IFS:-" "}"
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
-   export MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
 
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
@@ -1266,7 +1221,6 @@ update_embedded_repositories()
    local scm
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
-   export MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
 
    old="${IFS:-" "}"
 
@@ -1324,31 +1278,83 @@ update_embedded_repositories()
 }
 
 
-main()
+fetch_main()
 {
-   log_verbose "::: fetch :::"
+   log_fluff "::: fetch :::"
+
+   while :
+   do
+      case "$1" in
+         -h|-help|--help)
+            fetch_usage 
+         ;;
+
+         -f)
+            MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
+         ;;
+
+
+         -*)
+            log_error "unknown option $1"
+            fetch_usage
+         ;;
+
+         ""|*)
+            break
+         ;;
+      esac
+
+      shift
+      continue
+   done
+
+
+   if [ -z "${COMMAND}" ]
+   then
+      COMMAND=${1:-"install"}
+      [ $# -eq 0 ] || shift
+   fi
+
+   if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
+   then
+      COMMAND="install"
+   fi
+
+
+   case "$COMMAND" in
+      install)
+         ;;
+      nonrecursive)
+        COMMAND=install
+        DONT_RECURSE="YES"
+         ;;
+      update)
+         ;;
+      *)
+         log_error "unknown command \"$COMMAND\""
+         usage 
+         ;;
+   esac
+
 
    SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
-   export SYMLINK_FORBIDDEN
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if
    # present (somewhat dangerous, because we do not check versions)
    #
    DO_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
-   export DO_CHECK_USR_LOCAL_INCLUDE
 
    if [ "${COMMAND}" = "install" ]
    then
       if [ $# -ne 0 ]
       then
          log_error  "Additional parameters not allowed for install"
-         usage >&2
-         exit 1
+         fetch_usage 
       fi
    fi
 
-   [ -z "${FORCE}" ] && ensure_consistency
+   [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
 
    #
    # Run prepare scripts if present
@@ -1396,4 +1402,3 @@ main()
    fi
 }
 
-main "$@"

@@ -28,19 +28,16 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #
+MULLE_BOOTSTRAP_SCRIPTS_SH="included"
+
 
 find_fetch_setting_file()
 {
    local value
    local flag
 
-   READ_SETTING_RETURNS_PATH="YES"
-   export READ_SETTING_RETURNS_PATH
-
-   value="`read_fetch_setting "$@"`"
+   value="`READ_SETTING_RETURNS_PATH="YES" read_fetch_setting "$@"`"
    flag=$?
-
-   READ_SETTING_RETURNS_PATH="NO"
 
    echo "$value"
    return $flag
@@ -52,13 +49,9 @@ find_repo_setting_file()
    local value
    local flag
 
-   READ_SETTING_RETURNS_PATH="YES"
-   export READ_SETTING_RETURNS_PATH
-
-   value="`read_repo_setting "$@"`"
+   
+   value="`READ_SETTING_RETURNS_PATH="YES" read_repo_setting "$@"`"
    flag=$?
-
-   READ_SETTING_RETURNS_PATH="NO"
 
    echo "$value"
    return $flag
@@ -70,13 +63,8 @@ find_build_root_setting_file()
    local value
    local flag
 
-   READ_SETTING_RETURNS_PATH="YES"
-   export READ_SETTING_RETURNS_PATH
-
-   value="`read_build_root_setting "$@"`"
+   value="`READ_SETTING_RETURNS_PATH="YES" read_build_root_setting "$@"`"
    flag=$?
-
-   READ_SETTING_RETURNS_PATH="NO"
 
    echo "$value"
    return $flag
@@ -88,13 +76,9 @@ find_build_setting_file()
    local value
    local flag
 
-   READ_SETTING_RETURNS_PATH="YES"
-   export READ_SETTING_RETURNS_PATH
-
-   value="`read_build_setting "$@"`"
+   
+   value="`READ_SETTING_RETURNS_PATH="YES" read_build_setting "$@"`"
    flag=$?
-
-   READ_SETTING_RETURNS_PATH="NO"
 
    echo "$value"
    return $flag

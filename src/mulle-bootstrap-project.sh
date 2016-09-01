@@ -28,20 +28,19 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #
+MULLE_BOOTSTRAP_PROJECT_SH="included"
 
 # tag this project, and all cloned dependencies
 # the dependencies will get a different vendor tag
 # based on the tag
 #
 
-. mulle-bootstrap-local-environment.sh
-. mulle-bootstrap-scripts.sh
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
 
-name=`basename -- "${PWD}"`
 
-
-usage()
+project_usage()
 {
    cat <<EOF >&2
 usage:
@@ -51,22 +50,18 @@ usage:
    build   : execute ./build.sh, if missing do a mulle-bootstrap build
    install : execute ./install.sh, if missing execute ./build.sh install
 EOF
+   exit 1
 }
 
 
-check_and_usage_and_help()
-{
-   if [ "$1" = "" -o "$1" = "-h" -o "$1" = "--help" ]
-   then
-      usage >&2
-      exit 1
-   fi
-}
-
-
-project()
+main_project()
 {
    local command
+
+   if [ "$1" = "" -o "$1" = "-h" -o "$1" = "--help" ]
+   then
+      project_usage 
+   fi
 
    command="$1"
    case  "${command}" in
@@ -112,14 +107,10 @@ project()
       ;;
 
    *)
-      usage >&2
-      exit 1
+      log_error "unknown command \"${command}\""
+      project_usage
       ;;
 
    esac
 }
 
-
-check_and_usage_and_help "$@"
-
-project "$@"

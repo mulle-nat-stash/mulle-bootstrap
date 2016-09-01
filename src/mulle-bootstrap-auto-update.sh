@@ -28,6 +28,7 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_AUTO_UPDATE_SH="included"
 
 #
 # this script installs the proper git clones into "clones"
@@ -71,7 +72,7 @@ bootstrap_auto_update()
       return 1
    fi
 
-   log_fluff "Acquiring ${directory} .bootstrap settings ..."
+   log_verbose "Acquiring ${directory} .bootstrap settings ..."
 
    local old
 
@@ -83,7 +84,7 @@ bootstrap_auto_update()
    #
    if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
-      log_fluff "Found a .bootstrap folder for \"${name}\" will set up ${BOOTSTRAP_SUBDIR}.auto"
+      log_verbose "Found a .bootstrap folder for \"${name}\" will set up ${BOOTSTRAP_SUBDIR}.auto"
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.tmp/settings"
 
@@ -137,7 +138,7 @@ bootstrap_auto_update()
 
       if [ -f "${srcfile}" ]
       then
-         log_fluff "Inheriting \"${settingname}\" from \"${srcfile}\""
+         log_verbose "Inheriting \"${settingname}\" from \"${srcfile}\""
 
          mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/`dirname -- "${i}"`"
          if [ -f "${BOOTSTRAP_SUBDIR}.auto/${i}" ]
@@ -172,7 +173,7 @@ bootstrap_auto_update()
    then
       local relative
 
-      log_fluff "Link up build settings of \"${name}\" to \"${BOOTSTRAP_SUBDIR}.auto/settings/${name}\""
+      log_verbose "Link up build settings of \"${name}\" to \"${BOOTSTRAP_SUBDIR}.auto/settings/${name}\""
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
       exekutor find "${directory}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \

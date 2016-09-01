@@ -29,17 +29,12 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-. mulle-bootstrap-local-environment.sh
+MULLE_BOOTSTRAP_INSTALL_SH="included"
+
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
 
 
-DEFAULT_PREFIX="/usr/local"
-DEFAULT_FRAMEWORK_PREFIX="/Library"
-
-CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
-N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
-
-
-check_and_usage_and_help()
+install_usage()
 {
    cat <<EOF >&2
 usage:
@@ -49,36 +44,8 @@ usage:
    The default libraryprefix is ${DEFAULT_PREFIX}
    The default frameworkprefix is ${DEFAULT_FRAMEWORK_PREFIX}
 EOF
+   exit 1
 }
-
-
-while :
-do
-   if [ "$1" = "-h" -o "$1" = "--help" ]
-   then
-      check_and_usage_and_help >&2
-      exit 1
-   fi
-
-   break
-done
-
-
-PREFIX="${1:-${DEFAULT_PREFIX}}"
-[ $# -eq 0 ] || shift
-
-
-case "`uname`" in
-   *)
-      INSTALL_FRAMEWORKS="NO"
-      ;;
-
-   Darwin)
-      FRAMEWORK_PREFIX="${1:-${DEFAULT_FRAMEWORK_PREFIX}}"
-      [ $# -eq 0 ] || shift
-      INSTALL_FRAMEWORKS="YES"
-      ;;
-esac
 
 
 install_libraries_with_action()
@@ -308,10 +275,41 @@ install_frameworks_by_symlinking()
 # Currently only install the default configuration, which
 # is usually "Release"
 #
-main()
+install_main()
 {
+   log_fluff "::: install :::"
 
-   log_verbose "::: install :::"
+   DEFAULT_PREFIX="/usr/local"
+   DEFAULT_FRAMEWORK_PREFIX="/Library"
+
+   CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
+   N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
+
+   while :
+   do
+      if [ "$1" = "-h" -o "$1" = "--help" ]
+      then
+         install_usage
+      fi
+
+      break
+   done
+
+
+   PREFIX="${1:-${DEFAULT_PREFIX}}"
+   [ $# -eq 0 ] || shift
+
+   case "`uname`" in
+      *)
+         INSTALL_FRAMEWORKS="NO"
+         ;;
+
+      Darwin)
+         FRAMEWORK_PREFIX="${1:-${DEFAULT_FRAMEWORK_PREFIX}}"
+         [ $# -eq 0 ] || shift
+         INSTALL_FRAMEWORKS="YES"
+         ;;
+   esac
 
    if [ ! -d "${DEPENDENCY_SUBDIR}" ]
    then
@@ -342,5 +340,3 @@ Suggested fix:
    fi
 }
 
-
-main "$@"

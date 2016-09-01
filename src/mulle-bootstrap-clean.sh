@@ -28,21 +28,42 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_CLEAN_SH="included"
 
-. mulle-bootstrap-local-environment.sh
-
-CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
 
 
-BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
-${DEPENDENCY_SUBDIR}/tmp"`"
-OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
-DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
-${ADDICTION_SUBDIR}
-.bootstrap.auto"`"
-INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${BUILD_CLEANABLE_SUBDIRS}
-${CLONES_SUBDIR}
-.bootstrap.auto"`"
+clean_usage()
+{
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap clean [build|dist|install|output]
+
+   build   : useful to remove intermediate build files. it cleans
+---
+${BUILD_CLEANABLE_SUBDIRS}
+---
+
+   output  : useful to rebuild. This is the default. It cleans
+---
+${BUILD_CLEANABLE_SUBDIRS}
+${OUTPUT_CLEANABLE_SUBDIRS}
+---
+
+   dist    : remove all clones, dependencies, addictions. It cleans
+---
+${BUILD_CLEANABLE_SUBDIRS}
+${OUTPUT_CLEANABLE_SUBDIRS}
+${DIST_CLEANABLE_SUBDIRS}
+---
+
+   install  : useful if you know, you don't want to rebuild ever. It cleans
+---
+${INSTALL_CLEANABLE_SUBDIRS}
+---
+EOF
+   exit 1
+}
 
 
 embedded_repositories()
@@ -73,72 +94,6 @@ embedded_repositories()
       IFS="${old}"
    fi
 }
-
-
-EMBEDDED="`embedded_repositories`"
-
-if [ ! -z "$EMBEDDED" ]
-then
-   DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
-${EMBEDDED}"
-fi
-
-
-usage()
-{
-   cat <<EOF >&2
-usage:
-   mulle-bootstrap clean [build|dist|install|output]
-
-   build   : useful to remove intermediate build files. it cleans
----
-${BUILD_CLEANABLE_SUBDIRS}
----
-
-   output  : useful to rebuild. This is the default. It cleans
----
-${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_SUBDIRS}
----
-
-   dist    : remove all clones, dependencies, addictions. It cleans
----
-${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_SUBDIRS}
-${DIST_CLEANABLE_SUBDIRS}
----
-
-   install  : useful if you know, you don't want to rebuild ever. It cleans
----
-${INSTALL_CLEANABLE_SUBDIRS}
----
-EOF
-}
-
-
-check_and_usage_and_help()
-{
-   case "$COMMAND" in
-      output)
-      ;;
-      dist)
-      ;;
-      build)
-      ;;
-      install)
-      ;;
-      *)
-      usage >&2
-      exit 1
-      ;;
-   esac
-}
-
-
-COMMAND=${1:-"output"}
-[ $# -eq 0 ] || shift
-
-check_and_usage_and_help
 
 
 clean_asserted_folder()
@@ -187,13 +142,12 @@ clean_parent_folders_if_empty()
 }
 
 
-
 #
 # cleanability is checked, because in some cases its convenient
 # to have other tools provide stuff besides /include and /lib
 # and sometimes  projects install other stuff into /share
 #
-clean()
+clean_execute()
 {
    local flag
    local old
@@ -266,7 +220,7 @@ clean()
 }
 
 
-main()
+clean_main()
 {
    #
    # don't rename these settings anymore, the consequences can be catastrophic
@@ -275,7 +229,43 @@ main()
    #
    log_fluff "::: clean :::"
 
-   clean "$@"
+   CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
+
+   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
+${DEPENDENCY_SUBDIR}/tmp"`"
+   OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
+   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
+${ADDICTION_SUBDIR}
+.bootstrap.auto"`"
+   INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${BUILD_CLEANABLE_SUBDIRS}
+${CLONES_SUBDIR}
+.bootstrap.auto"`"
+
+   EMBEDDED="`embedded_repositories`"
+   if [ ! -z "$EMBEDDED" ]
+   then
+      DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
+${EMBEDDED}"
+   fi
+
+   COMMAND=${1:-"output"}
+   [ $# -eq 0 ] || shift
+
+   case "$COMMAND" in
+      output)
+      ;;
+      dist)
+      ;;
+      build)
+      ;;
+      install)
+      ;;
+      *)
+         log_error "Unknown command \${COMMAND}\""
+         clean_usage 
+      ;;
+   esac
+
+   clean_execute "$@"
 }
 
-main "$@"

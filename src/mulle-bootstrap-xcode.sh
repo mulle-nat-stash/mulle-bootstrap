@@ -27,21 +27,17 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #
+MULLE_BOOTSTRAP_XCODE_SH="included"
 
 # this script patches the xcodeproj so that the headers and
 # lib files can be added in a sensible order
 #
 
-. mulle-bootstrap-local-environment.sh
-. mulle-bootstrap-brew.sh
-
-if [ "`uname`" != 'Darwin' ]
-then
-   fail "for now xcode only works on OS X"
-fi
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
 
 
-usage()
+xcode_usage()
 {
    cat <<EOF >&2
 usage:
@@ -50,31 +46,8 @@ usage:
    add      : add settings to Xcode project (default)
    remove   : remove settings from Xcode project
 EOF
-}
-
-
-check_and_usage_and_help()
-{
-case "$COMMAND" in
-   add)
-   ;;
-   remove)
-   ;;
-   *)
-   usage >&2
    exit 1
-   ;;
-esac
 }
-
-
-COMMAND="${1:-add}"
-[ $# -eq 0 ] || shift
-PROJECT="$1"
-[ $# -eq 0 ] || shift
-
-
-check_and_usage_and_help
 
 
 list_configurations()
@@ -404,13 +377,30 @@ Release"
 }
 
 
-main()
+xcode_main()
 {
    log_fluff "::: xcode :::"
 
+   if [ "${UNAME}" != 'Darwin' ]
+   then
+      fail "for now xcode only works on OS X"
+   fi
+
+   COMMAND="${1:-add}"
+   [ $# -eq 0 ] || shift
+   PROJECT="$1"
+   [ $# -eq 0 ] || shift
+
+   case "$COMMAND" in
+      add)
+      ;;
+      remove)
+      ;;
+      *)
+         log_error "Unknown command \"${COMMAND}\""
+         xcode_usage 
+      ;;
+   esac
+
    patch_xcode_project "$@"
 }
-
-
-main "$@"
-

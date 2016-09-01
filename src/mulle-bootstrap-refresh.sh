@@ -28,6 +28,7 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_REFRESH_SH="included"
 
 #
 # this script installs the proper git clones into "clones"
@@ -35,12 +36,12 @@
 # You can also specify a list of "brew" dependencies. That
 # will be third party libraries, you don't tag or debug
 #
-. mulle-bootstrap-local-environment.sh
-. mulle-bootstrap-auto-update.sh
-. mulle-bootstrap-dependency-resolve.sh
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
+[ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
 
 
-usage()
+refresh_usage()
 {
    cat <<EOF >&2
 usage:
@@ -49,45 +50,9 @@ usage:
    refresh      : update settings, remove unused repositories (default)
    nonrecursive : ignore .bootstrap folders of fetched repositories
 EOF
+   exit 1
 }
 
-
-while :
-do
-   if [ "$1" = "-h" -o "$1" = "--help" ]
-   then
-      usage >&2
-      exit 1
-   fi
-
-   break
-done
-
-
-if [ -z "${COMMAND}" ]
-then
-   COMMAND=${1:-"refresh"}
-   [ $# -eq 0 ] || shift
-fi
-
-if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
-then
-   COMMAND="refresh"
-fi
-
-
-case "$COMMAND" in
-   refresh)
-      ;;
-   nonrecursive)
-     DONT_RECURSE="YES"
-      ;;
-
-   *)
-      usage >&2
-      exit 1
-      ;;
-esac
 
 #
 #
@@ -589,9 +554,45 @@ refresh_deeply_embedded_repositories()
 
 # -------------------
 
-main()
+refresh_main()
 {
    log_fluff "::: refresh :::"
+
+   while :
+   do
+      if [ "$1" = "-h" -o "$1" = "--help" ]
+      then
+         refresh_usage
+      fi
+
+      break
+   done
+
+
+   if [ -z "${COMMAND}" ]
+   then
+      COMMAND=${1:-"refresh"}
+      [ $# -eq 0 ] || shift
+   fi
+
+   if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
+   then
+      COMMAND="refresh"
+   fi
+
+
+   case "$COMMAND" in
+      refresh)
+      ;;
+      nonrecursive)
+         DONT_RECURSE="YES"
+      ;;
+
+      *)
+         log_error "Unknown command \"${COMMAND}\""
+         refresh_usage
+      ;;
+   esac
 
    #
    # remove .auto because it's contents are stale now
@@ -603,21 +604,20 @@ main()
 
    if [ "${DONT_RECURSE}" = "" ]
    then
-      log_fluff "Refreshing repository settings"
+      log_verbose "Refreshing repository settings"
       refresh_repositories_settings
    fi
 
-   log_fluff "Detect zombie repositories"
+   log_verbose "Detect zombie repositories"
    refresh_repositories
 
-   log_fluff "Detect embedded zombie repositories"
+   log_verbose "Detect embedded zombie repositories"
    refresh_embedded_repositories
 
    if [ "${DONT_RECURSE}" = "" ]
    then
-      log_fluff "Detect deeply embedded zombie repositories"
+      log_verbose "Detect deeply embedded zombie repositories"
       refresh_deeply_embedded_repositories
    fi
 }
 
-main "$@"

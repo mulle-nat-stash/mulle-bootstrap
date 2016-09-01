@@ -30,8 +30,9 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 #
 #
+MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH="included"
 
-. mulle-bootstrap-array.sh
+[ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 
 
 _dependency_resolve()

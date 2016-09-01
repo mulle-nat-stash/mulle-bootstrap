@@ -28,12 +28,13 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH="included"
 
-EXEC_VERSION=2.0  # paranoia
+MULLE_BOOTSTRAP_EXEC_VERSION=2.0  # paranoia
 
-if [ "${EXEC_VERSION}" != "${VERSION}" ]
+if [ "${MULLE_BOOTSTRAP_EXEC_VERSION}" != "${MULLE_BOOTSTRAP_VERSION}" ]
 then
-   echo "mulle-bootstrap is misinstalled (${EXEC_VERSION} vs ${VERSION})" >&2
+   echo "mulle-bootstrap is misinstalled (${MULLE_BOOTSTRAP_EXEC_VERSION} vs ${MULLE_BOOTSTRAP_VERSION})" >&2
    exit 1
 fi
 
@@ -46,7 +47,8 @@ then
    BOOTSTRAP_SUBDIR=.bootstrap
 fi
 
-. mulle-bootstrap-settings.sh
+[ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
 
 
 MULLE_BOOTSTRAP_TRACE="`read_config_setting "trace"`"
@@ -151,3 +153,23 @@ export ADDICTION_SUBDIR
 export HEADER_DIR_NAME
 export LIBRARY_DIR_NAME
 export FRAMEWORK_DIR_NAME
+
+
+UNAME="`uname`"
+log_fluff "${UNAME} detected"
+
+# get number of cores, use 50% more for make -j
+case "${UNAME}" in
+   MINGW*)
+      setup_mingw_environment
+
+      PATH_SEPARATOR=';'
+   ;;
+
+   *)
+      CORES="`get_core_count`"
+      CORES="`expr $CORES + $CORES / 2`"
+
+      PATH_SEPARATOR=':'
+      ;;
+esac

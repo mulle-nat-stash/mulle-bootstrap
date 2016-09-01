@@ -29,6 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 #
+MULLE_BOOTSTRAP_ARRAY_SH="included"
 
 # declare "fail" outside
 # array contents can contain any characters except newline

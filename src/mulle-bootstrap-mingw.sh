@@ -27,84 +27,65 @@
 #   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-#
-MULLE_BOOTSTRAP_GCC_SH="included"
+#   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_MINGW_SH="included"
 
-gcc_sdk_parameter()
+
+find_msvc_linker()
 {
-   local sdk
+   local exe
 
-   sdk="$1"
+   exe="${1:-link.exe}"
 
-   local sdkpath
-   if [ "`uname`" = "Darwin" ]
-   then
-      if [ "${sdk}" = "Default" ]
-      then
-         sdkpath="`xcrun --show-sdk-path`"
-      else
-         sdkpath="`xcrun --sdk "${sdk}" --show-sdk-path`"
-      fi
-      if [ "${sdkpath}" = "" ]
-      then
-         fail "SDK \"${sdk}\" is not installed"
-      fi
-      echo "${sdkpath}"
-   fi
-}
+   local path
+   local old
+   local linker
 
+   old="${IFS}"
+   IFS=":"
 
-# Mash some known settings from xcodebuild together for regular
-# OTHER_CFLAGS
-# WARNING_CFLAGS
-# GCC_PREPROCESSOR_DEFINITIONS
-
-gcc_cflags_value()
-{
-   local value
-   local result
-   local name
-   local i
-
-   name="${1}"
-
-   result="`read_build_setting "${name}" "OTHER_CFLAGS"`"
-   value="`read_build_setting "${name}"  "WARNING_CFLAGS"`"
-   result="`concat "$result" "$value"`"
-   for i in `read_build_setting "${name}" "GCC_PREPROCESSOR_DEFINITIONS"`
+   for path in $PATH
    do
-      result="`concat "$result" "-D${i}"`"
+      case "${path}" in
+         /usr/*|/bin)
+            continue;
+         ;;
+
+         *)
+            linker="${path}/${exe}"
+            if [ -x "${linker}" ]
+            then
+               log_verbose "MSVC linker found as ${C_RESET}${linker}"
+               echo "${linker}"
+               break
+            fi
+         ;;
+      esac
    done
 
-   echo "${result}"
+   IFS="${old}"
 }
 
 
-gcc_cppflags_value()
+#
+# fix path fckup
+#
+setup_mingw_environment()
 {
-   local value
-   local result
-   local name
+	local linker
 
-   name="${1}"
+   if [ -z "${LIBPATH}" -o  -z "${INCLUDE}" ] && [ -z "${DONT_USE_VS}" ]
+   then
+      fail "environment variables INCLUDE and LIBPATH not set, start MINGW inside IDE environment"
+   fi
 
-   result="`read_build_setting "${name}" "OTHER_CPPFLAGS"`"
-   value="`gcc_cflags_value "${name}"`"
-   result="`concat "$result" "$value"`"
-
-   echo "${result}"
+	linker="`find_msvc_linker`"
+	if [ ! -z "${linker}" ]
+	then
+		#LD="${linker}"
+		#export LD
+		# log_fluff "Environment ${C_INFO}LD${C_FLUFF} variable set to ${C_RESET}${LD}"
+		:
+	fi
 }
-
-
-gcc_ldflags_value()
-{
-   local result
-   local name
-
-   name="${1}"
-   result="`read_build_setting "${name}" "OTHER_LDFLAGS"`"
-
-   echo "${result}"
-}
-
 

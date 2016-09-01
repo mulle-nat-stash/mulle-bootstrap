@@ -29,8 +29,8 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-VERSION=2.0
-export VERSION
+MULLE_BOOTSTRAP_VERSION=2.0
+export MULLE_BOOTSTRAP_VERSION
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -38,7 +38,7 @@ export VERSION
 #
 BOOTSTRAP_SUBDIR=.bootstrap
 
-PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/addictions/bin:$PATH"
+PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/dependencies/bin:`pwd -P`/addictions/bin:$PATH"
 export PATH
 
 MULLE_BOOTSTRAP_PID="$$"
@@ -111,38 +111,35 @@ do
    case "$1" in
       -a)
          MULLE_BOOTSTRAP_ANSWER="NO"
-         export MULLE_BOOTSTRAP_ANSWER
-      ;;
+         export MULLE_BOOTSTRAP_ANSWER  # override settings with environment
+       ;;
 
       -y)
          MULLE_BOOTSTRAP_ANSWER="YES"
-         export MULLE_BOOTSTRAP_ANSWER
+         export MULLE_BOOTSTRAP_ANSWER  # override settings with environment
       ;;
 
+      -f) 
+         MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
+      ;;
 
       -n)
          MULLE_BOOTSTRAP_DRY_RUN="YES"
-         export MULLE_BOOTSTRAP_DRY_RUN
       ;;
 
       -tm)
          MULLE_BOOTSTRAP_TRACE_MERGE="YES"
-         export MULLE_BOOTSTRAP_TRACE_MERGE
       ;;
 
       -t)
          MULLE_BOOTSTRAP_TRACE="1848"
-         export MULLE_BOOTSTRAP_TRACE
-
+         export MULLE_BOOTSTRAP_TRACE  # override settings with environment
          COPYMOVEFLAGS="-v"
-         export COPYMOVEFLAGS
          GITFLAGS="-v"
-         export GITFLAGS
       ;;
 
       -V)
          MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
-         export MULLE_BOOTSTRAP_VERBOSE_BUILD
       ;;
 
 
@@ -150,51 +147,45 @@ do
          if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
          then
             MULLE_BOOTSTRAP_TRACE="VERBOSE"
-            export MULLE_BOOTSTRAP_TRACE
+            export MULLE_BOOTSTRAP_TRACE  # override settings with environment
          fi
 
          COPYMOVEFLAGS="-v"
-         export COPYMOVEFLAGS
          GITFLAGS="-v"
-         export GITFLAGS
       ;;
 
       -vv)
          if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
          then
             MULLE_BOOTSTRAP_TRACE="FLUFF"
-            export MULLE_BOOTSTRAP_TRACE
+            export MULLE_BOOTSTRAP_TRACE  # override settings with environment
          fi
 
          COPYMOVEFLAGS="-v"
-         export COPYMOVEFLAGS
          GITFLAGS="-v"
-         export GITFLAGS
       ;;
 
       -vvv)
          if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
          then
             MULLE_BOOTSTRAP_TRACE="TRACE"
-            export MULLE_BOOTSTRAP_TRACE
+            export MULLE_BOOTSTRAP_TRACE  # override settings with environment
          fi
 
          COPYMOVEFLAGS="-v"
-         export COPYMOVEFLAGS
          GITFLAGS="-v"
-         export GITFLAGS
       ;;
 
       -s)
          MULLE_BOOTSTRAP_TRACE=
+         export MULLE_BOOTSTRAP_TRACE  # override settings with environment
          MULLE_BOOTSTRAP_TERSE="YES"
-         export MULLE_BOOTSTRAP_TERSE
-
+         export MULLE_BOOTSTRAP_TERSE  # override settings with environment
          GITFLAGS="-q"
-         export GITFLAGS
       ;;
 
       -*)
+         log_error "unknown option \"$1\""
          usage
       ;;
 
@@ -228,24 +219,29 @@ EOF
       . install.sh "$@"
       exit 0
    else
-      mulle-bootstrap-warn-scripts.sh "${BOOTSTRAP_SUBDIR}" || exit 1
+      . mulle-bootstrap-warn-scripts.sh 
+
+      warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
    fi
 
-   COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
+   . mulle-bootstrap-refresh.sh 
+   . mulle-bootstrap-fetch.sh  
+   . mulle-bootstrap-build.sh 
+
+   COMMAND="refresh" refresh_main || exit 1
 
    if [ "${DONT_RECURSE}" = "" ]
    then
-      mulle-bootstrap-fetch.sh || exit 1
+      COMMAND="install" fetch_main "$@" || exit 1
    else
-      mulle-bootstrap-fetch.sh nonrecursive  || exit 1
+      COMMAND="install" fetch_main nonrecursive "$@" || exit 1
    fi
 
    # do it again now!
 
-   COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
-   mulle-bootstrap-build.sh  || exit 1
+   COMMAND="refresh" refresh_main || exit 1
+   COMMAND="build "build_main "$@" || exit 1
 }
-
 
 
 main()
@@ -283,61 +279,88 @@ main()
 
       # experimental stuff
       project)
-         mulle-bootstrap-project.sh "$@" || exit 1
+         . mulle-bootstrap-project.sh 
+
+         COMMAND="${command}" project_main"$@" || exit 1
       ;;
 
       install)
-         mulle-bootstrap-install.sh "$@" || exit 1
+         . mulle-bootstrap-install.sh 
+
+         COMMAND="${command}" install_main"$@" || exit 1
       ;;
 
       build)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
-         COMMAND="${command}" mulle-bootstrap-build.sh "$@" || exit 1
+         . mulle-bootstrap-refresh.sh 
+         . mulle-bootstrap-build.sh 
+
+         COMMAND="refresh" refresh_main || exit 1
+         COMMAND="${command}" build_main "$@" || exit 1
       ;;
 
       refresh)
-         COMMAND="${command}" mulle-bootstrap-refresh.sh || exit 1
+         . mulle-bootstrap-refresh.sh 
+
+         COMMAND="refresh" refresh_main || exit 1
       ;;
 
       clean)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
-         mulle-bootstrap-clean.sh "$@" || exit 1
+         . mulle-bootstrap-refresh.sh 
+         . mulle-bootstrap-clean.sh 
+
+         COMMAND="refresh" refresh_main || exit 1
+         COMMAND="${command}" clean_main "$@" || exit 1
       ;;
 
       dist-clean)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
-         mulle-bootstrap-clean.sh "dist"  || exit 1
+         . mulle-bootstrap-refresh.sh 
+         . mulle-bootstrap-clean.sh 
+
+         COMMAND="refresh" refresh_main || exit 1
+         COMMAND="clean" clean_main "dist" || exit 1
       ;;
 
       fetch)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh  || exit 1
-         DONT_ASK_AFTER_WARNING=YES mulle-bootstrap-fetch.sh "$@" || exit 1
+         . mulle-bootstrap-refresh.sh 
+         . mulle-bootstrap-fetch.sh 
+
+         COMMAND="refresh" refresh_main || exit 1
+         COMMAND="install" DONT_ASK_AFTER_WARNING=YES fetch_main "$@" || exit 1
       ;;
 
       update)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
-         COMMAND="${command}" mulle-bootstrap-fetch.sh "$@" || exit 1
+         . mulle-bootstrap-fetch.sh 
+
+         COMMAND="${command}" fetch_main "$@" || exit 1
       ;;
 
       init)
-         mulle-bootstrap-init.sh "$@" || exit 1
+         . mulle-bootstrap-init.sh
+         COMMAND="${command}" init_main "$@" || exit 1
       ;;
 
       setup-xcode|xcode)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
-         mulle-bootstrap-xcode.sh "$@"|| exit 1
+         . mulle-bootstrap-refresh.sh 
+         . mulle-bootstrap-xcode.sh 
+
+         COMMAND="refresh" refresh_main || exit 1
+         COMMAND="xcode" xcode_main "$@" || exit 1
       ;;
 
       tag)
-         COMMAND="refresh" mulle-bootstrap-refresh.sh || exit 1
-         mulle-bootstrap-tag.sh "$@" || exit 1
+         . mulle-bootstrap-refresh.sh 
+         . mulle-bootstrap-tag.sh 
+
+         COMMAND="refresh" refresh_main || exit 1
+         COMMAND="${command}" tag_main  "$@" || exit 1
       ;;
 
       version)
-         echo "${VERSION}" || exit 1
+         echo "${MULLE_BOOTSTRAP_VERSION}" || exit 1
       ;;
 
       *)
+         log_error "Unknown command \"${command}\""
          usage
       ;;
       esac

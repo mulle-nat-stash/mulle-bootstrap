@@ -29,9 +29,11 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_WARN_SCRIPTS_SH="included"
 
-. mulle-bootstrap-functions.sh
-. mulle-bootstrap-settings.sh
+
+[ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+[ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
 
 warn_scripts()
@@ -114,7 +116,7 @@ now."
 }
 
 
-main()
+warn_scripts_main()
 {
    local  x
 
@@ -126,5 +128,3 @@ main()
       log_fluff "Script checking by autoanswer YES disabled"
    fi
 }
-
-main "$@"

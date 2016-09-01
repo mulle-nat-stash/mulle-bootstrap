@@ -28,6 +28,7 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_TAG_SH="included"
 
 
 # tag this project, and all cloned dependencies
@@ -35,11 +36,11 @@
 # based on the tag
 #
 
-. mulle-bootstrap-local-environment.sh
-. mulle-bootstrap-scripts.sh
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
 
-usage()
+tag_usage())
 {
    cat <<EOF >&2
 usage:
@@ -50,50 +51,9 @@ usage:
 
    tag          : the tag for your fetched repositories
 EOF
+   exit 1
 }
 
-
-GIT_FLAGS=
-TAG_OPERATION="tag"
-
-
-while :
-do
-   if [ "$1" = "-h" -o "$1" = "--help" ]
-   then
-      usage >&2
-      exit 1
-   fi
-
-   if [ "$1" = "-f" ]
-   then
-      GIT_FLAGS="${GIT_FLAGS} ${1}"
-      TAG_OPERATION="force tag"
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   if [ "$1" = "-d" ]
-   then
-      GIT_FLAGS="${GIT_FLAGS} ${1}"
-      TAG_OPERATION="delete the tag of"
-      [ $# -eq 0 ] || shift
-      continue
-   fi
-
-   break
-done
-
-
-TAG=${1}
-[ $# -eq 0 ] || shift
-
-
-if [ -z "${TAG}" ]
-then
-   usage >&2
-   exit 1
-fi
 
 
 
@@ -224,11 +184,50 @@ tag()
 }
 
 
-main()
+main_tag()
 {
-   log_verbose "::: tag :::"
+   log_fluff "::: tag :::"
 
-   ensure_consistency
+   GIT_FLAGS=
+   TAG_OPERATION="tag"
+
+   while :
+   do
+      if [ "$1" = "-h" -o "$1" = "--help" ]
+      then
+         tag_usage
+      fi
+
+      if [ "$1" = "-f" ]
+      then
+         GIT_FLAGS="${GIT_FLAGS} ${1}"
+         TAG_OPERATION="force tag"
+         [ $# -eq 0 ] || shift
+         continue
+      fi
+
+      if [ "$1" = "-d" ]
+      then
+         GIT_FLAGS="${GIT_FLAGS} ${1}"
+         TAG_OPERATION="delete the tag of"
+         [ $# -eq 0 ] || shift
+         continue
+      fi
+
+      break
+   done
+
+
+   TAG=${1}
+   [ $# -eq 0 ] || shift
+
+   if [ -z "${TAG}" ]
+   then
+      tag_usage
+   fi
+
+   [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
+
    if [ -z "${GIT_FLAGS}" ]
    then
       ensure_tags_unknown "${CLONES_SUBDIR}" "${TAG}"
@@ -249,5 +248,3 @@ main()
 
    run_fetch_settings_script "pre-tag"
 }
-
-main "$@"

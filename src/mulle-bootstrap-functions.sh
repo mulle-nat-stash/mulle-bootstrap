@@ -29,6 +29,8 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
+MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
+
 # Escape sequence and resets, should use tput here instead of ANSI
 
 if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
@@ -889,6 +891,11 @@ run_script()
    if [ -x "${script}" ]
    then
       log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
+      if [ "${MULLE_BOOTSTRAP_TRACE}" = "YES" ]
+      then
+         log_trace "Environment:"
+         env >&2
+      fi
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]
@@ -973,7 +980,7 @@ Or do you feel lucky ?
    ${C_RESET_BOLD}rm $owd/${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
 and try again. But you've gotta ask yourself one question: Do I feel lucky ?
 Well, do ya, punk?
-(Same difference: if you are in \"${owd}\", ${C_RESET_BOLD}mulle-bootstrap fetch -f{C_ERROR})"
+(Same difference: if you are in \"${owd}\", ${C_RESET_BOLD}mulle-bootstrap fetch -f${C_ERROR})"
       exit 1
    fi
 }
@@ -1082,6 +1089,3 @@ add_line()
 ${line}"
    fi
 }
-
-
-## 962: getting close to 1000 here

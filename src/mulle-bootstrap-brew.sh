@@ -28,6 +28,7 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_BREW_SH="included"
 
 
 #
@@ -102,7 +103,7 @@ brew_update_if_needed()
       stale="`find "${last_update}" -mtime +1 -type f -exec echo '{}' \;`"
       if [ -f "${last_update}" -a "$stale" = "" ]
       then
-         log_fluff "brew seems to be up to date"
+         log_verbose "brew seems to be up to date"
          return 0
       fi
    fi

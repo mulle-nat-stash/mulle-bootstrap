@@ -28,36 +28,38 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_INIT_SH="included"
 
-. mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+
 
 #
 # this script creates a .bootstrap folder with some
 # demo files.
 #
-if [ "$1" = "-h" -o "$1" = "--help" ]
-then
-   echo "usage:
-  mulle_bootstrap init" >&2
-   exit 1
-fi
-
-BOOTSTRAP_SUBDIR=.bootstrap
 
 
-CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
-CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
-
-
-if [ -d "${BOOTSTRAP_SUBDIR}" ]
-then
-   log_warning "\"${BOOTSTRAP_SUBDIR}\" already exists"
-   exit 1
-fi
-
-
-main()
+main_init()
 {
+  if [ "$1" = "-h" -o "$1" = "--help" ]
+  then
+     echo "usage:
+mulle_bootstrap init" >&2
+     exit 1
+  fi
+
+  BOOTSTRAP_SUBDIR=.bootstrap
+
+  CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
+  CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
+
+
+  if [ -d "${BOOTSTRAP_SUBDIR}" ]
+  then
+     log_warning "\"${BOOTSTRAP_SUBDIR}\" already exists"
+     exit 1
+  fi
+
    project=""
    for i in *.xcodeproj/project.pbxproj
    do
@@ -146,7 +148,7 @@ EOF
 
    if [ "${CREATE_EXAMPLE_FILES}" = "YES" ]
    then
-      log_fluff "Create example repository settings"
+      log_verbose "Create example repository settings"
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin"
 
@@ -219,5 +221,3 @@ EOF
      exekutor $editor "${BOOTSTRAP_SUBDIR}/repositories"
   fi
 }
-
-main "$@"

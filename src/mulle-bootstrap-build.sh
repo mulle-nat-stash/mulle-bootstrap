@@ -27,43 +27,15 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_BUILD_SH="included"
 
-. mulle-bootstrap-local-environment.sh
-. mulle-bootstrap-gcc.sh
-. mulle-bootstrap-scripts.sh
-
-
-
-CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
-CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
-N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
-
-UNAME="`uname`"
-# get number of cores, use 50% more for make -j
-case "${UNAME}" in
-   MINGW*)
-      if [ -z "${LIBPATH}" -o  -z "${INCLUDE}" ] && [ -z "${DONT_USE_VS}" ]
-      then
-         fail "environment variables INCLUDE and LIBPATH not set, start MINGW inside IDE environment"
-      fi
-
-      BUILD_PWD_OPTIONS="-PW"
-      PATH_SEPARATOR=';'
-      export PATH_SEPARATOR
-      :
-   ;;
-
-   *)
-      BUILD_PWD_OPTIONS="-P"
-      CORES="`get_core_count`"
-      CORES="`expr $CORES + $CORES / 2`"
-      PATH_SEPARATOR=':'
-      export PATH_SEPARATOR
-      ;;
-esac
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
+[ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
 
 
-usage()
+build_usage()
 {
    local defk
    local defc
@@ -83,6 +55,7 @@ usage()
 usage:
    mulle-bootstrap build [-ck] [repos]*
 
+   -f         :  override dirty harry check
    -k         :  don't clean before building $defk
    -K         :  always clean before building $defkk
    -c <name>  :  configurations to build ($defc)
@@ -107,51 +80,6 @@ EOF
    (cd "${CLONES_SUBDIR}" ; ls -1 ) 2> /dev/null
 }
 
-
-while :
-do
-   case "$1" in
-      -K)
-         CLEAN_BEFORE_BUILD="YES"
-      ;;
-
-      -k)
-         CLEAN_BEFORE_BUILD=
-      ;;
-
-
-      -j)
-         case "${UNAME}" in
-            MINGW*)
-               usage
-            ;;
-         esac
-
-         shift
-         [ $# -ne 0 ] || fail "core count missing"
-
-         CORES="$1"
-         ;;
-
-      -c)
-         shift
-         [ $# -ne 0 ] || fail "core count missing"
-
-         CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
-         ;;
-
-      -*)
-         usage
-      ;;
-
-      ""|*)
-         break
-      ;;
-   esac
-
-   shift
-   continue
-done
 
 
 #
@@ -228,7 +156,7 @@ dispense_binaries()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${depend_subdir}${subpath}"
 
-         log_fluff "Copying \"${src}\" to \"${dst}\""
+         log_verbose "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
             exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}"
@@ -264,7 +192,7 @@ collect_and_dispense_product()
       return 0
    fi
 
-   log_fluff "Collecting and dispensing \"${name}\" \"`basename -- "${build_subdir}"`\" products "
+   log_verbose "Collecting and dispensing \"${name}\" \"`basename -- "${build_subdir}"`\" products "
 
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref
@@ -351,7 +279,7 @@ collect_and_dispense_product()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
 
-         log_fluff "Copying everything from \"${src}\" to \"${dst}\""
+         log_verbose "Copying everything from \"${src}\" to \"${dst}\""
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -print0 | \
                exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
@@ -660,7 +588,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    logfile1="`build_log_name "cmake" "${name}" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
 
-   log_fluff "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
+   log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
    local local_make_flags
 
@@ -914,7 +842,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    logfile1="`build_log_name "configure" "${name}" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
 
-   log_fluff "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
+   log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
    local owd
    local nativewd
@@ -978,8 +906,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       local prefixbuild
       local dependenciesdir
+      local linker
 
-      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
+      pathrefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
       dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
 
       case "${UNAME}" in
@@ -1311,7 +1240,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
    logfile="`build_log_name "${toolname}" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
-   log_fluff "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
+   log_verbose "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
    set -f
 
@@ -1652,7 +1581,7 @@ build()
 
    [ "${name}" != "${CLONES_SUBDIR}" ] || internal_fail "missing repo argument (${srcdir})"
 
-   log_fluff "Building ${name} ..."
+   log_verbose "Building ${name} ..."
    
    local preferences
 
@@ -1858,9 +1787,6 @@ build_wrapper()
       rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
    fi
 
-   export BUILD_DEPENDENCY_SUBDIR
-   export REFERENCE_DEPENDENCY_SUBDIR
-   export REFERENCE_ADDICTION_SUBDIR
 
    #
    # move dependencies we have so far away into safety,
@@ -1962,7 +1888,6 @@ build_clones()
    # and maybe later hgs
    #
    BUILT=
-   export BUILT
 
    if [ "$#" -eq 0 ]
    then
@@ -2086,11 +2011,66 @@ install_tars()
 }
 
 
-main()
+build_main()
 {
    local  clean
 
-   log_verbose "::: build :::"
+   log_fluff "::: build :::"
+
+   CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
+   CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
+   N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
+
+
+   while :
+   do
+      case "$1" in
+         -K)
+            CLEAN_BEFORE_BUILD="YES"
+         ;;
+
+         -k)
+            CLEAN_BEFORE_BUILD=
+         ;;
+
+         -f) 
+            MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
+         ;;
+
+         -j)
+            case "${UNAME}" in
+               MINGW*)
+                  build_usage
+               ;;
+            esac
+
+            shift
+            [ $# -ne 0 ] || fail "core count missing"
+
+            CORES="$1"
+            ;;
+
+         -c)
+            shift
+            [ $# -ne 0 ] || fail "core count missing"
+
+            CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
+            ;;
+
+         -*)
+            log_error "unknown option $1"
+            build_usage
+         ;;
+
+         ""|*)
+            break
+         ;;
+      esac
+
+      shift
+      continue
+   done
+
 
    #
    # START
@@ -2101,7 +2081,7 @@ main()
       return 0
    fi
 
-   ensure_consistency
+   [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
 
    if [ $# -eq 0 ]
    then
@@ -2137,4 +2117,4 @@ main()
    fi
 }
 
-main "$@"
+

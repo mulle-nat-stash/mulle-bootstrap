@@ -12,6 +12,10 @@ gems, mulle-bootstrap can now claim to do only project relative installs.
 * You can now specify ALL (always YES) or NONE (always NO) at the y/n prompt.
 * Support for MINGW (Windows) for cmake (experimental)
 * Finally added a proper dependency resolver
+* -f option now recognized by build and fetch
+* rewrote mulle-bootstrap so that the files in libexec are included and not
+executed, which is nicer for less environment pollution and ever so slightly 
+better performance.
 
 
 1.1
