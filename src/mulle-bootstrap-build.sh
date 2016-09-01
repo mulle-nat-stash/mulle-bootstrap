@@ -2021,7 +2021,6 @@ build_main()
    CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
    N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
-
    while :
    do
       case "$1" in
@@ -2116,5 +2115,3 @@ build_main()
       log_fluff "No dependencies have been generated"
    fi
 }
-
-

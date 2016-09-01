@@ -299,7 +299,7 @@ main()
          . mulle-bootstrap-build.sh 
 
          refresh_main || exit 1
-         build_main build "$@" || exit 1
+         build_main "$@" || exit 1
       ;;
 
       refresh)
