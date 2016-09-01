@@ -6,7 +6,7 @@
 if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
 then
    case `uname` in
-      Darwin|Linux|FreeBSD)
+      Darwin|Linux|FreeBSD|MINGW*)
          # Escape sequence and resets
          C_RESET="\033[0m"
 
@@ -136,6 +136,17 @@ do
    chmod "${mode}" "${bin}/${i}" || exit 1
    printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
 done
+
+case `uname` in
+   MINGW*)
+      for i in mulle-mingw-*
+      do
+         sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
+         chmod "${mode}" "${bin}/${i}" || exit 1
+         printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
+      done
+   ;;
+esac
 
 
 for i in src/mulle*.sh

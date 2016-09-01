@@ -28,18 +28,22 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+#
 MULLE_BOOTSTRAP_MINGW_SH="included"
 
+[ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
-find_msvc_linker()
+find_msvc_executable()
 {
    local exe
+   local name
 
-   exe="${1:-link.exe}"
+   exe="${1:-cl.exe}"
+   name="${2:-compiler}"
 
    local path
    local old
-   local linker
+   local compiler
 
    old="${IFS}"
    IFS=":"
@@ -52,11 +56,11 @@ find_msvc_linker()
          ;;
 
          *)
-            linker="${path}/${exe}"
-            if [ -x "${linker}" ]
+            executable="${path}/${exe}"
+            if [ -x "${executable}" ]
             then
-               log_verbose "MSVC linker found as ${C_RESET}${linker}"
-               echo "${linker}"
+               log_fluff "MSVC ${name} found as ${C_RESET}${executable}"
+               echo "${executable}"
                break
             fi
          ;;
@@ -79,13 +83,26 @@ setup_mingw_environment()
       fail "environment variables INCLUDE and LIBPATH not set, start MINGW inside IDE environment"
    fi
 
-	linker="`find_msvc_linker`"
+	linker="`find_msvc_executable "link.exe" "linker"`"
 	if [ ! -z "${linker}" ]
 	then
-		#LD="${linker}"
-		#export LD
-		# log_fluff "Environment ${C_INFO}LD${C_FLUFF} variable set to ${C_RESET}${LD}"
-		:
-	fi
+		LD="${linker}"
+		export LD
+		log_verbose "Environment variable ${C_INFO}LD${C_FLUFF} set to ${C_RESET}\"${LD}\""
+   else
+      log_fluff "MSVC link.exe not found"
+   fi
+
+   local preprocessor
+
+	preprocessor="`find_msvc_executable "mulle-mingw-cpp.exe" "preprocessor"`"
+	if [ ! -z "${preprocessor}" ]
+	then
+		CPP="${preprocessor}"  
+		export CPP
+		log_verbose "Environment variable ${C_INFO}CPP${C_FLUFF} set to ${C_RESET}\"${CPP}\""
+	else
+      log_fluff "mulle-mingw-cpp.exe not found"
+   fi
 }
 

@@ -131,6 +131,10 @@ do
          MULLE_BOOTSTRAP_TRACE_MERGE="YES"
       ;;
 
+      -ts)
+         MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="YES"
+      ;;
+
       -t)
          MULLE_BOOTSTRAP_TRACE="1848"
          export MULLE_BOOTSTRAP_TRACE  # override settings with environment
@@ -140,6 +144,7 @@ do
 
       -V)
          MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
+         export MULLE_BOOTSTRAP_VERBOSE_BUILD
       ;;
 
 
@@ -228,19 +233,18 @@ EOF
    . mulle-bootstrap-fetch.sh  
    . mulle-bootstrap-build.sh 
 
-   COMMAND="refresh" refresh_main || exit 1
-
    if [ "${DONT_RECURSE}" = "" ]
    then
-      COMMAND="install" fetch_main "$@" || exit 1
+      refresh_main                 || exit 1
+      fetch_main install "$@"      || exit 1
    else
-      COMMAND="install" fetch_main nonrecursive "$@" || exit 1
+      refresh_main nonrecursive    || exit 1
+      fetch_main nonrecursive "$@" || exit 1
+      refresh_main nonrecursive    || exit 1
    fi
 
    # do it again now!
-
-   COMMAND="refresh" refresh_main || exit 1
-   COMMAND="build "build_main "$@" || exit 1
+   build_main "$@" || exit 1
 }
 
 
@@ -281,78 +285,79 @@ main()
       project)
          . mulle-bootstrap-project.sh 
 
-         COMMAND="${command}" project_main"$@" || exit 1
+         project_main "$@" || exit 1
       ;;
 
       install)
          . mulle-bootstrap-install.sh 
 
-         COMMAND="${command}" install_main"$@" || exit 1
+         install_main "$@" || exit 1
       ;;
 
       build)
          . mulle-bootstrap-refresh.sh 
          . mulle-bootstrap-build.sh 
 
-         COMMAND="refresh" refresh_main || exit 1
-         COMMAND="${command}" build_main "$@" || exit 1
+         refresh_main || exit 1
+         build_main build "$@" || exit 1
       ;;
 
       refresh)
          . mulle-bootstrap-refresh.sh 
 
-         COMMAND="refresh" refresh_main || exit 1
+         refresh_main "$@" || exit 1
       ;;
 
       clean)
          . mulle-bootstrap-refresh.sh 
          . mulle-bootstrap-clean.sh 
 
-         COMMAND="refresh" refresh_main || exit 1
-         COMMAND="${command}" clean_main "$@" || exit 1
+         refresh_main || exit 1
+         clean_main "$@" || exit 1
       ;;
 
       dist-clean)
          . mulle-bootstrap-refresh.sh 
          . mulle-bootstrap-clean.sh 
 
-         COMMAND="refresh" refresh_main || exit 1
-         COMMAND="clean" clean_main "dist" || exit 1
+         refresh_main || exit 1
+         clean_main "dist" || exit 1
       ;;
 
       fetch)
          . mulle-bootstrap-refresh.sh 
          . mulle-bootstrap-fetch.sh 
 
-         COMMAND="refresh" refresh_main || exit 1
-         COMMAND="install" DONT_ASK_AFTER_WARNING=YES fetch_main "$@" || exit 1
+         refresh_main || exit 1
+         DONT_ASK_AFTER_WARNING=YES fetch_main "install" "$@" || exit 1
       ;;
 
       update)
          . mulle-bootstrap-fetch.sh 
 
-         COMMAND="${command}" fetch_main "$@" || exit 1
+         fetch_main "${command}" "$@" || exit 1
       ;;
 
       init)
          . mulle-bootstrap-init.sh
-         COMMAND="${command}" init_main "$@" || exit 1
+
+        init_main "$@" || exit 1
       ;;
 
       setup-xcode|xcode)
          . mulle-bootstrap-refresh.sh 
          . mulle-bootstrap-xcode.sh 
 
-         COMMAND="refresh" refresh_main || exit 1
-         COMMAND="xcode" xcode_main "$@" || exit 1
+         refresh_main || exit 1
+         xcode_main "$@" || exit 1
       ;;
 
       tag)
          . mulle-bootstrap-refresh.sh 
          . mulle-bootstrap-tag.sh 
 
-         COMMAND="refresh" refresh_main || exit 1
-         COMMAND="${command}" tag_main  "$@" || exit 1
+         refresh_main || exit 1
+         tag_main "$@" || exit 1
       ;;
 
       version)

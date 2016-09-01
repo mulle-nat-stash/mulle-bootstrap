@@ -192,7 +192,7 @@ collect_and_dispense_product()
       return 0
    fi
 
-   log_verbose "Collecting and dispensing \"${name}\" \"`basename -- "${build_subdir}"`\" products "
+   log_verbose "Collecting and dispensing \"${name}\" products"
 
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref

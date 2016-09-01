@@ -388,6 +388,7 @@ xcode_main()
 
    COMMAND="${1:-add}"
    [ $# -eq 0 ] || shift
+
    PROJECT="$1"
    [ $# -eq 0 ] || shift
 

@@ -142,18 +142,9 @@ FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 
 
 #
-# export stuff for scripts
+# dont export stuff for scripts
+# if scripts want it, they should source this file
 #
-export CLONES_SUBDIR
-export CLONESFETCH_SUBDIR
-export CLONESBUILD_SUBDIR
-export BUILDLOG_SUBDIR
-export DEPENDENCY_SUBDIR
-export ADDICTION_SUBDIR
-export HEADER_DIR_NAME
-export LIBRARY_DIR_NAME
-export FRAMEWORK_DIR_NAME
-
 
 UNAME="`uname`"
 log_fluff "${UNAME} detected"
@@ -164,6 +155,7 @@ case "${UNAME}" in
       setup_mingw_environment
 
       PATH_SEPARATOR=';'
+      BUILD_PWD_OPTIONS="-PW"
    ;;
 
    *)
@@ -171,5 +163,6 @@ case "${UNAME}" in
       CORES="`expr $CORES + $CORES / 2`"
 
       PATH_SEPARATOR=':'
+      BUILD_PWD_OPTIONS="-P"
       ;;
 esac

@@ -1308,18 +1308,8 @@ fetch_main()
       continue
    done
 
-
-   if [ -z "${COMMAND}" ]
-   then
-      COMMAND=${1:-"install"}
-      [ $# -eq 0 ] || shift
-   fi
-
-   if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
-   then
-      COMMAND="install"
-   fi
-
+   COMMAND=${1:-"install"}
+   [ $# -eq 0 ] || shift
 
    case "$COMMAND" in
       install)
@@ -1332,7 +1322,7 @@ fetch_main()
          ;;
       *)
          log_error "unknown command \"$COMMAND\""
-         usage 
+         fetch_usage 
          ;;
    esac
 

@@ -121,7 +121,6 @@ log_trace2()
 #
 fail()
 {
-   set -x
    log_error "$@"
    kill -INT "${MULLE_BOOTSTRAP_PID}"  # kill myself (especially, if executing in subshell)
    if [ $$ -ne ${MULLE_BOOTSTRAP_PID} ]
@@ -891,10 +890,14 @@ run_script()
    if [ -x "${script}" ]
    then
       log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
-      if [ "${MULLE_BOOTSTRAP_TRACE}" = "YES" ]
+      if  [ "${MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS}" = "YES" ]
       then
-         log_trace "Environment:"
-         env >&2
+         echo "ARGV=" "$@" >&2
+         echo "DIRECTORY=$PWD/$3" >&2
+         echo "ENVIRONMENT=" >&2 
+         echo "{" >&2 
+         env | sed 's/^\(.\)/   \1/' >&2
+         echo "}" >&2 
       fi
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else

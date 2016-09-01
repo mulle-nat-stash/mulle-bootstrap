@@ -568,18 +568,8 @@ refresh_main()
       break
    done
 
-
-   if [ -z "${COMMAND}" ]
-   then
-      COMMAND=${1:-"refresh"}
-      [ $# -eq 0 ] || shift
-   fi
-
-   if [ "${MULLE_BOOTSTRAP}" = "mulle-bootstrap" ]
-   then
-      COMMAND="refresh"
-   fi
-
+   COMMAND=${1:-"refresh"}
+   [ $# -eq 0 ] || shift
 
    case "$COMMAND" in
       refresh)
