@@ -60,7 +60,7 @@ main_project()
 
    if [ "$1" = "" -o "$1" = "-h" -o "$1" = "--help" ]
    then
-      project_usage 
+      project_usage
    fi
 
    command="$1"
@@ -77,7 +77,7 @@ main_project()
    clone)
       set -e
       git clone "$1"
-      cd "`basename "$1"`"
+      cd "`basename -- "$1"`"
       mulle-bootstrap-fetch.sh || exit 1
       if [ -x "./build.sh" ]
       then

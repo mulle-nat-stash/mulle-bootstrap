@@ -122,7 +122,7 @@ ${clone}"
                   sub_repos="`_read_setting "${filename}"`"
                   if [ ! -z "${sub_repos}" ]
                   then
-                     dependency_map="`dependency_add "${dependency_map}" "**ROOT**" "${url}"`"
+                     dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${url}"`"
                      dependency_map="`dependency_add_array "${dependency_map}" "${url}" "${sub_repos}"`"
                      if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
                      then
@@ -152,7 +152,7 @@ ${clone}"
    #
    local repositories
 
-   repositories="`dependency_resolve "${dependency_map}" "**ROOT**" | fgrep -v -x "**ROOT**"`"
+   repositories="`dependency_resolve "${dependency_map}" "__ROOT__" | fgrep -v -x "__ROOT__"`"
    if [ ! -z "${repositories}" ]
    then
       if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
@@ -328,8 +328,8 @@ mark_all_embedded_repositories_zombies()
 
       for symlink in `ls -1d "${path}/"*`
       do
-         i="`readlink "$symlink"`"
-         name="`basename "$i"`"
+         i="`cat "$symlink"`"
+         name="`basename -- "$i"`"
          exekutor touch "${zombiepath}/${name}"
       done
    else

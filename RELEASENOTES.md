@@ -1,7 +1,7 @@
 2.0
 ===
 
-* Add pre-build.sh script phase for libcurl
+* Add pre-build.sh script phase (for libcurl really)
 * Brew formulas are now installed locally into "addictions". A folder which
 lies besides "dependencies". This is a pretty huge change. By removing pips and
 gems, mulle-bootstrap can now claim to do only project relative installs.
@@ -10,13 +10,16 @@ gems, mulle-bootstrap can now claim to do only project relative installs.
  more proper way, didn't work with cmake generated xcode projects.
 * reorganized repository structure a bit
 * You can now specify ALL (always YES) or NONE (always NO) at the y/n prompt.
-* Support for MINGW (Windows) for cmake (experimental)
+* Support for MINGW on Windows for cmake and configure (experimental)
 * Finally added a proper dependency resolver
 * -f option now recognized by build and fetch
 * rewrote mulle-bootstrap so that the files in libexec are included and not
-executed, which is nicer for less environment pollution and ever so slightly 
+executed, which is nicer for less environment pollution and ever so slightly
 better performance.
-
+* rewrote mulle-bootstrap so that it works on systems, which do not have
+symlinks available.  This meant that I had to redo the whole settings
+inheritance scheme.
+* -v is now more interesting to watch
 
 1.1
 ===

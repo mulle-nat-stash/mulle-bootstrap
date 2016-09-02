@@ -34,18 +34,6 @@ MULLE_BOOTSTRAP_ARRAY_SH="included"
 # declare "fail" outside
 # array contents can contain any characters except newline
 
-array_key_check()
-{
-   local n
-
-   n=`echo "$1" | wc -l`
-   [ $n -eq 0 ] && fail "empty key"
-   [ $n -ne 1 ] && fail "key \"$1\" has linebreaks"
-
-   echo "$1" | tr '>' '|'
-}
-
-
 array_value_check()
 {
    local n
@@ -93,25 +81,6 @@ array_index_check()
    [ ${i} -ge ${n} ] && fail "index ${i} out of bounds ${n}"
 
    echo "${i}"
-}
-
-
-#
-# currently escaping is provided for code "outside" of array, but it really
-# should be done within the functions (slow though)
-#
-array_escape_value()
-{
-   local text
-
-   text="`echo "$@" | sed -e 's/|/\\|/g'`"
-   /bin/echo -n "${text}" | tr '\012' '|'
-}
-
-
-array_unescape_value()
-{
-   echo "$@" | tr '|' '\012' | sed -e 's/\\$/|/g' -e '/^$/d'
 }
 
 
@@ -249,6 +218,25 @@ array_contains()
 # but be careful, that > chars are translated to |, so
 # get 'a|' and get 'a>' match
 #
+#
+# currently escaping is provided for code "outside" of array, but it really
+# should be done within the functions (slow though)
+#
+_assoc_array_key_check()
+{
+   local n
+
+   n=`echo "$1" | wc -w`
+   [ $n -eq 0 ] && fail "empty value"
+   [ $n -ne 1 ] && fail "key \"$1\" has spaces"
+
+   #
+   # escape charactes
+   # keys can't contain grep characters or '=''
+   #
+   echo "$1" | sed -e 's/[][\\.*^$=]/_/g'
+}
+
 
 _assoc_array_add()
 {
@@ -257,18 +245,18 @@ _assoc_array_add()
    local value
 
    array="$1"
-   key="`array_key_check "$2"`"
+   key="`_assoc_array_key_check "$2"`"
    value="`array_value_check "$3"`"
 
-   local value
+   local line
 
-   value="<${key}>${value}"
+   line="${key}=${value}"
    if [ -z "${array}" ]
    then
-       echo "${value}"
+       echo "${line}"
    else
        echo "${array}
-${value}"
+${line}"
    fi
 }
 
@@ -282,8 +270,8 @@ _assoc_array_remove()
 
    if [ ! -z "${array}" ]
    then
-       key="`array_key_check "$2"`"
-       echo "${array}" | fgrep -v "<${key}>"
+       key="`_assoc_array_key_check "$2"`"
+       echo "${array}" | grep -v "^${key}="
    fi
 }
 
@@ -294,9 +282,9 @@ assoc_array_get()
    local key
 
    array="$1"
-   key="`array_key_check "$2"`"
+   key="`_assoc_array_key_check "$2"`"
 
-   echo "${array}" | fgrep "<${key}>" | sed -n 's/^<.*>\(.*\)$/\1/p'
+   echo "${array}" | grep "^${key}=" | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
 
 
@@ -306,7 +294,7 @@ assoc_array_get_last()
 
    array="$1"
 
-   echo "${array}" | tail -1 | sed -n 's/^<.*>\(.*\)$/\1/p'
+   echo "${array}" | tail -1 | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
 
 
@@ -337,3 +325,41 @@ assoc_array_set()
 
    _assoc_array_add "${array}" "${key}" "${value}"
 }
+
+
+#
+# merge second array into first array
+# meaning if key in second array exists it overwrites
+# the value in the first array
+#
+assoc_array_merge_array()
+{
+   local array1
+   local array2
+
+   array="$1"
+   array="$2"
+
+   echo "${array2}" "${array1}" | sort -u -t'=' -k1,1
+}
+
+#
+# add second array into first array
+# meaning only keys in second array that don't exists in the
+# first are added
+#
+assoc_array_add_array()
+{
+   local array1
+   local array2
+
+   array="$1"
+   array="$2"
+
+   echo "${array1}" "${array2}" | sort -u -t'=' -k1,1
+}
+
+
+
+
+

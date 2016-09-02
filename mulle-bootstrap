@@ -119,7 +119,7 @@ do
          export MULLE_BOOTSTRAP_ANSWER  # override settings with environment
       ;;
 
-      -f) 
+      -f)
          MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
       ;;
 
@@ -207,53 +207,60 @@ done
 
 bootstrap()
 {
-   if [ "$1" = "-h" -o "$1" = "--help" ]
-   then
-      cat <<EOF >&2
-usage: bootstrap
-   There is nothing more to it.
+   case "$1" in
+      -h|--help)
+         cat <<EOF >&2
+usage: bootstrap <dstprefix>
+
+   dstprefix : like /usr/local
 EOF
-      exit 1
-   fi
+         exit 1
+      ;;
+   esac
 
    #
    # this is run when checking mulle-project itself out
    #
    if [ -f "src/mulle-bootstrap-local-environment.sh" -a -x install.sh ]
    then
-      . install.sh "$@"
-      exit 0
-   else
-      . mulle-bootstrap-warn-scripts.sh 
-
-      warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
+      exec install.sh "$@"
    fi
-
-   . mulle-bootstrap-refresh.sh 
-   . mulle-bootstrap-fetch.sh  
-   . mulle-bootstrap-build.sh 
-
-   if [ "${DONT_RECURSE}" = "" ]
-   then
-      refresh_main                 || exit 1
-      fetch_main install "$@"      || exit 1
-   else
-      refresh_main nonrecursive    || exit 1
-      fetch_main nonrecursive "$@" || exit 1
-      refresh_main nonrecursive    || exit 1
-   fi
-
-   # do it again now!
-   build_main "$@" || exit 1
 }
 
 
-main()
+ensure_consistency()
+{
+   local owd
+
+   owd="`pwd -P`"
+
+   if [ -f "${CLONESFETCH_SUBDIR}/.fetch_update_started" ]
+   then
+      log_error "A previous fetch or update was incomplete.
+Suggested resolution (in $owd):
+    ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
+    ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
+
+Or do you feel lucky ?
+   ${C_RESET_BOLD}rm $owd/${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
+and try again. But you've gotta ask yourself one question: Do I feel lucky ?
+Well, do ya, punk?
+(Same difference: if you are in \"${owd}\", ${C_RESET_BOLD}mulle-bootstrap fetch -f${C_ERROR})"
+      exit 1
+   fi
+}
+
+
+
+bootstrap_main()
 {
    local command
 
    command=${1:-"bootstrap"}
    [ $# -eq 0 ] || shift
+
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
 
    #
    # some commands only run when we have a .bootstrap folder
@@ -261,79 +268,87 @@ main()
    if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
    then
       case "${command}" in
-         bootstrap|nomagic|build|ibuild|refresh)
-            echo "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue" >&2
-            exit 1
-         ;;
-         dist-clean|fetch|update|setup-xcode|xcode|tag)
-            echo "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue" >&2
-            exit 1
-         ;;
+         bootstrap|nomagic|build|ibuild|refresh|dist-clean|fetch|update|setup-xcode|xcode|tag)
+            fail "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue"
       esac
    fi
 
-   case "${command}" in
-      bootstrap)
-         bootstrap "$@" || exit 1
-      ;;
+   [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
 
-      nomagic)
-         DONT_RECURSE=YES bootstrap "$@" || exit 1
+   case "${command}" in
+      bootstrap|nomagic)
+         if [ "${command}" = "nomagic" ]
+         then
+            DONT_RECURSE=YES
+         fi
+
+         . mulle-bootstrap-fetch.sh
+         . mulle-bootstrap-build.sh
+         . mulle-bootstrap-warn-scripts.sh
+
+         if [ "${DONT_RECURSE}" = "" ]
+         then
+            refresh_main                 || exit 1
+            fetch_main install "$@"      || exit 1
+         else
+            refresh_main nonrecursive    || exit 1
+            fetch_main nonrecursive "$@" || exit 1
+            refresh_main nonrecursive    || exit 1
+         fi
+
+         warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
+
+         # do it again now!
+         build_main "$@" || exit 1
       ;;
 
       # experimental stuff
       project)
-         . mulle-bootstrap-project.sh 
+         . mulle-bootstrap-project.sh
 
          project_main "$@" || exit 1
       ;;
 
       install)
-         . mulle-bootstrap-install.sh 
+         . mulle-bootstrap-install.sh
 
          install_main "$@" || exit 1
       ;;
 
       build)
-         . mulle-bootstrap-refresh.sh 
-         . mulle-bootstrap-build.sh 
+         . mulle-bootstrap-build.sh
 
          refresh_main || exit 1
          build_main "$@" || exit 1
       ;;
 
       refresh)
-         . mulle-bootstrap-refresh.sh 
-
          refresh_main "$@" || exit 1
       ;;
 
       clean)
-         . mulle-bootstrap-refresh.sh 
-         . mulle-bootstrap-clean.sh 
+         . mulle-bootstrap-clean.sh
 
          refresh_main || exit 1
          clean_main "$@" || exit 1
       ;;
 
       dist-clean)
-         . mulle-bootstrap-refresh.sh 
-         . mulle-bootstrap-clean.sh 
+         . mulle-bootstrap-clean.sh
 
          refresh_main || exit 1
          clean_main "dist" || exit 1
       ;;
 
       fetch)
-         . mulle-bootstrap-refresh.sh 
-         . mulle-bootstrap-fetch.sh 
+         . mulle-bootstrap-fetch.sh
 
          refresh_main || exit 1
          DONT_ASK_AFTER_WARNING=YES fetch_main "install" "$@" || exit 1
       ;;
 
       update)
-         . mulle-bootstrap-fetch.sh 
+         . mulle-bootstrap-fetch.sh
 
          fetch_main "${command}" "$@" || exit 1
       ;;
@@ -345,16 +360,14 @@ main()
       ;;
 
       setup-xcode|xcode)
-         . mulle-bootstrap-refresh.sh 
-         . mulle-bootstrap-xcode.sh 
+         . mulle-bootstrap-xcode.sh
 
          refresh_main || exit 1
          xcode_main "$@" || exit 1
       ;;
 
       tag)
-         . mulle-bootstrap-refresh.sh 
-         . mulle-bootstrap-tag.sh 
+         . mulle-bootstrap-tag.sh
 
          refresh_main || exit 1
          tag_main "$@" || exit 1
@@ -368,7 +381,28 @@ main()
          log_error "Unknown command \"${command}\""
          usage
       ;;
-      esac
+   esac
 }
 
-main "$@"
+
+main()
+{
+   local command
+
+   command=${1:-"bootstrap"}
+   [ $# -eq 0 ] || shift
+
+   case "${command}" in
+      bootstrap)
+         bootstrap "$@"
+      ;;
+   esac
+
+   #
+   # now setup an environment
+   #
+
+   bootstrap_main "$@"
+}
+
+main

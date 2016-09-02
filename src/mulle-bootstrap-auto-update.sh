@@ -113,8 +113,6 @@ bootstrap_auto_update()
 
       # now move it
       exekutor mv "${BOOTSTRAP_SUBDIR}.tmp" "${BOOTSTRAP_SUBDIR}.auto" || exit 1
-
-      # leave .scm files behind
    fi
 
    #
@@ -159,37 +157,31 @@ bootstrap_auto_update()
    done
    IFS="${old}"
 
-   # link scm files over, that we find
-   local relative
-
-   relative="`compute_relative "${BOOTSTRAP_SUBDIR}"`"
-   exekutor find "${directory}/.bootstrap" -xdev -mindepth 1 -maxdepth 1 -name "*.scm" -type f -print0 | \
-         exekutor xargs -0 -I % ln -s -f "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/${name}"
-
    #
-   # link up other non-inheriting settings
+   # copy up other non-inheriting settings, if there aren't already settings there
    #
-   if dir_has_files "${directory}/.bootstrap/settings"
+   local srcsettingsdir
+
+   srcsettingsdir="${directory}/.bootstrap/settings"
+
+   if dir_has_files "${srcsettingsdir}"
    then
-      local relative
+      local dstdir
+      local dstsettingsdir
 
-      log_verbose "Link up build settings of \"${name}\" to \"${BOOTSTRAP_SUBDIR}.auto/settings/${name}\""
+      dstsettingsdir="${BOOTSTRAP_SUBDIR}.auto/settings"
+      dstdir="${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
-      mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto/settings"
-      exekutor find "${directory}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type f -print0 | \
-         exekutor xargs -0 -I % ln -s -f "${relative}/../../"% "${BOOTSTRAP_SUBDIR}.auto/settings/${name}/%"
+      log_verbose "Copy build settings of \"${name}\" to \"${dstdir}\""
 
-      if [ -e "${directory}/.bootstrap/settings/bin"  ]
-      then
-         exekutor ln -s -f "${relative}/../../${directory}/.bootstrap/settings/bin" "${BOOTSTRAP_SUBDIR}.auto/settings/${name}/bin"
-      fi
+      mkdir_if_missing "${dstdir}"
 
-      #
-      # flatten other folders into our own settings
-      # don't force though, keep first
-      #
-      exekutor find "${directory}/.bootstrap/settings" -xdev -mindepth 1 -maxdepth 1 -type d -print0 | \
-         exekutor xargs -0 -I % ln -s "${relative}/../"% "${BOOTSTRAP_SUBDIR}.auto/settings/%"
+      local entry
+
+      for entry in "${srcsettingsdir}"/*
+      do
+         exekutor cp -Ran "${entry}" "${dstdir}/"
+      done
    fi
 
    log_fluff "Acquisition of ${directory} .bootstrap settings finished"

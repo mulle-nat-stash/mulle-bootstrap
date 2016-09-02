@@ -679,7 +679,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       cmakemodulepath="\${CMAKE_MODULE_PATH}"
       if [ ! -z "${CMAKE_MODULE_PATH}" ]
       then
-         cmakemodulepath="${CMAKE_MODULE_PATH}${PATH_SEPARATOR}${cmakemodulepath}"   # prepend    
+         cmakemodulepath="${CMAKE_MODULE_PATH}${PATH_SEPARATOR}${cmakemodulepath}"   # prepend
       fi
 
       local frameworkprefix
@@ -692,7 +692,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       case "${UNAME}" in
          Darwin)
-            frameworkprefix="-F"         
+            frameworkprefix="-F"
          ;;
 
          MINGW*)
@@ -952,7 +952,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       DEPENDENCIES_DIR="'${dependenciesdir}'" \
       CFLAGS="${other_cflags}" \
       CPPFLAGS="${other_cflags} ${other_cppflags}" \
-      LDFLAGS="${other_ldflags}" \ 
+      LDFLAGS="${other_ldflags}" \
       logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
           --prefix "${prefixbuild}" >> "${logfile1}" \
       || build_fail "${logfile1}" "configure"
@@ -1582,7 +1582,7 @@ build()
    [ "${name}" != "${CLONES_SUBDIR}" ] || internal_fail "missing repo argument (${srcdir})"
 
    log_verbose "Building ${name} ..."
-   
+
    local preferences
 
    #
@@ -2032,7 +2032,7 @@ build_main()
             CLEAN_BEFORE_BUILD=
          ;;
 
-         -f) 
+         -f)
             MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
          ;;
 
@@ -2079,8 +2079,6 @@ build_main()
       log_info "No repositories in \"${CLONES_SUBDIR}\", so nothing to build."
       return 0
    fi
-
-   [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
 
    if [ $# -eq 0 ]
    then

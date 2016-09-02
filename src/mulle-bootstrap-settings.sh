@@ -117,7 +117,7 @@ _read_setting()
          local os
          local name
 
-         os="`uname`"
+         os="${UNAME:-`uname`}"
          name="`basename -- "${file}" ".${os}"`"
          log_fluff "${C_MAGENTA}${C_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
       fi
@@ -129,7 +129,7 @@ _read_setting()
          local os
          local name
 
-         os="`uname`"
+         os="${UNAME:-`uname`}"
          name="`basename -- "${file}" ".${os}"`"
          if [ "${name}" = "repositories" -o "${name}" = "repositories.tmp" -o  "${name}" = "embedded_repositories" ]
          then
@@ -236,10 +236,10 @@ _read_bootstrap_setting()
    name="$1"
    shift
 
-   [ $# -gt 0 ]      || internal_fail "parameterization error"
-   [ ! -z "${name}" ] || internal_fail "missing parameters in _read_bootstrap_setting"
+   [ $# -eq 0 ]     && internal_fail "parameterization error"
+   [ -z "${name}" ] && internal_fail "missing parameters in _read_bootstrap_setting"
 
-   while [ $# -gt 0 ]
+   while [ $# -ne 0 ]
    do
       suffix="${1}"
       shift
@@ -463,7 +463,7 @@ read_fetch_setting()
    value="`_read_bootstrap_setting "${name}" ".auto" ".local"`"
    if [ $? -ne 0 ]
    then
-      os="`uname`"
+      os="${UNAME:-`uname`}"
       value="`_read_bootstrap_setting "${name}.${os}" ""`"
       if [ $? -ne 0 ]
       then

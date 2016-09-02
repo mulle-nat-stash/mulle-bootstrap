@@ -52,7 +52,7 @@ _dependency_resolve()
    local dependencies
 
    escaped_dependencies="`assoc_array_get "${map}" "${name}"`"
-   dependencies="`array_unescape_value "${escaped_dependencies}"`"
+   dependencies="`unescape_linefeeds "${escaped_dependencies}"`"
 
    UNRESOLVED_DEPENDENCIES="`array_add "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
 
@@ -103,7 +103,7 @@ dependency_add()
    local dependencies
 
    escaped_dependencies="`assoc_array_get "${map}" "${name}"`"
-   dependencies="`array_unescape_value "${escaped_dependencies}"`"
+   dependencies="`unescape_linefeeds "${escaped_dependencies}"`"
 
    if array_contains "${dependencies}" "${sub_name}"
    then
@@ -115,7 +115,7 @@ dependency_add()
    fi
 
    dependencies="`array_add "${dependencies}" "${sub_name}"`"
-   escaped_dependencies="`array_escape_value "${dependencies}"`"
+   escaped_dependencies="`escape_linefeeds "${dependencies}"`"
 
    assoc_array_set "${map}" "${name}" "${escaped_dependencies}"
 }

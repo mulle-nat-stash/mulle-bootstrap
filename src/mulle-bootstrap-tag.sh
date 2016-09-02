@@ -226,8 +226,6 @@ main_tag()
       tag_usage
    fi
 
-   [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
-
    if [ -z "${GIT_FLAGS}" ]
    then
       ensure_tags_unknown "${CLONES_SUBDIR}" "${TAG}"

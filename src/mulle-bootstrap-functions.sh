@@ -122,10 +122,13 @@ log_trace2()
 fail()
 {
    log_error "$@"
-   kill -INT "${MULLE_BOOTSTRAP_PID}"  # kill myself (especially, if executing in subshell)
-   if [ $$ -ne ${MULLE_BOOTSTRAP_PID} ]
+   if [ ! -z "${MULLE_BOOTSTRAP_PID}" ]
    then
-      kill -INT $$  # actually useful
+      kill -INT "${MULLE_BOOTSTRAP_PID}"  # kill myself (especially, if executing in subshell)
+      if [ $$ -ne ${MULLE_BOOTSTRAP_PID} ]
+      then
+         kill -INT $$  # actually useful
+      fi
    fi
    exit 1        # paranoia
    # don't ask me why the fail message is printed twice
@@ -298,7 +301,7 @@ _canonicalize_file_path()
 {
     local dir file
 
-    dir="` dirname "$1"`"
+    dir="`dirname -- "$1"`"
     file="`basename -- "$1"`"
     (cd "${dir}" 2>/dev/null && echo "`pwd -P`/${file}")
 }
@@ -894,10 +897,10 @@ run_script()
       then
          echo "ARGV=" "$@" >&2
          echo "DIRECTORY=$PWD/$3" >&2
-         echo "ENVIRONMENT=" >&2 
-         echo "{" >&2 
+         echo "ENVIRONMENT=" >&2
+         echo "{" >&2
          env | sed 's/^\(.\)/   \1/' >&2
-         echo "}" >&2 
+         echo "}" >&2
       fi
       exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
    else
@@ -966,29 +969,6 @@ ensure_clones_directory()
 }
 
 
-ensure_consistency()
-{
-   local owd
-
-   owd="`pwd -P`"
-
-   if [ -f "${CLONESFETCH_SUBDIR}/.fetch_update_started" ]
-   then
-      log_error "A previous fetch or update was incomplete.
-Suggested resolution (in $owd):
-    ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
-    ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
-
-Or do you feel lucky ?
-   ${C_RESET_BOLD}rm $owd/${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
-and try again. But you've gotta ask yourself one question: Do I feel lucky ?
-Well, do ya, punk?
-(Same difference: if you are in \"${owd}\", ${C_RESET_BOLD}mulle-bootstrap fetch -f${C_ERROR})"
-      exit 1
-   fi
-}
-
-
 get_core_count()
 {
     count="`nproc 2> /dev/null`"
@@ -1053,7 +1033,7 @@ add_path()
 {
    local line
    local path
-  
+
    [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
    [ -z "${UNAME}" ] && fail "UNAME is undefined"
 
@@ -1065,7 +1045,7 @@ add_path()
          path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
       ;;
    esac
-  
+
    if [ -z "${line}" ]
    then
       echo "${path}"
@@ -1092,3 +1072,19 @@ add_line()
 ${line}"
    fi
 }
+
+
+escape_linefeeds()
+{
+   local text
+
+   text="`echo "$@" | sed -e 's/|/\\|/g'`"
+   /bin/echo -n "${text}" | tr '\012' '|'
+}
+
+
+unescape_linefeeds()
+{
+   echo "$@" | tr '|' '\012' | sed -e 's/\\$/|/g' -e '/^$/d'
+}
+

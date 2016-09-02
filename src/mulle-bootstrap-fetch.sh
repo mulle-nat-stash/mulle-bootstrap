@@ -889,8 +889,9 @@ clone_embedded_repository()
       mkdir_if_missing "${symlinkdir}"
       symlinkcontent="${symlinkrelative}/${dstdir}"
 
+      # dont't use symlinks anymore
       log_fluff "Remember embedded repository \"${name}\" via \"${symlinkdir}/${name}\""
-      exekutor ln -s "${symlinkcontent}" "${symlinkdir}/${name}"
+      exekutor echo "${symlinkcontent}" > "${symlinkdir}/${name}"
 
       run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
    else
@@ -1351,8 +1352,6 @@ fetch_main()
          fetch_usage
       fi
    fi
-
-   [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
 
    #
    # Run prepare scripts if present
