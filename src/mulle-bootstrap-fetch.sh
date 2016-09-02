@@ -1286,7 +1286,7 @@ fetch_main()
    do
       case "$1" in
          -h|-help|--help)
-            fetch_usage 
+            fetch_usage
          ;;
 
          -f)
@@ -1322,12 +1322,20 @@ fetch_main()
          ;;
       *)
          log_error "unknown command \"$COMMAND\""
-         fetch_usage 
+         fetch_usage
          ;;
    esac
 
+   case "${UNAME}" in
+      MINGW)
+         SYMLINK_FORBIDDEN="YES"
+      ;;
 
-   SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
+      *)
+         SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
+         export SYMLINK_FORBIDDEN
+      ;;
+   esac
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if
@@ -1340,7 +1348,7 @@ fetch_main()
       if [ $# -ne 0 ]
       then
          log_error  "Additional parameters not allowed for install"
-         fetch_usage 
+         fetch_usage
       fi
    fi
 

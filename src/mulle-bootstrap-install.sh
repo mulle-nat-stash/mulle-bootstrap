@@ -320,7 +320,15 @@ Suggested fix:
 
    local symlink
 
-   symlink="`read_config_setting "install_symlinks" "NO"`"
+   case "${UNAME}" in
+      MINGW)
+         symlink="NO"
+      ;;
+
+      *)
+         symlink="`read_config_setting "install_symlinks" "NO"`"
+      ;;
+   esac
 
    if [ "${symlink}" = "YES" ]
    then
