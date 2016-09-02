@@ -232,8 +232,18 @@ bootstrap_main()
       esac
    fi
 
-   [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
-
+   if [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ]
+   then
+      case "${command}" in
+         clean|dist-clean)
+            :
+         ;;
+         *)
+            ensure_consistency
+         ;;
+      esac
+   fi
+   
    # some commands refresh before execution
    if [ "${MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH}" != "YES" ]
    then
