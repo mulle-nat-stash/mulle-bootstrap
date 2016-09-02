@@ -111,11 +111,10 @@ Suggested resolution (in $owd):
     ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
     ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
 
-Or do you feel lucky ?
-   ${C_RESET_BOLD}rm $owd/${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
-and try again. But you've gotta ask yourself one question: Do I feel lucky ?
-Well, do ya, punk?
-(Same difference: ${C_RESET_BOLD}mulle-bootstrap -f${C_ERROR})"
+Or do you feel lucky ? Then try again with
+   ${C_RESET_BOLD}mulle-bootstrap -f${C_ERROR}
+But you've gotta ask yourself one question: Do I feel lucky ?
+Well, do ya, punk?"
       exit 1
    fi
 }
@@ -243,7 +242,7 @@ bootstrap_main()
          ;;
       esac
    fi
-   
+
    # some commands refresh before execution
    if [ "${MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH}" != "YES" ]
    then

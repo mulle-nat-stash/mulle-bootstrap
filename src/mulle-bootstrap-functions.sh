@@ -615,29 +615,29 @@ rmdir_safer()
 # returns 0 if said yes
 user_say_yes()
 {
-  local  x
+   local  x
 
-  x=`read_config_setting "answer" "ASK"`
-  while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
-  do
-     printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
-     read x
-     x=`echo "${x}" | tr '[a-z]' '[A-Z]'`
-  done
+   x="${MULLE_BOOTSTRAP_ANSWER:-ASK}"
+   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
+   do
+      printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
+      read x
+      x=`echo "${x}" | tr '[a-z]' '[A-Z]'`
+   done
 
-  if [ "${x}" = "ALL" ]
-  then
-     MULLE_BOOTSTRAP_ANSWER="YES"
-     x="YES"
-  fi
-  if [ "${x}" = "NONE" ]
-  then
-     MULLE_BOOTSTRAP_ANSWER="NO"
-     x="NO"
-  fi
+   if [ "${x}" = "ALL" ]
+   then
+      MULLE_BOOTSTRAP_ANSWER="YES"
+      x="YES"
+   fi
+   if [ "${x}" = "NONE" ]
+   then
+      MULLE_BOOTSTRAP_ANSWER="NO"
+      x="NO"
+   fi
 
-  [ "$x" = "Y" -o "$x" = "YES" ]
-  return $?
+   [ "$x" = "Y" -o "$x" = "YES" ]
+   return $?
 }
 
 
