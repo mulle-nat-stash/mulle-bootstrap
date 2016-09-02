@@ -54,10 +54,6 @@ EOF
 }
 
 
-#
-#
-#
-
 refresh_repositories_settings()
 {
    local stop
@@ -572,8 +568,9 @@ refresh_main()
    [ $# -eq 0 ] || shift
 
    case "$COMMAND" in
-      refresh)
+      refresh|clear)
       ;;
+
       nonrecursive)
          DONT_RECURSE="YES"
       ;;
@@ -592,6 +589,11 @@ refresh_main()
       exekutor rm -rf "${BOOTSTRAP_SUBDIR}.auto"
    fi
 
+   if [ "${COMMAND}" = "clear" ]
+   then
+      return 0
+   fi
+   
    if [ "${DONT_RECURSE}" = "" ]
    then
       log_verbose "Refreshing repository settings"

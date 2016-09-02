@@ -118,13 +118,10 @@ now."
 
 warn_scripts_main()
 {
-   local  x
-
-   x=`read_config_setting "answer" "ASK"`
-   if [ "$x" != "YES"  ]
+   if [ "${MULLE_BOOTSTRAP_ANSWER}" != "YES"  ]
    then
       warn_scripts "$@"
    else
-      log_fluff "Script checking by autoanswer YES disabled"
+      log_verbose "Script checking by autoanswer YES disabled"
    fi
 }

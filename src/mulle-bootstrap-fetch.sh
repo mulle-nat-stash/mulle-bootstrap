@@ -1328,13 +1328,12 @@ fetch_main()
    esac
 
    case "${UNAME}" in
-      MINGW)
+      MINGW*)
          SYMLINK_FORBIDDEN="YES"
       ;;
 
       *)
          SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
-         export SYMLINK_FORBIDDEN
       ;;
    esac
 

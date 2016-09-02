@@ -30,7 +30,6 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 
 MULLE_BOOTSTRAP_VERSION=2.0
-export MULLE_BOOTSTRAP_VERSION
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -98,135 +97,6 @@ EOF
    exit 1
 }
 
-#
-# simple option handling
-#
-while :
-do
-   if [ $# -eq 0 ]
-   then
-      break
-   fi
-
-   case "$1" in
-      -a)
-         MULLE_BOOTSTRAP_ANSWER="NO"
-         export MULLE_BOOTSTRAP_ANSWER  # override settings with environment
-       ;;
-
-      -y)
-         MULLE_BOOTSTRAP_ANSWER="YES"
-         export MULLE_BOOTSTRAP_ANSWER  # override settings with environment
-      ;;
-
-      -f)
-         MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
-      ;;
-
-      -n)
-         MULLE_BOOTSTRAP_DRY_RUN="YES"
-      ;;
-
-      -tm)
-         MULLE_BOOTSTRAP_TRACE_MERGE="YES"
-      ;;
-
-      -ts)
-         MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="YES"
-      ;;
-
-      -t)
-         MULLE_BOOTSTRAP_TRACE="1848"
-         export MULLE_BOOTSTRAP_TRACE  # override settings with environment
-         COPYMOVEFLAGS="-v"
-         GITFLAGS="-v"
-      ;;
-
-      -V)
-         MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
-         export MULLE_BOOTSTRAP_VERBOSE_BUILD
-      ;;
-
-
-      -v)
-         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-         then
-            MULLE_BOOTSTRAP_TRACE="VERBOSE"
-            export MULLE_BOOTSTRAP_TRACE  # override settings with environment
-         fi
-
-         COPYMOVEFLAGS="-v"
-         GITFLAGS="-v"
-      ;;
-
-      -vv)
-         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-         then
-            MULLE_BOOTSTRAP_TRACE="FLUFF"
-            export MULLE_BOOTSTRAP_TRACE  # override settings with environment
-         fi
-
-         COPYMOVEFLAGS="-v"
-         GITFLAGS="-v"
-      ;;
-
-      -vvv)
-         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-         then
-            MULLE_BOOTSTRAP_TRACE="TRACE"
-            export MULLE_BOOTSTRAP_TRACE  # override settings with environment
-         fi
-
-         COPYMOVEFLAGS="-v"
-         GITFLAGS="-v"
-      ;;
-
-      -s)
-         MULLE_BOOTSTRAP_TRACE=
-         export MULLE_BOOTSTRAP_TRACE  # override settings with environment
-         MULLE_BOOTSTRAP_TERSE="YES"
-         export MULLE_BOOTSTRAP_TERSE  # override settings with environment
-         GITFLAGS="-q"
-      ;;
-
-      -*)
-         log_error "unknown option \"$1\""
-         usage
-      ;;
-
-      *)
-         break
-      ;;
-   esac
-
-   shift
-   continue
-done
-
-
-
-bootstrap()
-{
-   case "$1" in
-      -h|--help)
-         cat <<EOF >&2
-usage: bootstrap <dstprefix>
-
-   dstprefix : like /usr/local
-EOF
-         exit 1
-      ;;
-   esac
-
-   #
-   # this is run when checking mulle-project itself out
-   #
-   if [ -f "src/mulle-bootstrap-local-environment.sh" -a -x install.sh ]
-   then
-      exec install.sh "$@"
-   fi
-}
-
 
 ensure_consistency()
 {
@@ -245,7 +115,7 @@ Or do you feel lucky ?
    ${C_RESET_BOLD}rm $owd/${CLONESFETCH_SUBDIR}/.fetch_update_started${C_ERROR}
 and try again. But you've gotta ask yourself one question: Do I feel lucky ?
 Well, do ya, punk?
-(Same difference: if you are in \"${owd}\", ${C_RESET_BOLD}mulle-bootstrap fetch -f${C_ERROR})"
+(Same difference: ${C_RESET_BOLD}mulle-bootstrap -f${C_ERROR})"
       exit 1
    fi
 }
@@ -256,8 +126,97 @@ bootstrap_main()
 {
    local command
 
-   command=${1:-"bootstrap"}
+ #
+# simple option handling
+#
+   while :
+   do
+      if [ $# -eq 0 ]
+      then
+         break
+      fi
+
+      case "$1" in
+         -a)
+            MULLE_BOOTSTRAP_ANSWER="NO"
+          ;;
+
+         -y)
+            MULLE_BOOTSTRAP_ANSWER="YES"
+         ;;
+
+         -f)
+            MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
+         ;;
+
+         -n)
+            MULLE_BOOTSTRAP_DRY_RUN="YES"
+         ;;
+
+         -tm)
+            MULLE_BOOTSTRAP_TRACE_MERGE="YES"
+         ;;
+
+         -ts)
+            MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="YES"
+         ;;
+
+         -t)
+            MULLE_BOOTSTRAP_TRACE="1848"
+            COPYMOVEFLAGS="-v"
+            GITFLAGS="-v"
+         ;;
+
+         -V)
+            MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
+         ;;
+
+
+         -v)
+            MULLE_BOOTSTRAP_TRACE="VERBOSE"
+            COPYMOVEFLAGS="-v"
+            GITFLAGS="-v"
+         ;;
+
+         -vv)
+            MULLE_BOOTSTRAP_TRACE="FLUFF"
+            COPYMOVEFLAGS="-v"
+            GITFLAGS="-v"
+         ;;
+
+         -vvv)
+            MULLE_BOOTSTRAP_TRACE="TRACE"
+            COPYMOVEFLAGS="-v"
+            GITFLAGS="-v"
+         ;;
+
+         -r)
+            MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH="YES"
+         ;;
+
+         -s)
+            MULLE_BOOTSTRAP_TRACE=
+            MULLE_BOOTSTRAP_TERSE="YES"
+            GITFLAGS="-q"
+         ;;
+
+         -*)
+            log_error "unknown option \"$1\""
+            usage
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+      continue
+   done   
+
+  command=${1:-"bootstrap"}
    [ $# -eq 0 ] || shift
+
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
@@ -268,12 +227,22 @@ bootstrap_main()
    if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
    then
       case "${command}" in
-         bootstrap|nomagic|build|ibuild|refresh|dist-clean|fetch|update|setup-xcode|xcode|tag)
+         bootstrap|nomagic|build|ibuild|refresh|clean|dist-clean|fetch|update|setup-xcode|xcode|tag)
             fail "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue"
       esac
    fi
 
    [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ] && ensure_consistency
+
+   # some commands refresh before execution
+   if [ "${MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH}" != "YES" ]
+   then
+      case "${command}" in
+         bootstrap|nomagic|build|setup-xcode|xcode|tag)
+            refresh_main || exit 1
+         ;;
+      esac
+   fi
 
    case "${command}" in
       bootstrap|nomagic)
@@ -286,12 +255,12 @@ bootstrap_main()
          . mulle-bootstrap-build.sh
          . mulle-bootstrap-warn-scripts.sh
 
+         refresh_main clear              || exit 1
          if [ "${DONT_RECURSE}" = "" ]
          then
-            refresh_main                 || exit 1
             fetch_main install "$@"      || exit 1
-         else
-            refresh_main nonrecursive    || exit 1
+            refresh_main                 || exit 1
+        else
             fetch_main nonrecursive "$@" || exit 1
             refresh_main nonrecursive    || exit 1
          fi
@@ -318,7 +287,6 @@ bootstrap_main()
       build)
          . mulle-bootstrap-build.sh
 
-         refresh_main || exit 1
          build_main "$@" || exit 1
       ;;
 
@@ -329,21 +297,21 @@ bootstrap_main()
       clean)
          . mulle-bootstrap-clean.sh
 
-         refresh_main || exit 1
-         clean_main "$@" || exit 1
+         refresh_main clear || exit 1
+         clean_main "$@"    || exit 1
       ;;
 
       dist-clean)
          . mulle-bootstrap-clean.sh
 
-         refresh_main || exit 1
-         clean_main "dist" || exit 1
+         refresh_main clear || exit 1
+         clean_main "dist"  || exit 1
       ;;
 
       fetch)
          . mulle-bootstrap-fetch.sh
 
-         refresh_main || exit 1
+         refresh_main clear || exit 1
          DONT_ASK_AFTER_WARNING=YES fetch_main "install" "$@" || exit 1
       ;;
 
@@ -362,14 +330,12 @@ bootstrap_main()
       setup-xcode|xcode)
          . mulle-bootstrap-xcode.sh
 
-         refresh_main || exit 1
          xcode_main "$@" || exit 1
       ;;
 
       tag)
          . mulle-bootstrap-tag.sh
 
-         refresh_main || exit 1
          tag_main "$@" || exit 1
       ;;
 
@@ -385,24 +351,4 @@ bootstrap_main()
 }
 
 
-main()
-{
-   local command
-
-   command=${1:-"bootstrap"}
-   [ $# -eq 0 ] || shift
-
-   case "${command}" in
-      bootstrap)
-         bootstrap "$@"
-      ;;
-   esac
-
-   #
-   # now setup an environment
-   #
-
-   bootstrap_main "$@"
-}
-
-main
+bootstrap_main "$@"

@@ -51,7 +51,37 @@ fi
 [ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
 
 
-MULLE_BOOTSTRAP_TRACE="`read_config_setting "trace"`"
+UNAME="`uname`"
+log_fluff "${UNAME} detected"
+
+# get number of cores, use 50% more for make -j
+case "${UNAME}" in
+   MINGW*)
+      setup_mingw_environment
+
+      PATH_SEPARATOR=';'
+      BUILD_PWD_OPTIONS="-PW"
+
+      # be verbose by default on MINGW because its so slow
+      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+      then
+         MULLE_BOOTSTRAP_TRACE="VERBOSE"
+      fi      
+
+      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+      then
+         MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH="YES"
+      fi      
+   ;;
+
+   *)
+      CORES="`get_core_count`"
+      CORES="`expr $CORES + $CORES / 2`"
+
+      PATH_SEPARATOR=':'
+      BUILD_PWD_OPTIONS="-P"
+      ;;
+esac
 
 case "${MULLE_BOOTSTRAP_TRACE}" in
    VERBOSE)
@@ -145,24 +175,3 @@ FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 # dont export stuff for scripts
 # if scripts want it, they should source this file
 #
-
-UNAME="`uname`"
-log_fluff "${UNAME} detected"
-
-# get number of cores, use 50% more for make -j
-case "${UNAME}" in
-   MINGW*)
-      setup_mingw_environment
-
-      PATH_SEPARATOR=';'
-      BUILD_PWD_OPTIONS="-PW"
-   ;;
-
-   *)
-      CORES="`get_core_count`"
-      CORES="`expr $CORES + $CORES / 2`"
-
-      PATH_SEPARATOR=':'
-      BUILD_PWD_OPTIONS="-P"
-      ;;
-esac
