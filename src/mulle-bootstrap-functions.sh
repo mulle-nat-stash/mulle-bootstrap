@@ -29,116 +29,10 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
+[ ! -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && echo "double inclusion of functions" >&2 && exit 1
 MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
 
-# Escape sequence and resets, should use tput here instead of ANSI
-
-if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
-then
-   case `uname` in
-      Darwin|Linux|FreeBSD|MINGW*)
-         C_RESET="\033[0m"
-
-         # Useable Foreground colours, for black/white white/black
-         C_RED="\033[0;31m"     C_GREEN="\033[0;32m"
-         C_BLUE="\033[0;34m"    C_MAGENTA="\033[0;35m"
-         C_CYAN="\033[0;36m"
-
-         C_BR_RED="\033[0;91m"
-         C_BOLD="\033[1m"
-         C_FAINT="\033[2m"
-
-         C_RESET_BOLD="${C_RESET}${C_BOLD}"
-         trap 'printf "${C_RESET}"' TERM EXIT
-         ;;
-   esac
-fi
-
-
-C_ERROR="${C_RED}${C_BOLD}"
-log_error()
-{
-   printf "${C_ERROR}%b${C_RESET}\n" "$*" >&2
-}
-
-
-C_WARNING="${C_MAGENTA}${C_BOLD}"
-log_warning()
-{
-   if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
-   then
-      printf "${C_WARNING}%b${C_RESET}\n" "$*" >&2
-   fi
-}
-
-
-C_INFO="${C_CYAN}${C_BOLD}"
-log_info()
-{
-   if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
-   then
-      printf "${C_INFO}%b${C_RESET}\n" "$*" >&2
-   fi
-}
-
-
-C_VERBOSE="${C_GREEN}${C_BOLD}"
-log_verbose()
-{
-   if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
-   then
-      printf "${C_VERBOSE}%b${C_RESET}\n" "$*" >&2
-   fi
-}
-
-
-C_FLUFF="${C_GREEN}${C_BOLD}"
-log_fluff()
-{
-   if [ "${MULLE_BOOTSTRAP_FLUFF}" = "YES"  ]
-   then
-      printf "${C_FLUFF}%b${C_RESET}\n" "$*" >&2
-   fi
-}
-
-
-C_TRACE="${C_FLUFF}${C_FAINT}"
-log_trace()
-{
-   printf "${C_TRACE}%b${C_RESET}\n" "$*" >&2
-}
-
-
-C_TRACE2="${C_RESET}${C_FAINT}"
-log_trace2()
-{
-   printf "${C_TRACE2}%b${C_RESET}\n" "$*" >&2
-}
-
-
-#
-# some common functions
-#
-fail()
-{
-   log_error "$@"
-   if [ ! -z "${MULLE_BOOTSTRAP_PID}" ]
-   then
-      kill -INT "${MULLE_BOOTSTRAP_PID}"  # kill myself (especially, if executing in subshell)
-      if [ $$ -ne ${MULLE_BOOTSTRAP_PID} ]
-      then
-         kill -INT $$  # actually useful
-      fi
-   fi
-   exit 1        # paranoia
-   # don't ask me why the fail message is printed twice
-}
-
-
-internal_fail()
-{
-   fail "${C_RED}*** internal error: ${C_BR_RED}$*"
-}
+[ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
 
 eval_exekutor()
@@ -187,6 +81,49 @@ logging_exekutor()
 }
 
 
+run_script()
+{
+   local script
+
+   script="$1"
+   shift
+
+   [ ! -z "$script" ] || internal_fail "script is empty"
+
+   if [ -x "${script}" ]
+   then
+      log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
+      if  [ "${MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS}" = "YES" ]
+      then
+         echo "ARGV=" "$@" >&2
+         echo "DIRECTORY=$PWD/$3" >&2
+         echo "ENVIRONMENT=" >&2
+         echo "{" >&2
+         env | sed 's/^\(.\)/   \1/' >&2
+         echo "}" >&2
+      fi
+      exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
+   else
+      if [ ! -e "${script}" ]
+      then
+         fail "script \"${script}\" not found ($PWD)"
+      else
+         fail "script \"${script}\" not executable"
+      fi
+   fi
+}
+
+
+run_log_script()
+{
+   echo "$@"
+   run_script "$@"
+}
+
+
+#
+#
+#
 is_yes()
 {
    local s
@@ -475,8 +412,8 @@ remove_file_if_present()
 
 modification_timestamp()
 {
-   case "`uname`" in
-      Linux )
+   case "${UNAME}" in
+      Linux|MINGW)
          stat --printf "%Y\n" "$1"
          ;;
       * )
@@ -881,45 +818,6 @@ lso()
 }
 
 
-run_script()
-{
-   local script
-
-   script="$1"
-   shift
-
-   [ ! -z "$script" ] || internal_fail "script is empty"
-
-   if [ -x "${script}" ]
-   then
-      log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
-      if  [ "${MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS}" = "YES" ]
-      then
-         echo "ARGV=" "$@" >&2
-         echo "DIRECTORY=$PWD/$3" >&2
-         echo "ENVIRONMENT=" >&2
-         echo "{" >&2
-         env | sed 's/^\(.\)/   \1/' >&2
-         echo "}" >&2
-      fi
-      exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
-   else
-      if [ ! -e "${script}" ]
-      then
-         fail "script \"${script}\" not found ($PWD)"
-      else
-         fail "script \"${script}\" not executable"
-      fi
-   fi
-}
-
-
-run_log_script()
-{
-   echo "$@"
-   run_script "$@"
-}
-
 
 has_usr_local_include()
 {
@@ -969,22 +867,6 @@ ensure_clones_directory()
 }
 
 
-get_core_count()
-{
-    count="`nproc 2> /dev/null`"
-    if [ -z "$count" ]
-    then
-       count="`sysctl -n hw.ncpu 2> /dev/null`"
-    fi
-
-    if [ -z "$count" ]
-    then
-       count=2
-    fi
-    echo $count
-}
-
-
 append_dir_to_gitignore_if_needed()
 {
    grep -s -x "$1/" .gitignore > /dev/null 2>&1
@@ -1001,8 +883,8 @@ which_binary()
    local toolname
 
    toolname="$1"
-   case "`uname`" in
-      MINGW*)
+   case "${UNAME}" in
+      MINGW)
          toolname="${toolname}.exe"
          ;;
    esac
@@ -1035,13 +917,12 @@ add_path()
    local path
 
    [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
-   [ -z "${UNAME}" ] && fail "UNAME is undefined"
 
    line="${1}"
    path="${2}"
 
    case "${UNAME}" in
-      MINGW*)
+      MINGW)
          path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
       ;;
    esac

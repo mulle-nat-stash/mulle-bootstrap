@@ -106,3 +106,37 @@ setup_mingw_environment()
    fi
 }
 
+
+#
+# mingw32-make can't have sh.exe in its path
+#
+mingw_buildpath()
+{
+   local old
+   local i
+   local fetchpath
+   local match
+
+   old="${IFS}"
+
+   IFS=":" 
+   for i in $PATH
+   do
+      if [ -x "${i}/sh.exe" ]
+      then
+         log_fluff "Remove \"$i\" from build PATH because it contains sh"
+         continue
+      fi
+
+      if [ -z "${fetchpath}" ]
+      then
+         fetchpath="${i}"
+      else
+         fetchpath="${fetchpath}:${i}"
+      fi
+   done
+
+   IFS="${old}"
+
+   echo "${fetchpath}"
+}

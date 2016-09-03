@@ -68,7 +68,7 @@ bootstrap_auto_update()
    # contains own bootstrap ? and not a symlink
    if [ ! -d "${directory}/.bootstrap" ] # -a ! -L "${dst}" ]
    then
-      log_fluff "no .bootstrap folder in \"${directory}\" found"
+      log_fluff "No .bootstrap folder in \"${directory}\" found"
       return 1
    fi
 

@@ -463,7 +463,7 @@ read_fetch_setting()
    value="`_read_bootstrap_setting "${name}" ".auto" ".local"`"
    if [ $? -ne 0 ]
    then
-      os="${UNAME:-`uname`}"
+      os="${UNAME}"
       value="`_read_bootstrap_setting "${name}.${os}" ""`"
       if [ $? -ne 0 ]
       then

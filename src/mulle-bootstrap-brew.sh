@@ -61,7 +61,7 @@ fetch_brew_if_needed()
       return
    fi
 
-   case "`uname`" in
+   case "${UNAME}" in
       Darwin)
          log_info "Installing OS X brew"
          exekutor git clone https://github.com/Homebrew/brew.git "${ADDICTION_SUBDIR}"
@@ -73,7 +73,7 @@ fetch_brew_if_needed()
          ;;
 
       *)
-         log_fail "Missing brew support for `uname`"
+         log_fail "Missing brew support for ${UNAME}"
          ;;
    esac
 

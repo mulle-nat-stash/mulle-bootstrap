@@ -84,7 +84,7 @@ warn_scripts()
                log_warning "$phases" >&2
 
                log_info "To view them inline install \"ack\""
-               case "`uname`" in
+               case "${UNAME}" in
                   Darwin|Linux)
                      log_info "   brew install ack" >&2
                      ;;

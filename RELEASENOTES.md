@@ -20,6 +20,8 @@ better performance.
 symlinks available.  This meant that I had to redo the whole settings
 inheritance scheme.
 * -v is now more interesting to watch
+* renamed build setting OTHER_CPPFLAGS to OTHER_CXXFLAGS (!)
+
 
 1.1
 ===

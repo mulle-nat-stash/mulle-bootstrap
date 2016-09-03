@@ -43,6 +43,11 @@ export PATH
 MULLE_BOOTSTRAP_PID="$$"
 export MULLE_BOOTSTRAP_PID
 
+# now include this first to get
+# logging and UNAME
+
+[ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
 
 trap_fail()
 {
@@ -75,7 +80,7 @@ usage: mulle-bootstrap [-a|-y][-n][-v|-s|-t] [command] [--help]
    init      : initializes a bootstrap project
 EOF
 
-   if [ "`uname`" = 'Darwin' ]
+   if [ "${UNAME}" = 'Darwin' ]
    then
       cat <<EOF
    xcode     : sets up the xcodeproj settings
@@ -120,14 +125,13 @@ Well, do ya, punk?"
 }
 
 
-
 bootstrap_main()
 {
    local command
 
- #
-# simple option handling
-#
+   #
+   # simple option handling
+   #
    while :
    do
       if [ $# -eq 0 ]
@@ -217,6 +221,56 @@ bootstrap_main()
    [ $# -eq 0 ] || shift
 
 
+   case "${MULLE_BOOTSTRAP_TRACE}" in
+      VERBOSE)
+         MULLE_BOOTSTRAP_FLUFF="NO"
+         MULLE_BOOTSTRAP_TRACE="NO"
+         MULLE_BOOTSTRAP_VERBOSE="YES"
+         if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
+         then
+            MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
+         fi
+         ;;
+
+      FLUFF)
+         MULLE_BOOTSTRAP_FLUFF="YES"
+         MULLE_BOOTSTRAP_TRACE="NO"
+         MULLE_BOOTSTRAP_VERBOSE="YES"
+         if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
+         then
+            MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
+         fi
+         ;;
+
+      TRACE)
+         MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
+         MULLE_BOOTSTRAP_FLUFF="YES"
+         MULLE_BOOTSTRAP_VERBOSE="YES"
+         MULLE_BOOTSTRAP_TRACE="YES"
+         if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
+         then
+            MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
+         fi
+         log_trace "FULL trace started"
+         ;;
+
+      1848)
+         MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
+         MULLE_BOOTSTRAP_TRACE_SETTINGS="NO"
+         MULLE_BOOTSTRAP_FLUFF="NO"
+         MULLE_BOOTSTRAP_TRACE="NO"
+         MULLE_BOOTSTRAP_VERBOSE="NO"
+         MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
+         log_trace "1848 trace (set -x) started"
+         set -x
+         ;;
+   esac
+
+   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" ]
+   then
+      log_trace "Dry run is active."
+   fi
+
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
 
@@ -247,7 +301,7 @@ bootstrap_main()
    if [ "${MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH}" != "YES" ]
    then
       case "${command}" in
-         bootstrap|nomagic|build|setup-xcode|xcode|tag)
+         bootstrap|nomagic|setup-xcode|xcode|tag)
             refresh_main || exit 1
          ;;
       esac
@@ -322,12 +376,14 @@ bootstrap_main()
 
          refresh_main clear || exit 1
          DONT_ASK_AFTER_WARNING=YES fetch_main "install" "$@" || exit 1
+         refresh_main || exit 1
       ;;
 
       update)
          . mulle-bootstrap-fetch.sh
 
          fetch_main "${command}" "$@" || exit 1
+         refresh_main || exit 1
       ;;
 
       init)
@@ -358,6 +414,5 @@ bootstrap_main()
       ;;
    esac
 }
-
 
 bootstrap_main "$@"

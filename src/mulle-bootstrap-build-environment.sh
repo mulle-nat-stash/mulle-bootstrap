@@ -27,84 +27,25 @@
 #   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#   POSSIBILITY OF SUCH DAMAGE.
 #
-MULLE_BOOTSTRAP_GCC_SH="included"
-
-gcc_sdk_parameter()
-{
-   local sdk
-
-   sdk="$1"
-
-   local sdkpath
-   if [ "${UNAME}" = "Darwin" ]
-   then
-      if [ "${sdk}" = "Default" ]
-      then
-         sdkpath="`xcrun --show-sdk-path`"
-      else
-         sdkpath="`xcrun --sdk "${sdk}" --show-sdk-path`"
-      fi
-      if [ "${sdkpath}" = "" ]
-      then
-         fail "SDK \"${sdk}\" is not installed"
-      fi
-      echo "${sdkpath}"
-   fi
-}
+[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
 
 
-# Mash some known settings from xcodebuild together for regular
-# OTHER_CFLAGS
-# WARNING_CFLAGS
-# GCC_PREPROCESSOR_DEFINITIONS
+CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "${RELATIVE_ROOT}build/.repos"`
+BUILDLOG_SUBDIR=`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`
 
-gcc_cflags_value()
-{
-   local value
-   local result
-   local name
-   local i
+[ -z "${CLONESBUILD_SUBDIR}" ]   && internal_fail "variable CLONESBUILD_SUBDIR is empty"
+[ -z "${BUILDLOG_SUBDIR}" ]      && internal_fail "variable BUILDLOG_SUBDIR is empty"
 
-   name="${1}"
+#
+# Global Settings
+#
+HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
+LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
+FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 
-   result="`read_build_setting "${name}" "OTHER_CFLAGS"`"
-   value="`read_build_setting "${name}"  "WARNING_CFLAGS"`"
-   result="`concat "$result" "$value"`"
-   for i in `read_build_setting "${name}" "GCC_PREPROCESSOR_DEFINITIONS"`
-   do
-      result="`concat "$result" "-D${i}"`"
-   done
-
-   echo "${result}"
-}
-
-
-gcc_cxxflags_value()
-{
-   local value
-   local result
-   local name
-
-   name="${1}"
-
-   result="`read_build_setting "${name}" "OTHER_CXXFLAGS"`"
-   value="`gcc_cflags_value "${name}"`"
-   result="`concat "$result" "$value"`"
-
-   echo "${result}"
-}
-
-
-gcc_ldflags_value()
-{
-   local result
-   local name
-
-   name="${1}"
-   result="`read_build_setting "${name}" "OTHER_LDFLAGS"`"
-
-   echo "${result}"
-}
-
-
+#
+# dont export stuff for scripts
+# if scripts want it, they should source this file
+#

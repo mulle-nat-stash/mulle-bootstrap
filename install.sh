@@ -5,25 +5,21 @@
 
 if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
 then
-   case `uname` in
-      Darwin|Linux|FreeBSD|MINGW*)
-         # Escape sequence and resets
-         C_RESET="\033[0m"
+   # Escape sequence and resets
+   C_RESET="\033[0m"
 
-         # Useable Foreground colours, for black/white white/black
-         C_RED="\033[0;31m"     C_GREEN="\033[0;32m"
-         C_BLUE="\033[0;34m"    C_MAGENTA="\033[0;35m"
-         C_CYAN="\033[0;36m"
+   # Useable Foreground colours, for black/white white/black
+   C_RED="\033[0;31m"     C_GREEN="\033[0;32m"
+   C_BLUE="\033[0;34m"    C_MAGENTA="\033[0;35m"
+   C_CYAN="\033[0;36m"
 
-         C_BR_RED="\033[0;91m"
-         C_BOLD="\033[1m"
+   C_BR_RED="\033[0;91m"
+   C_BOLD="\033[1m"
 
-         #
-         # restore colors if stuff gets wonky
-         #
-         trap 'printf "${C_RESET}"' TERM EXIT
-         ;;
-   esac
+   #
+   # restore colors if stuff gets wonky
+   #
+   trap 'printf "${C_RESET}"' TERM EXIT
 fi
 
 

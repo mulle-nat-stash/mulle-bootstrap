@@ -30,7 +30,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_CLEAN_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 
 
 clean_usage()

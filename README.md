@@ -16,6 +16,7 @@ libraries into an "addictions" folder
   MINGW bash (without brew)
 * certainly not a "lightweight" project with ca. 10000 lines of shell script
   code
+* reduced configurability of mulle-bootstrap, since I didn't use it so far much and it slows things down on MINGW
 
 
 ## Tell me more

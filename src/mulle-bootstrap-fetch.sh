@@ -42,6 +42,7 @@ MULLE_BOOTSTRAP_FETCH_SH="included"
 [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
 [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ] && . mulle-bootstrap-scm.sh
 [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+[ -z "${MULLE_BOOTSTRAP_WARTN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh
 [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
 [ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
 
@@ -594,7 +595,7 @@ checkout()
 
       scmflags="`read_repo_setting "${name}" "checkout" "${scmflagsdefault}"`"
       "${operation}" "${src}" "${dstdir}" "${branch}" "${tag}" "${scmflags}"
-      mulle-bootstrap-warn-scripts.sh "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
+      warn_scripts_main "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
    fi
 }
 
@@ -1397,4 +1398,3 @@ fetch_main()
       fi
    fi
 }
-

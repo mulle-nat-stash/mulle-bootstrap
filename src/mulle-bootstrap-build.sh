@@ -29,7 +29,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_BUILD_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
 [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 [ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
@@ -456,60 +456,104 @@ build_log_name()
 }
 
 
-find_binary()
+assert_binary()
 {
    local toolname
    toolname="$1"
 
+   [ -z "${toolname}" ] && internal_fail "toolname is empty"
+
    local path
+
    path=`which_binary "${toolname}"`
    if [ -z "${path}" ]
    then
-      log_warning "${toolname} is an unknown build tool"
-      return 1
+      set -x
+      which_binary "${toolname}"
+      fail "${toolname} is an unknown build tool (PATH=$PATH)"
    fi
-   echo "$path"
+   # echo "$path"
 }
 
 
 find_cmake()
 {
+   local name
+
+   name="${1}"
+
    local toolname
 
-   toolname=`read_config_setting "cmake" "cmake"`
-   find_binary "${toolname}"
+   toolname=`read_build_setting "${name}" "cmake" "cmake"`
+   assert_binary "${toolname}"
+   echo "`basename -- "${toolname}"`"
 }
 
 
 find_xcodebuild()
 {
+   local name
+
+   name="${1}"
+
    local toolname
 
-   toolname=`read_config_setting "xcodebuild" "xcodebuild"`
-   find_binary "${toolname}"
+   toolname=`read_build_setting "${name}" "xcodebuild" "xcodebuild"`
+   assert_binary "${toolname}"
+   echo "`basename -- "${toolname}"`"
 }
-
 
 
 find_make()
 {
-   local default_toolname
+   local name
+
+   name="${1}"
+
    local toolname
+   local defaultname
+
+   defaultname="${2:-make}"
+   toolname=`read_build_setting "${name}" "make" "${defaultname}"`
+   assert_binary "${toolname}"
+   echo "`basename -- "${toolname}"`"
+}
+
+
+find_compiler()
+{
+   local compiler
+
+   compiler="`read_build_setting "${name}" "$1"`"
 
    case "${UNAME}" in
       MINGW*)
-         default_toolname="nmake"
+         case "${compiler}" in
+            mulle-clang*)
+               compiler="mulle-clang-cl"
+            ;;
+            clang*)
+               compiler="clang-cl"
+            ;;
+
+            *)
+               compiler="cl"
+               log_fluff "Using default compiler cl"
+            ;;
+         esac
       ;;
 
       *)
-         default_toolname="make"
+         if [ -z "${compiler}" ]
+         then
+            return 0
+         fi
       ;;
    esac
 
-   toolname=`read_config_setting "make" "${default_toolname}"`
-   find_binary "${toolname}"
+   assert_binary "${compiler}" 
+   echo "`basename -- "${compiler}"`"
 }
-
 
 
 #
@@ -571,13 +615,21 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
    fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
 
+   local c_compiler
+   local cxx_compiler
+   # local linker
+
+   # no problem if those are empty
+   c_compiler="`find_compiler CC`"
+   cxx_compiler="`find_compiler CXX`"
+   # linker="`read_build_setting "${name}" "LD"`"
+
    local other_cflags
-   local other_cppflags
+   local other_cxxflags
    local other_ldflags
 
-
    other_cflags="`gcc_cflags_value "${name}"`"
-   other_cppflags="`gcc_cppflags_value "${name}"`"
+   other_cxxflags="`gcc_cxxflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
    local logfile1
@@ -730,8 +782,17 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          other_ldflags="`add_word "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
 
+      if [ MULLE_BOOTSTRAP_VERBOSE_BUILD = "YES" ]
+      then
+         local_make_flags="${local_make_flags} VERBOSE=1"
+      fi
+
       IFS="${memo}"
 
+      local oldpath
+
+      oldpath="$PATH"
+      PATH="${BUILDPATH}" 
 
       logging_exekutor "${CMAKE}" -G "${CMAKE_GENERATOR}" "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
@@ -740,8 +801,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "-DCMAKE_INCLUDE_PATH=${includelines}" \
 "-DCMAKE_LIBRARY_PATH=${librarylines}" \
 "-DCMAKE_FRAMEWORK_PATH=${frameworklines}" \
+"-DCMAKE_C_COMPILER=${c_compiler}" \
+"-DCMAKE_CXX_COMPILER=${cxx_compiler}" \
 "-DCMAKE_C_FLAGS=${other_cflags}" \
-"-DCMAKE_CXX_FLAGS=${other_cppflags}" \
+"-DCMAKE_CXX_FLAGS=${other_cxxflags}" \
 "-DCMAKE_EXE_LINKER_FLAGS=${other_ldflags}" \
 "-DCMAKE_SHARED_LINKER_FLAGS=${other_ldflags}" \
 "-DCMAKE_MODULE_PATH=${cmakemodulepath}" \
@@ -749,12 +812,9 @@ ${CMAKE_FLAGS} \
 ${localcmakeflags} \
 "${relative_srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
 
-      if [ MULLE_BOOTSTRAP_VERBOSE_BUILD = "YES" ]
-      then
-         local_make_flags="${local_make_flags} VERBOSE=1"
-      fi
-
       logging_exekutor "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install > "${logfile2}" || build_fail "${logfile2}" "make"
+
+      PATH="${oldpath}"
 
       set +f
 
@@ -826,12 +886,21 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
    fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
 
+   local c_compiler
+   local cxx_compiler
+   #local linker
+
+   # no problem if those are empty
+   c_compiler="`find_compiler CC`"
+   cxx_compiler="`find_compiler CXX`"
+   #linker="`read_build_setting "${name}" "LD"`"
+
    local other_cflags
-   local other_cppflags
+   local other_cxxflags
    local other_ldflags
 
    other_cflags="`gcc_cflags_value "${name}"`"
-   other_cppflags="`gcc_cppflags_value "${name}"`"
+   other_cxxflags="`gcc_cxxflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
    local logfile1
@@ -906,7 +975,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       local prefixbuild
       local dependenciesdir
-      local linker
+      #local linker
 
       pathrefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
       dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
@@ -948,10 +1017,17 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       IFS="${memo}"
 
+      local oldpath
+
+      oldpath="$PATH"
+      PATH="${BUILDPATH}" 
+
       # use absolute paths for configure, safer (and easier to read IMO)
       DEPENDENCIES_DIR="'${dependenciesdir}'" \
+      CC="${c_compiler:-${CC}}" \
+      CXX="${cxx_compiler:-${CXX}}" \
       CFLAGS="${other_cflags}" \
-      CPPFLAGS="${other_cflags} ${other_cppflags}" \
+      CXXFLAGS="${other_cflags} ${other_cxxflags}" \
       LDFLAGS="${other_ldflags}" \
       logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
           --prefix "${prefixbuild}" >> "${logfile1}" \
@@ -960,6 +1036,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       logging_exekutor "${MAKE}" ${MAKE_FLAGS} install > "${logfile2}" \
       || build_fail "${logfile2}" "${MAKE}"
 
+      PATH="${oldpath}"
       set +f
 
    exekutor cd "${owd}"
@@ -1276,20 +1353,20 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    fi
 
    local other_cflags
-   local other_cppflags
+   local other_cxxflags
    local other_ldflags
 
    other_cflags="`gcc_cflags_value "${name}"`"
-   other_cppflags="`gcc_cppflags_value "${name}"`"
+   other_cxxflags="`gcc_cxxflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
    if [ ! -z "${other_cflags}" ]
    then
       other_cflags="OTHER_CFLAGS=${other_cflags}"
    fi
-   if [ ! -z "${other_cppflags}" ]
+   if [ ! -z "${other_cxxflags}" ]
    then
-      other_cppflags="OTHER_CPPFLAGS=${other_cppflags}"
+      other_cxxflags="other_cxxflags=${other_cxxflags}"
    fi
    if [ ! -z "${other_ldflags}" ]
    then
@@ -1391,14 +1468,14 @@ ADDICTIONS_DIR='${owd}/${REFERENCE_ADDICTION_SUBDIR}' \
 ONLY_ACTIVE_ARCH=${ONLY_ACTIVE_ARCH:-NO} \
 ${skip_install} \
 ${other_cflags} \
-${other_cppflags} \
+${other_cxxflags} \
 ${other_ldflags} \
 ${XCODEBUILD_FLAGS} \
 HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
-      logging_eval_exekutor "${cmdline}" > "${logfile}" \
+      PATH="${BUILDPATH}" logging_eval_exekutor "${cmdline}" > "${logfile}" \
       || build_fail "${logfile}" "${toolname}"
 
       set +f
@@ -1548,7 +1625,7 @@ ${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
 ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 \"${builddir}\" ..."
 
-      run_log_build_script "${owd}/${script}" \
+      PATH="${BUILDPATH}" run_log_build_script "${owd}/${script}" \
          "${configuration}" \
          "${owd}/${srcdir}" \
          "${owd}/${builddir}" \
@@ -1616,24 +1693,44 @@ configure"`"
    sdks=`read_build_root_setting "sdks" "Default"`
    [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
-   MAKE="`find_make`"
-   CMAKE="`find_cmake`"
+
+   local generator
 
    case "${UNAME}" in
       MINGW*)
-         CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "NMake Makefiles"`"
+         MAKE="`find_make "${name}" "mingw32-make"`"
+         case "${MAKE}" in
+            n*|N*)
+               generator="NMake Makefiles"
+            ;;
+            mingw*|MINGW*)
+               generator="MinGW Makefiles"
+            ;;
+            *)
+               generator="MSYS Makefiles"
+            ;;
+         esac
+
+         CMAKE="`find_cmake "${name}"`"
+         # default use mingw32-make
+         # except if the settings specify otherwise
       ;;
 
       Darwin)
          XCODEBUILD="`find_xcodebuild`"
-         CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "Unix Makefiles"`"
+         generator="Unix Makefiles"
+         MAKE="`find_make "${name}"`"
+         CMAKE="`find_cmake "${name}"`"
       ;;
 
       *)
-         CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "Unix Makefiles"`"
+         generator="Unix Makefiles"
+         MAKE="`find_make "${name}"`"
+         CMAKE="`find_cmake "${name}"`"
       ;;
    esac
 
+   CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "${generator}"`"
 
    local builddir
    local hasbuilt
@@ -1720,7 +1817,7 @@ configure"`"
                fi
                if [ -x "${srcdir}/configure" ]
                then
-                  if [ ! -x "${MAKE}" ]
+                  if [ -z "${MAKE}" ]
                   then
                      log_warning "Found a configure, but make is not installed"
                   else
@@ -1735,7 +1832,7 @@ configure"`"
             then
                if [ -f "${srcdir}/CMakeLists.txt" ]
                then
-                  if [ ! -x "${CMAKE}" ]
+                  if [ -z "${CMAKE}" ]
                   then
                      log_warning "Found a CMakeLists.txt, but cmake is not installed"
                   else

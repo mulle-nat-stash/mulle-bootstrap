@@ -31,7 +31,7 @@
 
 MULLE_BOOTSTRAP_INSTALL_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+[ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 
 
 install_usage()
@@ -299,7 +299,7 @@ install_main()
    PREFIX="${1:-${DEFAULT_PREFIX}}"
    [ $# -eq 0 ] || shift
 
-   case "`uname`" in
+   case "${UNAME}" in
       *)
          INSTALL_FRAMEWORKS="NO"
          ;;
