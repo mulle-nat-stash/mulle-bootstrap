@@ -4,17 +4,28 @@
 > <font color="green">**Important: Setting values are delimited by LF.**</font>
 
 
-# Golden Rules
-
-* any **file** in `.bootstrap/` is mergable except `embedded_repositories`
-* a directory `.bootstrap.local/config` is used, but `.bootstrap/config` will be ignored
-* anything else is inheritable, but will not be merged
+Assume you have **a** that depends on **b**.  The following
+rules are with respect to **a**.
 
 
-Mergable Settings 
+# What ends up in the .bootstrap.auto folder
+
+1. **a**'s `.bootstrap.local` folder is copied first
+2. **a**'s `.bootstrap` folder contents are added (except `.bootstrap/config`),
+
+3. **b**'s `.bootstrap.local` folder is ignored
+4. any **file** in **b**'s `.bootstrap` folder except the file
+`embedded_repositories` is merged in. If it would overwrite a file copied
+from  **a**'s' `.bootstrap.local` the merge is not done.
+5. **b**'s `.bootstrap/settings` and `.bootstrap/config` folders are ignored
+6. any other **folder** from **b**'s' `./bootstrap`folder is copied, if it
+doesn't overwrite an existing folder.
+
+
+Mergable Settings
 ===================
 
-1. `.bootstrap.local` (Merge)
+1. `.bootstrap.local`
 2. `.bootstrap`       (Merge)
 
 
@@ -37,22 +48,22 @@ by a search for "build_ignore".
 
 Setting Name            |  Description
 ------------------------|----------------------------------------
-`build_ignore`          | repositories not to build            
+`build_ignore`          | repositories not to build
 
 
 
 Build Settings
 ===================
 
-These settings are usually repository specific, but can be set globally also. 
+These settings are usually repository specific, but can be set globally also.
 
 #### Search Paths
 
-1. `.bootstrap.local/${reponame}/settings`  (Inherit)
-2. `.bootstrap/${reponame}/settings`        (Inherit)
+1. `.bootstrap.local/${reponame}/settings`
+2. `.bootstrap/${reponame}/settings`        (Inheritable)
 
-4. `.bootstrap.local/settings`              (Inherit)
-5. `.bootstrap/settings`                    (Inherit)
+4. `.bootstrap.local/settings`
+5. `.bootstrap/settings`
 
 
 #### Settings
@@ -94,8 +105,8 @@ Repository Specific Settings
 
 #### Search Paths
 
-1. `.bootstrap.local/${reponame}/settings`    (Inherit)
-2. `.bootstrap/${reponame}/settings`          (Inherit)
+1. `.bootstrap.local/${reponame}/settings`
+2. `.bootstrap/${reponame}/settings`          (Inheritable)
 
 
 #### Settings
@@ -108,17 +119,17 @@ Setting Name     | Used by       | Description
 `xcode_targets`  | build         | The Xcode targets to build
 
 
-Scripts 
+Scripts
 ==========================
 
 Scripts are run at various times during the fetch, build and tag process.
 Root scripts must be aware, that they will be called for every repository.
 
-1. `.bootstrap.local/${reponame}/settings/bin`    (Inherit)
-2. `.bootstrap/${reponame}/settings/bin`          (Inherit)
+1. `.bootstrap.local/${reponame}/settings/bin`
+2. `.bootstrap/${reponame}/settings/bin`     (Inheritable)
 
-1. `.bootstrap.local/settings/bin`                (Inherit)
-2. `.bootstrap/settings/bin`                      (Inherit)
+1. `.bootstrap.local/settings/bin`
+2. `.bootstrap/settings/bin`
 
 `pre-install.sh`
 `post-install.sh`
@@ -139,8 +150,8 @@ in the environment. These can only be specified locally. They are not inherited.
 #### Search Paths
 
 1. ENVIRONMENT
-2. `.bootstrap.local/config`    (Private)
-3. `~/.mulle-bootstrap`         (Private)
+2. `.bootstrap.local/config`
+3. `~/.mulle-bootstrap`
 
 
 ##### General Settings

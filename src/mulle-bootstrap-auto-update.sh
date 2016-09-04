@@ -127,48 +127,6 @@ bootstrap_auto_copy_files()
 }
 
 
-#
-# copy up other non-mergable settings, if there aren't already settings there
-#
-bootstrap_auto_update_settings()
-{
-   local name
-   local directory
-
-   directory="$1"
-   name="$2"
-
-   local srcdir
-   local settingname
-   local script
-   local dstdir
-   local i
-   local is_merge
-
-   srcdir="${directory}/.bootstrap/settings"
-   dstdir="${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
-
-   if dir_has_files "${srcdir}"
-   then
-      mkdir_if_missing "${dstdir}"
-
-      bootstrap_auto_copy_files  "${srcdir}" "${dstdir}"
-
-      # copy scripts
-
-      srcdir="${srcdir}/bin"
-      dstdir="${dstdir}/bin"
-
-      mkdir_if_missing "${dstdir}"
-      bootstrap_auto_copy_files  "${srcdir}" "${dstdir}"
-
-      rmdir_if_empty "${dstdir}/bin"
-
-      rmdir_if_empty "${dstdir}"
-   fi
-}
-
-
 bootstrap_auto_update_repo_settings()
 {
    local directory
@@ -240,9 +198,6 @@ bootstrap_auto_update()
    log_fluff "Acquiring \"${name}\" merge settings"
    bootstrap_auto_update_merge "${directory}"
 
-   log_fluff "Acquiring \"${name}\" build settings"
-   bootstrap_auto_update_settings "${directory}" "${name}"
-
    log_fluff "Acquiring \"${name}\" repo settings"
    bootstrap_auto_update_repo_settings "${directory}"
 
@@ -267,7 +222,8 @@ bootstrap_auto_create()
 
    #
    # add stuff from bootstrap folder
-   # don't copy config/ if exists (it could be malicious)
+   # don't copy config if exists (it could be malicious)
+   # don't copy settings (must be duplicated by inheritor)
    #
    local old
    local file
@@ -279,12 +235,12 @@ bootstrap_auto_create()
    do
       name="`basename -- "${file}"`"
       case "$name" in
-         config)
+         config|settings)
             continue
          ;;
 
          *)
-            exekutor cp -Ran "${BOOTSTRAP_SUBDIR}/${name}" "${BOOTSTRAP_SUBDIR}.auto/${name}"
+            exekutor cp -Ran "${BOOTSTRAP_SUBDIR}/${name}" "${BOOTSTRAP_SUBDIR}.auto/"
          ;;
       esac
    done
