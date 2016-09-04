@@ -1350,7 +1350,7 @@ fetch_main()
 
    [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ] && . mulle-bootstrap-scm.sh && scm_initialize
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh && scripts_initialize
-   [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh && warns_scripts_initialize
+   [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh
    [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh && auto_update_initialize
 
    #

@@ -525,16 +525,7 @@ find_compiler()
       mingw)
          if [ "`read_config_setting "mangle_minwg_compiler" "YES"`" = "YES" ]
          then
-            case "${compiler}" in
-               mulle-clang|clang)
-                  compiler="${compiler}-cl"
-               ;;
-
-               *)
-                  compiler="cl"
-                  log_fluff "Using default compiler cl"
-               ;;
-            esac
+            compile="`mingw_mangle_compiler "${compiler}"`"
          fi
       ;;
    esac

@@ -35,13 +35,4 @@ export PATH
 
 [ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh && mingw_initialize
 
-
-# fake up a cpp exe for configure scripts in MINGW
-#
-compiler="`find_msvc_executable "cl.exe" "compiler"`"
-if [ -z "${compiler}" ]
-then
-	fail "Could not find cl.exe in PATH"
-fi
-
-CC="${compiler}" MSYS_NO_PATHCONV=1 "${compiler}" \/E "$@"
+PATH="`mingw_buildpath "${PATH}"`" mingw32-make.exe "$@"

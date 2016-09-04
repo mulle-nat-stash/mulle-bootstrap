@@ -70,6 +70,25 @@ find_msvc_executable()
 }
 
 
+mingw_mangle_compiler()
+{
+   local compiler
+
+   compiler="$1"
+   case "${compiler}" in
+      mulle-clang|clang)
+         compiler="${compiler}-cl"
+      ;;
+
+      *)
+         compiler="cl"
+         log_fluff "Using default compiler cl"
+      ;;
+   esac
+   echo "${compiler}"
+}
+
+
 #
 # fix path fckup
 #
@@ -143,6 +162,6 @@ mingw_buildpath()
 
 mingw_initialize()
 {
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh && logging_initialize
    log_fluff ":mingw_initialize:"
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
 }
