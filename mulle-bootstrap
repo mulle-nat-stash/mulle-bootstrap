@@ -48,7 +48,7 @@ usage()
 {
    cat <<EOF
 usage: mulle-bootstrap [options] [command] [--help]
- Common Options: 
+ Common Options:
    -a -y     : default answer to questions (scripts wont be checked)
                -a (clone preferred) -y (local copy/symlink preferred)
    -n        : do nothing creative or destructive
@@ -226,7 +226,7 @@ bootstrap_main()
 
       shift
       continue
-   done   
+   done
 
   command=${1:-"bootstrap"}
    [ $# -eq 0 ] || shift
@@ -245,6 +245,7 @@ bootstrap_main()
       FLUFF)
          MULLE_BOOTSTRAP_FLUFF="YES"
          MULLE_BOOTSTRAP_VERBOSE="YES"
+         MULLE_BOOTSTRAP_TRACE_EXECUTION="YES"
          if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
          then
             MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
@@ -310,18 +311,18 @@ bootstrap_main()
    then
       case "${command}" in
          bootstrap|nomagic|setup-xcode|xcode|tag)
-           . mulle-bootstrap-refresh.sh  
+           . mulle-bootstrap-refresh.sh
             refresh_main || exit 1
          ;;
 
          clean|dist-clean|fetch)
-           . mulle-bootstrap-refresh.sh  
+           . mulle-bootstrap-refresh.sh
 
             refresh_main clear || exit 1
          ;;
 
          update)
-           . mulle-bootstrap-refresh.sh 
+           . mulle-bootstrap-refresh.sh
          ;;
       esac
    fi
@@ -333,9 +334,9 @@ bootstrap_main()
             DONT_RECURSE=YES
          fi
 
-         . mulle-bootstrap-fetch.sh 
-         . mulle-bootstrap-build.sh 
-         . mulle-bootstrap-warn-scripts.sh 
+         . mulle-bootstrap-fetch.sh
+         . mulle-bootstrap-build.sh
+         . mulle-bootstrap-warn-scripts.sh
 
          if [ "${DONT_RECURSE}" = "" ]
          then

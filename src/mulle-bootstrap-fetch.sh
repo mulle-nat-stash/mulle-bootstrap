@@ -136,6 +136,8 @@ install_brews()
       return
    fi
 
+   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh && brew_initialize
+
    if [ -d "${ADDICTION_SUBDIR}" ]
    then
       log_fluff "Unprotecting \"${ADDICTION_SUBDIR}\" for ${command}."
@@ -1288,7 +1290,7 @@ update_embedded_repositories()
 
 fetch_main()
 {
-   log_fluff "::: fetch :::"
+   log_fluff "::: fetch begin :::"
 
    while :
    do
@@ -1346,7 +1348,6 @@ fetch_main()
       ;;
    esac
 
-   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh && brew_initialize
    [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ] && . mulle-bootstrap-scm.sh && scm_initialize
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh && scripts_initialize
    [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh && warns_scripts_initialize
@@ -1411,5 +1412,7 @@ fetch_main()
          append_dir_to_gitignore_if_needed "${CLONES_SUBDIR}"
       fi
    fi
+
+   log_fluff "::: fetch end :::"
 }
 

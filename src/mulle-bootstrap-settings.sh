@@ -116,6 +116,7 @@ _read_setting()
          log_fluff "${C_MAGENTA}${C_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
       fi
       echo "${value}"
+      return 0
    fi
 
    value="`egrep -s -v '^#|^[ ]*$' "${file}"`"
@@ -356,7 +357,6 @@ read_build_root_setting()
       set +x
    fi
 
-   local value
    local name
    local default
 
@@ -365,12 +365,17 @@ read_build_root_setting()
    name="$1"
    default="$2"
 
+   local value
+   local rval
+
+   rval=1
    if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
    then
       value="`_read_bootstrap_setting "settings/${name}.${UNAME}"`"
+      rval=$?
    fi
 
-   if [ $? -ne 0 ]
+   if [ $rval -ne 0 ]
    then
       value="`_read_bootstrap_setting "settings/${name}"`"
       if [ $? -ne 0 ]
@@ -411,17 +416,20 @@ read_build_setting()
    default="$3"
 
    local value
+   local rval
 
+   rval=1
    if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
-   then 
+   then
       value="`_read_bootstrap_setting "settings/${package}/${name}.${UNAME}"`"
       if [ $? -ne 0 ]
       then
          value="`_read_bootstrap_setting "settings/${name}.${UNAME}"`"
+         rval=$?
       fi
    fi
 
-   if [ $? -ne 0 ]
+   if [ $rval -ne 0 ]
    then
       value="`_read_bootstrap_setting "settings/${package}/${name}"`"
       if [ $? -ne 0 ]
@@ -453,19 +461,23 @@ read_fetch_setting()
       set +x
    fi
 
-   local value
    local default
    local name
 
    name="$1"
    default="$2"
 
+   local value
+   local rval
+
+   rval=1
    if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
-   then 
+   then
       value="`_read_bootstrap_setting "${name}.${UNAME}"`"
+      rval=$?
    fi
 
-   if [ $? -ne 0 ]
+   if [ $rval -ne 0 ]
    then
       value="`_read_bootstrap_setting "${name}"`"
       if [ $? -ne 0 ]

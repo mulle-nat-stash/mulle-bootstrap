@@ -1,19 +1,26 @@
 SCRIPTS=install.sh \
-mulle-bootstrap-brew.sh \
-mulle-bootstrap-build.sh \
-mulle-bootstrap-clean.sh \
-mulle-bootstrap-convert-pre-0.10.sh \
-mulle-bootstrap-fetch.sh \
-mulle-bootstrap-functions.sh \
-mulle-bootstrap-gcc.sh \
-mulle-bootstrap-init.sh \
-mulle-bootstrap-local-environment.sh \
-mulle-bootstrap-settings.sh \
-mulle-bootstrap-scm.sh \
-mulle-bootstrap-scripts.sh \
-mulle-bootstrap-tag.sh \
-mulle-bootstrap-warn-scripts.sh \
-mulle-bootstrap-xcode.sh
+src/mulle-bootstrap-array.sh \
+src/mulle-bootstrap-auto-update.sh \
+src/mulle-bootstrap-brew.sh \
+src/mulle-bootstrap-build.sh \
+src/mulle-bootstrap-build-environment.sh \
+src/mulle-bootstrap-clean.sh \
+src/mulle-bootstrap-dependency-resolve.sh \
+src/mulle-bootstrap-fetch.sh \
+src/mulle-bootstrap-functions.sh \
+src/mulle-bootstrap-gcc.sh \
+src/mulle-bootstrap-init.sh \
+src/mulle-bootstrap-install.sh \
+src/mulle-bootstrap-local-environment.sh \
+src/mulle-bootstrap-logging.sh \
+src/mulle-bootstrap-mingw.sh \
+src/mulle-bootstrap-refresh.sh \
+src/mulle-bootstrap-scm.sh \
+src/mulle-bootstrap-scripts.sh \
+src/mulle-bootstrap-settings.sh \
+src/mulle-bootstrap-tag.sh \
+src/mulle-bootstrap-warn-scripts.sh \
+src/mulle-bootstrap-xcode.sh
 
 CHECKSTAMPS=$(SCRIPTS:.sh=.chk)
 SHELLFLAGS=-x -e SC2164,SC2166,SC2006 -s sh

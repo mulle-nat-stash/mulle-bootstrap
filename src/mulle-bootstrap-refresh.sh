@@ -553,7 +553,7 @@ refresh_deeply_embedded_repositories()
 
 refresh_main()
 {
-   log_fluff "::: refresh :::"
+   log_fluff "::: refresh begin :::"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh && local_environment_initialize
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
@@ -599,28 +599,27 @@ refresh_main()
    #
    # short cut if there are no .repos
    #
-   if [ "${COMMAND}" = "clear" -o ! -d "${CLONESFETCH_SUBDIR}" ]
+   if [ "${COMMAND}" != "clear" -a -d "${CLONESFETCH_SUBDIR}" ]
    then
-      return 0
+      if [ "${DONT_RECURSE}" = "" ]
+      then
+         log_verbose "Refreshing repository settings"
+         refresh_repositories_settings
+      fi
+
+      log_verbose "Detect zombie repositories"
+      refresh_repositories
+
+      log_verbose "Detect embedded zombie repositories"
+      refresh_embedded_repositories
+
+      if [ "${DONT_RECURSE}" = "" ]
+      then
+         log_verbose "Detect deeply embedded zombie repositories"
+         refresh_deeply_embedded_repositories
+      fi
    fi
-   
 
-   if [ "${DONT_RECURSE}" = "" ]
-   then
-      log_verbose "Refreshing repository settings"
-      refresh_repositories_settings
-   fi
-
-   log_verbose "Detect zombie repositories"
-   refresh_repositories
-
-   log_verbose "Detect embedded zombie repositories"
-   refresh_embedded_repositories
-
-   if [ "${DONT_RECURSE}" = "" ]
-   then
-      log_verbose "Detect deeply embedded zombie repositories"
-      refresh_deeply_embedded_repositories
-   fi
+   log_fluff "::: refresh end :::"
 }
 

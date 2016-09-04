@@ -60,7 +60,12 @@ bootstrap_auto_update_merge()
 
       settingname="`basename -- "${i}"`"
       srcfile="${directory}/.bootstrap/${settingname}"
-      dstfile="${BOOTSTRAP_SUBDIR}.auto/${settingname}"
+
+      if [ -d "${srcfile}" ]
+      then
+         continue
+      fi
+
       localfile="${BOOTSTRAP_SUBDIR}.local/${settingname}"
 
       if [ -e "${localfile}" ]
@@ -69,19 +74,16 @@ bootstrap_auto_update_merge()
          continue
       fi
 
-      if [ -d "${srcfile}" ]
-      then
-         continue
-      fi
-
-      match="`echo "$NON_MERGABLE_SETTINGS" | grep "${settingname}"`"
+      match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -x "${settingname}"`"
       if [ ! -z "${match}" ]
       then
+         log_fluff "Setting \"${settingname}\" is not mergable"
          continue
       fi
 
       log_verbose "Inheriting \"${settingname}\" from \"${srcfile}\""
 
+      dstfile="${BOOTSTRAP_SUBDIR}.auto/${settingname}"
       if [ -f "${dstfile}" ]
       then
          tmpfile="${BOOTSTRAP_SUBDIR}.auto/${settingname}.tmp"
@@ -93,6 +95,7 @@ bootstrap_auto_update_merge()
          exekutor cp "${srcfile}" "${dstfile}" || exit 1
       fi
    done
+
    IFS="${old}"
 }
 
@@ -145,21 +148,24 @@ bootstrap_auto_update_settings()
    srcdir="${directory}/.bootstrap/settings"
    dstdir="${BOOTSTRAP_SUBDIR}.auto/settings/${name}"
 
-   mkdir_if_missing "${dstdir}" 
+   if dir_has_files "${srcdir}"
+   then
+      mkdir_if_missing "${dstdir}"
 
-   bootstrap_auto_copy_files  "${srcdir}" "${dstdir}"
+      bootstrap_auto_copy_files  "${srcdir}" "${dstdir}"
 
-   # copy scripts
+      # copy scripts
 
-   srcdir="${srcdir}/bin"
-   dstdir="${dstdir}/bin"
+      srcdir="${srcdir}/bin"
+      dstdir="${dstdir}/bin"
 
-   mkdir_if_missing "${dstdir}" 
-   bootstrap_auto_copy_files  "${srcdir}" "${dstdir}"
+      mkdir_if_missing "${dstdir}"
+      bootstrap_auto_copy_files  "${srcdir}" "${dstdir}"
 
-   rmdir_if_empty "${dstdir}/bin"
+      rmdir_if_empty "${dstdir}/bin"
 
-   rmdir_if_empty "${dstdir}" 
+      rmdir_if_empty "${dstdir}"
+   fi
 }
 
 
@@ -176,7 +182,7 @@ bootstrap_auto_update_repo_settings()
    srcdir="${directory}/.bootstrap"
    dstdir="${BOOTSTRAP_SUBDIR}.auto"
 
-   mkdir_if_missing "${dstdir}" 
+   mkdir_if_missing "${dstdir}"
 
    #
    # copy repo settings flat if not present already
@@ -197,11 +203,10 @@ bootstrap_auto_update_repo_settings()
          continue
       fi
 
-      log_fluff  "Copy \"${i}\" to \"${dstdir}\""
       exekutor cp -Ra "${i}" ${dstdir}/${reponame}""
    done
 
-   rmdir_if_empty "${dstdir}" 
+   rmdir_if_empty "${dstdir}"
 }
 
 
@@ -241,13 +246,14 @@ bootstrap_auto_update()
    log_fluff "Acquiring \"${name}\" repo settings"
    bootstrap_auto_update_repo_settings "${directory}"
 
+   log_fluff "Acquisiton of \"${name}\" complete"
    return 0
 }
 
 #
 # copy contents of .bootstrap.local to .bootstrap.auto
 # them add contents of .bootstrap to .bootstrap.auto, if not present
-# 
+#
 bootstrap_auto_create()
 {
    log_verbose "Creating .bootstrap.auto from .bootstrap and .bootstrap.local"
@@ -292,6 +298,6 @@ auto_update_initialize()
     log_fluff ":auto_update_initialize:"
 
   NON_MERGABLE_SETTINGS='embedded_repositories
-'   
+'
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
 }

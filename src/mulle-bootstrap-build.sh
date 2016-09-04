@@ -29,11 +29,6 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_BUILD_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
-[ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
-[ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
-[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
-
 
 build_usage()
 {
@@ -551,7 +546,7 @@ find_compiler()
       ;;
    esac
 
-   assert_binary "${compiler}" 
+   assert_binary "${compiler}"
    echo "`basename -- "${compiler}"`"
 }
 
@@ -623,6 +618,19 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    # no problem if those are empty
    c_compiler="`find_compiler CC`"
    cxx_compiler="`find_compiler CXX`"
+
+   local c_compiler_line
+   local cxx_compiler_line
+
+   if [ ! -z "${c_compiler}" ]
+   then
+      c_compiler_line="-DCMAKE_C_COMPILER=${c_compiler}"
+   fi
+   if [ ! -z "${cxx_compiler}" ]
+   then
+      cxx_compiler_line="-DCMAKE_CXX_COMPILER=${cxx_compiler}"
+   fi
+
    # linker="`read_build_setting "${name}" "LD"`"
 
    local other_cflags
@@ -713,8 +721,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"`"
       includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} "`"
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} "`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"`"
 
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
@@ -729,11 +737,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
       dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
 
-      cmakemodulepath="\${CMAKE_MODULE_PATH}"
-      if [ ! -z "${CMAKE_MODULE_PATH}" ]
-      then
-         cmakemodulepath="${CMAKE_MODULE_PATH}${PATH_SEPARATOR}${cmakemodulepath}"   # prepend
-      fi
+#      cmakemodulepath="\${CMAKE_MODULE_PATH}"
+#      if [ ! -z "${CMAKE_MODULE_PATH}" ]
+#      then
+#         cmakemodulepath="${CMAKE_MODULE_PATH}${PATH_SEPARATOR}${cmakemodulepath}"   # prepend
+#      fi
 
       local frameworkprefix
       local libraryprefix
@@ -770,6 +778,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       for path in ${includelines}
       do
          other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
+         other_cxxflags="`concat "${other_cxxflags}" "${includeprefix}${path}"`"
       done
 
       for path in ${librarylines}
@@ -780,6 +789,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       for path in ${frameworklines}
       do
          other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
+         other_cxxflags="`concat "${other_cxxflags}" "${frameworkprefix}${path}"`"
          other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
 
@@ -793,10 +803,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local oldpath
       local rval
 
-      [ -z "${BUILDPATH}"] && internal_fail "BUILDPATH not set"
-   
+      [ -z "${BUILDPATH}" ] && internal_fail "BUILDPATH not set"
+
       oldpath="$PATH"
-      PATH="${BUILDPATH}" 
+      PATH="${BUILDPATH}"
 
       logging_exekutor "${CMAKE}" -G "${CMAKE_GENERATOR}" "-DCMAKE_BUILD_TYPE=${mapped}" \
 "${sdkparameter}" \
@@ -805,30 +815,29 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "-DCMAKE_INCLUDE_PATH=${includelines}" \
 "-DCMAKE_LIBRARY_PATH=${librarylines}" \
 "-DCMAKE_FRAMEWORK_PATH=${frameworklines}" \
-"-DCMAKE_C_COMPILER=${c_compiler}" \
-"-DCMAKE_CXX_COMPILER=${cxx_compiler}" \
+"${c_compiler_line}" \
+"${cxx_compiler_line}" \
 "-DCMAKE_C_FLAGS=${other_cflags}" \
 "-DCMAKE_CXX_FLAGS=${other_cxxflags}" \
 "-DCMAKE_EXE_LINKER_FLAGS=${other_ldflags}" \
 "-DCMAKE_SHARED_LINKER_FLAGS=${other_ldflags}" \
-"-DCMAKE_MODULE_PATH=${cmakemodulepath}" \
 ${CMAKE_FLAGS} \
 ${localcmakeflags} \
-"${relative_srcdir}" > "${logfile1}" 
+"${relative_srcdir}" > "${logfile1}"
       rval=$?
 
       if [ $rval -ne 0 ]
       then
-         PATH="${oldpath}" 
+         PATH="${oldpath}"
          build_fail "${logfile1}" "cmake"
       fi
 
-      logging_exekutor "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install > "${logfile2}" 
+      logging_exekutor "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install > "${logfile2}"
       rval=$?
 
       PATH="${oldpath}"
       [ $rval -ne 0 ] && build_fail "${logfile2}" "make"
-   
+
       set +f
 
    exekutor cd "${owd}"
@@ -980,8 +989,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"`"
       includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME} "`"
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME} "`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"`"
 
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
@@ -1034,7 +1043,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local rval
 
       oldpath="$PATH"
-      PATH="${BUILDPATH}" 
+      PATH="${BUILDPATH}"
 
       # use absolute paths for configure, safer (and easier to read IMO)
       DEPENDENCIES_DIR="'${dependenciesdir}'" \
@@ -1049,11 +1058,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ $rval -ne 0 ]
       then
-         PATH="${oldpath}" 
+         PATH="${oldpath}"
          build_fail "${logfile1}" "configure"
       fi
 
-      logging_exekutor "${MAKE}" ${MAKE_FLAGS} install > "${logfile2}" 
+      logging_exekutor "${MAKE}" ${MAKE_FLAGS} install > "${logfile2}"
       rval=$?
 
       PATH="${oldpath}"
@@ -1482,9 +1491,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
       local oldpath
       local rval
-      
+
       oldpath="${PATH}"
-      PATH="${BUILDPATH}" 
+      PATH="${BUILDPATH}"
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${XCODEBUILD}\" \"${command}\" ${arguments} \
 ARCHS='${ARCHS:-\${ARCHS_STANDARD_32_64_BIT\}}' \
@@ -1503,7 +1512,7 @@ HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
-      logging_eval_exekutor "${cmdline}" > "${logfile}" 
+      logging_eval_exekutor "${cmdline}" > "${logfile}"
       rval=$?
 
       PATH="${oldpath}"
@@ -1659,7 +1668,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       local rval
 
       oldpath="${PATH}"
-      PATH="${BUILDPATH}" 
+      PATH="${BUILDPATH}"
 
       run_log_build_script "${owd}/${script}" \
          "${configuration}" \
@@ -1667,10 +1676,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          "${owd}/${builddir}" \
          "${owd}/${BUILD_DEPENDENCY_SUBDIR}" \
          "${name}" \
-         "${sdk}" > "${logfile}" 
+         "${sdk}" > "${logfile}"
       rval=$?
 
-      PATH="${oldpath}" 
+      PATH="${oldpath}"
       [ $rval -ne 0 ] && build_fail "${logfile}" "build.sh"
 
    exekutor cd "${owd}"
@@ -2121,7 +2130,7 @@ build_main()
 {
    local  clean
 
-   log_fluff "::: build :::"
+   log_fluff "::: build begin :::"
 
    while :
    do
@@ -2185,6 +2194,9 @@ build_main()
 
    build_complete_environment
 
+   [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh && gcc_initialize
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh && scripts_initialize
+
    if [ $# -eq 0 ]
    then
       log_fluff "Setting up dependencies directory as \"${DEPENDENCY_SUBDIR}\""
@@ -2217,5 +2229,8 @@ build_main()
    else
       log_fluff "No dependencies have been generated"
    fi
+
+   log_fluff "::: build end :::"
 }
+
 

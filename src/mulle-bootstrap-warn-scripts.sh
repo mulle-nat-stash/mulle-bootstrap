@@ -114,7 +114,7 @@ now."
 
 warn_scripts_main()
 {
-   log_fluff "::: warn_scripts :::"
+   log_fluff "::: warn_scripts begin :::"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh && local_environment_initialize
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
@@ -126,4 +126,6 @@ warn_scripts_main()
    else
       log_verbose "Script checking by autoanswer YES disabled"
    fi
+
+   log_fluff "::: warn_scripts end :::"
 }
