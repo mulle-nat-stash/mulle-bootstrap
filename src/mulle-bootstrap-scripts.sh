@@ -85,13 +85,6 @@ find_build_setting_file()
 }
 
 
-is_inherited_setting_file()
-{
-   echo "$1" | egrep -q -s "^${BOOTSTRAP_SUBDIR}.auto"
-}
-
-
-
 run_build_root_settings_script()
 {
    local  name
@@ -213,4 +206,11 @@ run_fetch_settings_script()
       return $?
    fi
    return 0
+}
+
+
+scripts_initialize()
+{
+   log_fluff ":scripts_initialize:"
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
 }

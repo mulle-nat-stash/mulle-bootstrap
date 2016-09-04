@@ -279,6 +279,8 @@ install_main()
 {
    log_fluff "::: install :::"
 
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
+
    DEFAULT_PREFIX="/usr/local"
    DEFAULT_FRAMEWORK_PREFIX="/Library"
 
@@ -304,7 +306,7 @@ install_main()
          INSTALL_FRAMEWORKS="NO"
          ;;
 
-      Darwin)
+      darwin)
          FRAMEWORK_PREFIX="${1:-${DEFAULT_FRAMEWORK_PREFIX}}"
          [ $# -eq 0 ] || shift
          INSTALL_FRAMEWORKS="YES"
@@ -321,7 +323,7 @@ Suggested fix:
    local symlink
 
    case "${UNAME}" in
-      MINGW)
+      mingw)
          symlink="NO"
       ;;
 
@@ -347,4 +349,3 @@ Suggested fix:
       fi
    fi
 }
-

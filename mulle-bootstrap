@@ -35,18 +35,6 @@ MULLE_BOOTSTRAP_VERSION=2.0
 # This is the main user interface to mulle-bootstrap
 # sorta like git
 #
-BOOTSTRAP_SUBDIR=.bootstrap
-
-PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/dependencies/bin:`pwd -P`/addictions/bin:$PATH"
-export PATH
-
-MULLE_BOOTSTRAP_PID="$$"
-export MULLE_BOOTSTRAP_PID
-
-# now include this first to get
-# logging and UNAME
-
-[ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
 
 trap_fail()
@@ -54,36 +42,31 @@ trap_fail()
    exit 1
 }
 
-trap trap_fail INT
 
 
 usage()
 {
    cat <<EOF
-usage: mulle-bootstrap [-a|-y][-n][-v|-s|-t] [command] [--help]
- Flags
+usage: mulle-bootstrap [options] [command] [--help]
+ Common Options: 
    -a -y     : default answer to questions (scripts wont be checked)
-               -a (clone preferred) -y (symlink preferred)
+               -a (clone preferred) -y (local copy/symlink preferred)
    -n        : do nothing creative or destructive
-   -v -s -t  : -v to be more verbose (-vv or -vvv for more verbosity)
-               -s to be more terse
-               -t turns on shell tracing for development
+   -v        : -v to be more verbose (-vv or -vvv for more verbosity)
    -V        : show build commands
 
  Common user commands:
-   clone     : git clone a remote repository and try to bootstrap and build it
    bootstrap : does fetch and build recursively [default]
-   nomagic   : does fetch and build, but not recursively
    clean     : cleans mulle-bootstrap produced files.
 
  Common maintainer commands:
    init      : initializes a bootstrap project
 EOF
 
-   if [ "${UNAME}" = 'Darwin' ]
+   if [ "${UNAME}" = 'darwin' ]
    then
       cat <<EOF
-   xcode     : sets up the xcodeproj settings
+   xcode     : sets up xcodeproj settings
 EOF
    fi
 
@@ -96,8 +79,6 @@ cat <<EOF
                the repositories and embedded_repositories files.
    update    : updates repositories (pull).
    install   : install dependencies as system headers
-
- Specify the -h or --help option after each command to get more help.
 EOF
    exit 1
 }
@@ -129,6 +110,21 @@ bootstrap_main()
 {
    local command
 
+   BOOTSTRAP_SUBDIR=.bootstrap
+
+   PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/dependencies/bin:`pwd -P`/addictions/bin:$PATH"
+   export PATH
+
+   MULLE_BOOTSTRAP_PID="$$"
+   export MULLE_BOOTSTRAP_PID
+
+   # now include this first to get
+   # logging and UNAME
+
+   . mulle-bootstrap-logging.sh && logging_initialize
+
+   trap trap_fail INT
+
    #
    # simple option handling
    #
@@ -140,67 +136,82 @@ bootstrap_main()
       fi
 
       case "$1" in
-         -a)
+         -a|--prefer-origin)
             MULLE_BOOTSTRAP_ANSWER="NO"
           ;;
 
-         -y)
+         -y|--prefer-local)
             MULLE_BOOTSTRAP_ANSWER="YES"
          ;;
 
-         -f)
+         -f|--force-fetch)
             MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
          ;;
 
-         -n)
+         -n|--dry-run)
             MULLE_BOOTSTRAP_DRY_RUN="YES"
          ;;
 
-         -tm)
+         -ig|--ignore-graveyard)
+            MULLE_BOOTSTRAP_IGNORE_GRAVEYARD="YES"
+         ;;
+
+         -te|--trace-execution)
+            MULLE_BOOTSTRAP_TRACE_EXECUTION="YES"
+         ;;
+
+         -tm|--trace-settings-merge)
             MULLE_BOOTSTRAP_TRACE_MERGE="YES"
          ;;
 
-         -ts)
+         -ts|--trace-scripts)
             MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="YES"
          ;;
 
-         -t)
+         -tt|--trace-ignores-settings)
+            MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
+         ;;
+
+         -t|--trace)
             MULLE_BOOTSTRAP_TRACE="1848"
             COPYMOVEFLAGS="-v"
             GITFLAGS="-v"
          ;;
 
-         -V)
+         -V|--verbose-build)
             MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
          ;;
 
-
-         -v)
+         -v|--verbose)
             MULLE_BOOTSTRAP_TRACE="VERBOSE"
             COPYMOVEFLAGS="-v"
             GITFLAGS="-v"
          ;;
 
-         -vv)
+         -vv|--very-verbose)
             MULLE_BOOTSTRAP_TRACE="FLUFF"
             COPYMOVEFLAGS="-v"
             GITFLAGS="-v"
          ;;
 
-         -vvv)
+         -vvv|--very-verbose-with-settings)
             MULLE_BOOTSTRAP_TRACE="TRACE"
             COPYMOVEFLAGS="-v"
             GITFLAGS="-v"
          ;;
 
-         -r)
+         -r|--refresh)
             MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH="YES"
          ;;
 
-         -s)
+         -s|--silent)
             MULLE_BOOTSTRAP_TRACE=
             MULLE_BOOTSTRAP_TERSE="YES"
             GITFLAGS="-q"
+         ;;
+
+         -h|--help)
+            usage
          ;;
 
          -*)
@@ -224,7 +235,6 @@ bootstrap_main()
    case "${MULLE_BOOTSTRAP_TRACE}" in
       VERBOSE)
          MULLE_BOOTSTRAP_FLUFF="NO"
-         MULLE_BOOTSTRAP_TRACE="NO"
          MULLE_BOOTSTRAP_VERBOSE="YES"
          if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
          then
@@ -234,7 +244,6 @@ bootstrap_main()
 
       FLUFF)
          MULLE_BOOTSTRAP_FLUFF="YES"
-         MULLE_BOOTSTRAP_TRACE="NO"
          MULLE_BOOTSTRAP_VERBOSE="YES"
          if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
          then
@@ -244,9 +253,9 @@ bootstrap_main()
 
       TRACE)
          MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
+         MULLE_BOOTSTRAP_TRACE_EXECUTION="YES"
          MULLE_BOOTSTRAP_FLUFF="YES"
          MULLE_BOOTSTRAP_VERBOSE="YES"
-         MULLE_BOOTSTRAP_TRACE="YES"
          if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
          then
             MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
@@ -255,12 +264,14 @@ bootstrap_main()
          ;;
 
       1848)
-         MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
          MULLE_BOOTSTRAP_TRACE_SETTINGS="NO"
+         MULLE_BOOTSTRAP_TRACE_EXECUTION="NO"
          MULLE_BOOTSTRAP_FLUFF="NO"
-         MULLE_BOOTSTRAP_TRACE="NO"
          MULLE_BOOTSTRAP_VERBOSE="NO"
-         MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
+         if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
+         then
+            MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
+         fi
          log_trace "1848 trace (set -x) started"
          set -x
          ;;
@@ -270,9 +281,6 @@ bootstrap_main()
    then
       log_trace "Dry run is active."
    fi
-
-   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
 
    #
    # some commands only run when we have a .bootstrap folder
@@ -288,7 +296,7 @@ bootstrap_main()
    if [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ]
    then
       case "${command}" in
-         clean|dist-clean)
+         clean|dist-clean|init)
             :
          ;;
          *)
@@ -302,7 +310,18 @@ bootstrap_main()
    then
       case "${command}" in
          bootstrap|nomagic|setup-xcode|xcode|tag)
+           . mulle-bootstrap-refresh.sh  
             refresh_main || exit 1
+         ;;
+
+         clean|dist-clean|fetch)
+           . mulle-bootstrap-refresh.sh  
+
+            refresh_main clear || exit 1
+         ;;
+
+         update)
+           . mulle-bootstrap-refresh.sh 
          ;;
       esac
    fi
@@ -314,11 +333,10 @@ bootstrap_main()
             DONT_RECURSE=YES
          fi
 
-         . mulle-bootstrap-fetch.sh
-         . mulle-bootstrap-build.sh
-         . mulle-bootstrap-warn-scripts.sh
+         . mulle-bootstrap-fetch.sh 
+         . mulle-bootstrap-build.sh 
+         . mulle-bootstrap-warn-scripts.sh 
 
-         refresh_main clear              || exit 1
          if [ "${DONT_RECURSE}" = "" ]
          then
             fetch_main install "$@"      || exit 1
@@ -360,21 +378,18 @@ bootstrap_main()
       clean)
          . mulle-bootstrap-clean.sh
 
-         refresh_main clear || exit 1
          clean_main "$@"    || exit 1
       ;;
 
       dist-clean)
          . mulle-bootstrap-clean.sh
 
-         refresh_main clear || exit 1
          clean_main "dist"  || exit 1
       ;;
 
       fetch)
          . mulle-bootstrap-fetch.sh
 
-         refresh_main clear || exit 1
          DONT_ASK_AFTER_WARNING=YES fetch_main "install" "$@" || exit 1
          refresh_main || exit 1
       ;;

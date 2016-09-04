@@ -32,10 +32,6 @@
 MULLE_BOOTSTRAP_WARN_SCRIPTS_SH="included"
 
 
-[ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
-[ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-
-
 warn_scripts()
 {
    local scripts
@@ -85,7 +81,7 @@ warn_scripts()
 
                log_info "To view them inline install \"ack\""
                case "${UNAME}" in
-                  Darwin|Linux)
+                  darwin|linux)
                      log_info "   brew install ack" >&2
                      ;;
                esac
@@ -118,6 +114,12 @@ now."
 
 warn_scripts_main()
 {
+   log_fluff "::: warn_scripts :::"
+
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh && local_environment_initialize
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
+
    if [ "${MULLE_BOOTSTRAP_ANSWER}" != "YES"  ]
    then
       warn_scripts "$@"

@@ -32,16 +32,14 @@
 #
 MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
-
 
 _dependency_resolve()
 {
    local map
    local name
 
-   map="${1}"
-   name="${2}"
+   map="$1"
+   name="$2"
 
    if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
    then
@@ -175,4 +173,9 @@ dependency_resolve()
    fi
 }
 
+
+dependency_resolve_initialize()
+{
+   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh && array_initialize
+}
 

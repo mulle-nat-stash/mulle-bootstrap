@@ -29,23 +29,69 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 #
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH="included"
+
+# only needed for true builds
+
+build_complete_environment()
+{
+   if [ ! -z "${CLEAN_BEFORE_BUILD}" ]
+   then
+      return
+   fi
+
+   CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
+   CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
+   N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
+
+   #
+   # dont export stuff for scripts
+   # if scripts want it, they should source this file
+   #
+   case "${UNAME}" in
+      mingw)
+         [ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
+
+         setup_mingw_buildenvironment
+
+         BUILDPATH="`mingw_buildpath "$PATH"`"
+         BUILD_PWD_OPTIONS="-PW"
+      ;;
+
+      "")
+         fail "UNAME not set"
+      ;;
+
+      *)
+         # get number of cores, use 50% more for make -j
+         CORES="`get_core_count`"
+         CORES="`expr $CORES + $CORES / 2`"
+
+         BUILD_PWD_OPTIONS="-P"
+         BUILDPATH="$PATH"
+      ;;
+   esac
+}
 
 
-CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "${RELATIVE_ROOT}build/.repos"`
-BUILDLOG_SUBDIR=`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`
+build_environment_initialize()
+{
+   log_fluff ":build_environment_initialize:"
 
-[ -z "${CLONESBUILD_SUBDIR}" ]   && internal_fail "variable CLONESBUILD_SUBDIR is empty"
-[ -z "${BUILDLOG_SUBDIR}" ]      && internal_fail "variable BUILDLOG_SUBDIR is empty"
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh && local_environment_initialize
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
 
-#
-# Global Settings
-#
-HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
-LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
-FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
+   CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "${RELATIVE_ROOT}build/.repos"`
+   BUILDLOG_SUBDIR=`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`
 
-#
-# dont export stuff for scripts
-# if scripts want it, they should source this file
-#
+   [ -z "${CLONESBUILD_SUBDIR}" ]   && internal_fail "variable CLONESBUILD_SUBDIR is empty"
+   [ -z "${BUILDLOG_SUBDIR}" ]      && internal_fail "variable BUILDLOG_SUBDIR is empty"
+
+   #
+   # Global Settings
+   #
+   HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
+   LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
+   FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
+}
+

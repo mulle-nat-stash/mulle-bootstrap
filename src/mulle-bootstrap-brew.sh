@@ -62,12 +62,12 @@ fetch_brew_if_needed()
    fi
 
    case "${UNAME}" in
-      Darwin)
+      darwin)
          log_info "Installing OS X brew"
          exekutor git clone https://github.com/Homebrew/brew.git "${ADDICTION_SUBDIR}"
          ;;
 
-      Linux)
+      linux)
          log_info "Installing Linux brew"
          exekutor git clone https://github.com/Linuxbrew/brew.git "${ADDICTION_SUBDIR}"
          ;;
@@ -117,4 +117,12 @@ brew_update_if_needed()
 
       touch_last_update
    fi
+}
+
+
+brew_initialize()
+{
+   log_fluff ":brew_initialize:"
+
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_main
 }

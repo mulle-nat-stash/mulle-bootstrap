@@ -29,38 +29,9 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 #
-
 MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH="included"
 
-MULLE_BOOTSTRAP_EXEC_VERSION=2.0  # paranoia
 
-if [ "${MULLE_BOOTSTRAP_EXEC_VERSION}" != "${MULLE_BOOTSTRAP_VERSION}" ]
-then
-   echo "mulle-bootstrap is misinstalled (${MULLE_BOOTSTRAP_EXEC_VERSION} vs ${MULLE_BOOTSTRAP_VERSION})" >&2
-   exit 1
-fi
-
-#
-# read local environment
-# source this file
-#
-BOOTSTRAP_SUBDIR=.bootstrap
-# can't rename this because of embedded reposiories
-CLONES_SUBDIR=.repos
-# future: shared dependencies folder for many projects
-#RELATIVE_ROOT=""
-
-CLONESFETCH_SUBDIR="${CLONES_SUBDIR}"
-DEPENDENCY_SUBDIR="${RELATIVE_ROOT}dependencies"
-ADDICTION_SUBDIR="${RELATIVE_ROOT}addictions"
-
-[ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-
-
-#
-# simplify UNAME from MINGW64_NT-10.0 to MINGW
-# others should be ok
-#
 get_core_count()
 {
     count="`nproc 2> /dev/null`"
@@ -77,43 +48,51 @@ get_core_count()
 }
 
 
-log_fluff "${UNAME} detected"
-case "${UNAME}" in
-   MINGW)
-      [ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
+local_environment_initialize()
+{
+   #
+   # read local environment
+   # source this file
+   #
+   BOOTSTRAP_SUBDIR=.bootstrap
+   # can't rename this because of embedded reposiories
+   CLONES_SUBDIR=.repos
+   # future: shared dependencies folder for many projects
+   #RELATIVE_ROOT=""
 
-      # be verbose by default on MINGW because its so slow
-      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-      then
-         MULLE_BOOTSTRAP_TRACE="VERBOSE"
-      fi      
+   CLONESFETCH_SUBDIR="${CLONES_SUBDIR}"
+   DEPENDENCY_SUBDIR="${RELATIVE_ROOT}dependencies"
+   ADDICTION_SUBDIR="${RELATIVE_ROOT}addictions"
 
-      if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
-      then
-         MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH="YES"
-      fi      
+   #
+   # simplify UNAME from MINGW64_NT-10.0 to MINGW
+   # others should be ok
+   #
 
-      setup_mingw_environment
+   log_fluff "${UNAME} detected"
+   case "${UNAME}" in
+      mingw)
+         # be verbose by default on MINGW because its so slow
+         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+         then
+           MULLE_BOOTSTRAP_VERBOSE="YES"
+         fi      
 
-      BUILDPATH="`mingw_buildpath "$PATH"`"
+         if [ -z "${MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH}" ]
+         then
+           MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH="YES"
+         fi      
 
-      PATH_SEPARATOR=';'
-      BUILD_PWD_OPTIONS="-PW"
-   ;;
+         PATH_SEPARATOR=';'
+      ;;
 
-   "")
-      fail "UNAME not set"
-   ;;
+      "")
+         fail "UNAME not set"
+      ;;
 
-   *)
-      # get number of cores, use 50% more for make -j
-      CORES="`get_core_count`"
-      CORES="`expr $CORES + $CORES / 2`"
-
-      PATH_SEPARATOR=':'
-      BUILD_PWD_OPTIONS="-P"
-
-      BUILDPATH="$PATH"
-   ;;
-esac
+      *)
+         PATH_SEPARATOR=':'
+      ;;
+   esac
+}
 

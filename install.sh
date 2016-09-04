@@ -112,7 +112,7 @@ libexec=${1:-"${prefix}/libexec/mulle-bootstrap"}
 
 if [ "$prefix" = "" ] || [ "$bin" = "" ] || [ "$libexec" = "" ] || [ "$mode" = "" ]
 then
-   echo "usage: install.sh [prefix] [mode] [binpath] [libexecpath]"
+   echo "usage: install.sh [prefix] [mode] [binpath] [libexecpath]" >&2
    exit 1
 fi
 
@@ -143,7 +143,6 @@ case `uname` in
       done
    ;;
 esac
-
 
 for i in src/mulle*.sh
 do

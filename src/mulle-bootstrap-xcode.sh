@@ -33,10 +33,6 @@ MULLE_BOOTSTRAP_XCODE_SH="included"
 # lib files can be added in a sensible order
 #
 
-[ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
-[ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
-
-
 xcode_usage()
 {
    cat <<EOF >&2
@@ -54,7 +50,7 @@ list_configurations()
 {
    local project
 
-   project="${1}"
+   project="$1"
    #
    # Figure out all configurations
    #
@@ -381,7 +377,11 @@ xcode_main()
 {
    log_fluff "::: xcode :::"
 
-   if [ "${UNAME}" != 'Darwin' ]
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
+   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh && brew_initialize
+
+   if [ "${UNAME}" != 'darwin' ]
    then
       fail "for now xcode only works on OS X"
    fi

@@ -130,11 +130,11 @@ clean_parent_folders_if_empty()
              break
          fi
 
-         if dir_can_be_rmdir "${parent}"
+         if dir_is_empty "${parent}"
          then
             assert_sane_subdir_path "${parent}"
             log_info "Deleting \"${parent}\" because it was empty. "
-            log_fluff "Set \".bootstrap/config/clean_empty_parent_folders\" to NO if you don't like it."
+            log_fluff "Set \"${BOOTSTRAP_SUBDIR}/config/clean_empty_parent_folders\" to NO if you don't like it."
             exekutor rmdir "${parent}"
          fi
       done
@@ -229,15 +229,18 @@ clean_main()
    #
    log_fluff "::: clean :::"
 
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
+   [ -z "${MULLE_BOOTSTRAP_SETTING_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
+
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
    BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCY_SUBDIR}/tmp"`"
-   OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
-   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
-${ADDICTION_SUBDIR}
+   OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}
 .bootstrap.auto"`"
-   INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${BUILD_CLEANABLE_SUBDIRS}
+   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
+${ADDICTION_SUBDIR}"`"
+  INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${BUILD_CLEANABLE_SUBDIRS}
 ${CLONES_SUBDIR}
 .bootstrap.auto"`"
 
@@ -268,4 +271,3 @@ ${EMBEDDED}"
 
    clean_execute "$@"
 }
-

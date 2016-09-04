@@ -31,7 +31,6 @@
 #
 MULLE_BOOTSTRAP_MINGW_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
 find_msvc_executable()
 {
@@ -74,7 +73,7 @@ find_msvc_executable()
 #
 # fix path fckup
 #
-setup_mingw_environment()
+setup_mingw_buildenvironment()
 {
 	local linker
 
@@ -139,4 +138,11 @@ mingw_buildpath()
    IFS="${old}"
 
    echo "${fetchpath}"
+}
+
+
+mingw_initialize()
+{
+   log_fluff ":mingw_initialize:"
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
 }

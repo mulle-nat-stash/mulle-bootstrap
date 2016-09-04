@@ -1,6 +1,9 @@
 2.0
 ===
 
+YOUR OLD STUFF MAY NOT RUN ANYMORE!
+Do a `mulle-bootstrap dist clean`. 
+
 * Add pre-build.sh script phase (for libcurl really)
 * Brew formulas are now installed locally into "addictions". A folder which
 lies besides "dependencies". This is a pretty huge change. By removing pips and
@@ -21,6 +24,8 @@ symlinks available.  This meant that I had to redo the whole settings
 inheritance scheme.
 * -v is now more interesting to watch
 * renamed build setting OTHER_CPPFLAGS to OTHER_CXXFLAGS (!)
+* UNAME is now simplified and lowercased(!)
+* redid the settings merge and inheritance logic. It's now a bit more scrutable.
 
 
 1.1

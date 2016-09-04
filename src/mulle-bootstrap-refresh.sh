@@ -36,10 +36,6 @@ MULLE_BOOTSTRAP_REFRESH_SH="included"
 # You can also specify a list of "brew" dependencies. That
 # will be third party libraries, you don't tag or debug
 #
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-[ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
-[ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
-
 
 refresh_usage()
 {
@@ -191,8 +187,6 @@ mark_all_repositories_zombies()
             exekutor touch "${CLONESFETCH_SUBDIR}/.zombies/${name}"
          fi
       done
-   else
-      log_fluff "No projects found in \"${CLONESFETCH_SUBDIR}\""
    fi
 }
 
@@ -234,7 +228,6 @@ _mark_repository_alive()
       fi
    fi
 }
-
 
 
 mark_repository_alive()
@@ -328,8 +321,6 @@ mark_all_embedded_repositories_zombies()
          name="`basename -- "$i"`"
          exekutor touch "${zombiepath}/${name}"
       done
-   else
-      log_fluff "No files in \"${CLONESFETCH_SUBDIR}/.embedded\", hmm"
    fi
 }
 
@@ -467,6 +458,8 @@ _refresh_embedded_repositories()
    local name
    local dstdir
 
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+
    old="${IFS:-" "}"
 
    clones="`read_fetch_setting "embedded_repositories"`"
@@ -489,6 +482,8 @@ _refresh_embedded_repositories()
    fi
 
    IFS="${old}"
+
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }
 
 
@@ -513,6 +508,8 @@ refresh_deeply_embedded_repositories()
    local previous_bootstrap
    local previous_clones
 
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+
    old="${IFS:-" "}"
 
    clones="`read_fetch_setting "repositories"`"
@@ -523,6 +520,8 @@ refresh_deeply_embedded_repositories()
       for clone in ${clones}
       do
          IFS="${old}"
+         clone="`expanded_setting "${clone}"`"
+
          name="`canonical_name_from_clone "${clone}"`"
          dstprefix="${CLONESFETCH_SUBDIR}/${name}/"
 
@@ -544,6 +543,8 @@ refresh_deeply_embedded_repositories()
    fi
 
    IFS="${old}"
+
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }
 
 
@@ -553,6 +554,11 @@ refresh_deeply_embedded_repositories()
 refresh_main()
 {
    log_fluff "::: refresh :::"
+
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh && local_environment_initialize
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
+   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh && auto_update_initialize
+   [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh && dependency_resolve_initialize
 
    while :
    do
@@ -582,18 +588,23 @@ refresh_main()
    esac
 
    #
-   # remove .auto because it's contents are stale now
+   # recreate .auto because it's contents are stale now
    #
    if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
       exekutor rm -rf "${BOOTSTRAP_SUBDIR}.auto"
    fi
+   bootstrap_auto_create
 
-   if [ "${COMMAND}" = "clear" ]
+   #
+   # short cut if there are no .repos
+   #
+   if [ "${COMMAND}" = "clear" -o ! -d "${CLONESFETCH_SUBDIR}" ]
    then
       return 0
    fi
    
+
    if [ "${DONT_RECURSE}" = "" ]
    then
       log_verbose "Refreshing repository settings"

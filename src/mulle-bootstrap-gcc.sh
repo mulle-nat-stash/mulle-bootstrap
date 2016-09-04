@@ -37,7 +37,7 @@ gcc_sdk_parameter()
    sdk="$1"
 
    local sdkpath
-   if [ "${UNAME}" = "Darwin" ]
+   if [ "${UNAME}" = "darwin" ]
    then
       if [ "${sdk}" = "Default" ]
       then
@@ -66,7 +66,7 @@ gcc_cflags_value()
    local name
    local i
 
-   name="${1}"
+   name="$1"
 
    result="`read_build_setting "${name}" "OTHER_CFLAGS"`"
    value="`read_build_setting "${name}"  "WARNING_CFLAGS"`"
@@ -86,7 +86,7 @@ gcc_cxxflags_value()
    local result
    local name
 
-   name="${1}"
+   name="$1"
 
    result="`read_build_setting "${name}" "OTHER_CXXFLAGS"`"
    value="`gcc_cflags_value "${name}"`"
@@ -101,10 +101,14 @@ gcc_ldflags_value()
    local result
    local name
 
-   name="${1}"
+   name="$1"
    result="`read_build_setting "${name}" "OTHER_LDFLAGS"`"
 
    echo "${result}"
 }
 
 
+gcc_initialize()
+{
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
+}

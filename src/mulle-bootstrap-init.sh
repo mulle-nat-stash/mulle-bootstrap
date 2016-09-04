@@ -30,16 +30,12 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_INIT_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-
 
 #
 # this script creates a .bootstrap folder with some
 # demo files.
 #
-
-
-main_init()
+init_main()
 {
   if [ "$1" = "-h" -o "$1" = "--help" ]
   then
@@ -47,6 +43,8 @@ main_init()
 mulle_bootstrap init" >&2
      exit 1
   fi
+
+  [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
 
   BOOTSTRAP_SUBDIR=.bootstrap
 
@@ -143,7 +141,6 @@ EOF
 # zlib
 #
 EOF
-
    fi
 
    if [ "${CREATE_EXAMPLE_FILES}" = "YES" ]

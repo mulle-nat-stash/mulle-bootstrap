@@ -30,16 +30,6 @@
 #
 MULLE_BOOTSTRAP_PROJECT_SH="included"
 
-# tag this project, and all cloned dependencies
-# the dependencies will get a different vendor tag
-# based on the tag
-#
-
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-[ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
-
-
-
 project_usage()
 {
    cat <<EOF >&2
@@ -54,7 +44,7 @@ EOF
 }
 
 
-main_project()
+project_main()
 {
    local command
 

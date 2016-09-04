@@ -62,7 +62,7 @@ usage:
 EOF
 
    case "${UNAME}" in
-      MINGW*)
+      mingw*)
          :
       ;;
 
@@ -178,10 +178,10 @@ collect_and_dispense_product()
    local  depend_subdir
    local  name
 
-   name="${1}"
-   build_subdir="${2}"
-   depend_subdir="${3}"
-   wasxcode="${4}"
+   name="$1"
+   build_subdir="$2"
+   depend_subdir="$3"
+   wasxcode="$4"
 
    local  dst
    local  src
@@ -415,16 +415,16 @@ create_dummy_dirs_against_warnings()
 
 build_fail()
 {
-   if [ -f "${1}" ]
+   if [ -f "$1" ]
    then
       printf "${C_RED}"
-      egrep -B1 -A5 -w "[Ee]rror" "${1}" >&2
+      egrep -B1 -A5 -w "[Ee]rror" "$1" >&2
       printf "${C_RESET}"
    fi
 
-   if [ -z "$MULLE_BOOTSTRAP_TRACE" ]
+   if [ "$MULLE_BOOTSTRAP_TRACE" != "1848" ]
    then
-      log_info "Check the build log: ${C_RESET_BOLD}${1}${C_INFO}"
+      log_info "Check the build log: ${C_RESET_BOLD}$1${C_INFO}"
    fi
    fail "$2 failed"
 }
@@ -445,9 +445,9 @@ build_log_name()
 
    while [ $# -gt 0 ]
    do
-      if [ ! -z "${1}" ]
+      if [ ! -z "$1" ]
       then
-         logfile="${logfile}-${1}"
+         logfile="${logfile}-$1"
       fi
       [ $# -eq 0 ] || shift
    done
@@ -480,7 +480,7 @@ find_cmake()
 {
    local name
 
-   name="${1}"
+   name="$1"
 
    local toolname
 
@@ -494,7 +494,7 @@ find_xcodebuild()
 {
    local name
 
-   name="${1}"
+   name="$1"
 
    local toolname
 
@@ -508,7 +508,7 @@ find_make()
 {
    local name
 
-   name="${1}"
+   name="$1"
 
    local toolname
    local defaultname
@@ -527,7 +527,7 @@ find_compiler()
    compiler="`read_build_setting "${name}" "$1"`"
 
    case "${UNAME}" in
-      MINGW*)
+      mingw)
          case "${compiler}" in
             mulle-clang*)
                compiler="mulle-clang-cl"
@@ -560,6 +560,7 @@ find_compiler()
 # remove old builddir, create a new one
 # depending on configuration cmake with flags
 # build stuff into dependencies
+# TODO: cache commandline in a file $ and emit instead of rebuilding it every time
 #
 build_cmake()
 {
@@ -743,11 +744,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       includeprefix="-I"
 
       case "${UNAME}" in
-         Darwin)
+         darwin)
             frameworkprefix="-F"
          ;;
 
-         MINGW*)
+         mingw)
             relative_srcdir="`echo "${relative_srcdir}" | tr '/' '\\'  2> /dev/null`"
             libraryprefix="/LIBPATH:"
             includeprefix="/I"
@@ -768,18 +769,18 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       IFS="${PATH_SEPARATOR}"
       for path in ${includelines}
       do
-         other_cflags="`add_word "${other_cflags}" "${includeprefix}${path}"`"
+         other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
       done
 
       for path in ${librarylines}
       do
-         other_ldflags="`add_word "${other_ldflags}" "${libraryprefix}${path}"`"
+         other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
       for path in ${frameworklines}
       do
-         other_cflags="`add_word "${other_cflags}" "${frameworkprefix}${path}"`"
-         other_ldflags="`add_word "${other_ldflags}" "${frameworkprefix}${path}"`"
+         other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
+         other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
 
       if [ MULLE_BOOTSTRAP_VERBOSE_BUILD = "YES" ]
@@ -790,7 +791,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       IFS="${memo}"
 
       local oldpath
+      local rval
 
+      [ -z "${BUILDPATH}"] && internal_fail "BUILDPATH not set"
+   
       oldpath="$PATH"
       PATH="${BUILDPATH}" 
 
@@ -810,12 +814,21 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "-DCMAKE_MODULE_PATH=${cmakemodulepath}" \
 ${CMAKE_FLAGS} \
 ${localcmakeflags} \
-"${relative_srcdir}" > "${logfile1}" || build_fail "${logfile1}" "cmake"
+"${relative_srcdir}" > "${logfile1}" 
+      rval=$?
 
-      logging_exekutor "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install > "${logfile2}" || build_fail "${logfile2}" "make"
+      if [ $rval -ne 0 ]
+      then
+         PATH="${oldpath}" 
+         build_fail "${logfile1}" "cmake"
+      fi
+
+      logging_exekutor "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install > "${logfile2}" 
+      rval=$?
 
       PATH="${oldpath}"
-
+      [ $rval -ne 0 ] && build_fail "${logfile2}" "make"
+   
       set +f
 
    exekutor cd "${owd}"
@@ -981,9 +994,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
 
       case "${UNAME}" in
-         Darwin)
-            other_cflags="`add_word "${other_cflags}" "-isysroot ${sdkpath}"`"
-            other_ldflags="`add_word "${other_ldflags}" "-isysroot ${sdkpath}"`"
+         darwin)
+            other_cflags="`concat "${other_cflags}" "-isysroot ${sdkpath}"`"
+            other_ldflags="`concat "${other_ldflags}" "-isysroot ${sdkpath}"`"
          ;;
 
          *)
@@ -1001,23 +1014,24 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       IFS="${PATH_SEPARATOR}"
       for path in ${includelines}
       do
-         other_cflags="`add_word "${other_cflags}" "${includeprefix}${path}"`"
+         other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
       done
 
       for path in ${librarylines}
       do
-         other_ldflags="`add_word "${other_ldflags}" "${libraryprefix}${path}"`"
+         other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
       for path in ${frameworklines}
       do
-         other_cflags="`add_word "${other_cflags}" "${frameworkprefix}${path}"`"
-         other_ldflags="`add_word "${other_ldflags}" "${frameworkprefix}${path}"`"
+         other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
+         other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
 
       IFS="${memo}"
 
       local oldpath
+      local rval
 
       oldpath="$PATH"
       PATH="${BUILDPATH}" 
@@ -1031,10 +1045,19 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       LDFLAGS="${other_ldflags}" \
       logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
           --prefix "${prefixbuild}" >> "${logfile1}" \
-      || build_fail "${logfile1}" "configure"
+      rval=$?
 
-      logging_exekutor "${MAKE}" ${MAKE_FLAGS} install > "${logfile2}" \
-      || build_fail "${logfile2}" "${MAKE}"
+      if [ $rval -ne 0 ]
+      then
+         PATH="${oldpath}" 
+         build_fail "${logfile1}" "configure"
+      fi
+
+      logging_exekutor "${MAKE}" ${MAKE_FLAGS} install > "${logfile2}" 
+      rval=$?
+
+      PATH="${oldpath}"
+      [ $rval -ne 0 ] && build_fail "${logfile2}" "make"
 
       PATH="${oldpath}"
       set +f
@@ -1207,7 +1230,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local projectname
 
     # always pass project directly
-   projectname=`read_repo_setting "${name}" "project" "${project}"`
+   projectname=`read_repo_setting "${name}" "xcode_project" "${project}"`
 
    local mapped
    local fallback
@@ -1457,6 +1480,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          arguments="${arguments} PRIVATE_HEADERS_FOLDER_PATH='${private_headers}'"
       fi
 
+      local oldpath
+      local rval
+      
+      oldpath="${PATH}"
+      PATH="${BUILDPATH}" 
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${XCODEBUILD}\" \"${command}\" ${arguments} \
 ARCHS='${ARCHS:-\${ARCHS_STANDARD_32_64_BIT\}}' \
@@ -1475,9 +1503,11 @@ HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
-      PATH="${BUILDPATH}" logging_eval_exekutor "${cmdline}" > "${logfile}" \
-      || build_fail "${logfile}" "${toolname}"
+      logging_eval_exekutor "${cmdline}" > "${logfile}" 
+      rval=$?
 
+      PATH="${oldpath}"
+      [ $rval -ne 0 ] && build_fail "${logfile}" "${toolname}"
       set +f
 
    exekutor cd "${owd}"
@@ -1502,7 +1532,7 @@ build_xcodebuild_schemes_or_target()
    local scheme
    local schemes
 
-   schemes=`read_repo_setting "${name}" "schemes"`
+   schemes=`read_repo_setting "${name}" "xcode_schemes"`
 
    local old
 
@@ -1520,7 +1550,7 @@ build_xcodebuild_schemes_or_target()
    local target
    local targets
 
-   targets=`read_repo_setting "${name}" "targets"`
+   targets=`read_repo_setting "${name}" "xcode_targets"`
 
    old="$IFS"
    IFS="
@@ -1625,14 +1655,23 @@ ${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
 ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 \"${builddir}\" ..."
 
-      PATH="${BUILDPATH}" run_log_build_script "${owd}/${script}" \
+      local oldpath
+      local rval
+
+      oldpath="${PATH}"
+      PATH="${BUILDPATH}" 
+
+      run_log_build_script "${owd}/${script}" \
          "${configuration}" \
          "${owd}/${srcdir}" \
          "${owd}/${builddir}" \
          "${owd}/${BUILD_DEPENDENCY_SUBDIR}" \
          "${name}" \
-         "${sdk}" > "${logfile}" \
-      || build_fail "${logfile}" "build.sh"
+         "${sdk}" > "${logfile}" 
+      rval=$?
+
+      PATH="${oldpath}" 
+      [ $rval -ne 0 ] && build_fail "${logfile}" "build.sh"
 
    exekutor cd "${owd}"
 
@@ -1670,7 +1709,7 @@ build()
    if [ -z "${preferences}" ]
    then
       case "${UNAME}" in
-         Darwin)
+         darwin)
             preferences="`read_config_setting "build_preferences" "script
 cmake
 configure
@@ -1697,7 +1736,7 @@ configure"`"
    local generator
 
    case "${UNAME}" in
-      MINGW*)
+      mingw)
          MAKE="`find_make "${name}" "mingw32-make"`"
          case "${MAKE}" in
             n*|N*)
@@ -1716,7 +1755,7 @@ configure"`"
          # except if the settings specify otherwise
       ;;
 
-      Darwin)
+      darwin)
          XCODEBUILD="`find_xcodebuild`"
          generator="Unix Makefiles"
          MAKE="`find_make "${name}"`"
@@ -1944,7 +1983,7 @@ get_source_dir()
 {
    local name
 
-   name="${1}"
+   name="$1"
 
    local srcdir
    local srcsubdir
@@ -1984,40 +2023,10 @@ build_clones()
    # build order is there, because we want to have gits
    # and maybe later hgs
    #
-   BUILT=
+   BUILT="`read_build_root_setting "build_ignore"`"
 
    if [ "$#" -eq 0 ]
    then
-      BUILT="`read_build_root_setting "build_ignore"`"
-
-      clones="`read_build_root_setting "build_order"`"
-      IFS="
-"
-      for clone in ${clones}
-      do
-         IFS="$old"
-
-         clone="`expanded_setting "${clone}"`"
-
-         name="`canonical_clone_name "${clone}"`"
-         srcdir="`get_source_dir "${name}"`"
-         if [ -d "${srcdir}" ]
-         then
-            build_if_alive  "${name}" "${srcdir}" || exit 1
-         else
-            if has_usr_local_include "${name}"
-            then
-               :
-            else
-               fail "build_order contains unknown repo \"${clone}\" (\"${srcdir}\")"
-            fi
-         fi
-      done
-      IFS="$old"
-
-      #
-      # otherwise compile in repositories order
-      #
       clones="`read_fetch_setting "repositories"`"
       if [ "${clones}" != "" ]
       then
@@ -2114,10 +2123,6 @@ build_main()
 
    log_fluff "::: build :::"
 
-   CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
-   CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
-   N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
-
    while :
    do
       case "$1" in
@@ -2135,7 +2140,7 @@ build_main()
 
          -j)
             case "${UNAME}" in
-               MINGW*)
+               mingw)
                   build_usage
                ;;
             esac
@@ -2167,6 +2172,7 @@ build_main()
       continue
    done
 
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
 
    #
    # START
@@ -2176,6 +2182,8 @@ build_main()
       log_info "No repositories in \"${CLONES_SUBDIR}\", so nothing to build."
       return 0
    fi
+
+   build_complete_environment
 
    if [ $# -eq 0 ]
    then
@@ -2210,3 +2218,4 @@ build_main()
       log_fluff "No dependencies have been generated"
    fi
 }
+

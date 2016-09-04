@@ -67,7 +67,7 @@ test()
 
    result="`cat .bootstrap.auto/repositories`"
    expect=
-   if [ "${1}" != "${result}" ]
+   if [ "$1" != "${result}" ]
    then
       echo "failed: ($result)" >&2
    else

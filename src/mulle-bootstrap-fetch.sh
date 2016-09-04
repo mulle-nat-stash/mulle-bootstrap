@@ -38,16 +38,6 @@ MULLE_BOOTSTRAP_FETCH_SH="included"
 # will be third party libraries, you don't tag or debug
 #
 
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-[ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
-[ -z "${MULLE_BOOTSTRAP_SCM_SH}" ] && . mulle-bootstrap-scm.sh
-[ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
-[ -z "${MULLE_BOOTSTRAP_WARTN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh
-[ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
-[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
-
-
-
 fetch_usage()
 {
    cat <<EOF >&2
@@ -102,17 +92,17 @@ install_taps()
 
 write_protect_directory()
 {
-   if [ -d "${1}" ]
+   if [ -d "$1" ]
    then
       #
       # ensure basic structure is there to squelch linker warnings
       #
-      exekutor mkdir "${1}/Frameworks" 2> /dev/null
-      exekutor mkdir "${1}/lib" 2> /dev/null
-      exekutor mkdir "${1}/include" 2> /dev/null
+      exekutor mkdir "$1/Frameworks" 2> /dev/null
+      exekutor mkdir "$1/lib" 2> /dev/null
+      exekutor mkdir "$1/include" 2> /dev/null
 
-      log_info "Write-protecting ${C_RESET_BOLD}${1}${C_INFO} to avoid spurious header edits"
-      exekutor chmod -R a-w "${1}"
+      log_info "Write-protecting ${C_RESET_BOLD}$1${C_INFO} to avoid spurious header edits"
+      exekutor chmod -R a-w "$1"
    fi
 }
 
@@ -502,6 +492,7 @@ checkout()
    fi
    name2="`basename -- "${url}"`"  # only works for git really
 
+
    local operation
    local map
    local scmflagsdefault
@@ -605,8 +596,8 @@ ensure_clone_branch_is_correct()
    local dstdir
    local branch
 
-   dstdir="${1}"
-   branch="${2}"
+   dstdir="$1"
+   branch="$2"
 
    local actual
 
@@ -665,24 +656,32 @@ checkout_repository()
 
    if [ ! -e "${dstdir}" ]
    then
-      checkout "$@"
-      flag=1
-
-      if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
+      if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${CLONESFETCH_SUBDIR}/.graveyard/${name}" ]
       then
-         local old_bootstrap
+         log_info "Restoring ${name} from graveyard"
+         exekutor mv "${CLONESFETCH_SUBDIR}/.graveyard/${name}" "${CLONESFETCH_SUBDIR}" || fail "move failed"         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+         flag=0
+      else
+         checkout "$@"
+         flag=1
 
-         old_bootstrap="${BOOTSTRAP_SUBDIR}"
+         if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
+         then
+            local old_bootstrap
 
-         BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
-         clone_embedded_repositories "${dstdir}/"
-         BOOTSTRAP_SUBDIR="${old_bootstrap}"
+            old_bootstrap="${BOOTSTRAP_SUBDIR}"
 
-         bootstrap_auto_update "${name}" "${url}" "${dstdir}"
-         flag=$?
+            BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
+            clone_embedded_repositories "${dstdir}/"
+            BOOTSTRAP_SUBDIR="${old_bootstrap}"
+
+            bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+            flag=$?
+         fi
+
+         run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
       fi
-
-      run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
 
       #
       # means we recursed and should start fetch from top
@@ -829,117 +828,6 @@ ${clone}"
    done
 
    IFS="${old}"
-}
-
-
-clone_embedded_repository()
-{
-   local dstprefix
-   local clone
-
-   dstprefix="$1"
-   clone="$2"
-
-   local name
-   local url
-   local dstdir
-   local branch
-   local tag
-   local scm
-
-   name="`canonical_name_from_clone "${clone}"`"
-   url="`url_from_clone "${clone}"`"
-   branch="`branch_from_clone "${clone}"`"
-   scm="`scm_from_clone "${clone}"`"
-   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-   dstdir="${dstprefix}${name}"
-
-   log_fetch_action "${url}" "${dstdir}"
-
-   if [ ! -d "${dstdir}" ]
-   then
-      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-      #
-      # embedded_repositories are just cloned, no symlinks,
-      #
-      local old_forbidden
-
-      old_forbidden="${SYMLINK_FORBIDDEN}"
-
-      SYMLINK_FORBIDDEN="YES"
-      checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
-      SYMLINK_FORBIDDEN="${old_forbidden}"
-
-      if read_yes_no_config_setting "update_gitignore" "YES"
-      then
-         if [ -d .git ]
-         then
-            append_dir_to_gitignore_if_needed "${dstdir}"
-         fi
-      fi
-
-      # memo that we did this with a symlink
-      # store it inside the possibly recursed dstprefix dependency
-      local symlinkcontent
-      local symlinkdir
-      local symlinkrelative
-
-      symlinkrelative=`compute_relative "${CLONESFETCH_SUBDIR}/.embedded"`
-      symlinkdir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
-      mkdir_if_missing "${symlinkdir}"
-      symlinkcontent="${symlinkrelative}/${dstdir}"
-
-      # dont't use symlinks anymore
-      log_fluff "Remember embedded repository \"${name}\" via \"${symlinkdir}/${name}\""
-      exekutor echo "${symlinkcontent}" > "${symlinkdir}/${name}"
-
-      run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
-   else
-      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-
-      log_fluff "Repository \"${dstdir}\" already exists"
-   fi
-
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-}
-
-
-clone_embedded_repositories()
-{
-   local dstprefix
-
-   dstprefix="$1"
-
-   local clones
-   local clone
-   local old
-
-   old="${IFS:-" "}"
-
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
-
-   clones="`read_fetch_setting "embedded_repositories"`"
-   if [ "${clones}" != "" ]
-   then
-      IFS="
-"
-      for clone in ${clones}
-      do
-         IFS="${old}"
-
-         clone="`expanded_setting "${clone}"`"
-
-         clone_embedded_repository "${dstprefix}" "${clone}"
-      done
-
-      remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-   fi
-
-   IFS="${old}"
-
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }
 
 
@@ -1208,6 +1096,124 @@ ${clone}"
 }
 
 
+clone_embedded_repository()
+{
+   local dstprefix
+   local clone
+
+   dstprefix="$1"
+   clone="$2"
+
+   local name
+   local url
+   local dstdir
+   local branch
+   local tag
+   local scm
+
+   name="`canonical_name_from_clone "${clone}"`"
+   url="`url_from_clone "${clone}"`"
+   branch="`branch_from_clone "${clone}"`"
+   scm="`scm_from_clone "${clone}"`"
+   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
+   dstdir="${dstprefix}${name}"
+
+   log_fetch_action "${url}" "${dstdir}"
+
+   if [ ! -d "${dstdir}" ]
+   then
+      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+      if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${CLONESFETCH_SUBDIR}/.embedded/.graveyard/${name}" ]
+      then
+         log_info "Restoring ${name} from embedded graveyard"
+         exekutor mv "${CLONESFETCH_SUBDIR}/.embedded/.graveyard/${name}" "${dstdir}" || fail "move failed"
+         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+      else
+         #
+         # embedded_repositories are just cloned, no symlinks,
+         #
+         local old_forbidden
+
+         old_forbidden="${SYMLINK_FORBIDDEN}"
+
+         SYMLINK_FORBIDDEN="YES"
+         checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
+         SYMLINK_FORBIDDEN="${old_forbidden}"
+
+         if read_yes_no_config_setting "update_gitignore" "YES"
+         then
+            if [ -d .git ]
+            then
+               append_dir_to_gitignore_if_needed "${dstdir}"
+            fi
+         fi
+
+         run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
+      fi
+
+      # memo that we did this with a symlink
+      # store it inside the possibly recursed dstprefix dependency
+      local symlinkcontent
+      local symlinkdir
+      local symlinkrelative
+
+      symlinkrelative=`compute_relative "${CLONESFETCH_SUBDIR}/.embedded"`
+      symlinkdir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
+      mkdir_if_missing "${symlinkdir}"
+      symlinkcontent="${symlinkrelative}/${dstdir}"
+
+      # dont't use symlinks anymore
+      log_fluff "Remember embedded repository \"${name}\" via \"${symlinkdir}/${name}\""
+      exekutor echo "${symlinkcontent}" > "${symlinkdir}/${name}"
+   else
+      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+
+      log_fluff "Repository \"${dstdir}\" already exists"
+   fi
+
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+}
+
+
+clone_embedded_repositories()
+{
+   local dstprefix
+
+   dstprefix="$1"
+
+   local clones
+   local clone
+   local old
+
+   old="${IFS:-" "}"
+
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+
+   clones="`read_fetch_setting "embedded_repositories"`"
+   if [ "${clones}" != "" ]
+   then
+      IFS="
+"
+      for clone in ${clones}
+      do
+         IFS="${old}"
+
+         clone="`expanded_setting "${clone}"`"
+
+         clone_embedded_repository "${dstprefix}" "${clone}"
+      done
+
+      remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+   fi
+
+   IFS="${old}"
+
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
+}
+
+
 update_embedded_repositories()
 {
    local dstprefix
@@ -1328,8 +1334,10 @@ fetch_main()
          ;;
    esac
 
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh && local_environment_initialize
+
    case "${UNAME}" in
-      MINGW*)
+      mingw)
          SYMLINK_FORBIDDEN="YES"
       ;;
 
@@ -1337,6 +1345,12 @@ fetch_main()
          SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
       ;;
    esac
+
+   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh && brew_initialize
+   [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ] && . mulle-bootstrap-scm.sh && scm_initialize
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh && scripts_initialize
+   [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh && warns_scripts_initialize
+   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh && auto_update_initialize
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if
@@ -1398,3 +1412,4 @@ fetch_main()
       fi
    fi
 }
+

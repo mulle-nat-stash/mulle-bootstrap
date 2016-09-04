@@ -36,11 +36,7 @@ MULLE_BOOTSTRAP_TAG_SH="included"
 # based on the tag
 #
 
-[ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-[ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
-
-
-tag_usage())
+tag_usage()
 {
    cat <<EOF >&2
 usage:
@@ -55,15 +51,13 @@ EOF
 }
 
 
-
-
 git_tag_unknown()
 {
    local name
    local tag
 
-   name="${1}"
-   tag="${2}"
+   name="$1"
+   tag="$2"
 
    if [ ! -d .git ]
    then
@@ -184,9 +178,12 @@ tag()
 }
 
 
-main_tag()
+tag_main()
 {
    log_fluff "::: tag :::"
+
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh && local_environment_initialize
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh && scripts_initialize
 
    GIT_FLAGS=
    TAG_OPERATION="tag"
@@ -200,7 +197,7 @@ main_tag()
 
       if [ "$1" = "-f" ]
       then
-         GIT_FLAGS="${GIT_FLAGS} ${1}"
+         GIT_FLAGS="${GIT_FLAGS} $1"
          TAG_OPERATION="force tag"
          [ $# -eq 0 ] || shift
          continue
@@ -208,7 +205,7 @@ main_tag()
 
       if [ "$1" = "-d" ]
       then
-         GIT_FLAGS="${GIT_FLAGS} ${1}"
+         GIT_FLAGS="${GIT_FLAGS} $1"
          TAG_OPERATION="delete the tag of"
          [ $# -eq 0 ] || shift
          continue
@@ -218,7 +215,7 @@ main_tag()
    done
 
 
-   TAG=${1}
+   TAG=$1
    [ $# -eq 0 ] || shift
 
    if [ -z "${TAG}" ]

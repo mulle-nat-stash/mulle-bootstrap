@@ -298,6 +298,16 @@ assoc_array_get_last()
 }
 
 
+assoc_array_all_keys()
+{
+   local array
+
+   array="$1"
+
+   echo "${array}" | sed -n 's/^\([^=]*\)=.*$/\1/p'
+}
+
+
 assoc_array_set()
 {
    local array
@@ -306,8 +316,8 @@ assoc_array_set()
    local old_value
 
    array="$1"
-   key="${2}"
-   value="${3}"
+   key="$2"
+   value="$3"
 
    if [ -z "${value}" ]
    then
@@ -360,6 +370,8 @@ assoc_array_add_array()
 }
 
 
-
-
-
+# initialize code of this file
+array_initialize()
+{
+   :
+}

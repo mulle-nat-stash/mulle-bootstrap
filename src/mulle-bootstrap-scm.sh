@@ -36,7 +36,7 @@ git_is_bare_repository()
    local is_bare
 
        # if bare repo, we can only clone anyway
-    is_bare=`( cd "${1}"; git rev-parse --is-bare-repository 2> /dev/null )`
+    is_bare=`( cd "$1"; git rev-parse --is-bare-repository 2> /dev/null )`
     [ "${is_bare}" = "true" ]
 }
 
@@ -148,7 +148,6 @@ git_pull()
 }
 
 
-
 svn_checkout()
 {
    local src
@@ -214,4 +213,11 @@ svn_update()
    fi
 
    ( exekutor cd "${dst}" ; exekutor svn update ${flags} ${SVNFLAGS} ) || fail "svn update of \"${dst}\" failed"
+}
+
+
+scm_initialize()
+{
+   log_fluff ":scm_initialize:"
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
 }

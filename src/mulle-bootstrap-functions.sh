@@ -35,9 +35,12 @@ MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
 [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
 
+#
+# Execution
+#
 eval_exekutor()
 {
-   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE_EXECUTION}" = "YES" ]
    then
       echo "==> " "$@" >&2
    fi
@@ -58,7 +61,7 @@ logging_eval_exekutor()
 
 exekutor()
 {
-   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE}" = "YES" ]
+   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE_EXECUTION}" = "YES" ]
    then
       echo "==>" "$@" >&2
    fi
@@ -121,14 +124,30 @@ run_log_script()
 }
 
 
+
+which_binary()
+{
+   local toolname
+
+   toolname="$1"
+   case "${UNAME}" in
+      mingw)
+         toolname="${toolname}.exe"
+         ;;
+   esac
+
+   which "${toolname}" 2> /dev/null
+}
+
+
 #
-#
+# String handling
 #
 is_yes()
 {
    local s
 
-   s=`echo "${1}" | tr '[:lower:]' '[:upper:]'`
+   s=`echo "$1" | tr '[:lower:]' '[:upper:]'`
    case "${s}" in
       YES|Y|1)
          return 0
@@ -166,6 +185,69 @@ concat()
 }
 
 
+add_path()
+{
+   local line
+   local path
+
+   [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
+
+   line="$1"
+   path="$2"
+
+   case "${UNAME}" in
+      mingw)
+         path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
+      ;;
+   esac
+
+   if [ -z "${line}" ]
+   then
+      echo "${path}"
+   else
+      echo "${line}${PATH_SEPARATOR}${path}"
+   fi
+}
+
+
+add_line()
+{
+   local lines
+   local line
+
+   lines="$1"
+   line="$2"
+
+   if [ -z "${lines}" ]
+   then
+      echo "${line}"
+   else
+
+      echo "${lines}
+${line}"
+   fi
+}
+
+
+escape_linefeeds()
+{
+   local text
+
+   text="`echo "$@" | sed -e 's/|/\\|/g'`"
+   /bin/echo -n "${text}" | tr '\012' '|'
+}
+
+
+unescape_linefeeds()
+{
+   echo "$@" | tr '|' '\012' | sed -e 's/\\$/|/g' -e '/^$/d'
+}
+
+
+
+#
+# Path handling
+#
 path_depth()
 {
    local name
@@ -371,68 +453,16 @@ combined_escaped_search_path()
 }
 
 
-mkdir_if_missing()
-{
-   if [ ! -d "${1}" ]
-   then
-      log_fluff "Creating \"$1\" (`pwd -P`)"
-      exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
-   fi
-}
-
-
-create_file_if_missing()
-{
-   local dir
-
-   if [ ! -f "${1}" ]
-   then
-      dir="`dirname "${1}"`"
-      if [ ! -z "${dir}" ]
-      then
-         mkdir_if_missing "${dir}"
-      fi
-
-      log_fluff "Creating \"$1\" (`pwd -P`)"
-      exekutor touch "$1" || fail "failed to create \"$1\""
-   fi
-}
-
-
-remove_file_if_present()
-{
-   if [ -f "${1}" ]
-   then
-      log_fluff "Removing \"$1\" (`pwd -P`)"
-      exekutor chmod u+w "$1" || fail "Failed to make $1 writable"
-      exekutor rm -f "$1" || fail "failed to remove \"$1\""
-   fi
-}
-
-
-modification_timestamp()
-{
-   case "${UNAME}" in
-      Linux|MINGW)
-         stat --printf "%Y\n" "$1"
-         ;;
-      * )
-         stat -f "%m" "$1"
-         ;;
-   esac
-}
-
-
 simplify_path()
 {
    local file
 
-   file="${1}"
+   file="$1"
 
    local modification
 
    # foo/ -> foo
-   modification="`echo "${1}" | sed 's|^\(.*\)/$|\1|'`"
+   modification="`echo "$1" | sed 's|^\(.*\)/$|\1|'`"
    if  [ "${modification}" != "${file}" ]
    then
       simplify_path "${modification}"
@@ -440,7 +470,7 @@ simplify_path()
    fi
 
    # ./foo -> foo
-   modification="`echo "${1}" | sed 's|^\./\(.*\)$|\1|'`"
+   modification="`echo "$1" | sed 's|^\./\(.*\)$|\1|'`"
    if  [ "${modification}" != "${file}" ]
    then
       simplify_path "${modification}"
@@ -448,7 +478,7 @@ simplify_path()
    fi
 
    # foo/. -> foo
-   modification="`echo "${1}" | sed 's|^\(.*\)/\.$|\1|'`"
+   modification="`echo "$1" | sed 's|^\(.*\)/\.$|\1|'`"
    if  [ "${modification}" != "${file}" ]
    then
       simplify_path "${modification}"
@@ -456,7 +486,7 @@ simplify_path()
    fi
 
    # bar/./foo -> bar/foo
-   modification="`echo "${1}" | sed 's|^\(.*\)/\./\(.*\)$|\1/\2|'`"
+   modification="`echo "$1" | sed 's|^\(.*\)/\./\(.*\)$|\1/\2|'`"
    if  [ "${modification}" != "${file}" ]
    then
       simplify_path "${modification}"
@@ -464,7 +494,7 @@ simplify_path()
    fi
 
    # bar/.. -> ""
-   modification="`echo "${1}" | sed 's|^\([^/]*\)/\.\.$||'`"
+   modification="`echo "$1" | sed 's|^\([^/]*\)/\.\.$||'`"
    if  [ "${modification}" != "${file}" ]
    then
       simplify_path "${modification}"
@@ -472,7 +502,7 @@ simplify_path()
    fi
 
    # bar/../foo -> foo
-   modification="`echo "${1}" | sed 's|^\([^/]*\)/\.\./\(.*\)$|\2|'`"
+   modification="`echo "$1" | sed 's|^\([^/]*\)/\.\./\(.*\)$|\2|'`"
    if  [ "${modification}" != "${file}" ]
    then
       simplify_path "${modification}"
@@ -480,7 +510,7 @@ simplify_path()
    fi
 
    # bar/baz/../foo -> bar/foo
-   modification="`echo "${1}" | sed 's|^\(.*\)/\([^/]*\)/\.\./\(.*\)$|\1/\3|'`"
+   modification="`echo "$1" | sed 's|^\(.*\)/\([^/]*\)/\.\./\(.*\)$|\1/\3|'`"
    if  [ "${modification}" != "${file}" ]
    then
       simplify_path "${modification}"
@@ -500,7 +530,7 @@ assert_sane_subdir_path()
 {
    local file
 
-   file="`simplify_path "${1}"`"
+   file="`simplify_path "$1"`"
 
    if [ -z "${file}" ]
    then
@@ -521,7 +551,7 @@ assert_sane_path()
 {
    local file
 
-   file="`simplify_path "${1}"`"
+   file="`simplify_path "$1"`"
 
    if [ -z "${file}" ]
    then
@@ -538,47 +568,20 @@ assert_sane_path()
 }
 
 
-rmdir_safer()
+#
+# File and Directory handling
+#
+mkdir_if_missing()
 {
-   if [ -d "$1" ]
+   if [ ! -d "$1" ]
    then
-      assert_sane_path "$1"
-      exekutor chmod -R u+w "$1" || fail "Failed to make $1 writable"
-      exekutor rm -rf "$1" || fail "failed to remove ${1}"
+      log_fluff "Creating \"$1\" (`pwd -P`)"
+      exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
    fi
 }
 
 
-# returns 0 if said yes
-user_say_yes()
-{
-   local  x
-
-   x="${MULLE_BOOTSTRAP_ANSWER:-ASK}"
-   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
-   do
-      printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
-      read x
-      x=`echo "${x}" | tr '[a-z]' '[A-Z]'`
-   done
-
-   if [ "${x}" = "ALL" ]
-   then
-      MULLE_BOOTSTRAP_ANSWER="YES"
-      x="YES"
-   fi
-   if [ "${x}" = "NONE" ]
-   then
-      MULLE_BOOTSTRAP_ANSWER="NO"
-      x="NO"
-   fi
-
-   [ "$x" = "Y" -o "$x" = "YES" ]
-   return $?
-}
-
-
-dir_can_be_rmdir()
+dir_is_empty()
 {
    local empty
 
@@ -592,6 +595,79 @@ dir_can_be_rmdir()
 }
 
 
+rmdir_safer()
+{
+   if [ -d "$1" ]
+   then
+      assert_sane_path "$1"
+      exekutor chmod -R u+w "$1" || fail "Failed to make $1 writable"
+      exekutor rm -rf "$1" || fail "failed to remove $1"
+   fi
+}
+
+
+rmdir_if_empty()
+{
+   if dir_is_empty "$1"
+   then
+      exekutor rmdir "$1" || fail "failed to remove $1"
+   fi
+}
+
+
+create_file_if_missing()
+{
+   local dir
+
+   if [ ! -f "$1" ]
+   then
+      dir="`dirname "$1"`"
+      if [ ! -z "${dir}" ]
+      then
+         mkdir_if_missing "${dir}"
+      fi
+
+      log_fluff "Creating \"$1\" (`pwd -P`)"
+      exekutor touch "$1" || fail "failed to create \"$1\""
+   fi
+}
+
+
+remove_file_if_present()
+{
+   if [ -f "$1" ]
+   then
+      log_fluff "Removing \"$1\" (`pwd -P`)"
+      exekutor chmod u+w "$1" || fail "Failed to make $1 writable"
+      exekutor rm -f "$1" || fail "failed to remove \"$1\""
+   fi
+}
+
+
+modification_timestamp()
+{
+   case "${UNAME}" in
+      linux|mingw)
+         stat --printf "%Y\n" "$1"
+         ;;
+      * )
+         stat -f "%m" "$1"
+         ;;
+   esac
+}
+
+
+# http://askubuntu.com/questions/152001/how-can-i-get-octal-file-permissions-from-command-line
+lso()
+{
+   ls -aldG "$@" | \
+   awk '{k=0;for(i=0;i<=8;i++)k+=((substr($1,i+2,1)~/[rwx]/)*2^(8-i));if(k)printf(" %0o ",k);print }' | \
+   awk '{print $1}'
+}
+
+
+
+
 #
 # this does not check for hidden files, ignores directories
 # optionally give filetype f or d as second agument
@@ -601,7 +677,7 @@ dir_has_files()
    local path
    local flag
 
-   path="${1}"
+   path="$1"
    shift
 
    case "$1" in
@@ -677,6 +753,69 @@ find_xcodeproj()
    return 1
 }
 
+
+has_usr_local_include()
+{
+   local name
+
+   name="$1"
+   if [ -d "/usr/local/include/${name}" ]
+   then
+      return 0
+   fi
+
+   local include_name
+
+   include_name="`echo "${name}" | tr '-' '_'`"
+   [ -d "/usr/local/include/${include_name}" ]
+}
+
+
+write_protect_directory()
+{
+   if [ -d "$1" ]
+   then
+      #
+      # ensure basic structure is there to squelch linker warnings
+      #
+      log_fluff "Create default lib/include/Frameworks in $1"
+      exekutor mkdir "$1/Frameworks" 2> /dev/null
+      exekutor mkdir "$1/lib" 2> /dev/null
+      exekutor mkdir "$1/include" 2> /dev/null
+
+      log_info "Write-protecting ${C_RESET_BOLD}$1${C_INFO} to avoid spurious header edits"
+      exekutor chmod -R a-w "$1"
+   fi
+}
+
+
+# returns 0 if said yes
+user_say_yes()
+{
+   local  x
+
+   x="${MULLE_BOOTSTRAP_ANSWER:-ASK}"
+   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
+   do
+      printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
+      read x
+      x=`echo "${x}" | tr '[a-z]' '[A-Z]'`
+   done
+
+   if [ "${x}" = "ALL" ]
+   then
+      MULLE_BOOTSTRAP_ANSWER="YES"
+      x="YES"
+   fi
+   if [ "${x}" = "NONE" ]
+   then
+      MULLE_BOOTSTRAP_ANSWER="NO"
+      x="NO"
+   fi
+
+   [ "$x" = "Y" -o "$x" = "YES" ]
+   return $?
+}
 
 
 #
@@ -809,51 +948,6 @@ scm_from_clone()
 }
 
 
-# http://askubuntu.com/questions/152001/how-can-i-get-octal-file-permissions-from-command-line
-lso()
-{
-   ls -aldG "$@" | \
-   awk '{k=0;for(i=0;i<=8;i++)k+=((substr($1,i+2,1)~/[rwx]/)*2^(8-i));if(k)printf(" %0o ",k);print }' | \
-   awk '{print $1}'
-}
-
-
-
-has_usr_local_include()
-{
-   local name
-
-   name="${1}"
-   if [ -d "/usr/local/include/${name}" ]
-   then
-      return 0
-   fi
-
-   local include_name
-
-   include_name="`echo "${name}" | tr '-' '_'`"
-   [ -d "/usr/local/include/${include_name}" ]
-}
-
-
-write_protect_directory()
-{
-   if [ -d "$1" ]
-   then
-      #
-      # ensure basic structure is there to squelch linker warnings
-      #
-      log_fluff "Create default lib/include/Frameworks in $1"
-      exekutor mkdir "$1/Frameworks" 2> /dev/null
-      exekutor mkdir "$1/lib" 2> /dev/null
-      exekutor mkdir "$1/include" 2> /dev/null
-
-      log_info "Write-protecting ${C_RESET_BOLD}$1${C_INFO} to avoid spurious header edits"
-      exekutor chmod -R a-w "$1"
-   fi
-}
-
-
 ensure_clones_directory()
 {
    if [ ! -d "${CLONESFETCH_SUBDIR}" ]
@@ -878,94 +972,9 @@ append_dir_to_gitignore_if_needed()
 }
 
 
-which_binary()
+functions_initialize()
 {
-   local toolname
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh && logging_initialize
 
-   toolname="$1"
-   case "${UNAME}" in
-      MINGW)
-         toolname="${toolname}.exe"
-         ;;
-   esac
-
-   which "${toolname}" 2> /dev/null
+    log_fluff ":functions_initialize:"
 }
-
-
-add_word()
-{
-   local line
-   local word
-
-   line="${1}"
-   word="${2}"
-
-   if [ -z "${line}" ]
-   then
-      echo "${word}"
-   else
-
-      echo "${line} ${word}"
-   fi
-}
-
-
-add_path()
-{
-   local line
-   local path
-
-   [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
-
-   line="${1}"
-   path="${2}"
-
-   case "${UNAME}" in
-      MINGW)
-         path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
-      ;;
-   esac
-
-   if [ -z "${line}" ]
-   then
-      echo "${path}"
-   else
-      echo "${line}${PATH_SEPARATOR}${path}"
-   fi
-}
-
-
-add_line()
-{
-   local lines
-   local line
-
-   lines="${1}"
-   line="${2}"
-
-   if [ -z "${lines}" ]
-   then
-      echo "${line}"
-   else
-
-      echo "${lines}
-${line}"
-   fi
-}
-
-
-escape_linefeeds()
-{
-   local text
-
-   text="`echo "$@" | sed -e 's/|/\\|/g'`"
-   /bin/echo -n "${text}" | tr '\012' '|'
-}
-
-
-unescape_linefeeds()
-{
-   echo "$@" | tr '|' '\012' | sed -e 's/\\$/|/g' -e '/^$/d'
-}
-
