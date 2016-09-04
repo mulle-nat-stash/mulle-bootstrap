@@ -342,7 +342,7 @@ assoc_array_set()
 # meaning if key in second array exists it overwrites
 # the value in the first array
 #
-assoc_array_merge_array()
+assoc_array_merge_with_array()
 {
    local array1
    local array2
@@ -353,12 +353,13 @@ assoc_array_merge_array()
    echo "${array2}" "${array1}" | sort -u -t'=' -k1,1
 }
 
+
 #
 # add second array into first array
 # meaning only keys in second array that don't exists in the
 # first are added
 #
-assoc_array_add_array()
+assoc_array_augment_with_array()
 {
    local array1
    local array2
