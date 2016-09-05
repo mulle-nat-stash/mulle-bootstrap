@@ -131,11 +131,11 @@ main()
             c_stringprefix=
          ;;
 
-         -sh|--suppress_header)
+         --suppress_header)
             SUPPRESS_HEADER=YES
          ;;
             
-         -l|--library-name)
+         -n|--name)
             shift
             name="$1"
          ;;
