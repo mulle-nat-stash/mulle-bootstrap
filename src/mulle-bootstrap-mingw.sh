@@ -113,14 +113,14 @@ setup_mingw_buildenvironment()
 
    local preprocessor
 
-	preprocessor="`find_msvc_executable "mulle-mingw-cpp.exe" "preprocessor"`"
+	preprocessor="`find_msvc_executable "mulle-mingw-cpp.sh" "preprocessor"`"
 	if [ ! -z "${preprocessor}" ]
 	then
 		CPP="${preprocessor}"  
 		export CPP
 		log_verbose "Environment variable ${C_INFO}CPP${C_FLUFF} set to ${C_RESET}\"${CPP}\""
 	else
-      log_fluff "mulle-mingw-cpp.exe not found"
+      log_fluff "mulle-mingw-cpp.sh not found"
    fi
 }
 
