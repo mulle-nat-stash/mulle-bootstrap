@@ -96,3 +96,4 @@ local_environment_initialize()
    esac
 }
 
+local_environment_initialize

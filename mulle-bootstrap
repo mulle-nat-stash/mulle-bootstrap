@@ -119,20 +119,15 @@ bootstrap_main()
    # now include this first to get
    # logging and UNAME
 
-   . mulle-bootstrap-logging.sh && logging_initialize
+   . mulle-bootstrap-logging.sh
 
    trap trap_fail INT
 
    #
    # simple option handling
    #
-   while :
+   while [ $# -ne 0 ]
    do
-      if [ $# -eq 0 ]
-      then
-         break
-      fi
-
       case "$1" in
          -a|--prefer-origin)
             MULLE_BOOTSTRAP_ANSWER="NO"
@@ -223,7 +218,6 @@ bootstrap_main()
       esac
 
       shift
-      continue
    done
 
   command=${1:-"bootstrap"}
@@ -313,7 +307,13 @@ bootstrap_main()
             refresh_main || exit 1
          ;;
 
-         clean|dist-clean|fetch)
+         build)
+           . mulle-bootstrap-refresh.sh
+
+            refresh_main refresh_if_bare || exit 1
+         ;;
+
+         fetch)
            . mulle-bootstrap-refresh.sh
 
             refresh_main clear || exit 1
@@ -321,6 +321,8 @@ bootstrap_main()
 
          update)
            . mulle-bootstrap-refresh.sh
+
+           # 4 laters
          ;;
       esac
    fi

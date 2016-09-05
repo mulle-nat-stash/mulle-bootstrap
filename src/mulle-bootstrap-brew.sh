@@ -124,5 +124,7 @@ brew_initialize()
 {
    log_fluff ":brew_initialize:"
 
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_main
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 }
+
+brew_initialize

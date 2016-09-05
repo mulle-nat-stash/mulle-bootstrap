@@ -73,6 +73,10 @@ embedded_repositories()
    local dir
    local name
 
+   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh 
+
+   refresh_main 
+
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
    then
@@ -142,132 +146,143 @@ clean_parent_folders_if_empty()
 }
 
 
-#
-# cleanability is checked, because in some cases its convenient
-# to have other tools provide stuff besides /include and /lib
-# and sometimes  projects install other stuff into /share
-#
-clean_execute()
+clean_directories()
 {
+   local directories
    local flag
+
+   directories="$1"
+   flag="$2"
+
+   local directory
    local old
 
    old="${IFS:-" "}"
    IFS="
 "
 
-   flag="NO"
-   if [ ! -z "${BUILD_CLEANABLE_SUBDIRS}" ]
-   then
-      if [ "${COMMAND}" = "build" -o "${COMMAND}" = "dist" -o "${COMMAND}" = "output"  ]
-      then
-         for dir in ${BUILD_CLEANABLE_SUBDIRS}
-         do
-            clean_asserted_folder "${dir}"
-            clean_parent_folders_if_empty "${dir}" "${PWD}"
-            flag="YES"
-         done
-      fi
-   fi
+   for directory in ${directories}
+   do
+      clean_asserted_folder "${directory}"
+      clean_parent_folders_if_empty "${directory}" "${PWD}"
+      flag="YES"
+   done
 
-
-   if [ ! -z "${OUTPUT_CLEANABLE_SUBDIRS}" ]
-   then
-      if [ "${COMMAND}" = "dist" -o "${COMMAND}" = "output" ]
-      then
-         for dir in ${OUTPUT_CLEANABLE_SUBDIRS}
-         do
-            clean_asserted_folder "${dir}"
-            clean_parent_folders_if_empty "${dir}" "${PWD}"
-            flag="YES"
-         done
-      fi
-   fi
-
-
-   if [ ! -z "${INSTALL_CLEANABLE_SUBDIRS}" ]
-   then
-      if [ "${COMMAND}" = "install" ]
-      then
-         for dir in ${INSTALL_CLEANABLE_SUBDIRS}
-         do
-            clean_asserted_folder "${dir}"
-            clean_parent_folders_if_empty "${dir}" "${PWD}"
-            flag="YES"
-         done
-      fi
-   fi
-
-   if [ ! -z "${DIST_CLEANABLE_SUBDIRS}" ]
-   then
-      if [ "${COMMAND}" = "dist" ]
-      then
-         for dir in ${DIST_CLEANABLE_SUBDIRS}
-         do
-            clean_asserted_folder "${dir}"
-            clean_parent_folders_if_empty "${dir}" "${PWD}"
-            flag="YES"
-         done
-      fi
-   fi
-
-   if [ "$flag" = "NO" ]
-   then
-      log_info "Nothing configured to clean"
-   fi
+   echo "$flag"
 
    IFS="${old}"
 }
 
 
-clean_main()
+#
+# cleanability is checked, because in some cases its convenient
+# to have other tools provide stuff besides /include and /lib
+# and sometimes  projects install other stuff into /share
+# for mingw its easier if we have separate clean functions
+
+
+_clean_execute()
 {
-   #
-   # don't rename these settings anymore, the consequences can be catastrophic
-   # for users of previous versions.
-   # Also don't change the search paths for read_sane_config_path_setting
-   #
-   log_fluff "::: clean :::"
+   local flag
+   local old
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
-   [ -z "${MULLE_BOOTSTRAP_SETTING_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
+   [ -z "${DEPENDENCY_SUBDIR}"  ] && internal_fail "DEPENDENCY_SUBDIR is empty"
+   [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "CLONESBUILD_SUBDIR is empty"
+   [ -z "${ADDICTION_SUBDIR}"   ] && internal_fail "ADDICTION_SUBDIR is empty"
 
+   flag="NO"
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
-   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
+   case "${COMMAND}" in
+      build)
+         BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCY_SUBDIR}/tmp"`"
-   OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}
-.bootstrap.auto"`"
-   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
-${ADDICTION_SUBDIR}"`"
-  INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${BUILD_CLEANABLE_SUBDIRS}
-${CLONES_SUBDIR}
-.bootstrap.auto"`"
+         clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"
+         return
+      ;;
 
-   EMBEDDED="`embedded_repositories`"
-   if [ ! -z "$EMBEDDED" ]
-   then
-      DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
+      dist|output|install)
+         BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
+${DEPENDENCY_SUBDIR}/tmp"`"
+         flag="`clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"`"
+      ;;
+   esac
+
+   case "${COMMAND}" in
+      output)
+         OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
+         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"
+         return
+      ;;
+
+      dist)
+         OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
+         flag="`clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"`"
+      ;;
+   esac
+
+   case "${COMMAND}" in
+      install)
+         INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${CLONES_SUBDIR}
+.bootstrap.auto"`"
+         clean_directories "${INSTALL_CLEANABLE_SUBDIRS}" "${flag}"
+         return
+      ;;
+   esac
+
+   case "${COMMAND}" in
+      dist)
+         DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
+${ADDICTION_SUBDIR}"
+.bootstrap.auto`"         
+         EMBEDDED="`embedded_repositories`"
+
+         if [ ! -z "$EMBEDDED" ]
+         then
+            DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
 ${EMBEDDED}"
+         fi
+         clean_directories "${DIST_CLEANABLE_SUBDIRS}" "${flag}"
+      ;;
+   esac
+}
+
+
+clean_execute()
+{
+   local flag
+
+   flag="`_clean_execute "$@"`"
+   if [ "$flag" = "NO" ]
+   then
+      log_info "Nothing configured to clean"
    fi
+}
+
+
+#
+# don't rename these settings anymore, the consequences can be catastrophic
+# for users of previous versions.
+# Also don't change the search paths for read_sane_config_path_setting
+#
+clean_main()
+{
+   log_fluff "::: clean :::"
+
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
    COMMAND=${1:-"output"}
    [ $# -eq 0 ] || shift
 
    case "$COMMAND" in
-      output)
+      output|dist|build|install)
+         clean_execute "$@"
       ;;
-      dist)
-      ;;
-      build)
-      ;;
-      install)
-      ;;
+
       *)
          log_error "Unknown command \${COMMAND}\""
          clean_usage 
       ;;
    esac
-
-   clean_execute "$@"
 }

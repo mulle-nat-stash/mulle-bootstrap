@@ -110,5 +110,7 @@ gcc_ldflags_value()
 
 gcc_initialize()
 {
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 }
+
+gcc_initialize

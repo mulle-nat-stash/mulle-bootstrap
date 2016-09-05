@@ -255,5 +255,7 @@ auto_update_initialize()
 
   NON_MERGABLE_SETTINGS='embedded_repositories
 '
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 }
+
+auto_update_initialize

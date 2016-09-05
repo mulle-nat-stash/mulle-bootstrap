@@ -555,10 +555,10 @@ refresh_main()
 {
    log_fluff "::: refresh begin :::"
 
-   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh && local_environment_initialize
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
-   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh && auto_update_initialize
-   [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh && dependency_resolve_initialize
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh 
+   [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh 
 
    while :
    do
@@ -574,7 +574,7 @@ refresh_main()
    [ $# -eq 0 ] || shift
 
    case "$COMMAND" in
-      refresh|clear)
+      refresh|clear|refresh_if_bare)
       ;;
 
       nonrecursive)
@@ -592,8 +592,13 @@ refresh_main()
    #
    if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
+      if [ "${COMMAND}" == "refresh_if_bare" ]
+      then
+          return
+      fi
       exekutor rm -rf "${BOOTSTRAP_SUBDIR}.auto"
    fi
+
    bootstrap_auto_create
 
    #

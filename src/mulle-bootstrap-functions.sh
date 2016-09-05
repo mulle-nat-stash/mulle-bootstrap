@@ -247,6 +247,10 @@ unescape_linefeeds()
 
 #
 # Path handling
+# 0 = ""
+# 1 = /
+# 2 = /tmp
+# ...
 #
 path_depth()
 {
@@ -256,9 +260,11 @@ path_depth()
    name="$1"
    depth=0
 
-   if [ "${name}" != "" ]
+   if [ ! -z "${name}" ]
    then
-      while [ "$name" != "." ]
+      depth=1
+
+      while [ "$name" != "." -a "${name}" != '/' ]
       do
          name=`dirname -- "$name"`
          depth=`expr $depth + 1`
@@ -388,10 +394,10 @@ compute_relative()
    name="$1"
 
    depth=`path_depth "${name}"`
-   if [ "${depth}" -gt 0 ]
+   if [ "${depth}" -gt 1 ]
    then
       relative=".."
-      while [ "$depth" -gt 1 ]
+      while [ "$depth" -gt 2 ]
       do
          relative="${relative}/.."
          depth=`expr $depth - 1`
@@ -532,13 +538,12 @@ assert_sane_subdir_path()
 
    file="`simplify_path "$1"`"
 
-   if [ -z "${file}" ]
-   then
-         log_error "refuse unsafe subdirectory path \"$1\""
-         exit 1
-   fi
-
    case "$file"  in
+      "")
+         log_error "refuse empty subdirectory"
+         exit 1
+      ;;
+
       \$*|~|..|.|/*)
          log_error "refuse unsafe subdirectory path \"$1\""
          exit 1
@@ -553,16 +558,18 @@ assert_sane_path()
 
    file="`simplify_path "$1"`"
 
-   if [ -z "${file}" ]
-   then
+   case "$file" in
+      \$*|~|${HOME}|..|.)
          log_error "refuse unsafe path \"$1\""
          exit 1
-   fi
+      ;;
 
-   case "$file"  in
-      \$*|~|${HOME}|..|.|/)
-         log_error "refuse unsafe path \"$1\""
-         exit 1
+      ""|/*)
+         if [ `path_depth "${file}"` -le 2 ]
+         then
+            log_error "refuse suspicious path \"$1\""
+            exit 1
+         fi
       ;;
    esac
 }
@@ -974,7 +981,9 @@ append_dir_to_gitignore_if_needed()
 
 functions_initialize()
 {
-   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh && logging_initialize
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
     log_fluff ":functions_initialize:"
 }
+
+functions_initialize

@@ -33,7 +33,7 @@
 PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
 export PATH
 
-[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh && mingw_initialize
+[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh
 
 
 # fake up a cpp exe for configure scripts in MINGW

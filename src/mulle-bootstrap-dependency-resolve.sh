@@ -176,6 +176,8 @@ dependency_resolve()
 
 dependency_resolve_initialize()
 {
-   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh && array_initialize
+   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 }
+
+dependency_resolve_initialize
 

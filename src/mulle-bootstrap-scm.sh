@@ -219,5 +219,7 @@ svn_update()
 scm_initialize()
 {
    log_fluff ":scm_initialize:"
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh && functions_initialize
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 }
+
+scm_initialize

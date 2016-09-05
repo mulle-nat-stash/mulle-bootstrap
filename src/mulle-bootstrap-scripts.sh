@@ -212,5 +212,7 @@ run_fetch_settings_script()
 scripts_initialize()
 {
    log_fluff ":scripts_initialize:"
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh && settings_initialize
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 }
+
+scripts_initialize

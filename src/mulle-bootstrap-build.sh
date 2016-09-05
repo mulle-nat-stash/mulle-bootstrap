@@ -454,9 +454,12 @@ build_log_name()
 assert_binary()
 {
    local toolname
-   toolname="$1"
+   local toolfamily
 
-   [ -z "${toolname}" ] && internal_fail "toolname is empty"
+   toolname="$1"
+   toolfamily="$2"
+
+   [ -z "${toolname}" ] && internal_fail "toolname for \"${toolfamily}\" is empty"
 
    local path
 
@@ -480,7 +483,7 @@ find_cmake()
    local toolname
 
    toolname=`read_build_setting "${name}" "cmake" "cmake"`
-   assert_binary "${toolname}"
+   assert_binary "${toolname}" "cmake"
    echo "`basename -- "${toolname}"`"
 }
 
@@ -494,7 +497,7 @@ find_xcodebuild()
    local toolname
 
    toolname=`read_build_setting "${name}" "xcodebuild" "xcodebuild"`
-   assert_binary "${toolname}"
+   assert_binary "${toolname}" "xcodebuild"
    echo "`basename -- "${toolname}"`"
 }
 
@@ -510,16 +513,22 @@ find_make()
 
    defaultname="${2:-make}"
    toolname=`read_build_setting "${name}" "make" "${defaultname}"`
-   assert_binary "${toolname}"
+   assert_binary "${toolname}" "make"
    echo "`basename -- "${toolname}"`"
 }
 
 
 find_compiler()
 {
+   local compiler_name
+   local name
+
+   name="$1"
+   compiler_name="$2"
+
    local compiler
 
-   compiler="`read_build_setting "${name}" "$1"`"
+   compiler="`read_build_setting "${name}" "${compiler_name}"`"
 
    case "${UNAME}" in
       mingw)
@@ -530,8 +539,71 @@ find_compiler()
       ;;
    esac
 
-   assert_binary "${compiler}"
+   if [ ! -z "${compiler}" ]
+   then
+      assert_binary "${compiler}" "${compiler_name}"
+   fi
    echo "`basename -- "${compiler}"`"
+}
+
+
+tools_environment()
+{
+   local name
+
+   name="$1"
+
+   # no problem if those are empty
+   C_COMPILER="`find_compiler "${name}" CC`"
+   CXX_COMPILER="`find_compiler "${name}" CXX`"
+
+   local defaultgenerator
+   local defaultmake
+
+   case "${UNAME}" in
+      mingw)
+         case "${C_COMPILER}" in
+            ""|cl|cl.exe)
+               defaultmake="nmake"
+            ;;
+            *)
+               defaultmake="mingw32-make"
+            ;;
+         esac
+
+         MAKE="`find_make "${name}" "${defaultmake}"`"
+         case "${MAKE}" in
+            n*|N*)
+               defaultgenerator="NMake Makefiles"
+            ;;
+            mingw*|MINGW*)
+               defaultgenerator="MinGW Makefiles"
+            ;;
+            *)
+               defaultgenerator="MSYS Makefiles"
+            ;;
+         esac
+
+         CMAKE="`find_cmake "${name}"`"
+         # default use mingw32-make
+         # except if the settings specify otherwise
+      ;;
+
+      darwin)
+         XCODEBUILD="`find_xcodebuild`"
+         defaultgenerator="Unix Makefiles"
+         MAKE="`find_make "${name}"`"
+         CMAKE="`find_cmake "${name}"`"
+      ;;
+
+      *)
+         defaultgenerator="Unix Makefiles"
+         MAKE="`find_make "${name}"`"
+         CMAKE="`find_cmake "${name}"`"
+      ;;
+   esac
+
+   CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "${defaultgenerator}"`"
 }
 
 
@@ -577,7 +649,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local fallback
    local localcmakeflags
 
-
    fallback="`echo "${CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
    mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
@@ -595,24 +666,16 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
    fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
 
-   local c_compiler
-   local cxx_compiler
-   # local linker
-
-   # no problem if those are empty
-   c_compiler="`find_compiler CC`"
-   cxx_compiler="`find_compiler CXX`"
-
    local c_compiler_line
    local cxx_compiler_line
 
-   if [ ! -z "${c_compiler}" ]
+   if [ ! -z "${C_COMPILER}" ]
    then
-      c_compiler_line="-DCMAKE_C_COMPILER=${c_compiler}"
+      c_compiler_line="-DCMAKE_C_COMPILER=${C_COMPILER}"
    fi
-   if [ ! -z "${cxx_compiler}" ]
+   if [ ! -z "${CXX_COMPILER}" ]
    then
-      cxx_compiler_line="-DCMAKE_CXX_COMPILER=${cxx_compiler}"
+      cxx_compiler_line="-DCMAKE_CXX_COMPILER=${CXX_COMPILER}"
    fi
 
    # linker="`read_build_setting "${name}" "LD"`"
@@ -892,15 +955,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
    fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
 
-   local c_compiler
-   local cxx_compiler
-   #local linker
-
-   # no problem if those are empty
-   c_compiler="`find_compiler CC`"
-   cxx_compiler="`find_compiler CXX`"
-   #linker="`read_build_setting "${name}" "LD"`"
-
    local other_cflags
    local other_cxxflags
    local other_ldflags
@@ -1031,8 +1085,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       # use absolute paths for configure, safer (and easier to read IMO)
       DEPENDENCIES_DIR="'${dependenciesdir}'" \
-      CC="${c_compiler:-${CC}}" \
-      CXX="${cxx_compiler:-${CXX}}" \
+      CC="${C_COMPILER:-${CC}}" \
+      CXX="${CXX_COMPILER:-${CXX}}" \
       CFLAGS="${other_cflags}" \
       CXXFLAGS="${other_cflags} ${other_cxxflags}" \
       LDFLAGS="${other_ldflags}" \
@@ -1692,6 +1746,10 @@ build()
 
    log_verbose "Building ${name} ..."
 
+   # find make, cmake compilers for this repo
+
+   tools_environment "${name}"
+
    local preferences
 
    #
@@ -1725,44 +1783,6 @@ configure"`"
    sdks=`read_build_root_setting "sdks" "Default"`
    [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
-
-   local generator
-
-   case "${UNAME}" in
-      mingw)
-         MAKE="`find_make "${name}" "mingw32-make"`"
-         case "${MAKE}" in
-            n*|N*)
-               generator="NMake Makefiles"
-            ;;
-            mingw*|MINGW*)
-               generator="MinGW Makefiles"
-            ;;
-            *)
-               generator="MSYS Makefiles"
-            ;;
-         esac
-
-         CMAKE="`find_cmake "${name}"`"
-         # default use mingw32-make
-         # except if the settings specify otherwise
-      ;;
-
-      darwin)
-         XCODEBUILD="`find_xcodebuild`"
-         generator="Unix Makefiles"
-         MAKE="`find_make "${name}"`"
-         CMAKE="`find_cmake "${name}"`"
-      ;;
-
-      *)
-         generator="Unix Makefiles"
-         MAKE="`find_make "${name}"`"
-         CMAKE="`find_cmake "${name}"`"
-      ;;
-   esac
-
-   CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "${generator}"`"
 
    local builddir
    local hasbuilt
@@ -2165,7 +2185,7 @@ build_main()
       continue
    done
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 
    #
    # START
@@ -2178,8 +2198,8 @@ build_main()
 
    build_complete_environment
 
-   [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh && gcc_initialize
-   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh && scripts_initialize
+   [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
    if [ $# -eq 0 ]
    then

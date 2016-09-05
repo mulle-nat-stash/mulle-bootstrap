@@ -279,7 +279,7 @@ install_main()
 {
    log_fluff "::: install :::"
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh && build_environment_initialize
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 
    DEFAULT_PREFIX="/usr/local"
    DEFAULT_FRAMEWORK_PREFIX="/Library"

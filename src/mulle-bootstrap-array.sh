@@ -370,9 +370,3 @@ assoc_array_augment_with_array()
    echo "${array1}" "${array2}" | sort -u -t'=' -k1,1
 }
 
-
-# initialize code of this file
-array_initialize()
-{
-   :
-}

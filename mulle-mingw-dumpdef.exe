@@ -1,0 +1,190 @@
+#! /bin/sh
+#
+#   Copyright (c) 2016 Nat! - Mulle kybernetiK
+#   All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+#   Neither the name of Mulle kybernetiK nor the names of its contributors
+#   may be used to endorse or promote products derived from this software
+#   without specific prior written permission.
+#
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+#   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#   POSSIBILITY OF SUCH DAMAGE.
+#
+
+PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
+export PATH
+
+INDENT="   "
+
+
+usage()
+{
+   echo "failed" >&2
+   exit 1
+}
+
+
+dump_external_definitions()
+{
+   local filename 
+
+   filename="$1"
+   shift
+
+   [ -z "${filename}"    ] && echo "empty filename" >&2 && exit 1
+   [ ! -r  "${filename}" ] && echo "${filename} not readable" >&2 && exit 1
+
+   dumpbin.exe -symbols "${filename}" | fgrep ' External ' | fgrep -v ' UNDEF ' | sed "s/^[^|]*| *\([^ (]*\).*\$/${INDENT}\1/"  | sort
+}
+
+
+dump_library()
+{
+   local prefixes
+   local filename 
+
+   prefixes="$1"
+   shift
+   filename="$1"
+   shift
+
+   if [ ! -z "${prefixes}" ]
+   then
+      dump_external_definitions "${filename}" | egrep "${prefixes}"
+   else
+      dump_external_definitions "${filename}"  
+   fi
+}
+
+
+dump_libraries()
+{
+   local name
+   local prefixes
+
+   name="$1"
+   shift
+   prefixes="$1"
+   shift
+
+   if [ $# -eq 0 ]
+   then
+      echo "no files to dump" >&2
+      exit 1
+   fi
+
+   if [ -z "${SUPPRESS_HEADER}" ]
+   then 
+      cat <<EOF
+LIBRARY   ${name}
+EXPORTS
+EOF
+   fi
+
+   while [ $# -ne 0 ]
+   do
+      dump_library "${prefixes}" "$1"
+      shift
+   done
+}
+
+
+main()
+{
+   local outfile
+   local prefixes
+   local c_stringprefix
+   local name
+
+   c_stringprefix='\?\?_@C'
+   prefixes=
+   outfile=
+
+   while [ $# -ne 0 ]
+   do
+      case "$1" in
+         -o|--output)
+            shift
+            outfile="$1"
+         ;;
+
+         --no-strings)
+            c_stringprefix=
+         ;;
+
+         -sh|--suppress_header)
+            SUPPRESS_HEADER=YES
+         ;;
+            
+         -l|--library-name)
+            shift
+            name="$1"
+         ;;
+
+         -p|--prefix)
+            shift
+            if [ -z "${prefixes}" ]
+            then
+               prefixes="^${INDENT}${c_stringprefix}|^${INDENT}_*$1"
+            else
+               prefixes="${prefixes}|^${INDENT}_*$1"
+            fi
+         ;;
+
+         -sp|--strict-prefix)
+            shift
+            if [ -z "${prefixes}" ]
+            then
+               prefixes="^${INDENT}$1"
+            else
+               prefixes="${prefixes}|^${INDENT}$1"
+            fi
+         ;;
+
+         -*)
+            usage
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+   local libname
+
+   libname="`basename "${name:-$1}"`"
+   libname="`echo "${libname}" | sed 's/^\([^.]*\)*\\..*$/\1/'`"
+
+   [ -z "${libname}" ] && echo "could not figure out library name from \"${name:-$1}\"" >&2 && exit 1
+
+   if [ ! -z "${outfile}" ]
+   then
+      dump_libraries "${libname}" "${prefixes}" "$@" > "${outfile}"
+   else
+      dump_libraries "${libname}" "${prefixes}" "$@" 
+   fi
+}
+
+main "$@"

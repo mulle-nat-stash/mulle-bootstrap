@@ -162,6 +162,9 @@ mingw_buildpath()
 
 mingw_initialize()
 {
-   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh && logging_initialize
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
    log_fluff ":mingw_initialize:"
 }
+
+mingw_initialize
+

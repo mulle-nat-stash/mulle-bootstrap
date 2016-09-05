@@ -152,3 +152,5 @@ logging_initialize()
    C_TRACE="${C_FLUFF}${C_FAINT}"
    C_TRACE2="${C_RESET}${C_FAINT}"
 }
+
+logging_initialize
