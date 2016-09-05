@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh -x
 #
 #   Copyright (c) 2016 Nat! - Mulle kybernetiK
 #   All rights reserved.
@@ -30,7 +30,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 #
 
-PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
+PATH="/usr/local/libexec/mulle-bootstrap:/usr/bin:$PATH"
 export PATH
 
 INDENT="   "
@@ -43,17 +43,91 @@ usage()
 }
 
 
+#
+# search path delimited by LF
+#
+find_library_in_directories()
+{
+   local filename
+   local directories
+
+   filename="$1"
+   directories="$2"
+
+   local old
+
+   old="${IFS}"
+   IFS="
+"
+   local directory
+   local path
+
+   for directory in ${directories}
+   do
+      path="${directory}/${filename}"
+
+      if [ -f "${path}" ]
+      then
+         echo "${path}"
+         break
+      fi
+   done
+
+   IFS="${old}"
+}
+
+
+find_library()
+{
+   local filename
+
+   filename="$1"
+
+   if [ -f "${filename}" ]
+   then
+      echo "${filename}"
+      return
+   fi 
+
+   case "${filename}" in
+      ?:/*)
+         filename="`echo "/${filename}" | sed 's|\\|/|g' | sed 's|:|/|'`"
+         find_library "${filename}"
+      ;;
+
+      ~*|.*|/*|"")
+         :
+      ;;
+
+      *)
+         find_library_in_directories "${filename}" "${SEARCH_PATH}"
+      ;;
+   esac
+}
+
+
+
 dump_external_definitions()
 {
    local filename 
+   local libraryname 
 
-   filename="$1"
+   libraryname="$1"
    shift
 
-   [ -z "${filename}"    ] && echo "empty filename" >&2 && exit 1
-   [ ! -r  "${filename}" ] && echo "${filename} not readable" >&2 && exit 1
+   [ -z "${libraryname}" ] && echo "empty libraryname" >&2 && exit 1
+   
+   filename="`find_library ${libraryname}`"
+   if [ -z "${filename}" ]
+   then
+      filename="`find_library ${libraryname}.lib`"
+      if [ -z "${filename}" ]
+      then
+         echo "${libraryname} ($PWD) not found" >&2 && exit 1
+      fi
+   fi
 
-   dumpbin.exe -symbols "${filename}" | fgrep ' External ' | fgrep -v ' UNDEF ' | sed "s/^[^|]*| *\([^ (]*\).*\$/${INDENT}\1/"  | sort
+   dumpbin.exe -symbols "${filename}" | fgrep ' External ' | fgrep -v ' UNDEF ' | sed "s/^[^|]*| *\([^ (]*\).*\$/\1/" | sed 's/^_//' | sort
 }
 
 
@@ -69,8 +143,16 @@ dump_library()
 
    if [ ! -z "${prefixes}" ]
    then
+      if [ ! -z "${VERBOSE}" ]
+      then
+         echo "Dumping ${filename} symbols with prefixes ${prefixes}" >&2
+      fi
       dump_external_definitions "${filename}" | egrep "${prefixes}"
    else
+      if [ ! -z "${VERBOSE}" ]
+      then
+         echo "Dumping all ${filename} symbols" >&2
+      fi
       dump_external_definitions "${filename}"  
    fi
 }
@@ -95,18 +177,20 @@ dump_libraries()
    if [ -z "${SUPPRESS_HEADER}" ]
    then 
       cat <<EOF
-LIBRARY   ${name}
+LIBRARY ${name}
 EXPORTS
 EOF
    fi
 
    while [ $# -ne 0 ]
    do
-      dump_library "${prefixes}" "$1"
+      dump_library "${prefixes}" "$1" | sed "s/^\\(.*\\)\$/${INDENT}\\1/"
       shift
    done
 }
 
+
+SEARCH_PATH="."
 
 main()
 {
@@ -115,9 +199,10 @@ main()
    local c_stringprefix
    local name
 
-   c_stringprefix='\?\?_@C'
+   c_stringprefix='\?\?_C'
    prefixes=
    outfile=
+   SEARCH_PATH=
 
    while [ $# -ne 0 ]
    do
@@ -125,6 +210,12 @@ main()
          -o|--output)
             shift
             outfile="$1"
+         ;;
+
+         -d|--directory)
+            shift
+            SEARCH_PATH="$1
+${SEARCH_PATH}"
          ;;
 
          --no-strings)
@@ -144,9 +235,9 @@ main()
             shift
             if [ -z "${prefixes}" ]
             then
-               prefixes="^${INDENT}${c_stringprefix}|^${INDENT}_*$1"
+               prefixes="^${c_stringprefix}|^_*$1"
             else
-               prefixes="${prefixes}|^${INDENT}_*$1"
+               prefixes="${prefixes}|^_*$1"
             fi
          ;;
 
@@ -154,10 +245,14 @@ main()
             shift
             if [ -z "${prefixes}" ]
             then
-               prefixes="^${INDENT}$1"
+               prefixes="^$1"
             else
-               prefixes="${prefixes}|^${INDENT}$1"
+               prefixes="${prefixes}|^$1"
             fi
+         ;;
+
+         -v|--verbose)
+            VERBOSE=YES
          ;;
 
          -*)
@@ -181,9 +276,13 @@ main()
 
    if [ ! -z "${outfile}" ]
    then
-      dump_libraries "${libname}" "${prefixes}" "$@" > "${outfile}"
+      dump_libraries "${libname}" "${prefixes}" "$@"  | unix2dos > "${outfile}"
+      if [ ! -z "${VERBOSE}" ]
+      then
+         echo "Dumped to ${outfile}" >&2
+      fi
    else
-      dump_libraries "${libname}" "${prefixes}" "$@" 
+      dump_libraries "${libname}" "${prefixes}" "$@"
    fi
 }
 
