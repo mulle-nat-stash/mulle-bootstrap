@@ -188,7 +188,20 @@ run_build_settings_script()
 }
 
 
-run_fetch_settings_script()
+#
+# various scripts runner for fetch, designed to only load in the build
+# environment (slow on mingw, if needed)
+#
+fetch__run_script()
+{
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
+   build_complete_environment
+   
+   run_script "$@"   
+}
+
+
+fetch__run_fetch_settings_script()
 {
    local  scriptname
 
@@ -202,12 +215,78 @@ run_fetch_settings_script()
    script="`find_fetch_setting_file "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      run_script "${script}" "$@"
+      fetch__run_script "${script}" "$@"
       return $?
    fi
    return 0
 }
 
+
+fetch__run_build_settings_script()
+{
+   local srcdir
+   local name
+   local scriptname
+   local url
+
+   name="$1"
+   shift
+   url="$1"
+   shift
+   srcdir="$1"
+   shift
+   scriptname="$1"
+   shift
+
+   # can happen, if system libs override
+   if [ ! -e "$srcdir" ]
+   then
+      log_verbose "script \${script}\" not executed, because ${srcdir} does not exist"
+      return 0
+   fi
+
+   [ ! -z "$name" ]           || internal_fail "name is empty"
+   [ ! -z "$url" ]            || internal_fail "url is empty"
+   [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"
+
+   local script
+
+   script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
+   if [ ! -z "${script}" ]
+   then
+      fetch__run_script "${script}" "${name}" "${url}" "${srcdir}" "$@" || exit 1
+   fi
+}
+
+
+fetch__run_repo_settings_script()
+{
+   local name
+   local scriptname
+   local srcdir
+
+   name="$1"
+   shift
+   srcdir="$1"
+   shift
+   scriptname="$1"
+   shift
+
+   exekutor [ -e "$srcdir" ] || internal_fail "directory srcdir \"${srcdir}\" is wrong ($PWD)"
+   [ ! -z "$name" ]          || internal_fail "name is empty"
+   [ ! -z "$scriptname" ]    || internal_fail "scriptname is empty"
+
+   local script
+
+   script="`find_repo_setting_file "${name}" "bin/${scriptname}.sh"`"
+   if [ ! -z "${script}" ]
+   then
+      [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
+      build_complete_environment
+
+      run_fake_environment_script "${srcdir}" "${script}" "$@" || exit 1
+   fi
+}
 
 scripts_initialize()
 {

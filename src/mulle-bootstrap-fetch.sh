@@ -522,7 +522,7 @@ checkout()
 
    if [ ! -z "${script}" ]
    then
-      run_script "${script}" "$@"
+      fetch__run_script "${script}" "$@"
    else
       case "${url}" in
          /*)
@@ -631,7 +631,7 @@ did_clone_repository()
    local dstdir
 
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
-   run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
+   fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
 }
 
 #
@@ -682,7 +682,7 @@ checkout_repository()
             flag=$?
          fi
 
-         run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
+         fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
       fi
 
       #
@@ -885,17 +885,17 @@ update()
    rval=0
    if [ ! -L "${dstdir}" ]
    then
-      run_repo_settings_script "${name}" "${dstdir}" "pre-update" "$@"
+      fetch__run_repo_settings_script "${name}" "${dstdir}" "pre-update" "$@"
 
       script="`find_repo_setting_file "${name}" "bin/update.sh"`"
       if [ ! -z "${script}" ]
       then
-         run_script "${script}" "$@"
+         fetch__run_script "${script}" "$@"
       else
          "${operation}" "${dstdir}" "${branch}" "${tag}"
       fi
 
-      run_repo_settings_script "${name}" "${dstdir}" "post-update" "$@"
+      fetch__run_repo_settings_script "${name}" "${dstdir}" "post-update" "$@"
    else
       ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       log_info "Repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} exists and is symlinked, so not updated."
@@ -979,7 +979,7 @@ did_update_repository()
 
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
-   run_build_settings_script "${name}" "${url}" "${dstdir}" "did-update" "${dstdir}" "${name}"
+   fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "did-update" "${dstdir}" "${name}"
 }
 
 
@@ -1151,7 +1151,7 @@ clone_embedded_repository()
             fi
          fi
 
-         run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
+         fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
       fi
 
       # memo that we did this with a symlink
@@ -1406,7 +1406,7 @@ fetch_main()
    #
    create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
-   run_fetch_settings_script "post-${COMMAND}" "$@"
+   fetch__run_fetch_settings_script "post-${COMMAND}" "$@"
 
    remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
