@@ -54,7 +54,7 @@ eval_exekutor()
 
 logging_eval_exekutor()
 {
-   echo "==>" "$@" >&2
+   echo "==>" "$@" # to stdout
    eval_exekutor "$@"
 }
 
@@ -75,12 +75,8 @@ exekutor()
 
 logging_exekutor()
 {
-   echo "==>" "$@" >&2
-
-   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" != "YES" ]
-   then
-      "$@"
-   fi
+   echo "==>" "$@" # to stdout
+   exekutor "$@"
 }
 
 
@@ -671,8 +667,6 @@ lso()
    awk '{k=0;for(i=0;i<=8;i++)k+=((substr($1,i+2,1)~/[rwx]/)*2^(8-i));if(k)printf(" %0o ",k);print }' | \
    awk '{print $1}'
 }
-
-
 
 
 #

@@ -102,8 +102,8 @@ ${clone}"
                dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
                #
-               # dependency management, it could be nicer, but isn't
-               # currently match only URLs
+               # dependency management, it could be nicer, but isn't.
+               # Currently matches only URLs
                #
                local sub_repos
                local filename
@@ -557,8 +557,8 @@ refresh_main()
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh 
-   [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh 
+   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
+   [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
 
    while :
    do

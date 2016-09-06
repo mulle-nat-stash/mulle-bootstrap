@@ -59,8 +59,8 @@ These settings are usually repository specific, but can be set globally also.
 
 #### Search Paths
 
-1. `.bootstrap.local/${reponame}/settings`
-2. `.bootstrap/${reponame}/settings`        (Inheritable)
+1. `.bootstrap.local/${reponame}`
+2. `.bootstrap/${reponame}`          (Inheritable)
 
 4. `.bootstrap.local/settings`
 5. `.bootstrap/settings`
@@ -103,17 +103,20 @@ Setting Name                     |  Description                               | 
 Repository Specific Settings
 ===================
 
+Some settings are not supplied by root build settings.
+
 #### Search Paths
 
-1. `.bootstrap.local/${reponame}/settings`
-2. `.bootstrap/${reponame}/settings`          (Inheritable)
+1. `.bootstrap.local/${reponame}`
+2. `.bootstrap/${reponame}`       (Inheritable)
 
 
 #### Settings
 
 Setting Name     | Used by       | Description
 -----------------|---------------|---------------------------
-`tag`            | fetch         | What to checkout after fetching a repository.
+`tag`            | fetch         | What to checkout after fetching a
+                 |               | repository. (Preferably don't use)
 `xcode_project`  | build,xcode   | The Xcode project file to use
 `xcode_schemes`  | build         | The Xcode schemes to build
 `xcode_targets`  | build         | The Xcode targets to build
@@ -125,8 +128,8 @@ Scripts
 Scripts are run at various times during the fetch, build and tag process.
 Root scripts must be aware, that they will be called for every repository.
 
-1. `.bootstrap.local/${reponame}/settings/bin`
-2. `.bootstrap/${reponame}/settings/bin`     (Inheritable)
+1. `.bootstrap.local/${reponame}/bin`
+2. `.bootstrap/${reponame}/bin`   (Inheritable)
 
 1. `.bootstrap.local/settings/bin`
 2. `.bootstrap/settings/bin`
@@ -184,7 +187,8 @@ Setting Name                      |  Description                                
 ----------------------------------|-----------------------------------------------|--------------
 `build_preferences`               | list order of preferred build tools. Will be  |
                                   | used in deciding if to use cmake or           |
-                                  | xcodebuild, if both are available             | script\nxcodebuild\ncmake\nconfigure
+                                  | xcodebuild, if both are available             |
+                                  | script\nxcodebuild\ncmake\nconfigure          |
 `build_foldername`                | OBJROOT, build root for intermediate files    |
                                   | like .o                                       | `build/.repos`
 `build_log_foldername`            | name of the output folder for logs            | `build/.repos/.logs
@@ -205,16 +209,16 @@ Setting Name                      |  Description                                
 
 ##### Init Config Settings
 
-Setting Name                    |  Description                                  | Default
---------------------------------|-----------------------------------------------|--------------
-`create_default_files`          | if mulle-bootstrap init should populate       |
-                                | .bootstrap with some default files            | YES
-`create_example_files`          | if mulle-bootstrap init should populate       |
-                                | .bootstrap with some example files            | YES
-`editor`                        | the editor mulle-bootstrap init should use    |
-                                | to edit repositories                          | EDITOR environment variable
-`open_repositories_file`        | if mulle-bootstrap init should open an editor |
-                                | to edit repositories (YES/NO/ASK)             | ASK
+Setting Name                      |  Description                                  | Default
+----------------------------------|-----------------------------------------------|--------------
+`create_default_files`            | if mulle-bootstrap init should populate       |
+                                  | .bootstrap with some default files            | YES
+`create_example_files`            | if mulle-bootstrap init should populate       |
+                                  | .bootstrap with some example files            | YES
+`editor`                          | the editor mulle-bootstrap init should use    |
+                                  | to edit repositories                          | EDITOR environment variable
+`open_repositories_file`          | if mulle-bootstrap init should open an editor |
+                                  | to edit repositories (YES/NO/ASK)             | ASK
 
 
 ##### Clean Config Settings

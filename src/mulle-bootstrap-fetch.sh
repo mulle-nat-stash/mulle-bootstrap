@@ -1337,6 +1337,7 @@ fetch_main()
    esac
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
    case "${UNAME}" in
       mingw)
@@ -1388,8 +1389,16 @@ fetch_main()
 
       check_tars
    else
-      update_repositories "$@"
-      update_embedded_repositories
+      if dir_has_files "${CLONESFETCH_SUBDIR}"
+      then
+         update_repositories "$@"
+         update_embedded_repositories
+      else
+         log_info "Nothing to update, fetch first"
+
+         log_fluff "::: fetch end :::"
+         return 0
+      fi
    fi
 
    #

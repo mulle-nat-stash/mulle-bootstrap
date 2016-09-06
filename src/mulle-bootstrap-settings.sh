@@ -323,12 +323,12 @@ read_repo_setting()
 
    if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
    then
-      value="`_read_bootstrap_setting "settings/${package}/${name}.${UNAME}"`"
+      value="`_read_bootstrap_setting "${package}/${name}.${UNAME}"`"
    fi
 
    if [ $? -ne 0 ]
    then
-      value="`_read_bootstrap_setting "settings/${package}/${name}"`"
+      value="`_read_bootstrap_setting "${package}/${name}"`"
       if [ $? -ne 0 ]
       then
          value="${default}"
@@ -421,7 +421,7 @@ read_build_setting()
    rval=1
    if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
    then
-      value="`_read_bootstrap_setting "settings/${package}/${name}.${UNAME}"`"
+      value="`_read_bootstrap_setting "${package}/${name}.${UNAME}"`"
       if [ $? -ne 0 ]
       then
          value="`_read_bootstrap_setting "settings/${name}.${UNAME}"`"
@@ -431,7 +431,7 @@ read_build_setting()
 
    if [ $rval -ne 0 ]
    then
-      value="`_read_bootstrap_setting "settings/${package}/${name}"`"
+      value="`_read_bootstrap_setting "${package}/${name}"`"
       if [ $? -ne 0 ]
       then
          value="`_read_bootstrap_setting "settings/${name}"`"

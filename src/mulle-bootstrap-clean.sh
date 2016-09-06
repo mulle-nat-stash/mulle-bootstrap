@@ -73,9 +73,9 @@ embedded_repositories()
    local dir
    local name
 
-   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh 
+   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
 
-   refresh_main 
+   refresh_main
 
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
@@ -233,8 +233,8 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
    case "${COMMAND}" in
       dist)
          DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
-${ADDICTION_SUBDIR}"
-.bootstrap.auto`"         
+${ADDICTION_SUBDIR}
+.bootstrap.auto"`"
          EMBEDDED="`embedded_repositories`"
 
          if [ ! -z "$EMBEDDED" ]
@@ -282,7 +282,7 @@ clean_main()
 
       *)
          log_error "Unknown command \${COMMAND}\""
-         clean_usage 
+         clean_usage
       ;;
    esac
 }
