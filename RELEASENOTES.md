@@ -1,8 +1,22 @@
 2.0
 ===
 
-YOUR OLD STUFF MAY NOT RUN ANYMORE!
-Do a `mulle-bootstrap dist clean`. 
+## YOUR OLD STUFF MAY NOT RUN ANYMORE
+
+Do a `mulle-bootstrap dist clean`.
+
+## YOUR OLD SETTINGS MAY NOT WORK ANYMORE!
+
+Move all repo specific setting directories from
+
+`.bootstrap/settings/<reponame> `
+
+to
+
+`.bootstrap/<reponame>`
+
+
+## Changes
 
 * Add pre-build.sh script phase (for libcurl really)
 * Brew formulas are now installed locally into "addictions". A folder which
@@ -26,6 +40,8 @@ inheritance scheme.
 * renamed build setting OTHER_CPPFLAGS to OTHER_CXXFLAGS (!)
 * UNAME is now simplified and lowercased(!)
 * redid the settings merge and inheritance logic. It's now a bit more scrutable.
+* removed build_order from settings
+
 
 
 1.1

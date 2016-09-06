@@ -317,7 +317,7 @@ mark_all_embedded_repositories_zombies()
 
       for symlink in `ls -1d "${path}/"*`
       do
-         i="`cat "$symlink"`"
+         i="`cat "$symlink"`" || fail "Old style mulle-bootstrap files detected, dist-clean it"
          name="`basename -- "$i"`"
          exekutor touch "${zombiepath}/${name}"
       done
