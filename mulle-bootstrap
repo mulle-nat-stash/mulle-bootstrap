@@ -319,7 +319,7 @@ bootstrap_main()
             refresh_main clear || exit 1
          ;;
 
-         update)
+         update|refresh)
            . mulle-bootstrap-refresh.sh
 
            # 4 laters

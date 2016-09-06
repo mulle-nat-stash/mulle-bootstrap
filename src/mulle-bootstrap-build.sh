@@ -451,6 +451,45 @@ build_log_name()
 }
 
 
+verify_binary()
+{
+   local toolname
+   local toolfamily
+   local tooldefaultname
+
+   toolname="$1"
+   toolfamily="$2"
+   tooldefaultname="$3"
+
+   [ -z "${toolname}" ] && internal_fail "toolname for \"${toolfamily}\" is empty"
+
+   local path
+
+   path=`which_binary "${toolname}"`
+   if [ ! -z "${path}" ]
+   then
+      echo "${toolname}"
+      return 0
+   fi
+
+   #
+   # if user specified a certain tool, then it not being there is bad
+   # otherwise it's maybe OK (f.e. only using xcodebuild not cmake)
+   #
+   toolname="`extension_less_basename "${toolname}"`"
+   tooldefaultname="`extension_less_basename "${tooldefaultname}"`"
+
+   if [ "${toolname}" != "${tooldefaultname}" ]
+   then
+      fail "${toolname} not found in PATH"
+   else
+      log_fluff "${toolname} not found in PATH"
+   fi
+
+   return
+}
+
+
 assert_binary()
 {
    local toolname
@@ -466,7 +505,6 @@ assert_binary()
    path=`which_binary "${toolname}"`
    if [ -z "${path}" ]
    then
-      set -x
       which_binary "${toolname}"
       fail "${toolname} is an unknown build tool (PATH=$PATH)"
    fi
@@ -483,22 +521,7 @@ find_cmake()
    local toolname
 
    toolname=`read_build_setting "${name}" "cmake" "cmake"`
-   assert_binary "${toolname}" "cmake"
-   echo "`basename -- "${toolname}"`"
-}
-
-
-find_xcodebuild()
-{
-   local name
-
-   name="$1"
-
-   local toolname
-
-   toolname=`read_build_setting "${name}" "xcodebuild" "xcodebuild"`
-   assert_binary "${toolname}" "xcodebuild"
-   echo "`basename -- "${toolname}"`"
+   verify_binary "${toolname}" "cmake" "cmake"
 }
 
 
@@ -513,8 +536,7 @@ find_make()
 
    defaultname="${2:-make}"
    toolname=`read_build_setting "${name}" "make" "${defaultname}"`
-   assert_binary "${toolname}" "make"
-   echo "`basename -- "${toolname}"`"
+   verify_binary "${toolname}" "make" "${defaultname}"
 }
 
 
@@ -544,6 +566,19 @@ find_compiler()
       assert_binary "${compiler}" "${compiler_name}"
    fi
    echo "`basename -- "${compiler}"`"
+}
+
+
+find_xcodebuild()
+{
+   local name
+
+   name="$1"
+
+   local toolname
+
+   toolname=`read_build_setting "${name}" "xcodebuild" "xcodebuild"`
+   verify_binary "${toolname}" "xcodebuild" "xcodebuild"
 }
 
 
@@ -590,7 +625,7 @@ tools_environment()
       ;;
 
       darwin)
-         XCODEBUILD="`find_xcodebuild`"
+         XCODEBUILD="`find_xcodebuild "${name}"`"
          defaultgenerator="Unix Makefiles"
          MAKE="`find_make "${name}"`"
          CMAKE="`find_cmake "${name}"`"
@@ -1534,7 +1569,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       PATH="${BUILDPATH}"
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${XCODEBUILD}\" \"${command}\" ${arguments} \
-ARCHS='${ARCHS:-\${ARCHS_STANDARD_32_64_BIT\}}' \
+ARCHS='${ARCHS:-\${ARCHS_STANDARD_32_64_BIT}}' \
 DSTROOT='${owd}/${BUILD_DEPENDENCY_SUBDIR}' \
 SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
@@ -1848,7 +1883,7 @@ configure"`"
                fi
             fi
 
-            if [ "${preference}" = "xcodebuild" -a -x "${XCODEBUILD}" ]
+            if [ "${preference}" = "xcodebuild" -a ! -z "${XCODEBUILD}" ]
             then
                project=`(cd "${srcdir}" ; find_xcodeproj "${name}")`
 

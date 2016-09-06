@@ -130,7 +130,7 @@ _read_setting()
       local name
 
       name="`basename -- "${file}" ".${UNAME}"`"
-      if [ "${name}" = "repositories" -o "${name}" = "repositories.tmp" -o  "${name}" = "embedded_repositories" ]
+      if [ "${name}" = "repositories" -o "${name}" = "repositories.tmp" - "${name}" = "embedded_repositories" ]
       then
          log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
       else
@@ -155,7 +155,7 @@ _read_bootstrap_setting()
    shift
 
    [ $# -ne 0 ]     && internal_fail "parameterization error"
-   [ -z "${name}" ] && internal_fail "missing parameters in _read_bootstrap_setting"
+   [ -z "${name}" ] && internal_fail "empty name in _read_bootstrap_setting"
 
    #
    # to access unmerged data (needed for embedded repos)
@@ -191,7 +191,7 @@ _read_environment_setting()
 
    name="$1"
 
-   [ -z "$name" ] && internal_fail "missing parameters in _read_environment_setting"
+   [ -z "$name" ] && internal_fail "empty name in _read_environment_setting"
 
    envname="MULLE_BOOTSTRAP_`echo "${name}" | tr '[:lower:]' '[:upper:]'`"
 
@@ -228,7 +228,7 @@ _read_home_setting()
 
    name="$1"
 
-   [ "$name" = "" ] && internal_fail "missing parameters in _read_home_setting"
+   [ -z "$name" ] && internal_fail "empty name in _read_home_setting"
 
    if [ "${MULLE_BOOTSTRAP_TRACE_SETTINGS}" = "YES" ]
    then
@@ -270,6 +270,8 @@ read_config_setting()
 
    name="$1"
    default="$2"
+
+   [ -z "$name" ] && internal_fail "empty name in read_config_setting"
 
    local value
 
@@ -319,6 +321,8 @@ read_repo_setting()
    name="$2"
    default="$3"
 
+   [ -z "$name" -o -z "${package}" ] && internal_fail "empty parameter in read_config_setting"
+
    local value
 
    if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
@@ -364,6 +368,8 @@ read_build_root_setting()
 
    name="$1"
    default="$2"
+
+   [ -z "$name" ] && internal_fail "empty name in read_build_root_setting"
 
    local value
    local rval
@@ -414,6 +420,8 @@ read_build_setting()
    package="$1"
    name="$2"
    default="$3"
+
+   [ -z "$name" -o -z "${package}" ] && internal_fail "empty parameter in read_config_setting"
 
    local value
    local rval
@@ -466,6 +474,8 @@ read_fetch_setting()
 
    name="$1"
    default="$2"
+
+   [ -z "$name" ] && internal_fail "empty name in read_fetch_setting"
 
    local value
    local rval
