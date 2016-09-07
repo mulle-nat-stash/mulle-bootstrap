@@ -2171,7 +2171,7 @@ build_main()
 
    log_fluff "::: build begin :::"
 
-   while :
+   while [ $# -ne 0 ]
    do
       case "$1" in
          -K)

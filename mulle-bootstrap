@@ -220,10 +220,6 @@ bootstrap_main()
       shift
    done
 
-  command=${1:-"bootstrap"}
-   [ $# -eq 0 ] || shift
-
-
    case "${MULLE_BOOTSTRAP_TRACE}" in
       VERBOSE)
          MULLE_BOOTSTRAP_FLUFF="NO"
@@ -278,6 +274,9 @@ bootstrap_main()
    #
    # some commands only run when we have a .bootstrap folder
    #
+   command=${1:-"bootstrap"}
+   [ $# -eq 0 ] || shift
+
    if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
    then
       case "${command}" in
@@ -343,7 +342,7 @@ bootstrap_main()
             fetch_main install "$@"      || exit 1
             refresh_main                 || exit 1
         else
-            fetch_main nonrecursive "$@" || exit 1
+            fetch_main install --non-recursive "$@" || exit 1
             refresh_main nonrecursive    || exit 1
          fi
 
@@ -391,14 +390,14 @@ bootstrap_main()
       fetch)
          . mulle-bootstrap-fetch.sh
 
-         DONT_ASK_AFTER_WARNING=YES fetch_main "install" "$@" || exit 1
+         DONT_ASK_AFTER_WARNING=YES fetch_main install "$@" || exit 1
          refresh_main || exit 1
       ;;
 
       update)
          . mulle-bootstrap-fetch.sh
 
-         fetch_main "${command}" "$@" || exit 1
+         fetch_main update "$@" || exit 1
          refresh_main || exit 1
       ;;
 

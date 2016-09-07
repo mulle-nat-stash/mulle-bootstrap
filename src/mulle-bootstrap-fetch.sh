@@ -44,7 +44,7 @@ fetch_usage()
 usage:
    mulle-bootstrap fetch [-f] <install|nonrecursive|update>
    -f           :  override dirty harry check
-
+   -u           :  update also symlinked folders
    install      :  clone or symlink non-exisiting repositories and other resources
    nonrecursive :  like above, but ignore .bootstrap folders of repositories
    update       :  execute `git pull` in fetched repositories
@@ -883,7 +883,7 @@ update()
    before_e=`modification_timestamp "${dstdir}/.bootstrap/embedded_repositories" 2> /dev/null`
 
    rval=0
-   if [ ! -L "${dstdir}" ]
+   if [ ! -L "${dstdir}" -o "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" = "YES" ]
    then
       fetch__run_repo_settings_script "${name}" "${dstdir}" "pre-update" "$@"
 
@@ -1292,15 +1292,36 @@ fetch_main()
 {
    log_fluff "::: fetch begin :::"
 
-   while :
+   COMMAND="${1:-install}"
+   [ $# -ne 0 ] && shift
+
+   case "$COMMAND" in
+      install|update)
+         ;;
+      *)
+         log_error "unknown command \"$COMMAND\""
+         fetch_usage
+         ;;
+   esac
+
+
+   while [ $# -ne 0 ]
    do
       case "$1" in
          -h|-help|--help)
             fetch_usage
          ;;
 
+         -nr|--no-recursion)
+            DONT_RECURSE="YES"
+         ;;
+
          -f)
             MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
+         ;;
+
+         -u|--update-symlinks)
+            MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
          ;;
 
 
@@ -1315,26 +1336,7 @@ fetch_main()
       esac
 
       shift
-      continue
    done
-
-   COMMAND=${1:-"install"}
-   [ $# -eq 0 ] || shift
-
-   case "$COMMAND" in
-      install)
-         ;;
-      nonrecursive)
-        COMMAND=install
-        DONT_RECURSE="YES"
-         ;;
-      update)
-         ;;
-      *)
-         log_error "unknown command \"$COMMAND\""
-         fetch_usage
-         ;;
-   esac
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
