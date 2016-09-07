@@ -145,7 +145,7 @@ logging_initialize()
 
 
    C_ERROR="${C_RED}${C_BOLD}"
-   C_WARNING="${C_MAGENTA}${C_BOLD}"
+   C_WARNING="${C_RED}${C_BOLD}"
    C_INFO="${C_CYAN}${C_BOLD}"
    C_VERBOSE="${C_GREEN}${C_BOLD}"
    C_FLUFF="${C_GREEN}${C_BOLD}"

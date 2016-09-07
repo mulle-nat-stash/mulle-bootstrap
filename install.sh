@@ -99,6 +99,43 @@ realpath()
 }
 
 
+get_windows_path()
+{
+   local directory
+
+   directory="$1"
+   if [ -z "${directory}" ]
+   then
+      return 1
+   fi
+
+   ( cd "$directory" ; pwd -PW )
+   return 0
+}
+
+
+get_sh_windows_path()
+{
+   local directory
+
+   directory="`which sh`"
+   directory="`dirname -- "${directory}"`" 
+   directory="`get_windows_path "${directory}"`"
+
+   if [ -z "${directory}" ]
+   then
+      fail "could not find sh.exe"
+   fi
+   echo "${directory}/sh.exe"
+}
+
+
+sed_mangle_escape_slashes()
+{
+   sed -e 's|/|\\\\|g'  
+}
+
+
 prefix=${1:-"/usr/local"}
 [ $# -eq 0 ] || shift
 prefix="`realpath "${prefix}"`"
@@ -135,9 +172,20 @@ done
 
 case `uname` in
    MINGW*)
-      for i in mulle-mingw-*
+      for i in mulle-mingw-*sh
       do
          sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
+         chmod "${mode}" "${bin}/${i}" || exit 1
+         printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
+      done
+
+      SH_PATH="`get_sh_windows_path | sed_mangle_escape_slashes`"
+      INSTALL_PATH="${bin}" # `get_windows_path "${bin}" | sed_mangle_escape_slashes`"
+
+      for i in mulle-mingw-*bat
+      do
+
+         sed -e "s|SH_PATH|${SH_PATH}|g" -e "s|INSTALL_PATH|${INSTALL_PATH}|g" < "${i}" > "${bin}/$i" || exit 1
          chmod "${mode}" "${bin}/${i}" || exit 1
          printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
       done

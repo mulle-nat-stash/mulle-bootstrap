@@ -130,7 +130,7 @@ _read_setting()
       local name
 
       name="`basename -- "${file}" ".${UNAME}"`"
-      if [ "${name}" = "repositories" -o "${name}" = "repositories.tmp" - "${name}" = "embedded_repositories" ]
+      if [ "${name}" = "repositories" -o "${name}" = "repositories.tmp" -o "${name}" = "embedded_repositories" ]
       then
          log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
       else

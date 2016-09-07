@@ -151,7 +151,7 @@ dispense_binaries()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${depend_subdir}${subpath}"
 
-         log_verbose "Copying \"${src}\" to \"${dst}\""
+         log_fluff "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
             exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}"
@@ -274,7 +274,7 @@ collect_and_dispense_product()
       then
          dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
 
-         log_verbose "Copying everything from \"${src}\" to \"${dst}\""
+         log_fluff "Copying everything from \"${src}\" to \"${dst}\""
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -print0 | \
                exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
@@ -2220,7 +2220,7 @@ build_main()
       continue
    done
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
 
    #
    # START
@@ -2231,6 +2231,7 @@ build_main()
       return 0
    fi
 
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
    build_complete_environment
 
    [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
