@@ -284,7 +284,7 @@ install_main()
    DEFAULT_PREFIX="/usr/local"
    DEFAULT_FRAMEWORK_PREFIX="/Library"
 
-   CONFIGURATIONS="`read_build_root_setting "configurations" "Release"`"
+   CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
    N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
    while :

@@ -41,7 +41,11 @@ build_complete_environment()
    fi
 
    CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
-   CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
+   if [ -z "${CONFIGURATIONS}" ]
+   then
+      CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
+      CONFIGURATIONS="`read_build_root_setting "configurations" "${CONFIGURATIONS}"`"
+   fi
    N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
    #

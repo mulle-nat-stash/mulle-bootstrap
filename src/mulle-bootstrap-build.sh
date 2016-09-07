@@ -53,7 +53,7 @@ usage:
    -f         :  override dirty harry check
    -k         :  don't clean before building $defk
    -K         :  always clean before building $defkk
-   -c <name>  :  configurations to build ($defc)
+   -c <name>  :  configurations to build ($defc), separate with comma
 EOF
 
    case "${UNAME}" in
@@ -73,6 +73,7 @@ EOF
    Currently available names are:
 EOF
    (cd "${CLONES_SUBDIR}" ; ls -1 ) 2> /dev/null
+   exit 1
 }
 
 
@@ -1826,7 +1827,7 @@ configure"`"
    local configurations
 
    # settings can override the commandline default
-   configurations="`read_build_setting "${name}" "configurations" "${CONFIGURATIONS}"`"
+   configurations="`read_repo_setting "${name}" "configurations" "${CONFIGURATIONS}"`"
 
    for sdk in ${sdks}
    do
@@ -2171,6 +2172,8 @@ build_main()
 
    log_fluff "::: build begin :::"
 
+   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
+
    while [ $# -ne 0 ]
    do
       case "$1" in
@@ -2201,7 +2204,7 @@ build_main()
 
          -c)
             shift
-            [ $# -ne 0 ] || fail "core count missing"
+            [ $# -ne 0 ] || fail "configuration names missing"
 
             CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
             ;;
@@ -2220,7 +2223,6 @@ build_main()
       continue
    done
 
-   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
 
    #
    # START
@@ -2231,7 +2233,6 @@ build_main()
       return 0
    fi
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
    build_complete_environment
 
    [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
