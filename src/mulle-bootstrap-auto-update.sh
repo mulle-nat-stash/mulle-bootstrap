@@ -102,30 +102,24 @@ bootstrap_auto_update_merge()
 }
 
 
-bootstrap_auto_copy_files()
+bootstrap_auto_copy_public_settings()
 {
+   local name
+   local directory
+
+   name="$1"
+   directory="$2"
+
    local srcdir
    local dstdir
 
-   srcdir="$1"
-   dstdir="$2"
+   srcdir="${directory}/.bootstrap/public_settings"
+   dstdir="${BOOTSTRAP_SUBDIR}.auto/${name}"
 
-   local path
-   local filename
-
-    # copy settings
-   for path in `find "${srcdir}" -mindepth 1 -maxdepth 1 -type f -print 2> /dev/null`
-   do
-      filename="`basename -- "${path}"`"
-
-      if [ -f "${dstdir}/${filename}" ]
-      then
-         log_verbose "\"${filename}\" is already present, so not inherited"
-         continue
-      fi
-
-      exekutor cp -a "${path}" "${dstdir}/"
-   done
+   if dir_has_files "${srcdir}"
+   then
+      exekutor cp -Ra "${srcdir}/" "${dstdir}/"
+   fi
 }
 
 
@@ -170,6 +164,7 @@ bootstrap_auto_update_repo_settings()
 }
 
 
+
 bootstrap_auto_update()
 {
    local name
@@ -200,6 +195,9 @@ bootstrap_auto_update()
    log_fluff "Acquiring \"${name}\" merge settings"
    bootstrap_auto_update_merge "${directory}"
 
+   log_fluff "Acquiring \"${name}\" public settings"
+   bootstrap_auto_copy_public_settings "${name}" "${directory}"
+
    log_fluff "Acquiring \"${name}\" repo settings"
    bootstrap_auto_update_repo_settings "${directory}"
 
@@ -219,7 +217,7 @@ bootstrap_auto_create()
 
    if dir_has_files "${BOOTSTRAP_SUBDIR}.local"
    then
-      exekutor cp -Ra "${BOOTSTRAP_SUBDIR}.local/"* "${BOOTSTRAP_SUBDIR}.auto/"
+      exekutor cp -Ra "${BOOTSTRAP_SUBDIR}.local/" "${BOOTSTRAP_SUBDIR}.auto/"
    fi
 
    #
@@ -229,6 +227,7 @@ bootstrap_auto_create()
    #
    local old
    local file
+   local name
 
    old="${IFS}"
    IFS="
@@ -236,9 +235,14 @@ bootstrap_auto_create()
    for file in `ls -1 "${BOOTSTRAP_SUBDIR}"`
    do
       name="`basename -- "${file}"`"
+
       case "$name" in
          config|settings)
             continue
+         ;;
+
+         public_settings)
+            exekutor cp -Ran "${BOOTSTRAP_SUBDIR}/public_settings/" "${BOOTSTRAP_SUBDIR}.auto/settings"
          ;;
 
          *)
