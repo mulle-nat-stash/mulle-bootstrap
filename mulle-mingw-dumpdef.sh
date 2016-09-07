@@ -251,7 +251,7 @@ ${SEARCH_PATH}"
          ;;
 
          --cpp-strings)
-            cpp_stringprefix='\?\?_C|'
+            cpp_stringprefix='^\?\?_C|'
          ;;
 
          --suppress_header)
@@ -267,7 +267,7 @@ ${SEARCH_PATH}"
             shift
             if [ -z "${prefixes}" ]
             then
-               prefixes="^${cpp_stringprefix}^_*$1"
+               prefixes="${cpp_stringprefix}^_*$1"
             else
                prefixes="${prefixes}|^_*$1"
             fi
@@ -293,6 +293,7 @@ ${SEARCH_PATH}"
          ;;
 
          -*)
+            echo "unknown option $1" >&2
             usage
          ;;
 

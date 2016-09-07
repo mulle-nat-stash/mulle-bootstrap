@@ -81,17 +81,19 @@ bootstrap_auto_update_merge()
          continue
       fi
 
-      log_verbose "Inheriting \"${settingname}\" from \"${srcfile}\""
-
       dstfile="${BOOTSTRAP_SUBDIR}.auto/${settingname}"
       if [ -f "${dstfile}" ]
       then
          tmpfile="${BOOTSTRAP_SUBDIR}.auto/${settingname}.tmp"
 
+         log_fluff "Merging \"${settingname}\" from \"${srcfile}\""
+
          exekutor mv "${dstfile}" "${tmpfile}" || exit 1
          exekutor merge_settings_in_front "${srcfile}" "${tmpfile}" > "${dstfile}"  || exit 1
          exekutor rm "${tmpfile}" || exit 1
       else
+         log_fluff "Copying \"${settingname}\" from \"${srcfile}\""
+
          exekutor cp "${srcfile}" "${dstfile}" || exit 1
       fi
    done
