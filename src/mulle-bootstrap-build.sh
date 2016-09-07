@@ -73,6 +73,7 @@ EOF
    Currently available names are:
 EOF
    (cd "${CLONES_SUBDIR}" ; ls -1 ) 2> /dev/null
+
    exit 1
 }
 

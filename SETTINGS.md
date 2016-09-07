@@ -62,8 +62,9 @@ These settings are usually repository specific, but can be set globally also.
 1. `.bootstrap.local/${reponame}`
 2. `.bootstrap/${reponame}`          (Inheritable)
 
-4. `.bootstrap.local/settings`
-5. `.bootstrap/settings`
+3. `.bootstrap.local/settings`
+4. `.bootstrap/settings`
+5. `.bootstrap/public_settings`       (Inheritable)
 
 
 #### Settings
@@ -129,10 +130,11 @@ Scripts are run at various times during the fetch, build and tag process.
 Root scripts must be aware, that they will be called for every repository.
 
 1. `.bootstrap.local/${reponame}/bin`
-2. `.bootstrap/${reponame}/bin`   (Inheritable)
+2. `.bootstrap/${reponame}/bin`     (Inheritable)
 
-1. `.bootstrap.local/settings/bin`
-2. `.bootstrap/settings/bin`
+3. `.bootstrap.local/settings/bin`
+4. `.bootstrap/settings/bin`
+5. `.bootstrap/public_settings/bin` (Inheritable)
 
 `pre-install.sh`
 `post-install.sh`
