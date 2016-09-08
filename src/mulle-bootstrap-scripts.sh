@@ -31,6 +31,46 @@
 MULLE_BOOTSTRAP_SCRIPTS_SH="included"
 
 
+run_script()
+{
+   local script
+
+   script="$1"
+   shift
+
+   [ ! -z "$script" ] || internal_fail "script is empty"
+
+   if [ -x "${script}" ]
+   then
+      log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
+      if  [ "${MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS}" = "YES" ]
+      then
+         echo "ARGV=" "$@" >&2
+         echo "DIRECTORY=$PWD/$3" >&2
+         echo "ENVIRONMENT=" >&2
+         echo "{" >&2
+         env | sed 's/^\(.\)/   \1/' >&2
+         echo "}" >&2
+      fi
+      exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
+   else
+      if [ ! -e "${script}" ]
+      then
+         fail "script \"${script}\" not found ($PWD)"
+      else
+         fail "script \"${script}\" not executable"
+      fi
+   fi
+}
+
+
+run_log_script()
+{
+   echo "$@"
+   run_script "$@"
+}
+
+
 find_fetch_setting_file()
 {
    local value
@@ -49,7 +89,7 @@ find_repo_setting_file()
    local value
    local flag
 
-   
+
    value="`READ_SETTING_RETURNS_PATH="YES" read_repo_setting "$@"`"
    flag=$?
 
@@ -76,7 +116,7 @@ find_build_setting_file()
    local value
    local flag
 
-   
+
    value="`READ_SETTING_RETURNS_PATH="YES" read_build_setting "$@"`"
    flag=$?
 
@@ -196,8 +236,8 @@ fetch__run_script()
 {
    [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
    build_complete_environment
-   
-   run_script "$@"   
+
+   run_script "$@"
 }
 
 
@@ -287,6 +327,7 @@ fetch__run_repo_settings_script()
       run_fake_environment_script "${srcdir}" "${script}" "$@" || exit 1
    fi
 }
+
 
 scripts_initialize()
 {

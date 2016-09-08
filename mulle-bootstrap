@@ -142,7 +142,7 @@ bootstrap_main()
          ;;
 
          -n|--dry-run)
-            MULLE_BOOTSTRAP_DRY_RUN="YES"
+            MULLE_EXECUTOR_DRY_RUN="YES"
          ;;
 
          -ig|--ignore-graveyard)
@@ -150,7 +150,7 @@ bootstrap_main()
          ;;
 
          -te|--trace-execution)
-            MULLE_BOOTSTRAP_TRACE_EXECUTION="YES"
+            MULLE_EXECUTOR_TRACE="YES"
          ;;
 
          -tm|--trace-settings-merge)
@@ -233,7 +233,7 @@ bootstrap_main()
       FLUFF)
          MULLE_BOOTSTRAP_FLUFF="YES"
          MULLE_BOOTSTRAP_VERBOSE="YES"
-         MULLE_BOOTSTRAP_TRACE_EXECUTION="YES"
+         MULLE_EXECUTOR_TRACE="YES"
          if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
          then
             MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
@@ -242,7 +242,7 @@ bootstrap_main()
 
       TRACE)
          MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
-         MULLE_BOOTSTRAP_TRACE_EXECUTION="YES"
+         MULLE_EXECUTOR_TRACE="YES"
          MULLE_BOOTSTRAP_FLUFF="YES"
          MULLE_BOOTSTRAP_VERBOSE="YES"
          if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
@@ -254,7 +254,7 @@ bootstrap_main()
 
       1848)
          MULLE_BOOTSTRAP_TRACE_SETTINGS="NO"
-         MULLE_BOOTSTRAP_TRACE_EXECUTION="NO"
+         MULLE_EXECUTOR_TRACE="NO"
          MULLE_BOOTSTRAP_FLUFF="NO"
          MULLE_BOOTSTRAP_VERBOSE="NO"
          if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
@@ -266,7 +266,7 @@ bootstrap_main()
          ;;
    esac
 
-   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" ]
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" ]
    then
       log_trace "Dry run is active."
    fi

@@ -32,8 +32,12 @@
 [ ! -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && echo "double inclusion of functions" >&2 && exit 1
 MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
 
+MULLE_BOOTSTRAP_FUNCTIONS_VERSION="2.0"
 
-
+#
+# WARNING! THIS FILE IS A LIBRARY USE BY OTHER PROJECTS
+#          DO NOT CASUALLY RENAME, REORGANIZE STUFF
+#
 # ####################################################################
 #                          Execution
 # ####################################################################

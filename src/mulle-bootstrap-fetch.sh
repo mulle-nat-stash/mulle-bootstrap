@@ -316,7 +316,7 @@ link_command()
    local dstdir
    dstdir="`dirname -- "${dst}"`"
 
-   if [ ! -e "${dstdir}/${src}" -a "${MULLE_BOOTSTRAP_DRY_RUN}" != "YES" ]
+   if [ ! -e "${dstdir}/${src}" -a "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       fail "${C_RESET}${C_BOLD}${dstdir}/${src}${C_ERROR} does not exist ($PWD)"
    fi

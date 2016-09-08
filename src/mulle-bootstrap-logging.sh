@@ -32,6 +32,13 @@
 MULLE_BOOTSTRAP_LOGGING_SH="included"
 
 
+MULLE_BOOTSTRAP_LOGGING_VERSION="2.0"
+
+#
+# WARNING! THIS FILE IS A LIBRARY USE BY OTHER PROJECTS
+#          DO NOT CASUALLY RENAME, REORGANIZE STUFF
+#
+
 log_error()
 {
    printf "${C_ERROR}%b${C_RESET}\n" "$*" >&2
@@ -117,7 +124,7 @@ logging_initialize()
    #
    # need this for scripts also
    #
-   if [ -z "${UNAME}" ] 
+   if [ -z "${UNAME}" ]
    then
       UNAME="`uname | cut -d_ -f1 | sed 's/64$//' | tr '[A-Z]' '[a-z]'`"
    fi

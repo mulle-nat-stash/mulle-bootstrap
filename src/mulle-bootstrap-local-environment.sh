@@ -32,119 +32,33 @@
 MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH="included"
 
 
-# ####################################################################
-#                       repository file
-# ####################################################################
-#
 
-# deal with stuff like
-# foo
-# https://www./foo.git
-# host:foo
-#
-
-canonical_clone_name()
+# returns 0 if said yes
+user_say_yes()
 {
-   local  url
+   local  x
 
-   url="$1"
+   x="${MULLE_BOOTSTRAP_ANSWER:-ASK}"
+   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
+   do
+      printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
+      read x
+      x=`echo "${x}" | tr '[a-z]' '[A-Z]'`
+   done
 
-
-   # cut off scheme part
-
-   case "$url" in
-      *:*)
-         url="`echo "$@" | sed 's/^\(.*\):\(.*\)/\2/'`"
-         ;;
-   esac
-
-   extension_less_basename "$url"
-}
-
-
-count_clone_components()
-{
-  echo "$@" | tr ';' '\012' | wc -l | awk '{ print $1 }'
-}
-
-
-url_from_clone()
-{
-   echo "$@" | cut '-d;' -f 1
-}
-
-
-_name_part_from_clone()
-{
-   echo "$@" | cut '-d;' -f 2
-}
-
-
-_branch_part_from_clone()
-{
-   echo "$@" | cut '-d;' -f 3
-}
-
-
-_scm_part_from_clone()
-{
-   echo "$@" | cut '-d;' -f 4
-}
-
-
-canonical_name_from_clone()
-{
-   local url
-   local name
-   local branch
-
-   url="`url_from_clone "$@"`"
-   name="`_name_part_from_clone "$@"`"
-
-   if [ ! -z "${name}" -a "${name}" != "${url}" ]
+   if [ "${x}" = "ALL" ]
    then
-      canonical_clone_name "${name}"
-      return
+      MULLE_BOOTSTRAP_ANSWER="YES"
+      x="YES"
+   fi
+   if [ "${x}" = "NONE" ]
+   then
+      MULLE_BOOTSTRAP_ANSWER="NO"
+      x="NO"
    fi
 
-   canonical_clone_name "${url}"
-}
-
-
-branch_from_clone()
-{
-   local count
-
-   count="`count_clone_components "$@"`"
-   if [ "$count" -ge 3 ]
-   then
-      _branch_part_from_clone "$@"
-   fi
-}
-
-
-scm_from_clone()
-{
-   local count
-
-   count="`count_clone_components "$@"`"
-   if [ "$count" -ge 4 ]
-   then
-      _scm_part_from_clone "$@"
-   fi
-}
-
-
-ensure_clones_directory()
-{
-   if [ ! -d "${CLONESFETCH_SUBDIR}" ]
-   then
-      if [ "${COMMAND}" = "update" ]
-      then
-         fail "install first before upgrading"
-      fi
-      mkdir_if_missing "${CLONESFETCH_SUBDIR}"
-   fi
+   [ "$x" = "Y" -o "$x" = "YES" ]
+   return $?
 }
 
 
@@ -166,8 +80,6 @@ get_core_count()
 
 local_environment_initialize()
 {
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
-
    #
    # read local environment
    # source this file
