@@ -774,8 +774,15 @@ which_binary()
    toolname="$1"
    case "${UNAME}" in
       mingw)
-         toolname="${toolname}.exe"
-         ;;
+         case "${toolname}" in
+            *.exe)
+            ;;
+
+            *)
+               toolname="${toolname}.exe"
+            ;;
+         esac
+      ;;
    esac
 
    which "${toolname}" 2> /dev/null

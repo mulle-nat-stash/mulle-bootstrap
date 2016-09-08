@@ -939,7 +939,7 @@ update_repository()
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
-   exekutor [ -x "${dstdir}" ] || fail "\"${name}\" is not accesible anymore in \"repositories\""
+   exekutor [ -x "${dstdir}" ] || fail "\"${name}\" is not a known repository, check \".boostrap.auto/repositories\""
 
    log_fetch_action "${url}" "${dstdir}"
 

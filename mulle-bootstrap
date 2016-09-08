@@ -113,6 +113,23 @@ bootstrap_main()
    PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/dependencies/bin:`pwd -P`/addictions/bin:$PATH"
    export PATH
 
+   #
+   # shell export commands with minimal
+   # trap setup
+   #
+   case "${1}" in
+      library-path)
+         echo "$PATH" | tr ':' '\012' | head -1
+         exit 0
+      ;;
+
+      version)
+         echo "${MULLE_BOOTSTRAP_VERSION}"
+         exit 0
+      ;;
+   esac
+
+
    MULLE_BOOTSTRAP_PID="$$"
    export MULLE_BOOTSTRAP_PID
 
@@ -415,6 +432,7 @@ bootstrap_main()
 
       library-path)
          echo "$PATH" | tr ':' '\012' | head -1
+         exit 0
       ;;
 
       version)

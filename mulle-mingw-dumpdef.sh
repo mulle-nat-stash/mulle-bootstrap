@@ -231,6 +231,7 @@ main()
    local cpp_stringprefix
    local name
 
+   name=
    prefixes=
    outfile=
    SEARCH_PATH="."
@@ -307,11 +308,14 @@ ${SEARCH_PATH}"
 
    local libname
 
-   libname="`basename "${name:-$1}"`"
-   libname="`echo "${libname}" | sed 's/^\([^.]*\)*\\..*$/\1/'`"
+   if [ ! -z "${name}" ]
+   then
+      libname="`basename "${name:-$1}"`"
+      libname="`echo "${libname}" | sed 's/^\([^.]*\)*\\..*$/\1/'`"
 
-   [ -z "${libname}" ] && echo "could not figure out library name from \"${name:-$1}\"" >&2 && exit 1
-
+      [ -z "${libname}" ] && echo "could not figure out library name from \"${name:-$1}\"" >&2 && exit 1
+   fi
+   
    if [ ! -z "${outfile}" ]
    then
       trap "rm ${outfile}" INT TERM
