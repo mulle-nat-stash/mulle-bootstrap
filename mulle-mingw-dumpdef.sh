@@ -89,7 +89,7 @@ find_library()
    then
       echo "${filename}"
       return
-   fi 
+   fi
 
    case "${filename}" in
       ?:/*)
@@ -111,7 +111,7 @@ find_library()
 
 dump_function_exports()
 {
-   local filename 
+   local filename
 
    filename="$1"
    dumpbin.exe -symbols "${filename}" | egrep '^[^|]* \(\) [^|]*\|' | fgrep ' External ' | fgrep -v ' UNDEF ' | sed 's/^[^|]*| *\([^ (]*\).*$/\1/' | sed 's/^_//' | sort
@@ -120,7 +120,7 @@ dump_function_exports()
 
 dump_data_exports()
 {
-   local filename 
+   local filename
 
    filename="$1"
    dumpbin.exe -symbols "${filename}" | egrep -v '^[^|]* \(\) [^|]*\|' | fgrep ' External ' | fgrep -v ' UNDEF ' | sed "s/^[^|]*| *\\([^ (]*\\).*\$/\\1   ${DATA}/" | sed 's/^_//' | sort
@@ -130,7 +130,7 @@ dump_data_exports()
 
 dump_exports()
 {
-   local filename 
+   local filename
 
    filename="$1"
 
@@ -151,7 +151,7 @@ EOF
 dump_library()
 {
    local prefixes
-   local filename 
+   local filename
 
    prefixes="$1"
    shift
@@ -185,7 +185,7 @@ dump_library()
       then
          echo "Dumping all `basename -- ${filename}` symbols" >&2
       fi
-      dump_exports "${filename}"  
+      dump_exports "${filename}"
    fi
 }
 
@@ -207,11 +207,12 @@ dump_libraries()
    fi
 
    if [ -z "${SUPPRESS_HEADER}" ]
-   then 
-      cat <<EOF
-LIBRARY ${name}
-EXPORTS
-EOF
+   then
+      if [ ! -z "${name}" ]
+      then
+         echo "LIBRARY ${name}"
+      fi
+      echo "EXPORTS"
    fi
 
    while [ $# -ne 0 ]
@@ -257,7 +258,7 @@ ${SEARCH_PATH}"
          --suppress_header)
             SUPPRESS_HEADER=YES
          ;;
-            
+
          -n|--name)
             shift
             name="$1"
@@ -314,7 +315,7 @@ ${SEARCH_PATH}"
 
    if [ ! -z "${outfile}" ]
    then
-      trap "rm ${outfile}" INT TERM 
+      trap "rm ${outfile}" INT TERM
 
       dump_libraries "${libname}" "${prefixes}" "$@"  | unix2dos > "${outfile}"
       if [ ! -z "${VERBOSE}" ]
