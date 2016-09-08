@@ -320,11 +320,17 @@ canonicalize_path()
    fi
 }
 
-
+#
+# canonicalizes existing paths
+# fails for files / directories that do not exist
+#
 realpath()
 {
+   [ -e "$1" ] && fail "only use realpath on existing files"
+
    canonicalize_path "`resolve_symlinks "$1"`"
 }
+
 
 # ----
 # stolen from: https://stackoverflow.com/questions/2564634/convert-absolute-path-into-relative-path-given-a-current-directory-using-bash
@@ -408,6 +414,25 @@ remove_absolute_path_prefix_up_to()
 }
 
 
+absolutepath()
+{
+   local path
+
+   path="$1"
+   case "${path}" in
+      /*)
+         :
+      ;;
+
+      *)
+         path="`pwd -P`/${path}"
+      ;;
+   esac
+
+   simplify_path "${path}"
+}
+
+
 escaped_spaces()
 {
    echo "$1" | sed 's/ /\\ /g'
@@ -437,6 +462,10 @@ combined_escaped_search_path()
 }
 
 
+#
+# simplify path works on paths that may or may not exist
+# it makes prettier relative or absolute paths
+#
 simplify_path()
 {
    local file
