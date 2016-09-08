@@ -32,20 +32,21 @@
 [ ! -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && echo "double inclusion of functions" >&2 && exit 1
 MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
 
-#
+# ####################################################################
+#                          Execution
+# ####################################################################
 # Execution
 #
 eval_exekutor()
 {
-   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE_EXECUTION}" = "YES" ]
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
    then
       echo "==> " "$@" >&2
    fi
 
-   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       eval "$@"
    fi
@@ -61,12 +62,12 @@ logging_eval_exekutor()
 
 exekutor()
 {
-   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE_EXECUTION}" = "YES" ]
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
    then
       echo "==>" "$@" >&2
    fi
 
-   if [ "${MULLE_BOOTSTRAP_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       "$@"
    fi
@@ -80,64 +81,9 @@ logging_exekutor()
 }
 
 
-run_script()
-{
-   local script
-
-   script="$1"
-   shift
-
-   [ ! -z "$script" ] || internal_fail "script is empty"
-
-   if [ -x "${script}" ]
-   then
-      log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
-      if  [ "${MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS}" = "YES" ]
-      then
-         echo "ARGV=" "$@" >&2
-         echo "DIRECTORY=$PWD/$3" >&2
-         echo "ENVIRONMENT=" >&2
-         echo "{" >&2
-         env | sed 's/^\(.\)/   \1/' >&2
-         echo "}" >&2
-      fi
-      exekutor "${script}" "$@" || fail "script \"${script}\" did not run successfully"
-   else
-      if [ ! -e "${script}" ]
-      then
-         fail "script \"${script}\" not found ($PWD)"
-      else
-         fail "script \"${script}\" not executable"
-      fi
-   fi
-}
-
-
-run_log_script()
-{
-   echo "$@"
-   run_script "$@"
-}
-
-
-
-which_binary()
-{
-   local toolname
-
-   toolname="$1"
-   case "${UNAME}" in
-      mingw)
-         toolname="${toolname}.exe"
-         ;;
-   esac
-
-   which "${toolname}" 2> /dev/null
-}
-
-
-#
-# String handling
+# ####################################################################
+#                            Strings
+# ####################################################################
 #
 is_yes()
 {
@@ -240,9 +186,41 @@ unescape_linefeeds()
 }
 
 
-
 #
-# Path handling
+# expands ${LOGNAME} and ${LOGNAME:-foo}
+#
+expand_environment_variables()
+{
+    local string
+
+    string="$1"
+
+    local key
+    local value
+    local prefix
+    local suffix
+    local next
+
+    key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
+    if [ ! -z "${key}" ]
+    then
+       prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
+       suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
+       value="`eval echo \$\{${key}\}`"
+       next="${prefix}${value}${suffix}"
+       if [ "${next}" != "${string}" ]
+       then
+          expand_environment_variables "${prefix}${value}${suffix}"
+          return
+       fi
+    fi
+    echo "$1"
+}
+
+
+# ####################################################################
+#                             Path handling
+# ####################################################################
 # 0 = ""
 # 1 = /
 # 2 = /tmp
@@ -571,8 +549,9 @@ assert_sane_path()
 }
 
 
-#
-# File and Directory handling
+# ####################################################################
+#                        Files and Directories
+# ####################################################################
 #
 mkdir_if_missing()
 {
@@ -755,6 +734,21 @@ find_xcodeproj()
 }
 
 
+which_binary()
+{
+   local toolname
+
+   toolname="$1"
+   case "${UNAME}" in
+      mingw)
+         toolname="${toolname}.exe"
+         ;;
+   esac
+
+   which "${toolname}" 2> /dev/null
+}
+
+
 has_usr_local_include()
 {
    local name
@@ -790,178 +784,6 @@ write_protect_directory()
 }
 
 
-# returns 0 if said yes
-user_say_yes()
-{
-   local  x
-
-   x="${MULLE_BOOTSTRAP_ANSWER:-ASK}"
-   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
-   do
-      printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
-      read x
-      x=`echo "${x}" | tr '[a-z]' '[A-Z]'`
-   done
-
-   if [ "${x}" = "ALL" ]
-   then
-      MULLE_BOOTSTRAP_ANSWER="YES"
-      x="YES"
-   fi
-   if [ "${x}" = "NONE" ]
-   then
-      MULLE_BOOTSTRAP_ANSWER="NO"
-      x="NO"
-   fi
-
-   [ "$x" = "Y" -o "$x" = "YES" ]
-   return $?
-}
-
-
-#
-# expands ${LOGNAME} and ${LOGNAME:-foo}
-#
-expand_environment_variables()
-{
-    local string
-
-    string="$1"
-
-    local key
-    local value
-    local prefix
-    local suffix
-    local next
-
-    key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
-    if [ ! -z "${key}" ]
-    then
-       prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
-       suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
-       value="`eval echo \$\{${key}\}`"
-       next="${prefix}${value}${suffix}"
-       if [ "${next}" != "${string}" ]
-       then
-          expand_environment_variables "${prefix}${value}${suffix}"
-          return
-       fi
-    fi
-    echo "$1"
-}
-
-
-# deal with stuff like
-# foo
-# https://www./foo.git
-# host:foo
-#
-
-canonical_clone_name()
-{
-   local  url
-
-   url="$1"
-
-
-   # cut off scheme part
-
-   case "$url" in
-      *:*)
-         url="`echo "$@" | sed 's/^\(.*\):\(.*\)/\2/'`"
-         ;;
-   esac
-
-   extension_less_basename "$url"
-}
-
-
-count_clone_components()
-{
-  echo "$@" | tr ';' '\012' | wc -l | awk '{ print $1 }'
-}
-
-
-url_from_clone()
-{
-   echo "$@" | cut '-d;' -f 1
-}
-
-
-_name_part_from_clone()
-{
-   echo "$@" | cut '-d;' -f 2
-}
-
-
-_branch_part_from_clone()
-{
-   echo "$@" | cut '-d;' -f 3
-}
-
-
-_scm_part_from_clone()
-{
-   echo "$@" | cut '-d;' -f 4
-}
-
-
-canonical_name_from_clone()
-{
-   local url
-   local name
-   local branch
-
-   url="`url_from_clone "$@"`"
-   name="`_name_part_from_clone "$@"`"
-
-   if [ ! -z "${name}" -a "${name}" != "${url}" ]
-   then
-      canonical_clone_name "${name}"
-      return
-   fi
-
-   canonical_clone_name "${url}"
-}
-
-
-branch_from_clone()
-{
-   local count
-
-   count="`count_clone_components "$@"`"
-   if [ "$count" -ge 3 ]
-   then
-      _branch_part_from_clone "$@"
-   fi
-}
-
-
-scm_from_clone()
-{
-   local count
-
-   count="`count_clone_components "$@"`"
-   if [ "$count" -ge 4 ]
-   then
-      _scm_part_from_clone "$@"
-   fi
-}
-
-
-ensure_clones_directory()
-{
-   if [ ! -d "${CLONESFETCH_SUBDIR}" ]
-   then
-      if [ "${COMMAND}" = "update" ]
-      then
-         fail "install first before upgrading"
-      fi
-      mkdir_if_missing "${CLONESFETCH_SUBDIR}"
-   fi
-}
-
-
 append_dir_to_gitignore_if_needed()
 {
    grep -s -x "$1/" .gitignore > /dev/null 2>&1
@@ -973,11 +795,18 @@ append_dir_to_gitignore_if_needed()
 }
 
 
+# ####################################################################
+#                               Init
+# ####################################################################
+
+
+
 functions_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
-    log_fluff ":functions_initialize:"
+   log_fluff ":functions_initialize:"
 }
+
 
 functions_initialize

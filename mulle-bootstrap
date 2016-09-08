@@ -413,6 +413,10 @@ bootstrap_main()
          tag_main "$@" || exit 1
       ;;
 
+      library-path)
+         echo "$PATH" | tr ':' '\012' | head -1
+      ;;
+
       version)
          echo "${MULLE_BOOTSTRAP_VERSION}" || exit 1
       ;;
