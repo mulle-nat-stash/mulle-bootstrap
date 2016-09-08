@@ -62,36 +62,40 @@ warn_scripts()
       fi
    fi
 
-   if [ ! -z "$2" ]
-   then
-       exekutor [ -e "$2" ] || fail "Expected directory \"$2\" is missing.
+   case "${UNAME}" in
+      darwin)
+         if [ ! -z "$2" ]
+         then
+             exekutor [ -e "$2" ] || fail "Expected directory \"$2\" is missing.
 (hint: use fetch instead of update to track renames)"
 
-      if dir_has_files "$2"
-      then
-         phases="`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}' \; -print)`"
-         if [ ! -z "${phases}" ]
-         then
-            log_warning "This repository contains xcode projects with shellscript phases"
-
-            ack=`which_binary ack`
-            if [ -z "${ack}" ]
+            if dir_has_files "$2"
             then
-               log_warning "$phases" >&2
+               phases="`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}' \; -print)`"
+               if [ ! -z "${phases}" ]
+               then
+                  log_warning "This repository contains xcode projects with shellscript phases"
 
-               log_info "To view them inline install \"ack\""
-               case "${UNAME}" in
-                  darwin|linux)
-                     log_info "   brew install ack" >&2
-                     ;;
-               esac
-            else
-               ack -A1 "shellPath|shellScript" `echo "${phases}" | tr '\n' ' '` >&2
+                  ack=`which_binary ack`
+                  if [ -z "${ack}" ]
+                  then
+                     log_warning "$phases" >&2
+
+                     log_info "To view them inline install \"ack\""
+                     case "${UNAME}" in
+                        darwin|linux)
+                           log_info "   brew install ack" >&2
+                           ;;
+                     esac
+                  else
+                     ack -A1 "shellPath|shellScript" `echo "${phases}" | tr '\n' ' '` >&2
+                  fi
+                  echo "" >&2
+               fi
             fi
-            echo "" >&2
          fi
-      fi
-   fi
+      ;;
+   esac
 
    if  [ "${DONT_ASK_AFTER_WARNING}" != "YES" ]
    then

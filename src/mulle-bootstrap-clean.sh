@@ -75,7 +75,7 @@ embedded_repositories()
 
    [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
 
-   refresh_main
+   refresh_main refresh_if_bare
 
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ "${clones}" != "" ]
