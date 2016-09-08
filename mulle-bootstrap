@@ -333,10 +333,10 @@ bootstrap_main()
 
          if [ "${DONT_RECURSE}" = "" ]
          then
-            fetch_main install "$@"      || exit 1
-            refresh_main                 || exit 1
+            fetch_main "$@"     || exit 1
+            refresh_main                  || exit 1
         else
-            fetch_main install --non-recursive "$@" || exit 1
+            fetch_main --non-recursive "$@" || exit 1
             refresh_main nonrecursive    || exit 1
          fi
 
@@ -384,14 +384,14 @@ bootstrap_main()
       fetch)
          . mulle-bootstrap-fetch.sh
 
-         DONT_ASK_AFTER_WARNING=YES fetch_main install "$@" || exit 1
+         DONT_ASK_AFTER_WARNING=YES fetch_main "$@" || exit 1
          refresh_main || exit 1
       ;;
 
       update)
          . mulle-bootstrap-fetch.sh
 
-         fetch_main update "$@" || exit 1
+         update_main "$@" || exit 1
          refresh_main || exit 1
       ;;
 

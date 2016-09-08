@@ -37,7 +37,7 @@ xcode_usage()
 {
    cat <<EOF >&2
 usage:
-   mulle-bootstrap xcode <add|remove> [xcodeproj]
+   mulle-bootstrap xcode [<add|remove> [xcodeproj]
 
    add      : add settings to Xcode project (default)
    remove   : remove settings from Xcode project
@@ -386,22 +386,45 @@ xcode_main()
       fail "for now xcode only works on OS X"
    fi
 
+   while [ $# -ne 0 ]
+   do
+      case "$1" in
+         -h|-help|--help)
+            xcode_usage
+         ;;
+
+         -*)
+            log_error "unknown option $1"
+            xcode_usage
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+
    COMMAND="${1:-add}"
    [ $# -eq 0 ] || shift
+
+   case "$COMMAND" in
+      add|remove)
+         :
+      ;;
+
+      *)
+         log_error "Unknown command \"${COMMAND}\""
+         xcode_usage
+      ;;
+   esac
+
 
    PROJECT="$1"
    [ $# -eq 0 ] || shift
 
-   case "$COMMAND" in
-      add)
-      ;;
-      remove)
-      ;;
-      *)
-         log_error "Unknown command \"${COMMAND}\""
-         xcode_usage 
-      ;;
-   esac
 
    patch_xcode_project "$@"
 }

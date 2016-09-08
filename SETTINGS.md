@@ -136,10 +136,10 @@ Root scripts must be aware, that they will be called for every repository.
 4. `.bootstrap/settings/bin`
 5. `.bootstrap/public_settings/bin` (Inheritable)
 
-`pre-install.sh`
-`post-install.sh`
-`pre-upgrade.sh`
-`post-upgrade.sh`
+`pre-fetch.sh`
+`post-fetch.sh`
+`pre-update.sh`
+`post-update.sh`
 `pre-tag.sh`
 `post-tag.sh`
 

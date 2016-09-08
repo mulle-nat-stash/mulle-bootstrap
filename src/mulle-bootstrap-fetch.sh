@@ -42,17 +42,23 @@ fetch_usage()
 {
    cat <<EOF >&2
 usage:
-   mulle-bootstrap fetch [-f] <install|nonrecursive|update>
-   -f           :  override dirty harry check
-   -u           :  update also symlinked folders
-   install      :  clone or symlink non-exisiting repositories and other resources
-   nonrecursive :  like above, but ignore .bootstrap folders of repositories
-   update       :  execute `git pull` in fetched repositories
+   mulle-bootstrap ${COMMAND} [options] [repositories]
+
+   Options
+      -f    :  override dirty harry check
+      -u    :  try to update symlinked folders as well (not recommended)
+      -nr   :  ignore .bootstrap folders of fetched repositories
+
+   install  :  clone or symlink non-exisiting repositories and other resources
+   update   :  execute a "pull" in fetched repositories
 
    You can specify the names of the repositories to update.
-   Currently available names are:
 EOF
-   (cd "${CLONESFETCH_SUBDIR}" ; ls -1 ) 2> /dev/null
+   if [ -d "${CLONESFETCH_SUBDIR}" ]
+   then
+      echo "Currently available repositories are:"
+      (cd "${CLONESFETCH_SUBDIR}" ; ls -1 | sed 's/^/   /')
+   fi
    exit 1
 }
 
@@ -315,7 +321,7 @@ link_command()
       fail "${C_RESET}${C_BOLD}${dstdir}/${src}${C_ERROR} does not exist ($PWD)"
    fi
 
-   if [ "${COMMAND}" = "install" ]
+   if [ "${COMMAND}" = "fetch" ]
    then
       #
       # relative paths look nicer, but could fail in more complicated
@@ -668,7 +674,7 @@ checkout_repository()
          checkout "$@"
          flag=1
 
-         if [ "${COMMAND}" = "install" -a "${DONT_RECURSE}" = "" ]
+         if [ "${COMMAND}" = "fetch" -a "${DONT_RECURSE}" = "" ]
          then
             local old_bootstrap
 
@@ -1288,28 +1294,14 @@ update_embedded_repositories()
 }
 
 
-fetch_main()
+_common_main()
 {
-   log_fluff "::: fetch begin :::"
-
-   COMMAND="${1:-install}"
-   [ $# -ne 0 ] && shift
-
-   case "$COMMAND" in
-      install|update)
-         ;;
-      *)
-         log_error "unknown command \"$COMMAND\""
-         fetch_usage
-         ;;
-   esac
-
 
    while [ $# -ne 0 ]
    do
       case "$1" in
          -h|-help|--help)
-            fetch_usage
+            ${USAGE}
          ;;
 
          -nr|--no-recursion)
@@ -1324,13 +1316,13 @@ fetch_main()
             MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
          ;;
 
-
          -*)
             log_error "unknown option $1"
-            fetch_usage
+            ${USAGE}
+
          ;;
 
-         ""|*)
+         *)
             break
          ;;
       esac
@@ -1362,19 +1354,19 @@ fetch_main()
    #
    DO_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
-   if [ "${COMMAND}" = "install" ]
+   if [ "${COMMAND}" = "fetch" ]
    then
       if [ $# -ne 0 ]
       then
          log_error  "Additional parameters not allowed for install"
-         fetch_usage
+         ${USAGE}
       fi
    fi
 
    #
    # Run prepare scripts if present
    #
-   if [ "${COMMAND}" = "install" ]
+   if [ "${COMMAND}" = "fetch" ]
    then
        install_brews
 #
@@ -1398,7 +1390,6 @@ fetch_main()
       else
          log_info "Nothing to update, fetch first"
 
-         log_fluff "::: fetch end :::"
          return 0
       fi
    fi
@@ -1423,6 +1414,29 @@ fetch_main()
          append_dir_to_gitignore_if_needed "${CLONES_SUBDIR}"
       fi
    fi
+}
+
+
+update_main()
+{
+   log_fluff "::: update begin :::"
+
+   USAGE="fetch_usage"
+   COMMAND="update"
+   _common_main "$@"
+
+   log_fluff "::: update end :::"
+}
+
+
+
+fetch_main()
+{
+   log_fluff "::: fetch begin :::"
+
+   USAGE="fetch_usage"
+   COMMAND="fetch"
+   _common_main "$@"
 
    log_fluff "::: fetch end :::"
 }

@@ -1,11 +1,11 @@
 2.0
 ===
 
-## YOUR OLD STUFF MAY NOT RUN ANYMORE
+### YOUR OLD STUFF MAY NOT RUN ANYMORE
 
 Do a `mulle-bootstrap dist clean`.
 
-## YOUR OLD SETTINGS MAY NOT WORK ANYMORE!
+### YOUR OLD SETTINGS MAY NOT WORK ANYMORE!
 
 Move all repo specific setting directories from
 
@@ -14,6 +14,10 @@ Move all repo specific setting directories from
 to
 
 `.bootstrap/<reponame>`
+
+### YOUR OLD SCRIPTS MAY NOT WORK ANYMORE!
+
+* Fetch script names have changed. *-install.sh is now *-fetch.sh.
 
 
 ## Changes
@@ -41,7 +45,7 @@ inheritance scheme.
 * UNAME is now simplified and lowercased(!)
 * redid the settings merge and inheritance logic. It's now a bit more scrutable.
 * removed build_order from settings
-
+* script names have changed. For instance, post-install.sh is now post-fetch.sh.
 
 
 1.1
