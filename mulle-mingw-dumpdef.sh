@@ -223,7 +223,6 @@ dump_libraries()
 }
 
 
-SEARCH_PATH="."
 
 main()
 {
@@ -234,7 +233,7 @@ main()
 
    prefixes=
    outfile=
-   SEARCH_PATH=
+   SEARCH_PATH="."
    cpp_stringprefix=
 
    while [ $# -ne 0 ]
