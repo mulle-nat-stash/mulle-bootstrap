@@ -47,7 +47,12 @@ eval_exekutor()
 {
    if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
    then
-      echo "==> " "$@" >&2
+      if [ -z "${MULLE_LOG_DEVICE}" ]
+      then
+         echo "==>" "$@" >&2
+      else
+         echo "==>" "$@" > "${MULLE_LOG_DEVICE}"
+      fi         
    fi
 
    if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
@@ -68,7 +73,12 @@ exekutor()
 {
    if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
    then
-      echo "==>" "$@" >&2
+      if [ -z "${MULLE_LOG_DEVICE}" ]
+      then
+         echo "==>" "$@" >&2
+      else
+         echo "==>" "$@" > "${MULLE_LOG_DEVICE}"
+      fi         
    fi
 
    if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]

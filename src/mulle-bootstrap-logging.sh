@@ -38,10 +38,20 @@ MULLE_BOOTSTRAP_LOGGING_VERSION="2.0"
 # WARNING! THIS FILE IS A LIBRARY USE BY OTHER PROJECTS
 #          DO NOT CASUALLY RENAME, REORGANIZE STUFF
 #
+log_printf()
+{
+   if [ -z "${MULLE_LOG_DEVICE}" ]
+   then
+      printf "$@" >&2
+   else
+      printf "$@" > "${MULLE_LOG_DEVICE}"
+   fi         
+}
+
 
 log_error()
 {
-   printf "${C_ERROR}%b${C_RESET}\n" "$*" >&2
+   log_printf "${C_ERROR}%b${C_RESET}\n" "$*" 
 }
 
 
@@ -49,7 +59,7 @@ log_warning()
 {
    if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
    then
-      printf "${C_WARNING}%b${C_RESET}\n" "$*" >&2
+      log_printf "${C_WARNING}%b${C_RESET}\n" "$*" 
    fi
 }
 
@@ -58,7 +68,7 @@ log_info()
 {
    if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
    then
-      printf "${C_INFO}%b${C_RESET}\n" "$*" >&2
+      log_printf "${C_INFO}%b${C_RESET}\n" "$*" 
    fi
 }
 
@@ -67,7 +77,7 @@ log_verbose()
 {
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
    then
-      printf "${C_VERBOSE}%b${C_RESET}\n" "$*" >&2
+      log_printf "${C_VERBOSE}%b${C_RESET}\n" "$*" 
    fi
 }
 
@@ -76,20 +86,20 @@ log_fluff()
 {
    if [ "${MULLE_BOOTSTRAP_FLUFF}" = "YES"  ]
    then
-      printf "${C_FLUFF}%b${C_RESET}\n" "$*" >&2
+      log_printf "${C_FLUFF}%b${C_RESET}\n" "$*" 
    fi
 }
 
 
 log_trace()
 {
-   printf "${C_TRACE}%b${C_RESET}\n" "$*" >&2
+   log_printf "${C_TRACE}%b${C_RESET}\n" "$*"
 }
 
 
 log_trace2()
 {
-   printf "${C_TRACE2}%b${C_RESET}\n" "$*" >&2
+   log_printf "${C_TRACE2}%b${C_RESET}\n" "$*" 
 }
 
 
