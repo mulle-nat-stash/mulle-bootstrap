@@ -78,7 +78,7 @@ build/.repos/
 
 Check out the SETTINGS.md file for help about tweaking mulle-bootstrap.
 
-As an example, here is how to specify what target to build.
+As an example, here is how to specify what target to build for Xcode.
 
 Put the target name into `.bootstrap/{reponame}/targets`
 
@@ -87,7 +87,20 @@ mkdir -p  ".bootstrap/Finch" 2> /dev/null
 echo "Finch Demo" > .bootstrap/Finch/targets
 ```
 
-Use `mulle-bootstrap -V` to get an extensive trace.
+If it's not working as expected, try to use some of the debug facilities,
+that are options to **mulle-bootstrap**
+
+Option          | Description
+----------------|-------------------------------
+-v              | Make output more entertaining
+-vv             | Explain what mulle-bootstrap is doing
+-vvv            | Trace command execution too
+-t              | Trace shell script execution
+-ts             | Trace setting value resolution
+-tm             | Trace repositories content merging (dependency resolution)
+-te             | Trace execution of shell commands
+-V              | Tell make to build verbosely
+
 
 
 ### I want to only build with cmake
@@ -113,20 +126,6 @@ Say you are dependent on a and b, and a is dependent on b (but a is not a
 No, if the repositoris entry matches. If it doesn't match, it can be a problem.
 
 
-### It's not working as I expect now what ?
-
-Try to use some of the debug facilities, that are options to **mulle-bootstrap**
-
-Option          | Description
-----------------|-------------------------------
--v              | Make output more entertaining
--vv             | Explain what mulle-bootstrap is doing
--vvv            | Trace command execution too
--t              | Trace shell script execution
--ts             | Trace setting value resolution
--tm             | Trace repositories content merging (dependency resolution)
--te             | Trace execution of shell commands
--V              | Tell make to build verbosely
 
 
 ## Xcode problems

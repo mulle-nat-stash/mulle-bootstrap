@@ -108,7 +108,6 @@ find_library()
 }
 
 
-
 dump_function_exports()
 {
    local filename
@@ -125,7 +124,6 @@ dump_data_exports()
    filename="$1"
    dumpbin.exe -symbols "${filename}" | egrep -v '^[^|]* \(\) [^|]*\|' | fgrep ' External ' | fgrep -v ' UNDEF ' | sed "s/^[^|]*| *\\([^ (]*\\).*\$/\\1   ${DATA}/" | sed 's/^_//' | sort
 }
-
 
 
 dump_exports()
@@ -223,7 +221,6 @@ dump_libraries()
 }
 
 
-
 main()
 {
    local outfile
@@ -315,7 +312,7 @@ ${SEARCH_PATH}"
 
       [ -z "${libname}" ] && echo "could not figure out library name from \"${name:-$1}\"" >&2 && exit 1
    fi
-   
+
    if [ ! -z "${outfile}" ]
    then
       trap "rm ${outfile}" INT TERM

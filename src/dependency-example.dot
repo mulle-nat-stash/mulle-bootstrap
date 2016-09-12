@@ -1,9 +1,0 @@
-digraph x
-{
-	a->b;
-	a->e;	
-	b->c;
-	c->d;
-	b->d;
-	d->e;
-}
