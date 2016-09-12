@@ -22,6 +22,25 @@ be safely thrown away at any time.
 
 Check SETTTINGS.md
 
+### I need debug variants of the dependencies
+
+For a one shot:
+
+```
+mulle-bootstrap clean output
+mulle-bootstrap build -c "Debug"
+```
+
+Or when you want to have both:
+
+```
+mkdir -p .bootstrap.local/settings 2> /dev/null
+echo "Debug
+Release" > .bootstrap.local/settings/configurations
+mulle-bootstrap clean output
+mulle-bootstrap build
+```
+
 
 ### How are multiple value settings separated ?
 
@@ -103,7 +122,7 @@ Option          | Description
 
 
 
-### I want to only build with cmake
+### I want to only build with cmake just once
 
 Any setting can be overriden by the environment:
 
