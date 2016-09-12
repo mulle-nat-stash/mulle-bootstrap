@@ -48,6 +48,9 @@ inheritance scheme.
 * script names have changed. For instance, post-install.sh is now post-fetch.sh.
 * dist-clean is gone, now dist means "clean dist". You can also say dist clean
 it doesn't matter.
+* don't pollute .gitignore with embedded repositories inside .repos#
+* reduced configurability of mulle-bootstrap, since I didn't use it so far much and it slows things down on MINGW
+
 
 1.1
 ===

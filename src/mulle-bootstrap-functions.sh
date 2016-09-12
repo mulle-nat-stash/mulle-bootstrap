@@ -52,7 +52,7 @@ eval_exekutor()
          echo "==>" "$@" >&2
       else
          echo "==>" "$@" > "${MULLE_LOG_DEVICE}"
-      fi         
+      fi
    fi
 
    if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
@@ -78,7 +78,7 @@ exekutor()
          echo "==>" "$@" >&2
       else
          echo "==>" "$@" > "${MULLE_LOG_DEVICE}"
-      fi         
+      fi
    fi
 
    if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
@@ -830,17 +830,6 @@ write_protect_directory()
 
       log_info "Write-protecting ${C_RESET_BOLD}$1${C_INFO} to avoid spurious header edits"
       exekutor chmod -R a-w "$1"
-   fi
-}
-
-
-append_dir_to_gitignore_if_needed()
-{
-   grep -s -x "$1/" .gitignore > /dev/null 2>&1
-   if [ $? -ne 0 ]
-   then
-      exekutor echo "$1/" >> .gitignore || fail "Couldn\'t append to .gitignore"
-      log_info "Added \"$1/\" to \".gitignore\""
    fi
 }
 

@@ -1104,6 +1104,43 @@ ${clone}"
 }
 
 
+append_dir_to_gitignore_if_needed()
+{
+
+   case "${1}" in
+      "${CLONES_SUBDIR}/"*)
+         return 0
+      ;;
+   esac
+
+   local directory
+
+   # make it absolute dir for git
+
+   case "$1" in
+      /*/)
+         directory="$1"
+      ;;
+      /*)
+         directory="$1/"
+      ;;
+      */)
+         directory="/$1"
+      ;;
+      *)
+         directory="/$1/"
+      ;;
+   esac
+
+   fgrep -s -x "${directory}" .gitignore > /dev/null 2>&1
+   if [ $? -ne 0 ]
+   then
+      exekutor echo "${directory}" >> .gitignore || fail "Couldn\'t append to .gitignore"
+      log_info "Added \"${directory}\" to \".gitignore\""
+   fi
+}
+
+
 clone_embedded_repository()
 {
    local dstprefix
