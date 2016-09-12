@@ -5,7 +5,7 @@
 > developement.
 
 This directory contains a simple test with 3 folders `a`, `b`,  `c`. Each folder
-contains a minimal C-language project of the same name.  Project **c* depends
+contains a minimal C-language project of the same name.  Project **c** depends
 on **b**. And project **b** depends on **a**.
 
 `a.h`:
@@ -248,7 +248,7 @@ Now let's do the same for `c`:
 >
 > ```
 > git init
-> git add src/ b.xcodeproj/ CMakeLists.txt  .bootstrap
+> git add src/ b.xcodeproj/ CMakeLists.txt .bootstrap
 > git commit -m "Mercyful Release"
 > ```
 
@@ -258,11 +258,10 @@ echo "b" > .bootstrap/repositories
 mulle-bootstrap
 ```
 
-This will have used the dependency information from **b**, to automatically also
+mulle-bootstrap will have used the dependency information from **b**, to automatically also
 build **a** for you in the proper order.
 
-Since the **c** `CMakeLists.txt` file is already setup properly, you can now just
-build and run **c**:
+Since the `CMakeLists.txt` file of **c** is already setup properly, you can now just build and run **c**:
 
 ```
 mkdir build 2> /dev/null
