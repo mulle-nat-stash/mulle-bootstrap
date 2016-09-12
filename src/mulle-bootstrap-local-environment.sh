@@ -32,7 +32,6 @@
 MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH="included"
 
 
-
 # returns 0 if said yes
 user_say_yes()
 {

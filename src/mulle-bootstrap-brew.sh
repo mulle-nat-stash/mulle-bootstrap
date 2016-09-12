@@ -84,12 +84,12 @@ fetch_brew_if_needed()
 
 brew_update_if_needed()
 {
-   local stale
    local what
 
    what="$1"
 
    local flag
+   local stale
 
    fetch_brew_if_needed
    flag=$?

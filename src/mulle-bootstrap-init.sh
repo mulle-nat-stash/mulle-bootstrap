@@ -31,33 +31,71 @@
 MULLE_BOOTSTRAP_INIT_SH="included"
 
 
+init_usage()
+{
+    cat <<EOF >&2
+usage:
+  mulle_bootstrap init [options]
+
+    -n :  don't ask for editor
+    -e :  create example files
+EOF
+  exit 1
+}
+
+
 #
 # this script creates a .bootstrap folder with some
 # demo files.
 #
 init_main()
 {
-  if [ "$1" = "-h" -o "$1" = "--help" ]
-  then
-     echo "usage:
-mulle_bootstrap init" >&2
-     exit 1
-  fi
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
-  [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-  [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
+   CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
 
-  BOOTSTRAP_SUBDIR=.bootstrap
+   while [ $# -ne 0 ]
+   do
+      case "$1" in
+         -h|-help|--help)
+            init_usage
+         ;;
 
-  CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
-  CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
+         -n)
+            MULLE_BOOTSTRAP_ANSWER="NO"
+         ;;
+
+         -d)
+            CREATE_DEFAULT_FILES="NO"
+         ;;
+
+         -e)
+            CREATE_EXAMPLE_FILES="YES"
+         ;;
+
+         -*)
+            log_error "unknown option $1"
+            ${USAGE}
+
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
 
 
-  if [ -d "${BOOTSTRAP_SUBDIR}" ]
-  then
-     log_warning "\"${BOOTSTRAP_SUBDIR}\" already exists"
-     exit 1
-  fi
+   if [ -d "${BOOTSTRAP_SUBDIR}" ]
+   then
+      log_warning "\"${BOOTSTRAP_SUBDIR}\" already exists"
+      exit 1
+   fi
 
    project=""
    for i in *.xcodeproj/project.pbxproj
@@ -148,35 +186,35 @@ EOF
    then
       log_verbose "Create example repository settings"
 
-      mkdir_if_missing "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin"
+      mkdir_if_missing "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin"
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/Release.map"
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/Release.map"
 # map configuration Release in project MulleScion to DebugRelease
 # leave commented out or delete file for no mapping
 # DebugRelease
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/project"
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/project"
 # Specify a xcodeproj to compile in project MulleScion instead of the default
 # leave commented out or delete file for default project
 # mulle-scion
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/scheme"
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/scheme"
 # Specify a scheme to compile in project MulleScion instead of the default
 # Might bite itself with TARGET, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/target"
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/target"
 # Specify a target to compile in project MulleScion instead of the default.
 # Might bite itself with SCHEME, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin/post-install.sh"
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh"
 # Run some commands after installing project MulleScion
 # leave commented out or delete file for no action
 # chmod 755 ${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh
@@ -185,7 +223,7 @@ EOF
 EOF
 #chmod 755 "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh"
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/settings/MulleScion.example/bin/post-update.sh"
+      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-update.sh"
 # Run some commands after upgrading project MulleScion
 # leave commented out or delete file for no action
 # chmod 755 ${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-update.sh

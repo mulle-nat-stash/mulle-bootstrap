@@ -14,6 +14,7 @@ In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/su
 projects and installs their output into a "dependencies" folder.
 * installs [brew](//dzone.com/articles/why-osx-sucks-and-you-should) binaries and
 libraries into an "addictions" folder (on participating platforms)
+* alerts to the presence of shell scripts in fetched dependencies
 * runs on **OS X**, **FreeBSD**, **Linux**, **Windows** with
   MINGW bash
 * certainly not a "minimal" or lightweight" project with ca. 10000 lines of
@@ -46,9 +47,8 @@ https://github.com/coapp-packages/expat.git
 
 **mulle-bootstrap** will check them out into a common directory `.repos`.
 
-After cloning **mulle-bootstrap** does a simple security check of `.bootstrap`
-shell scripts. Finally it looks for a `.bootstrap` folder in the freshly
-checked out repositories! They might have dependencies too, if they do, those
+After cloning **mulle-bootstrap** looks for a `.bootstrap` folder in the freshly
+checked out repositories. They might have dependencies too, if they do, those
 dependencies are added and also fetched.
 
 Everything should now be in place so **mulle-bootstrap** that can now build the

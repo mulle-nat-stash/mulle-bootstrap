@@ -127,12 +127,15 @@ install_brews()
    log_fluff "Looking for brews"
 
    case "${COMMAND}" in
-      install)
+      fetch)
          brewcmd="install"
-         ;;
+      ;;
       update)
          brewcmd="upgrade"
-         ;;
+      ;;
+      *)
+         fail "COMMAND not set"
+      ;;
    esac
 
    brews=`read_fetch_setting "brews" | sort | sort -u`
@@ -176,7 +179,7 @@ install_brews()
       local versions
 
       versions=""
-      if [ "$brewcmd" = "install" ]
+      if [ "${brewcmd}" = "install" ]
       then
          versions="`${BREW} ls --versions "${formula}" 2> /dev/null`"
       fi
@@ -1333,7 +1336,6 @@ update_embedded_repositories()
 
 _common_main()
 {
-
    while [ $# -ne 0 ]
    do
       case "$1" in
