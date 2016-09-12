@@ -410,7 +410,15 @@ NO is safe, but you often say YES here."
       return 0
    fi
 
-   fail "Can't symlink"
+   case "${UNAME}" in
+      minwgw)
+         fail "Can't symlink on $UNAME, as symlinks don't exist"
+      ;;
+
+      *)
+         fail "Can't symlink, as its forbidden by setting \"symlink_forbidden\""
+      ;;
+   esac
 }
 
 

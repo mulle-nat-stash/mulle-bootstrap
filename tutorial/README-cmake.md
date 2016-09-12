@@ -61,179 +61,107 @@ int main( int  arcg, char *argv[])
 
 ```
 
+## First try without mulle-bootstrap
+
 Initially none of the folders contain a `.bootstrap` folder.
 
-
 Try to build **b** with `cmake`. It will not work, because the header
-`<a/a.h>` will not be found.
+`<a/a.h>` will not be found.  So first run **cmake**, it will produce the Makefile and then run **make**.
 
 ```console
 cd b
-mkdir build
-cd build
-cmake ..
-# -- The C compiler identification is AppleClang 7.0.2.7000181
-# -- The CXX compiler identification is AppleClang 7.0.2.7000181
-# -- Check for working C compiler: /applications/Xcode-7.2.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc
-# -- Check for working C compiler: /applications/Xcode-7.2.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -- works
-# -- Detecting C compiler ABI info
-# -- Detecting C compiler ABI info - done
-# -- Detecting C compile features
-# -- Detecting C compile features - done
-# -- Check for working CXX compiler: /applications/Xcode-7.2.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++
-# -- Check for working CXX compiler: /applications/Xcode-7.2.1.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ -- works
-# -- Detecting CXX compiler ABI info
-# -- Detecting CXX compiler ABI info - done
-# -- Detecting CXX compile features
-# -- Detecting CXX compile features - done
-# -- Configuring done
-# -- Generating done
-# -- Build files have been written to: /tutorial/b/build
-# Scanning dependencies of target bcd 
-# [ 50%] Building C object CMakeFiles/b.dir/src/b.c.o
-# /tutorial/b/src/b.c:1:10: fatal error: 'a/a.h' file not found
-# include <a/a.h>
-#         ^
-# 1 error generated.
-# make[2]: *** [CMakeFiles/b.dir/src/b.c.o] Error 1
-# make[1]: *** [CMakeFiles/b.dir/all] Error 2
-# make: *** [all] Error 2mu
-#
-cd ../..
+( mkdir build ; cd build ; cmake -G "Unix Makefiles" .. ; make )
+``` 
+
+> On Windows with the MingGW bash, use
+>
+> ```console
+> cd b
+> ( mkdir build ; cd build ; `cmake -G "NMake Makefiles" .. ; nmake`)
+> ```
+
+
+
+It will produce an error like this:
+
+```
+/tutorial/b/src/b.c:1:10: fatal error: 'a/a.h' file not found
 ```
 
 ## mulle-bootstrap to the rescue
 
-If you don't have cmake installed yet, you can use `mulle-bootstrap` to install
-it (on OS X and Linux). Here we set up **mulle-bootstrap** to fetch cmake.
-
+While being still in **b**:
 
 ```console
-cd b
-mulle-bootstrap init
-echo "cmake" >> .bootstrap/brews
+mulle-bootstrap init -n
 ```
 
-At that point a `.bootstrap` will be created with some default
-content. Take the option to edit **repositories** and you should be in an editor
-seeing:
+This will create a `.bootstrap` for you with some default
+content. View `b/.bootstrap/repositories` in an editor and you
+should be seeing:
 
 ```shell
-# add projects that should be cloned with git in order
-# of their inter-dependencies
 #
-# some possible types of repository specifications:
-# http://www.mulle-kybernetik.com/repositories/MulleScion
+# Add repository URLs to this file.
+#
+# mulle-bootstrap [fetch] will download these into ".repos"
+# mulle-bootstrap [build] will then build them into "dependencies"
+#
+# Each line consists of four fields, only the URL is necessary.
+#
+# URL;NAME;TAG;SCM
+# ================
+# ex. foo.com/bla.git;mybla;master;git
+# ex. foo.com/bla.svn;;;svn
+#
+# Possible URLS for repositories:
+#
+# https://www.mulle-kybernetik.com/repositories/MulleScion
 # git@github.com:mulle-nat/MulleScion.git
 # ../MulleScion
 # /Volumes/Source/srcM/MulleScion
 #
 ```
-Lines starting with a '#' are comments, these are just useless fluff in the
-long run, so delete them all, and add a line containing 'a'.
-The file now looks like this.
 
-`.bootstrap/repositories`:
+Lines starting with a '#' are comments, these are fluff that can be
+deleted. Lets overwrite the contents with our dependency **a**:
 
 ```
-a
+echo "a" > .bootstrap/repositories
 ```
 
-Alright, ready to bootstrap.  First lets see what **mulle-bootstrap** will do
-using the `-n`option
+Alright, ready to bootstrap.
+
 
 ```console
-mulle-bootstrap -n
-# Dry run is active.
-# mkdir -p .repos
-# There is a ../a folder in the parent
-# directory of this project.
-# Use it ? (y/N)
+mulle-bootstrap
 ```
 
-**a** will be found in the parent directory, and you have the option to use it,
-which you should do.
+will produce the following question:
 
-```console
-# Use it ? (y/N) y
-# ../a is not a git repository (yet ?)
-# So symlinking is the only way to go.
-# ln -s -f ../../a .repos/a
-# Symlinking a ...
-# ==> ln -s -f ../../a .repos/a
-# ==> [ -e .repos/a ]
-# ==> [ -e .repos/a ]
-# ==> [ -e .repos/a ]
-# ==> mkdir -p .repos
-# ==> touch .repos/.fetch_update_started
-# Dry run is active.
-# ==> mkdir -p .repos
-# Dry run is active.
-# No repositories in ".repos", so nothing to build.
+``` shell
+There is a ../a folder in the parent
+directory of this project.
+Use it ? (y/N)
 ```
 
-It can not preview the build stage, because there are no repositories really
-setup yet.
+So **a** was found, and you have the option to use it,
+which you should do. It will symlink **a** into your project and then mulle-bootstrap will build the library. 
 
-The conservative choice now is to do it in two steps. `mulle-bootstrap fetch`
-and the `mulle-bootstrap build`. `mulle-bootstrap` without a command
-combines both steps into one.
+> On Windows in the MingGW bash, this will not work, because there
+> is no symlink support. You have to place 'a' under **git** control first
+>
+> ```
+> ( cd ../a;
+>   git init ;
+>   git add . ;
+>   git commit -m "Mercyful Release"
+> )
+>
 
-Lets go with `mulle-bootstrap fetch` first, so we can examine the build
-processs afterwards. It will be just like above, but the symlink should be in
-place now.
 
-```
-mulle-bootstrap fetch
-# There is a ../a folder in the parent
-# directory of this project.
-# Use it ? (y/N) > y
-# ../a is not a git repository (yet ?)
-# So symlinking is the only way to go.
-# Symlinking a ...
-```
-
-Now lets see what `mulle-bootstrap build` will do:
-
-```console
-Dry run is active.
-==> mkdir -p .repos/.zombies
-==> touch .repos/.zombies/a
-Dry run is active.
-==> [ -e .repos/a ]
-Let cmake do a Release build of a for SDK Default in "build/.repos/Release/a" ...
-==> mkdir -p /tmp/tutorial/b/dependencies/include
-==> mkdir -p /tmp/tutorial/b/dependencies/Release/lib
-==> mkdir -p /tmp/tutorial/b/dependencies/Release/Frameworks
-==> mkdir -p /tmp/tutorial/b/dependencies/Release/lib
-==> mkdir -p /tmp/tutorial/b/dependencies/Release/Frameworks
-==> mkdir -p build/.repos/.logs
-==> mkdir -p build/.repos/Release/a
-==> cd build/.repos/Release/a
-==> cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_SYSROOT=/applications/Xcode-7.2.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk -DDEPENDENCIES_DIR=/tmp/tutorial/b/dependencies -DCMAKE_INSTALL_PREFIX:PATH=/tmp/tutorial/b/dependencies/tmp/usr/local -DCMAKE_C_FLAGS=-I/tmp/tutorial/b/dependencies/include -F/tmp/tutorial/b/dependencies/Release/Frameworks -F/tmp/tutorial/b/dependencies/Release/Frameworks -F/tmp/tutorial/b/dependencies/Release/Frameworks -F/tmp/tutorial/b/dependencies/Frameworks  -DCMAKE_CXX_FLAGS=-I/tmp/tutorial/b/dependencies/include -F/tmp/tutorial/b/dependencies/Release/Frameworks -F/tmp/tutorial/b/dependencies/Release/Frameworks -F/tmp/tutorial/b/dependencies/Release/Frameworks -F/tmp/tutorial/b/dependencies/Frameworks  -DCMAKE_EXE_LINKER_FLAGS=-L/tmp/tutorial/b/dependencies/Release/lib -L/tmp/tutorial/b/dependencies/Release/lib -L/tmp/tutorial/b/dependencies/Release/lib -L/tmp/tutorial/b/dependencies/lib  -DCMAKE_SHARED_LINKER_FLAGS=-L/tmp/tutorial/b/dependencies/Release/lib -L/tmp/tutorial/b/dependencies/Release/lib -L/tmp/tutorial/b/dependencies/Release/lib -L/tmp/tutorial/b/dependencies/lib  -DCMAKE_MODULE_PATH=;${CMAKE_MODULE_PATH} .repos/a
-==> make -j 12 VERBOSE=1 install
-==> cd /tmp/tutorial/b
-==> [ -e .repos/a ]
-Write-protecting dependencies to avoid spurious header edits
-==> chmod -R a-w dependencies
-```
-
-Lets do it for real, and use `mulle-bootstrap build`.
-
-```
-mulle-bootstrap build
-# Let cmake do a Release build of a for SDK Default in "build/.repos/Release/a" ...
-# CMake Warning:
-#   Manually-specified variables were not used by the project:
-#
-#     DEPENDENCIES_DIR
-#
-#
-# Write-protecting dependencies to avoid spurious header edits
-```
-
-In the end we wind up with the "dependencies" folder, which should contain
-the following files (`ls -GFR dependencies`):
+Check out the contents of the `b/dependencies` folder.
+It should contain the following files (`ls -GFR dependencies`):
 
 ~~~
 Frameworks/ include/    lib/
@@ -250,8 +178,12 @@ dependencies/lib:
 libA.a
 ~~~
 
+> On Windows in the MingGW bash, the library will be `a.lib`
 
-## modify CMakeLists.txt to use dependencies as search path
+
+## Building **b** 
+
+We need to modify b's `CMakeLists.txt` to use `dependencies/lib` and `dependencies/include` as search paths.
 
 
 Put these lines into the `CMakeLists.txt` file to add the proper search paths:
@@ -265,6 +197,8 @@ link_directories( ${CMAKE_BINARY_DIR}
    dependencies/lib
 )
 ```
+
+So that the file looks like this now:
 
 `CMakeLists.txt`:
 
@@ -294,49 +228,58 @@ INSTALL(TARGETS b DESTINATION "lib")
 INSTALL(FILES ${HEADERS} DESTINATION "include/b")
 ```
 
-Now **b** will build:
+Now **b** will be able to build:
 
 ```
-mkdir build
-cd build
-cmake ..
-make
-cd ..
+( cd build ; cmake -G "Unix Makefiles" .. ; make )
 ```
 
-## Inheriting our work in **c**
+> Windows Mingw: `( cd build ; cmake -G "NMake Makefiles" .. ; nmake )`
 
+
+## Inheriting your work in **c**
 
 Now let's do the same for `c`:
 
+> Windows Mingw: Before you do this put **b** into git. Do not add the
+> `build` folder, the `addictions` folder or the `dependencies` folder.
+> Add the `.bootstrap` folder and all other required files, but ignore the
+> `.bootstrap.auto` folder.
+>
+> ```
+> git init
+> git add src/ b.xcodeproj/ CMakeLists.txt  .bootstrap
+> git commit -m "Mercyful Release"
+> ```
+
 ```console
-mulle-bootstrap init
+mulle-bootstrap init -n
 echo "b" > .bootstrap/repositories
 mulle-bootstrap
 ```
 
-This will have used the dependency information from b, to automatically also
-build a for you in the proper order.
+This will have used the dependency information from **b**, to automatically also
+build **a** for you in the proper order.
 
-Since the CMakeLists.txt file is already setup properly, you can now just
+Since the **c** `CMakeLists.txt` file is already setup properly, you can now just
 build and run **c**:
 
 ```
 mkdir build 2> /dev/null
-cd build
-cmake ..
-make
-cd ..
+( cd build ;
+cmake -G "Unix Makefiles" .. ;
+make ;
+./c )
 ```
 
-And see **c** work
-
+> Windows:
+> ```
+> mkdir build 2> /dev/null
+> ( cd build ; 
+> cmake -G "NMake Makefiles" .. ;
+> nmake ;
+> ./c.exe )
 ```
-cd build
-./c
-cd ..
-```
-
 
 
 
