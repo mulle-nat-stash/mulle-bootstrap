@@ -35,7 +35,7 @@ libraries into an "addictions" folder (on participating platforms)
 So you need a bunch of third party projects to build your own
 project ? No problem. Use **mulle-bootstrap init** to do the initial setup of
 a `.bootstrap` folder in your project directory. Then put the git repository
-URLs in a file called `.bootstrap/repositories`.
+URLs in a file called
 
 `./bootstrap/repositories`:
 

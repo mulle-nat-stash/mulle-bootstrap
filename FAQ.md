@@ -1,7 +1,5 @@
 # FAQ
 
-Or rather, stuff I would ask, if I hadn't written it myself :)
-
 ## Where is what ?
 
 * `.bootstrap` is the bootstrap configuration of the repository.
@@ -82,10 +80,10 @@ Check out the SETTINGS.md file for help about tweaking mulle-bootstrap.
 
 As an example, here is how to specify what target to build.
 
-Put the target name into `.bootstrap/settings/{reponame}/targets`
+Put the target name into `.bootstrap/{reponame}/targets`
 
 ```console
-mkdir -p  ".bootstrap/settings/Finch" 2> /dev/null
+mkdir -p  ".bootstrap/Finch" 2> /dev/null
 echo "Finch Demo" > .bootstrap/Finch/targets
 ```
 
@@ -117,22 +115,19 @@ No, if the repositoris entry matches. If it doesn't match, it can be a problem.
 
 ### It's not working as I expect now what ?
 
-Try to use some of the debug facilities. Each of these environment variables need to be
-set to **YES** to work.
+Try to use some of the debug facilities, that are options to **mulle-bootstrap**
 
-Environment Variable                  | Description
---------------------------------------+-------------------------------------
-MULLE_BOOTSTRAP_VERBOSE               | turn on a little more output. If you set it to VERBOSE instead of YES, it produces quite a bit more output. Set it to FULL for exhausting detail.  Set it to 1848 for shell tracing.
-MULLE_BOOTSTRAP_TRACE                 | traces shell commands as they are executed
-MULLE_BOOTSTRAP_TRACE_SETTINGS        | traces settings accesses
+Option          | Description
+----------------|-------------------------------
+-v              | Make output more entertaining
+-vv             | Explain what mulle-bootstrap is doing
+-vvv            | Trace command execution too
+-t              | Trace shell script execution
+-ts             | Trace setting value resolution
+-tm             | Trace repositories content merging (dependency resolution)
+-te             | Trace execution of shell commands
+-V              | Tell make to build verbosely
 
-It's easiest to use the three verbosity options though:
-
-```console
-mulle-bootstrap -v
-mulle-bootstrap -V
-mulle-bootstrap -t
-```
 
 ## Xcode problems
 
@@ -152,8 +147,7 @@ are in "public".
 
 
 
-### I specified SKIP_INSTALL=YES in my Xcode project, but
-stuff gets installed nonetheless ?
+### I specified SKIP_INSTALL=YES in my Xcode project, but stuff gets installed nonetheless ?
 
 Because this SKIP_INSTALL=YES is the default unfortunately and lots of project
 maintainers forget to turn it off, **mulle-bootstrap** sets this flag to NO at
@@ -161,21 +155,21 @@ compile time. If you know that SKIP_INSTALL is correctly set, set
 "xcode_proper_skip_install" to "YES".
 
 ```console
-mkdir -p  ".bootstrap/settings/{reponame}" 2> /dev/null
-echo "YES" > .bootstrap/settings/{reponame}/proper_skip_install
+mkdir -p  ".bootstrap/{reponame}" 2> /dev/null
+echo "YES" > .bootstrap/{reponame}/proper_skip_install
 ```
 
 
 ### I build an aggregate target and the headers end up in the wrong place
 
 mulle_bootstrap has problems with aggregate targets. Built the subtargets
-individually by enumerating them in ".bootstrap/settings/{reponame}/targets"
+individually by enumerating them in ".bootstrap/{reponame}/targets"
 
 
 ```console
-mkdir -p  ".bootstrap/settings/MulleScion" 2> /dev/null
+mkdir -p  ".bootstrap/MulleScion" 2> /dev/null
 echo "MulleScion (iOS Library)
-MulleScion (iOS Framework)" > .bootstrap/settings/MulleScion/targets"
+MulleScion (iOS Framework)" > .bootstrap/MulleScion/targets"
 ```
 
 
