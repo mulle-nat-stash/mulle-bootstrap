@@ -2,7 +2,8 @@
 
 TAG="${1:-`./mulle-bootstrap version`}"
 
-. mulle-bootstrap-functions.sh
+
+. src/mulle-bootstrap-logging.sh
 
 
 git_must_be_clean()
