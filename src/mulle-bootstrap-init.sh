@@ -44,6 +44,7 @@ mulle_bootstrap init" >&2
      exit 1
   fi
 
+  [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
   BOOTSTRAP_SUBDIR=.bootstrap

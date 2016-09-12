@@ -14,10 +14,10 @@ In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/su
 projects and installs their output into a "dependencies" folder.
 * installs [brew](//dzone.com/articles/why-osx-sucks-and-you-should) binaries and
 libraries into an "addictions" folder (on participating platforms)
-* runs on **OS X**, **FreeBSD** (without brew), **Linux**, **Windows** with
-  MINGW bash (without brew)
-* certainly not a "lightweight" project with ca. 10000 lines of shell script
-  code
+* runs on **OS X**, **FreeBSD**, **Linux**, **Windows** with
+  MINGW bash
+* certainly not a "minimal" or lightweight" project with ca. 10000 lines of
+  shell script code
 
 
 ## Tell me more
@@ -37,11 +37,11 @@ project ? No problem. Use **mulle-bootstrap init** to do the initial setup of
 a `.bootstrap` folder in your project directory. Then put the git repository
 URLs in a file called `.bootstrap/repositories`.
 
-```console
-cat > .bootstrap/repositories
-git@github.com:mulle-nat/MulleScion.git
-git@github.com:mulle-nat/UISS.git
-git@github.com:mulle-nat/Finch.git
+`./bootstrap/repositories`:
+
+```
+https://github.com/madler/zlib.git
+https://github.com/coapp-packages/expat.git
 ```
 
 **mulle-bootstrap** will check them out into a common directory `.repos`.
@@ -55,8 +55,7 @@ Everything should now be in place so **mulle-bootstrap** that can now build the
 dependencies with **cmake**. It will place the headers and the produced
 libraries into the `dependencies` folder.
 
-That's it in a nutshell. But **mulle-bootstrap** is certainly not lightweight.
-It can do a lot more.
+That's it in a nutshell. But it can do a lot more.
 
 
 ## Commands for a project user
@@ -86,7 +85,6 @@ Compiles the required libraries contained in the `.repos` folder into
 
 
 
-
 ## Commands for a project maintainer
 
 #### mulle-bootstrap init
@@ -97,6 +95,8 @@ directory root (e.g. alongside .git). At this point you should edit
 
 For each repository add a line like
 
+`./bootstrap/repositories`:
+
 ```console
 git@github.com:mulle-nat/MulleScion.git
 ```
@@ -104,11 +104,12 @@ git@github.com:mulle-nat/MulleScion.git
 In the file `.bootstrap/brews` you can specify homebrew projects that need to
 be installed. These will be installed into `addictions`.
 
+`./bootstrap/brews`:
+
 ```console
 zlib
 openssl
 ```
-
 
 #### mulle-bootstrap tag
 
