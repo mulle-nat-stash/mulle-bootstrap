@@ -46,7 +46,8 @@ inheritance scheme.
 * redid the settings merge and inheritance logic. It's now a bit more scrutable.
 * removed build_order from settings
 * script names have changed. For instance, post-install.sh is now post-fetch.sh.
-
+* dist-clean is gone, now dist means "clean dist". You can also say dist clean
+it doesn't matter.
 
 1.1
 ===

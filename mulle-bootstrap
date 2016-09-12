@@ -297,7 +297,7 @@ bootstrap_main()
    if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
    then
       case "${command}" in
-         bootstrap|nomagic|build|ibuild|refresh|clean|dist-clean|fetch|update|setup-xcode|xcode|tag)
+         bootstrap|nomagic|build|ibuild|refresh|dist|clean|dist-clean|fetch|update|setup-xcode|xcode|tag)
             fail "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue"
       esac
    fi
@@ -392,10 +392,10 @@ bootstrap_main()
          clean_main "$@"    || exit 1
       ;;
 
-      dist-clean)
+      dist)
          . mulle-bootstrap-clean.sh
 
-         clean_main "dist"  || exit 1
+         clean_main "dist"    || exit 1
       ;;
 
       fetch)
