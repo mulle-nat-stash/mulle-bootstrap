@@ -1,11 +1,5 @@
-## How to install (OS X)
 
-```console
-brew tap mulle-kybernetik/software
-brew install mulle-bootstrap
-```
-
-## How to install (Unix)
+## How to install
 
 This will install **mulle-bootstrap** into `/usr/local`:
 
@@ -20,7 +14,26 @@ Here is an example, that installs **mulle-bootstrap** into /tmp:
 ```
 
 
-## What now ?
+## How to install on Windows
 
-Make sure `/usr/local/bin` is in your PATH, and try the examples contained in
-`./test`. Read [test/README.md]() for details.
+> if you use the new [Windows 10 bash](http://www.omgubuntu.co.uk/2016/08/enable-bash-windows-10-anniversary-update), ignore this
+
+Get [Git For Windows](https://git-scm.com/download/win).
+Checkout this repository then run
+
+```console
+./install.sh ~/bin
+```
+
+
+## How to install with homebrew
+
+If you have brew you can get the lastest released version with
+
+```console
+brew tap mulle-kybernetik/software
+brew install mulle-bootstrap
+```
+
+
+
