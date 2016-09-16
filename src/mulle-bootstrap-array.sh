@@ -38,7 +38,7 @@ array_value_check()
 {
    local n
 
-   n=`echo "$1" | wc -l`
+   n=`echo "$1" | wc -l  | awk '{ print $1}'`
    [ $n -eq 0 ] && fail "empty value"
    [ $n -ne 1 ] && fail "value \"$1\" has linebreaks"
 
@@ -57,32 +57,12 @@ array_index_check()
    [ -z "${i}" ] && fail "empty index"
 
    local n
-   n="`array_count "${array}"`"
+   n=`array_count "${array}"`
 
    [ ${i} -ge ${n} ] && fail "index ${i} out of bounds ${n}"
 
    echo "${i}"
 }
-
-
-array_index_check()
-{
-   local array
-   local i
-
-   array="$1"
-   i="$2"
-
-   [ -z "${i}" ] && fail "empty index"
-
-   local n
-   n="`array_count "${array}"`"
-
-   [ ${i} -ge ${n} ] && fail "index ${i} out of bounds ${n}"
-
-   echo "${i}"
-}
-
 
 
 array_add()
@@ -117,7 +97,7 @@ array_count()
 
    local n
 
-   n=`echo "${array}" | wc -l`
+   n=`echo "${array}" | wc -l | awk '{ print $1}'`
    echo ${n}
 }
 
@@ -132,6 +112,16 @@ array_get()
    i=`expr $i + 1`
 
    echo "${array}" | head -${i} | tail -1
+}
+
+
+array_get_last()
+{
+   local array
+
+   array="$1"
+
+   echo "${array}" | tail -1
 }
 
 
@@ -171,16 +161,6 @@ array_insert()
 }
 
 
-array_get_last()
-{
-   local array
-
-   array="$1"
-
-   echo "${array}" | tail -1
-}
-
-
 array_remove()
 {
    local array
@@ -193,6 +173,34 @@ array_remove()
    then
        echo "${array}" | fgrep -v -x "${value}"
    fi
+}
+
+
+
+array_remove_last()
+{
+   local array
+
+   array="$1"
+
+   local n
+
+   n=`array_count "${array}"`
+   case $n in
+      0)
+         fail "remove from empty array"
+      ;;
+
+      1)
+         return
+      ;;
+
+      *)
+         n="`expr $n - 1`"
+      ;;
+   esac
+
+   echo "${array}" | head -$n
 }
 
 

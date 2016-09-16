@@ -30,7 +30,6 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_CLEAN_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 
 
 clean_usage()
@@ -63,40 +62,6 @@ ${INSTALL_CLEANABLE_SUBDIRS}
 ---
 EOF
    exit 1
-}
-
-
-embedded_repositories()
-{
-   local clones
-   local clone
-   local dir
-   local name
-
-   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
-
-   refresh_main refresh_if_bare
-
-   clones="`read_fetch_setting "embedded_repositories"`"
-   if [ "${clones}" != "" ]
-   then
-      local old
-
-      old="${IFS:-" "}"
-      IFS="
-"
-      for clone in ${clones}
-      do
-         IFS="${old}"
-
-         clone="`expanded_setting "${clone}"`"
-
-         name="`canonical_name_from_clone "${clone}"`"
-         dir="${name}"
-         echo "${dir}"
-      done
-      IFS="${old}"
-   fi
 }
 
 
@@ -179,8 +144,7 @@ clean_directories()
 # to have other tools provide stuff besides /include and /lib
 # and sometimes  projects install other stuff into /share
 # for mingw its easier if we have separate clean functions
-
-
+#
 _clean_execute()
 {
    local flag
@@ -235,7 +199,7 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
          DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
 ${ADDICTION_SUBDIR}
 .bootstrap.auto"`"
-         EMBEDDED="`embedded_repositories`"
+         EMBEDDED="`embedded_repository_directories_from_repos`"
 
          if [ ! -z "$EMBEDDED" ]
          then
@@ -271,6 +235,7 @@ clean_main()
 
    [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
    COMMAND=${1:-"output"}
    [ $# -eq 0 ] || shift

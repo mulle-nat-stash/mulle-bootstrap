@@ -4,7 +4,7 @@
 
 ... for C, C++, Objective-C
 
-... certainly not a "minimal" or lightweight" project with ca. 10000 lines of
+... certainly not a "minimal" or "lightweight" project with ca. 10000 lines of
   shell script code
 
 ## Why you may want it

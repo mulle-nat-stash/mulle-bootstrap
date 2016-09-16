@@ -37,7 +37,7 @@ git push public master
 git tag "${TAG}"
 git push public master --tags
 
-./generate-brew-formula.sh  > ../homebrew-software/mulle-bootstrap.rb
+./bin/generate-brew-formula.sh  > ../homebrew-software/mulle-bootstrap.rb
 (
 	cd ../homebrew-software ; \
  	git commit -m "${TAG} release of mulle-bootstrap" mulle-bootstrap.rb ; \

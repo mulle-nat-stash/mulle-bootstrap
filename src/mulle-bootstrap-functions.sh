@@ -472,75 +472,111 @@ combined_escaped_search_path()
 }
 
 
+_simplify_components()
+{
+   local i
+   local old
+
+
+   local components
+
+   old="${IFS}"
+   IFS="
+"
+   for i in $*
+   do
+      IFS="${old}"
+
+      case "${i}" in
+         # ./foo -> foo
+         ./)
+         ;;
+
+         # bar/.. -> ""
+         ../)
+            if [ -z "${components}" ]
+            then
+               components="`array_add "${components}" "../"`"
+            else
+               if [ "${components}" != "/" ]
+               then
+                  components="`array_remove_last "${components}"`"
+               fi
+               # /.. -> /
+            fi
+         ;;
+
+
+         # foo/ -> foo
+         "/")
+            if [ -z "${components}" ]
+            then
+               components="${i}"
+            fi
+         ;;
+
+         *)
+            components="`array_add "${components}" "${i}"`"
+         ;;
+      esac
+   done
+
+   IFS="${old}"
+
+   echo "${components}"
+}
+
+
+_path_from_components()
+{
+   local components
+
+   components="$1"
+
+   local i
+   local old
+   local path
+
+   old="${IFS}"
+   IFS="
+"
+
+   for i in $components
+   do
+      path="${path}${i}"
+   done
+
+
+   IFS="${old}"
+
+   if [ -z "${path}" ]
+   then
+      echo "."
+   else
+      echo "$path" | sed 's|^\(..*\)/$|\1|'
+   fi
+}
+
+
 #
 # simplify path works on paths that may or may not exist
 # it makes prettier relative or absolute paths
 #
 simplify_path()
 {
-   local file
+   local path
 
-   file="$1"
+   path="$1"
 
-   local modification
+   local components
+   local final_components
+   local final_path
 
-   # foo/ -> foo
-   modification="`echo "$1" | sed 's|^\(.*\)/$|\1|'`"
-   if  [ "${modification}" != "${file}" ]
-   then
-      simplify_path "${modification}"
-      return
-   fi
+   components="`echo "${path}" | tr '/' '\012' | sed -e 's|$|/|'`"
+   final_components="`_simplify_components  "${components}"`"
+   final_path="`_path_from_components "${final_components}"`"
 
-   # ./foo -> foo
-   modification="`echo "$1" | sed 's|^\./\(.*\)$|\1|'`"
-   if  [ "${modification}" != "${file}" ]
-   then
-      simplify_path "${modification}"
-      return
-   fi
-
-   # foo/. -> foo
-   modification="`echo "$1" | sed 's|^\(.*\)/\.$|\1|'`"
-   if  [ "${modification}" != "${file}" ]
-   then
-      simplify_path "${modification}"
-      return
-   fi
-
-   # bar/./foo -> bar/foo
-   modification="`echo "$1" | sed 's|^\(.*\)/\./\(.*\)$|\1/\2|'`"
-   if  [ "${modification}" != "${file}" ]
-   then
-      simplify_path "${modification}"
-      return
-   fi
-
-   # bar/.. -> ""
-   modification="`echo "$1" | sed 's|^\([^/]*\)/\.\.$||'`"
-   if  [ "${modification}" != "${file}" ]
-   then
-      simplify_path "${modification}"
-      return
-   fi
-
-   # bar/../foo -> foo
-   modification="`echo "$1" | sed 's|^\([^/]*\)/\.\./\(.*\)$|\2|'`"
-   if  [ "${modification}" != "${file}" ]
-   then
-      simplify_path "${modification}"
-      return
-   fi
-
-   # bar/baz/../foo -> bar/foo
-   modification="`echo "$1" | sed 's|^\(.*\)/\([^/]*\)/\.\./\(.*\)$|\1/\3|'`"
-   if  [ "${modification}" != "${file}" ]
-   then
-      simplify_path "${modification}"
-      return
-   fi
-
-   echo "${modification}"
+   echo "${final_path}"
 }
 
 
@@ -843,6 +879,7 @@ write_protect_directory()
 functions_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 
    log_fluff ":functions_initialize:"
 }

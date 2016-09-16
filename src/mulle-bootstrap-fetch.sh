@@ -819,6 +819,12 @@ ${clone}"
                branch="`branch_from_clone "${clone}"`"
                scm="`scm_from_clone "${clone}"`"
 
+               case "${name}" in
+                  /|~|..)
+                     fail "destination directory of ${clone} looks fishy"
+                  ;;
+               esac
+
                clone_repository "${name}" "${url}" "${branch}" "${scm}"
 
                if [ $? -eq 1 ]
@@ -1163,16 +1169,30 @@ clone_embedded_repository()
    local name
    local url
    local dstdir
+   local subdir
    local branch
    local tag
    local scm
 
+   subdir="`_name_part_from_clone "${clone}"`"
    name="`canonical_name_from_clone "${clone}"`"
    url="`url_from_clone "${clone}"`"
    branch="`branch_from_clone "${clone}"`"
    scm="`scm_from_clone "${clone}"`"
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-   dstdir="${dstprefix}${name}"
+
+   subdir="`simplify_path "${subdir}"`"
+   case "${subdir}" in
+      /*|~*|..*)
+         fail "destination directory of ${clone} looks fishy"
+      ;;
+
+      "")
+         subdir="${name}"
+      ;;
+   esac
+
+   dstdir="${dstprefix}${subdir}"
 
    log_fetch_action "${url}" "${dstdir}"
 
@@ -1182,7 +1202,19 @@ clone_embedded_repository()
 
       if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${CLONESFETCH_SUBDIR}/.embedded/.graveyard/${name}" ]
       then
+         local parent
+
          log_info "Restoring ${name} from embedded graveyard"
+         parent="`dirname "${dstdir}"`"
+         case "${parent}" in
+            .)
+            ;;
+
+            *)
+               mkdir_if_missing "${parent}"
+            ;;
+         esac
+
          exekutor mv "${CLONESFETCH_SUBDIR}/.embedded/.graveyard/${name}" "${dstdir}" || fail "move failed"
          ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       else
@@ -1394,6 +1426,7 @@ _common_main()
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
    [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh
    [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if

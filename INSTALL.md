@@ -28,7 +28,7 @@ Checkout this repository then run
 
 ## How to install with homebrew
 
-If you have brew you can get the lastest released version with
+If you have brew you can get the latest released version with
 
 ```console
 brew tap mulle-kybernetik/software
