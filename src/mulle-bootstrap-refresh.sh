@@ -90,15 +90,16 @@ refresh_repositories_settings()
                refreshed="${refreshed}
 ${clone}"
 
-               local name
-               local url
-               local tag
+               local branch
                local dstdir
                local flag
+               local name
+               local scm
+               local tag
+               local url
 
-               name="`canonical_name_from_clone "${clone}"`"
-               url="`url_from_clone "${clone}"`"
-               tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
+               __parse_expanded_clone "${clone}"
+
                dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
                #
@@ -408,12 +409,15 @@ bury_embedded_zombies()
 
 refresh_repositories()
 {
-   local clones
+   local branch
    local clone
-   local old
-   local name
-   local url
+   local clones
    local dstdir
+   local name
+   local old
+   local scm
+   local tag
+   local url
 
    mark_all_repositories_zombies
 
@@ -430,9 +434,8 @@ refresh_repositories()
       do
          IFS="${old}"
 
-         clone="`expanded_setting "${clone}"`"
+         __parse_clone "${clone}"
 
-         name="`canonical_name_from_clone "${clone}"`"
          dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
          # if it's not there it's not fetched yet, that's OK
@@ -452,11 +455,17 @@ _refresh_embedded_repositories()
 
    dstprefix="$1"
 
-   local clones
+   local branch
    local clone
-   local old
-   local name
+   local clones
    local dstdir
+   local name
+   local old
+   local scm
+   local subdir
+   local olddir
+   local tag
+   local url
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
@@ -471,13 +480,18 @@ _refresh_embedded_repositories()
       do
          IFS="${old}"
 
-         clone="`expanded_setting "${clone}"`"
-
          ensure_clones_directory
 
-         name="`canonical_name_from_clone "${clone}"`"
-         dstdir="${dstprefix}${name}"
-         mark_embedded_repository_alive "${name}" "${dstdir}"
+         __parse_embedded_clone "${clone}"
+
+         dstdir="${dstprefix}${subdir}"
+         olddir="`embedded_repository_directory_in_repos "${name}"`"
+         if [ "${dstdir}" != "${olddir}" ]
+         then
+            log_warning "Embedded repository ${name} moved from ${olddir} to ${dstdir}. Refetch needed."
+         else
+            mark_embedded_repository_alive "${name}" "${dstdir}"
+         fi
       done
    fi
 
@@ -499,14 +513,18 @@ refresh_embedded_repositories()
 
 refresh_deeply_embedded_repositories()
 {
-   local clones
+   local branch
    local clone
-   local old
-   local name
-   local url
+   local clones
    local dstprefix
+   local name
+   local old
    local previous_bootstrap
    local previous_clones
+   local scm
+   local subdir
+   local tag
+   local url
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
@@ -520,12 +538,12 @@ refresh_deeply_embedded_repositories()
       for clone in ${clones}
       do
          IFS="${old}"
-         clone="`expanded_setting "${clone}"`"
 
-         name="`canonical_name_from_clone "${clone}"`"
-         dstprefix="${CLONESFETCH_SUBDIR}/${name}/"
+         __parse_embedded_clone "${clone}"
 
-         if [ ! -L "${CLONESFETCH_SUBDIR}/${name}" ]
+         dstprefix="${CLONESFETCH_SUBDIR}/${subdir}/"
+
+         if [ ! -L "${dstprefix}" ]
          then
             previous_bootstrap="${BOOTSTRAP_SUBDIR}"
             previous_clones="${CLONESFETCH_SUBDIR}"
@@ -537,7 +555,7 @@ refresh_deeply_embedded_repositories()
             BOOTSTRAP_SUBDIR="${previous_bootstrap}"
             CLONESFETCH_SUBDIR="${previous_clones}"
          else
-            log_fluff  "Don't refresh embedded repositories of symlinked \"${name}\""
+            log_warn  "Don't refresh embedded repositories of symlinked \"${name}\""
          fi
       done
    fi
@@ -559,6 +577,7 @@ refresh_main()
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
    [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
    while :
    do

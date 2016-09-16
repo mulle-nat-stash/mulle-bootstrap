@@ -94,9 +94,9 @@ brew_update_if_needed()
    fetch_brew_if_needed
    flag=$?
    if [ ! -z $flag ]
-  	then
-	  	return $flag  ## just fetched it or not there
-	fi
+   then
+      return $flag  ## just fetched it or not there
+   fi
 
    if [ -f "${last_update}" ]
    then
@@ -113,7 +113,7 @@ brew_update_if_needed()
    if [ $? -eq 0 ]
    then
       log_fluff "Updating brew, this can take some time..."
-   	exekutor "${BREW}" update
+      exekutor "${BREW}" update
 
       touch_last_update
    fi

@@ -137,6 +137,35 @@ scm_from_clone()
 }
 
 
+embedded_repository_directory_in_repos()
+{
+   local filename
+   local owd
+
+   filename="$1"
+   owd="$2"
+
+   local embedded
+   local linkfile
+   local relpath
+   local old
+   local owd
+
+   relpath="${CLONESFETCH_SUBDIR}/.embedded/${filename}"
+   if [ -f "${relpath}" ]
+   then
+      linkfile="`cat "${relpath}"`"
+      embedded="`(cd "${CLONESFETCH_SUBDIR}/.embedded" ; absolutepath "${linkfile}")`"
+      embedded="`simplify_path "${embedded}"`"
+      embedded="`relative_path_between "${embedded}" "${owd}"`"
+      if [ -d "${embedded}" ]
+      then
+         echo "${embedded}"
+      fi
+   fi
+}
+
+
 embedded_repository_directories_from_repos()
 {
    local filename
@@ -151,22 +180,11 @@ embedded_repository_directories_from_repos()
    old="${IFS}"
    IFS="
 "
-   for filename in `ls -1 "${CLONES_SUBDIR}/.embedded/" 2> /dev/null`
+   for filename in `ls -1 "${CLONESFETCH_SUBDIR}/.embedded/" 2> /dev/null`
    do
-      relpath="${CLONES_SUBDIR}/.embedded/${filename}"
-      if [ -f "${relpath}" ]
-      then
-         linkfile="`cat "${relpath}"`"
-         embedded="`(cd "${CLONES_SUBDIR}/.embedded" ; absolutepath "${linkfile}")`"
-         embedded="`simplify_path "${embedded}"`"
-         log_fluff "embedded: ${embedded}"
-         log_fluff "owd: ${owd}"
-         embedded="`relative_path_between "${embedded}" "${owd}"`"
-         if [ -d "${embedded}" ]
-         then
-            echo "${embedded}"
-         fi
-      fi
+      IFS="${old}"
+
+      embedded_repository_directory_in_repos "${filename}" "${owd}"
    done
 
    IFS="${old}"
@@ -181,19 +199,91 @@ repository_directories_from_repos()
    old="${IFS}"
    IFS="
 "
-   for filename in `ls -1 "${CLONES_SUBDIR}" 2> /dev/null`
+   for filename in `ls -1 "${CLONESFETCH_SUBDIR}" 2> /dev/null`
    do
       case "${filename}" in
          .*)
          ;;
 
          *)
-            echo "${CLONES_SUBDIR}/$filename"
+            echo "${CLONESFETCH_SUBDIR}/$filename"
          ;;
       esac
    done
 
    IFS="${old}"
+}
+
+
+# this sets valuse to variables that should be declared
+# in the caller!
+#
+#   local name
+#   local url
+#   local branch
+#   local scm
+#   local tag
+#
+__parse_expanded_clone()
+{
+   local clone
+
+   clone="${1}"
+
+   name="`canonical_name_from_clone "${clone}"`"
+   url="`url_from_clone "${clone}"`"
+   branch="`branch_from_clone "${clone}"`"
+   scm="`scm_from_clone "${clone}"`"
+   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
+
+
+   case "${name}" in
+      /*|~*|..*|.*)
+         fail "destination name of ${clone} looks fishy"
+      ;;
+   esac
+}
+
+
+__parse_clone()
+{
+   local clone
+
+   clone="`expanded_setting "${1}"`"
+
+   __parse_expanded_clone "${clone}"
+}
+
+
+# this sets values to variables that should be declared
+# in the caller!
+#
+#   local name
+#   local url
+#   local branch
+#   local scm
+#   local tag
+#   local subdir
+#
+__parse_embedded_clone()
+{
+   local clone
+
+   clone="`expanded_setting "${1}"`"
+
+   __parse_expanded_clone "${clone}"
+
+   subdir="`_name_part_from_clone "${clone}"`"
+   subdir="`simplify_path "${subdir}"`"
+   case "${subdir}" in
+      /*|~*|..*|.*)
+         fail "destination directory of ${clone} looks fishy"
+      ;;
+
+      "")
+         subdir="${name}"
+      ;;
+   esac
 }
 
 

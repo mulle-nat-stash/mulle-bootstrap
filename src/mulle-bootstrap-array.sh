@@ -176,7 +176,6 @@ array_remove()
 }
 
 
-
 array_remove_last()
 {
    local array

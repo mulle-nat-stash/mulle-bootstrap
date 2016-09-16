@@ -772,17 +772,18 @@ clone_repository()
 
 clone_repositories()
 {
-   local stop
-   local clones
+   local branch
    local clone
-   local old
-   local name
-   local url
+   local clones
    local fetched
    local match
-   local branch
-   local scm
+   local name
+   local old
    local rval
+   local scm
+   local stop
+   local tag
+   local url
 
    old="${IFS:-" "}"
    fetched=""
@@ -814,16 +815,7 @@ clone_repositories()
                fetched="${fetched}
 ${clone}"
 
-               name="`canonical_name_from_clone "${clone}"`"
-               url="`url_from_clone "${clone}"`"
-               branch="`branch_from_clone "${clone}"`"
-               scm="`scm_from_clone "${clone}"`"
-
-               case "${name}" in
-                  /|~|..)
-                     fail "destination directory of ${clone} looks fishy"
-                  ;;
-               esac
+               __parse_expanded_clone "${clone}"
 
                clone_repository "${name}" "${url}" "${branch}" "${scm}"
 
@@ -843,11 +835,7 @@ ${clone}"
    do
       IFS="${old}"
 
-      clone="`expanded_setting "${clone}"`"
-
-      name="`canonical_name_from_clone "${clone}"`"
-      url="`url_from_clone "${clone}"`"
-      branch="`branch_from_clone "${clone}"`"
+      __parse_clone "${clone}"
 
       did_clone_repository "${name}" "${url}" "${branch}"
    done
@@ -1049,14 +1037,16 @@ update_repositories()
       return
    fi
 
-   local stop
-   local url
-   local updated
-   local match
    local branch
-   local scm
    local dstdir
+   local match
+   local name
    local rval
+   local scm
+   local stop
+   local tag
+   local updated
+   local url
 
    updated=""
 
@@ -1086,9 +1076,7 @@ update_repositories()
                updated="${updated}
 ${clone}"
 
-               name="`canonical_name_from_clone "${clone}"`"
-               url="`url_from_clone "${clone}"`"
-               branch="`branch_from_clone "${clone}"`"
+               __parse_expanded_clone "${clone}"
 
                dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
@@ -1105,7 +1093,6 @@ ${clone}"
                   fi
 
                remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
 
                if [ $rval -eq 1 ]
                then
@@ -1174,23 +1161,7 @@ clone_embedded_repository()
    local tag
    local scm
 
-   subdir="`_name_part_from_clone "${clone}"`"
-   name="`canonical_name_from_clone "${clone}"`"
-   url="`url_from_clone "${clone}"`"
-   branch="`branch_from_clone "${clone}"`"
-   scm="`scm_from_clone "${clone}"`"
-   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-
-   subdir="`simplify_path "${subdir}"`"
-   case "${subdir}" in
-      /*|~*|..*)
-         fail "destination directory of ${clone} looks fishy"
-      ;;
-
-      "")
-         subdir="${name}"
-      ;;
-   esac
+   __parse_embedded_clone "${clone}"
 
    dstdir="${dstprefix}${subdir}"
 
@@ -1287,8 +1258,6 @@ clone_embedded_repositories()
       do
          IFS="${old}"
 
-         clone="`expanded_setting "${clone}"`"
-
          clone_embedded_repository "${dstprefix}" "${clone}"
       done
 
@@ -1331,14 +1300,7 @@ update_embedded_repositories()
       do
          IFS="${old}"
 
-         clone="`expanded_setting "${clone}"`"
-
-         name="`canonical_name_from_clone "${clone}"`"
-         url="`url_from_clone "${clone}"`"
-         branch="`branch_from_clone "${clone}"`"
-
-         tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-         dstdir="${dstprefix}${name}"
+         __parse_embedded_clone "${clone}"
 
          local doit
 

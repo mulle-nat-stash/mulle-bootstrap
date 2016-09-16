@@ -45,13 +45,13 @@ log_printf()
       printf "$@" >&2
    else
       printf "$@" > "${MULLE_LOG_DEVICE}"
-   fi         
+   fi
 }
 
 
 log_error()
 {
-   log_printf "${C_ERROR}%b${C_RESET}\n" "$*" 
+   log_printf "${C_ERROR}%b${C_RESET}\n" "$*"
 }
 
 
@@ -59,7 +59,7 @@ log_warning()
 {
    if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
    then
-      log_printf "${C_WARNING}%b${C_RESET}\n" "$*" 
+      log_printf "${C_WARNING}%b${C_RESET}\n" "$*"
    fi
 }
 
@@ -68,7 +68,7 @@ log_info()
 {
    if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
    then
-      log_printf "${C_INFO}%b${C_RESET}\n" "$*" 
+      log_printf "${C_INFO}%b${C_RESET}\n" "$*"
    fi
 }
 
@@ -77,7 +77,7 @@ log_verbose()
 {
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
    then
-      log_printf "${C_VERBOSE}%b${C_RESET}\n" "$*" 
+      log_printf "${C_VERBOSE}%b${C_RESET}\n" "$*"
    fi
 }
 
@@ -86,7 +86,7 @@ log_fluff()
 {
    if [ "${MULLE_BOOTSTRAP_FLUFF}" = "YES"  ]
    then
-      log_printf "${C_FLUFF}%b${C_RESET}\n" "$*" 
+      log_printf "${C_FLUFF}%b${C_RESET}\n" "$*"
    fi
 }
 
@@ -99,7 +99,7 @@ log_trace()
 
 log_trace2()
 {
-   log_printf "${C_TRACE2}%b${C_RESET}\n" "$*" 
+   log_printf "${C_TRACE2}%b${C_RESET}\n" "$*"
 }
 
 

@@ -232,28 +232,28 @@ EOF
 EOF
 #chmod 755 "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-upgrade.sh"
 
-  fi
+   fi
 
-  log_info "\"${BOOTSTRAP_SUBDIR}\" folder has been set up."
+   log_info "\"${BOOTSTRAP_SUBDIR}\" folder has been set up."
 
-  local open
+   local open
 
-  open="`read_config_setting "open_repositories_file" "ASK"`"
+   open="`read_config_setting "open_repositories_file" "ASK"`"
 
-  if [ "${open}" = "ASK" ]
-  then
-    user_say_yes "Edit the ${C_MAGENTA}${C_BOLD}repositories${C_RESET_BOLD} file now ?"
-    if [ $? -eq 0 ]
-    then
-       open="YES"
-    fi
-  fi
+   if [ "${open}" = "ASK" ]
+   then
+      user_say_yes "Edit the ${C_MAGENTA}${C_BOLD}repositories${C_RESET_BOLD} file now ?"
+      if [ $? -eq 0 ]
+      then
+          open="YES"
+      fi
+   fi
 
-  if [ "${open}" = "YES" ]
-  then
-     local editor
+   if [ "${open}" = "YES" ]
+   then
+      local editor
 
-     editor="`read_config_setting "editor" "${EDITOR:-vi}"`"
-     exekutor $editor "${BOOTSTRAP_SUBDIR}/repositories"
-  fi
+      editor="`read_config_setting "editor" "${EDITOR:-vi}"`"
+      exekutor $editor "${BOOTSTRAP_SUBDIR}/repositories"
+   fi
 }

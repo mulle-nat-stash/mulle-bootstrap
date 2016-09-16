@@ -94,32 +94,32 @@ mingw_mangle_compiler()
 #
 setup_mingw_buildenvironment()
 {
-	local linker
+   local linker
 
    if [ -z "${LIBPATH}" -o  -z "${INCLUDE}" ] && [ -z "${DONT_USE_VS}" ]
    then
       fail "environment variables INCLUDE and LIBPATH not set, start MINGW inside IDE environment"
    fi
 
-	linker="`find_msvc_executable "link.exe" "linker"`"
-	if [ ! -z "${linker}" ]
-	then
-		LD="${linker}"
-		export LD
-		log_verbose "Environment variable ${C_INFO}LD${C_FLUFF} set to ${C_RESET}\"${LD}\""
+   linker="`find_msvc_executable "link.exe" "linker"`"
+   if [ ! -z "${linker}" ]
+   then
+      LD="${linker}"
+      export LD
+      log_verbose "Environment variable ${C_INFO}LD${C_FLUFF} set to ${C_RESET}\"${LD}\""
    else
       log_fluff "MSVC link.exe not found"
    fi
 
    local preprocessor
 
-	preprocessor="`find_msvc_executable "mulle-mingw-cpp.sh" "preprocessor"`"
-	if [ ! -z "${preprocessor}" ]
-	then
-		CPP="${preprocessor}"  
-		export CPP
-		log_verbose "Environment variable ${C_INFO}CPP${C_FLUFF} set to ${C_RESET}\"${CPP}\""
-	else
+   preprocessor="`find_msvc_executable "mulle-mingw-cpp.sh" "preprocessor"`"
+   if [ ! -z "${preprocessor}" ]
+   then
+      CPP="${preprocessor}"
+      export CPP
+      log_verbose "Environment variable ${C_INFO}CPP${C_FLUFF} set to ${C_RESET}\"${CPP}\""
+   else
       log_fluff "mulle-mingw-cpp.sh not found"
    fi
 }
@@ -137,7 +137,7 @@ mingw_buildpath()
 
    old="${IFS}"
 
-   IFS=":" 
+   IFS=":"
    for i in $PATH
    do
       if [ -x "${i}/sh.exe" ]

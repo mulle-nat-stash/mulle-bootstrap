@@ -63,17 +63,17 @@ user_say_yes()
 
 get_core_count()
 {
-    count="`nproc 2> /dev/null`"
-    if [ -z "$count" ]
-    then
-       count="`sysctl -n hw.ncpu 2> /dev/null`"
-    fi
+   count="`nproc 2> /dev/null`"
+   if [ -z "$count" ]
+   then
+      count="`sysctl -n hw.ncpu 2> /dev/null`"
+   fi
 
-    if [ -z "$count" ]
-    then
-       count=2
-    fi
-    echo $count
+   if [ -z "$count" ]
+   then
+      count=2
+   fi
+   echo $count
 }
 
 
