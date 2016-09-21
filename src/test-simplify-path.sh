@@ -15,6 +15,8 @@ run_test()
 
 test_simplify_path()
 {
+  run_test "" simplify_path ""
+
   run_test "/" simplify_path "/"
   run_test "/" simplify_path "/."
   run_test "/" simplify_path "/./"

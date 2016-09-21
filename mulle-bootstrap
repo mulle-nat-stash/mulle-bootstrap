@@ -318,7 +318,13 @@ bootstrap_main()
    if [ "${MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH}" != "YES" ]
    then
       case "${command}" in
-         bootstrap|nomagic|setup-xcode|xcode|tag|fetch)
+         bootstrap|nomagic|fetch)
+            MULLE_BOOTSTRAP_WILL_FETCH="YES"
+            . mulle-bootstrap-refresh.sh
+            refresh_main || exit 1
+         ;;
+
+         setup-xcode|xcode|tag)
            . mulle-bootstrap-refresh.sh
             refresh_main || exit 1
          ;;

@@ -39,8 +39,8 @@ array_value_check()
    local n
 
    n=`echo "$1" | wc -l  | awk '{ print $1}'`
-   [ $n -eq 0 ] && fail "empty value"
-   [ $n -ne 1 ] && fail "value \"$1\" has linebreaks"
+   [ $n -eq 0 ] && internal_fail "empty value"
+   [ $n -ne 1 ] && internal_fail "value \"$1\" has linebreaks"
 
    echo "$1"
 }
@@ -54,12 +54,12 @@ array_index_check()
    array="$1"
    i="$2"
 
-   [ -z "${i}" ] && fail "empty index"
+   [ -z "${i}" ] && internal_fail "empty index"
 
    local n
    n=`array_count "${array}"`
 
-   [ ${i} -ge ${n} ] && fail "index ${i} out of bounds ${n}"
+   [ ${i} -ge ${n} ] && internal_fail "index ${i} out of bounds ${n}"
 
    echo "${i}"
 }
@@ -139,10 +139,10 @@ array_insert()
    local tail_count
    local n
 
-   [ "${i}" = "" ] && fail "empty index"
+   [ "${i}" = "" ] && internal_fail "empty index"
 
    n=`array_count "${array}"`
-   [ ${i} -gt ${n} ] && fail "index ${i} out of bounds ${n}"
+   [ ${i} -gt ${n} ] && internal_fail "index ${i} out of bounds ${n}"
 
    head_count=$i
    tail_count=`expr $n - $i`
@@ -234,8 +234,8 @@ _assoc_array_key_check()
    local n
 
    n=`echo "$1" | wc -w`
-   [ $n -eq 0 ] && fail "empty value"
-   [ $n -ne 1 ] && fail "key \"$1\" has spaces"
+   [ $n -eq 0 ] && internal_fail "empty value"
+   [ $n -ne 1 ] && internal_fail "key \"$1\" has spaces"
 
    #
    # escape charactes

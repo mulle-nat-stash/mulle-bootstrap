@@ -1,5 +1,10 @@
 # FAQ
 
+## Is mulle-bootstrap a package manager ?
+
+No it's a dependency manager.
+
+
 ## Where is what ?
 
 * `.bootstrap` is the bootstrap configuration of the repository.
@@ -129,6 +134,11 @@ Any setting can be overriden by the environment:
 ```
 MULLE_BOOTSTRAP_BUILD_PREFERENCES=cmake mulle-bootstrap build
 ```
+
+### My embedded_repoisitories .bootstrap folder is ignored ?
+
+Yes, this is by design. Embedded repositories are not built and therefore
+(should) have no dependencies.
 
 
 ### Is the order of the repositories important ?

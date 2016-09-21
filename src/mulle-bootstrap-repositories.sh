@@ -66,7 +66,7 @@ canonical_clone_name()
 
 count_clone_components()
 {
-  echo "$@" | tr ';' '\012' | wc -l | awk '{ print $1 }'
+   echo "$@" | tr ';' '\012' | wc -l | awk '{ print $1 }'
 }
 
 
@@ -78,19 +78,19 @@ url_from_clone()
 
 _name_part_from_clone()
 {
-   echo "$@" | cut '-d;' -f 2
+   echo "$@" | cut -s '-d;' -f 2
 }
 
 
 _branch_part_from_clone()
 {
-   echo "$@" | cut '-d;' -f 3
+   echo "$@" | cut -s '-d;' -f 3
 }
 
 
 _scm_part_from_clone()
 {
-   echo "$@" | cut '-d;' -f 4
+   echo "$@" | cut -s '-d;' -f 4
 }
 
 
@@ -137,45 +137,106 @@ scm_from_clone()
 }
 
 
-embedded_repository_directory_in_repos()
+embedded_repository_subdir_from_file()
+{
+   local path
+
+   path="$1"
+
+   [ -z "${path}" ] && internal_fail "Empty parameter"
+
+   head -1 "${path}"
+}
+
+
+embedded_repository_subdir_in_repos()
 {
    local filename
-   local owd
 
    filename="$1"
-   owd="$2"
 
-   local embedded
-   local linkfile
+   [ -z "${filename}" ] && internal_fail "Empty parameter"
+
    local relpath
-   local old
-   local owd
 
    relpath="${CLONESFETCH_SUBDIR}/.embedded/${filename}"
    if [ -f "${relpath}" ]
    then
-      linkfile="`cat "${relpath}"`"
-      embedded="`(cd "${CLONESFETCH_SUBDIR}/.embedded" ; absolutepath "${linkfile}")`"
-      embedded="`simplify_path "${embedded}"`"
-      embedded="`relative_path_between "${embedded}" "${owd}"`"
-      if [ -d "${embedded}" ]
-      then
-         echo "${embedded}"
-      fi
+      embedded_repository_subdir_from_file "${relpath}"
    fi
 }
 
 
-embedded_repository_directories_from_repos()
+embedded_repository_url_in_repos()
 {
    local filename
-   local embedded
-   local linkfile
-   local relpath
-   local old
-   local owd
 
-   owd="`pwd -P`"
+   filename="$1"
+
+   local url
+   local relpath
+
+   relpath="${CLONESFETCH_SUBDIR}/.embedded/${filename}"
+   if [ -f "${relpath}" ]
+   then
+      #
+      # if only one line present, will retrieve that
+      #
+      tail -1 "${relpath}"
+   fi
+}
+
+#
+# search by url, may actually not exist though
+# CLONESFETCH_SUBDIR must have the proper dstprefix set
+#
+find_embedded_repository_subdir_in_repos()
+{
+   local url
+
+   url="$1"
+
+   local filename
+   local old
+
+   old="${IFS}"
+   IFS="
+"
+
+   for i in `fgrep -l -x "${url}" "${CLONESFETCH_SUBDIR}/.embedded/"* 2> /dev/null`
+   do
+      IFS="${old}"
+
+      #
+      # ensure that it's the URL that matched
+      #
+      match_url="`tail -1 "${i}"`"
+      if [ "${match_url}" = "${url}" ]
+      then
+         embedded_repository_subdir_from_file "${i}"
+         return
+      fi
+   done
+
+   IFS="${old}"
+}
+
+
+#
+# look through embedded repositories
+# CLONESFETCH_SUBDIR must have the proper dstprefix set
+# used by clean, don't need deeply embedded repos
+#
+embedded_repository_directories_from_repos()
+{
+   local dstprefix
+
+   dstprefix="$1"
+
+   local filename
+   local old
+   local embedded
+
 
    old="${IFS}"
    IFS="
@@ -184,7 +245,15 @@ embedded_repository_directories_from_repos()
    do
       IFS="${old}"
 
-      embedded_repository_directory_in_repos "${filename}" "${owd}"
+      embedded="`embedded_repository_subdir_in_repos "${filename}"`"
+      if [ ! -z "${embedded}" ]
+      then
+         embedded="${dstprefix}${embedded}"
+         if [ -d "${embedded}" ]
+         then
+            echo "${embedded}"
+         fi
+      fi
    done
 
    IFS="${old}"
@@ -199,16 +268,10 @@ repository_directories_from_repos()
    old="${IFS}"
    IFS="
 "
+
    for filename in `ls -1 "${CLONESFETCH_SUBDIR}" 2> /dev/null`
    do
-      case "${filename}" in
-         .*)
-         ;;
-
-         *)
-            echo "${CLONESFETCH_SUBDIR}/$filename"
-         ;;
-      esac
+      echo "${CLONESFETCH_SUBDIR}/$filename"
    done
 
    IFS="${old}"
@@ -239,7 +302,7 @@ __parse_expanded_clone()
 
    case "${name}" in
       /*|~*|..*|.*)
-         fail "destination name of ${clone} looks fishy"
+         fail "Destination name \"${name}\" of repository ${name} looks fishy"
       ;;
    esac
 }
@@ -275,9 +338,10 @@ __parse_embedded_clone()
 
    subdir="`_name_part_from_clone "${clone}"`"
    subdir="`simplify_path "${subdir}"`"
+
    case "${subdir}" in
       /*|~*|..*|.*)
-         fail "destination directory of ${clone} looks fishy"
+         fail "Destination directory \"${subdir}\" of repository ${name} looks fishy"
       ;;
 
       "")

@@ -349,11 +349,15 @@ realpath()
 _relative_path_between()
 {
     [ $# -ge 1 ] && [ $# -le 2 ] || return 1
+
     current="${2:+"$1"}"
     target="${2:-"$1"}"
+
     [ "$target" != . ] || target=/
+
     target="/${target##/}"
     [ "$current" != . ] || current=/
+
     current="${current:="/"}"
     current="/${current##/}"
     appendix="${target##/}"
@@ -373,9 +377,90 @@ _relative_path_between()
 }
 
 
+#
+# $1 is the directory, that we want to access relative from root
+# $2 is the root
+#
+# ex.   /usr/include /usr,  -> include
+# ex.   /usr/include /  -> /usr/include
+#
+# the routine can not deal with ../ and ./
+#
 relative_path_between()
 {
-   _relative_path_between "$2" "$1"
+   local  a
+   local  b
+
+   # remove trailing '/' it upsets the code
+
+   a="`echo "$1" | sed -e 's|/$||g'`"
+   b="`echo "$2" | sed -e 's|/$||g'`"
+
+   # the function can't do mixed paths
+
+   case "${a}" in
+      "")
+         internal_fail "Empty path"
+      ;;
+
+      ../*|*/..|*/../*|..)
+         internal_fail "Path \"${a}\" mustn't contain ../"
+      ;;
+
+      ./*|*/.|*/./*|.)
+         internal_fail "Path \"${a}\" mustn't contain ./"
+      ;;
+
+
+      /*)
+         case "${b}" in
+            "")
+               internal_fail "Empty path"
+            ;;
+
+            ../*|*/..|*/../*|..)
+               internal_fail "Path \"${b}\" mustn't contain ../"
+            ;;
+
+            ./*|*/.|*/./*|.)
+               internal_fail "Path \"${b}\" mustn't contain ./"
+            ;;
+
+
+            /*)
+            ;;
+
+            *)
+               internal_fail "Mixing absolute path \"${a}\" and relative path \"${b}\""
+            ;;
+         esac
+      ;;
+
+      *)
+         case "${b}" in
+            "")
+               internal_fail "Empty path"
+            ;;
+
+            ../*|*/..|*/../*|..)
+               internal_fail "Path \"${b}\" mustn't contain ../"
+            ;;
+
+            ./*|*/.|*/./*|.)
+               internal_fail "Path \"${b}\" mustn't contain ./"
+            ;;
+
+            /*)
+               internal_fail "Mixing relative path \"${a}\" and absolute path \"${b}\""
+            ;;
+
+            *)
+            ;;
+         esac
+      ;;
+   esac
+
+   _relative_path_between "${b}" "${a}"
 }
 
 
@@ -572,10 +657,12 @@ simplify_path()
    local final_components
    local final_path
 
-   components="`echo "${path}" | tr '/' '\012' | sed -e 's|$|/|'`"
-   final_components="`_simplify_components  "${components}"`"
-   final_path="`_path_from_components "${final_components}"`"
-
+   if [ ! -z "${path}" ]
+   then
+      components="`echo "${path}" | tr '/' '\012' | sed -e 's|$|/|'`"
+      final_components="`_simplify_components  "${components}"`"
+      final_path="`_path_from_components "${final_components}"`"
+   fi
    echo "${final_path}"
 }
 

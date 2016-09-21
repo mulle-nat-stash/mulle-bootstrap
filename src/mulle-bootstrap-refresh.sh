@@ -295,10 +295,10 @@ bury_zombies()
    fi
 }
 
+
 #
 # ###
 #
-
 mark_all_embedded_repositories_zombies()
 {
    local i
@@ -318,9 +318,9 @@ mark_all_embedded_repositories_zombies()
 
       for symlink in `ls -1d "${path}/"*`
       do
-         i="`cat "$symlink" 2>/dev/null`" || fail "Old style mulle-bootstrap files detected, \`mulle-bootstrap dist clean\` it ($PWD/$symlink)"
-         name="`basename -- "$i"`"
-         exekutor touch "${zombiepath}/${name}"
+         i="`head -1 "$symlink" 2>/dev/null`" || fail "Old style mulle-bootstrap files detected, \`mulle-bootstrap dist clean\` it ($PWD/$symlink)"
+         name="`basename -- "${i}"`"
+         exekutor cp "${symlink}" "${zombiepath}/${name}"
       done
    fi
 }
@@ -344,9 +344,9 @@ mark_embedded_repository_alive()
 
 bury_embedded_zombies()
 {
-   local dst
+   local dstprefix
 
-   dst="$1"
+   dstprefix="$1"
 
    local i
    local name
@@ -356,8 +356,9 @@ bury_embedded_zombies()
    local gravepath
    local path2
 
-      # first mark all repos as stale
+   # first mark all repos as stale
    zombiepath="${CLONESFETCH_SUBDIR}/.embedded/.zombies"
+
    if dir_has_files "${zombiepath}"
    then
       log_fluff "Burying embedded zombies into graveyard"
@@ -369,11 +370,17 @@ bury_embedded_zombies()
       do
          if [ -f "${i}" ]
          then
-            name="`basename -- "${i}"`"
-            dstdir="${dst}${name}"
+            log_info "CLONESFETCH_SUBDIR=${CLONESFETCH_SUBDIR}"
+            log_info "pwd=${PWD}"
+            log_info "i=${i}"
+            dstdir="`embedded_repository_subdir_from_file "${i}" "${CLONESFETCH_SUBDIR}/.embedded"`"
+            dstdir="${dstprefix}${dstdir}"
+            log_info "dstdir=${dstdir}"
 
             if [ -d "${dstdir}" -o -L "${dstdir}" ]
             then
+               name="`basename -- "${i}"`"
+
                if [ -e "${gravepath}/${name}" ]
                then
                   exekutor rm -rf "${gravepath}/${name}"
@@ -391,7 +398,7 @@ bury_embedded_zombies()
                exekutor rm "${CLONESFETCH_SUBDIR}/.embedded/${name}"
                log_info "Removed unused embedded repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"${dstdir}\""
             else
-               log_fluff "\"${dstdir}\" embedded zombie vanished or never existed ($PWD)"
+               log_fluff "Embedded zombie \"${dstdir}\" vanished or never existed ($PWD)"
             fi
          fi
       done
@@ -409,17 +416,20 @@ bury_embedded_zombies()
 
 refresh_repositories()
 {
-   local branch
    local clone
    local clones
    local dstdir
-   local name
    local old
-   local scm
-   local tag
-   local url
 
    mark_all_repositories_zombies
+
+   # local variables for __parse_clone
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+   local subdir
 
    old="${IFS:-" "}"
 
@@ -455,27 +465,31 @@ _refresh_embedded_repositories()
 
    dstprefix="$1"
 
-   local branch
    local clone
    local clones
-   local dstdir
-   local name
-   local old
-   local scm
-   local subdir
-   local olddir
-   local tag
-   local url
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
-   old="${IFS:-" "}"
-
    clones="`read_fetch_setting "embedded_repositories"`"
-   if [ "${clones}" != "" ]
+   if [ ! -z "${clones}" ]
    then
+
+      local old
+
+      old="${IFS:-" "}"
       IFS="
 "
+      # local variables for __parse_embedded_clone
+      local name
+      local url
+      local branch
+      local scm
+      local tag
+      local subdir
+
+      local dstdir
+      local olddir
+
       for clone in ${clones}
       do
          IFS="${old}"
@@ -484,13 +498,18 @@ _refresh_embedded_repositories()
 
          __parse_embedded_clone "${clone}"
 
-         dstdir="${dstprefix}${subdir}"
-         olddir="`embedded_repository_directory_in_repos "${name}"`"
-         if [ "${dstdir}" != "${olddir}" ]
+         olddir="`find_embedded_repository_subdir_in_repos "${url}"`"
+         if [ ! -z "${olddir}" ]
          then
-            log_warning "Embedded repository ${name} moved from ${olddir} to ${dstdir}. Refetch needed."
-         else
-            mark_embedded_repository_alive "${name}" "${dstdir}"
+            if [ "${subdir}" != "${olddir}" ]
+            then
+               if [ -z "${MULLE_BOOTSTRAP_WILL_FETCH}" ]
+               then
+                  log_info "Embedded repository ${name} should move from ${olddir} to ${subdir}. A refetch is needed."
+               fi
+            else
+               mark_embedded_repository_alive "${name}" "${dstprefix}${subdir}"
+            fi
          fi
       done
    fi

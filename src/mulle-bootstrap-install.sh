@@ -31,7 +31,6 @@
 
 MULLE_BOOTSTRAP_INSTALL_SH="included"
 
-[ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 
 
 install_usage()

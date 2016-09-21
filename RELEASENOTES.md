@@ -1,9 +1,22 @@
+2.1
+===
+
+**The changes should be transparent, but to be safe `mulle-bootstrap dist clean`
+your projects**
+
+* fixed a problem in the parsing of the repositories file
+* embedded repositories can now be placed at an arbitrary position within your
+project tree
+* changes in deeply embedded repositories are now better tracked
+* fixed some as of yet unknown bugs, by improving some path functions
+
 2.0
 ===
 
 ### YOUR OLD STUFF MAY NOT RUN ANYMORE
 
 Do a `mulle-bootstrap dist clean`.
+
 
 ### YOUR OLD SETTINGS MAY NOT WORK ANYMORE!
 

@@ -658,6 +658,7 @@ did_clone_repository()
 # checked out already it will use it, or ask
 # convention: .git suffix == repo to clone
 #          no .git suffix, try to symlink
+# return value 1 means: reread repositories, as it may have changed
 #
 checkout_repository()
 {
@@ -672,50 +673,48 @@ checkout_repository()
    branch="$4"
 
    local flag
+   local run_script
 
-   if [ ! -e "${dstdir}" ]
+   run_script=-1
+   flag=0
+
+   if [ -e "${dstdir}" ]
    then
+      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+
+      log_fluff "Repository \"${dstdir}\" already exists"
+   else
       if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${CLONESFETCH_SUBDIR}/.graveyard/${name}" ]
       then
          log_info "Restoring ${name} from graveyard"
          exekutor mv "${CLONESFETCH_SUBDIR}/.graveyard/${name}" "${CLONESFETCH_SUBDIR}" || fail "move failed"         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
          ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-         flag=0
       else
          checkout "$@"
-         flag=1
+         run_script=0  # yes, run it
 
-         if [ "${COMMAND}" = "fetch" -a "${DONT_RECURSE}" = "" ]
-         then
-            local old_bootstrap
-
-            old_bootstrap="${BOOTSTRAP_SUBDIR}"
-
-            BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
-            clone_embedded_repositories "${dstdir}/"
-            BOOTSTRAP_SUBDIR="${old_bootstrap}"
-
-            bootstrap_auto_update "${name}" "${url}" "${dstdir}"
-            flag=$?
-         fi
-
-         fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
+         bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+         flag=$?
       fi
-
-      #
-      # means we recursed and should start fetch from top
-      #
-      if [ ${flag} -eq 0 ]
-      then
-         return 1
-      fi
-   else
-      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-
-      log_fluff "Repository \"${dstdir}\" already exists"
    fi
 
-   return 0
+   if [ "${COMMAND}" = "fetch" -a "${DONT_RECURSE}" = "" ]
+   then
+      local old_bootstrap
+
+      old_bootstrap="${BOOTSTRAP_SUBDIR}"
+
+      BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
+      clone_embedded_repositories "${dstdir}/"
+      BOOTSTRAP_SUBDIR="${old_bootstrap}"
+   fi
+
+   if $run_script
+   then
+      fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
+   fi
+
+   return $flag
 }
 
 
@@ -844,11 +843,12 @@ ${clone}"
 }
 
 
+#
 # return 0, all cool
 # return 1, is symlinked
 # return 2, .bootstrap/repositories changed
 # return 3, is symlinked and .bootstrap/repositories changed
-
+#
 update()
 {
    local name
@@ -1211,20 +1211,23 @@ clone_embedded_repository()
          fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
       fi
 
-      # memo that we did this with a symlink
+      #
+      # memorize how we embedded the repository, need URL to identify
+      # and the subdir, where it was stored
+      #
       # store it inside the possibly recursed dstprefix dependency
-      local symlinkcontent
-      local symlinkdir
-      local symlinkrelative
+      #
+      local content
+      local embeddeddir
 
-      symlinkrelative=`compute_relative "${CLONESFETCH_SUBDIR}/.embedded"`
-      symlinkdir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
-      mkdir_if_missing "${symlinkdir}"
-      symlinkcontent="${symlinkrelative}/${dstdir}"
+      embeddeddir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
+      mkdir_if_missing "${embeddeddir}"
+      content="${subdir}
+${url}"
 
       # dont't use symlinks anymore
-      log_fluff "Remember embedded repository \"${name}\" via \"${symlinkdir}/${name}\""
-      exekutor echo "${symlinkcontent}" > "${symlinkdir}/${name}"
+      log_fluff "Remember embedded repository \"${name}\" via \"${embeddeddir}/${name}\""
+      exekutor echo "${content}" > "${embeddeddir}/${name}"
    else
       ensure_clone_branch_is_correct "${dstdir}" "${branch}"
 

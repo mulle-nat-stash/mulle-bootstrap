@@ -242,7 +242,7 @@ EOF
 
    if [ "${open}" = "ASK" ]
    then
-      user_say_yes "Edit the ${C_MAGENTA}${C_BOLD}repositories${C_RESET_BOLD} file now ?"
+      user_say_yes "Edit the ${C_MAGENTA}${C_BOLD}repositories${C_WARNING} file now ?"
       if [ $? -eq 0 ]
       then
           open="YES"

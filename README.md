@@ -46,7 +46,6 @@ projects and installs their output into a "dependencies" folder.
 libraries into an "addictions" folder (on participating platforms)
 * alerts to the presence of shell scripts in fetched dependencies
 
-
 ## A first use
 
 So you need a bunch of third party projects to build your own
