@@ -104,6 +104,60 @@ Well, do ya, punk?"
 }
 
 
+bootstrap_nomagic_main()
+{
+   local command
+
+   command="$1"
+   shift
+
+   if [ "${command}" = "nomagic" ]
+   then
+      DONT_RECURSE=YES
+   fi
+
+   . mulle-bootstrap-fetch.sh
+   . mulle-bootstrap-build.sh
+   . mulle-bootstrap-warn-scripts.sh
+
+   if [ "${DONT_RECURSE}" = "" ]
+   then
+      fetch_main "$@" || exit 1
+      refresh_main    || exit 1
+  else
+      fetch_main --non-recursive "$@" || exit 1
+      refresh_main nonrecursive       || exit 1
+   fi
+
+   warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
+
+   # do it again now!
+   build_main "$@" || exit 1
+}
+
+
+clone_main()
+{
+   local url
+
+   url="$1"
+   [ $# -ne 0 ] && shift
+
+   name="`basename -- "${url}"`"
+   name="`basename -- "${name}" .git`"
+
+   if [ ! -e "${name}" ]
+   then
+      git clone ${GITFLAGS} "${url}" "${name}" || exit 1
+   else
+      log_info "Directory ${name} already exists."
+   fi
+
+   ( cd "${name}"; refresh_main ) || exit 1
+   ( cd "${name}"; bootstrap_nomagic_main "$@" ) || exit 1
+}
+
+
 bootstrap_main()
 {
    local command
@@ -335,7 +389,7 @@ bootstrap_main()
             refresh_main refresh_if_bare || exit 1
          ;;
 
-         update|refresh)
+         update|refresh|clone)
            . mulle-bootstrap-refresh.sh
 
            # 4 laters
@@ -344,29 +398,12 @@ bootstrap_main()
    fi
 
    case "${command}" in
+      clone)
+         clone_main "$@"
+      ;;
+
       bootstrap|nomagic)
-         if [ "${command}" = "nomagic" ]
-         then
-            DONT_RECURSE=YES
-         fi
-
-         . mulle-bootstrap-fetch.sh
-         . mulle-bootstrap-build.sh
-         . mulle-bootstrap-warn-scripts.sh
-
-         if [ "${DONT_RECURSE}" = "" ]
-         then
-            fetch_main "$@"     || exit 1
-            refresh_main                  || exit 1
-        else
-            fetch_main --non-recursive "$@" || exit 1
-            refresh_main nonrecursive    || exit 1
-         fi
-
-         warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
-
-         # do it again now!
-         build_main "$@" || exit 1
+         bootstrap_nomagic_main "${command}" "$@"
       ;;
 
       # experimental stuff
@@ -421,7 +458,7 @@ bootstrap_main()
       init)
          . mulle-bootstrap-init.sh
 
-        init_main "$@" || exit 1
+         init_main "$@" || exit 1
       ;;
 
       setup-xcode|xcode)

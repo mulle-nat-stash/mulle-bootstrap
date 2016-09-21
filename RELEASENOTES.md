@@ -9,6 +9,8 @@ your projects**
 project tree
 * changes in deeply embedded repositories are now better tracked
 * fixed some as of yet unknown bugs, by improving some path functions
+* resurrected the clone command for **mulle-aba**
+
 
 2.0
 ===

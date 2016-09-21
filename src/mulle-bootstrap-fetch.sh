@@ -350,7 +350,7 @@ link_command()
          name="`basename -- "${dst}"`"
          log_warning "tag ${tag} will be ignored, due to symlink" >&2
          log_warning "if you want to checkout this tag do:" >&2
-         log_warning "${C_RESET}${C_BOLD}(cd .repos/${name}; git ${GITFLAGS} checkout \"${tag}\" )${C_WARNING}" >&2
+         log_warning "${C_RESET}${C_BOLD}(cd .repos/${name}; git checkout ${GITFLAGS} \"${tag}\" )${C_WARNING}" >&2
       fi
    fi
 
@@ -709,7 +709,7 @@ checkout_repository()
       BOOTSTRAP_SUBDIR="${old_bootstrap}"
    fi
 
-   if $run_script
+   if [ $run_script -eq 0 ]
    then
       fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
    fi
@@ -748,6 +748,7 @@ clone_repository()
    fi
 
    flag=0
+
    if [ $doit -ne 0 ]
    then
       log_fetch_action "${url}" "${dstdir}"
@@ -771,21 +772,23 @@ clone_repository()
 
 clone_repositories()
 {
-   local branch
    local clone
    local clones
    local fetched
    local match
-   local name
    local old
    local rval
-   local scm
    local stop
-   local tag
-   local url
 
    old="${IFS:-" "}"
    fetched=""
+
+   # __parse_expanded_clone variables
+   local name
+   local url
+   local branch
+   local scm
+   local tag
 
    stop=0
    while [ $stop -eq 0 ]

@@ -164,7 +164,9 @@ bootstrap_auto_update_repo_settings()
 }
 
 
-
+#
+# return 0, if nothing changed
+#
 bootstrap_auto_update()
 {
    local name
@@ -187,7 +189,7 @@ bootstrap_auto_update()
    if [ ! -d "${directory}/.bootstrap" ] # -a ! -L "${dst}" ]
    then
       log_fluff "No .bootstrap folder in \"${directory}\" found"
-      return 1
+      return 0
    fi
 
    log_verbose "Updating .bootstrap.auto with ${directory}"
@@ -202,7 +204,7 @@ bootstrap_auto_update()
    bootstrap_auto_update_repo_settings "${directory}"
 
    log_fluff "Acquisiton of \"${name}\" complete"
-   return 0
+   return 1
 }
 
 #

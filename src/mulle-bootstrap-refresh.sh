@@ -101,6 +101,11 @@ ${clone}"
                __parse_expanded_clone "${clone}"
 
                dstdir="${CLONESFETCH_SUBDIR}/${name}"
+               if [ ! -d "${dstdir}" ]
+               then
+                  log_fluff "${name} has not been fetched yet"
+                  continue
+               fi
 
                #
                # dependency management, it could be nicer, but isn't.
@@ -264,7 +269,7 @@ bury_zombies()
       gravepath="${CLONESFETCH_SUBDIR}/.graveyard"
       mkdir_if_missing "${gravepath}"
 
-      for i in `ls -1 "${zombiepath}/"*`
+      for i in `ls -1 "${zombiepath}/"* 2> /dev/null`
       do
          if [ -e "${i}" ]
          then
@@ -366,7 +371,7 @@ bury_embedded_zombies()
       gravepath="${CLONESFETCH_SUBDIR}/.embedded/.graveyard"
       mkdir_if_missing "${gravepath}"
 
-      for i in `ls -1 "${zombiepath}/"*`
+      for i in `ls -1 "${zombiepath}/"* 2> /dev/null`
       do
          if [ -f "${i}" ]
          then
