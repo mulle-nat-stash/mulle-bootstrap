@@ -118,6 +118,10 @@ write_protect_directory()
 #
 install_brews()
 {
+   local flag
+
+   flag="$1"
+
    local brew
    local brews
    local brewcmd
@@ -147,7 +151,7 @@ install_brews()
 
    [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
 
-   if [ -d "${ADDICTION_SUBDIR}" ]
+   if [ "${flag}" = "NO" -a -d "${ADDICTION_SUBDIR}" ]
    then
       log_fluff "Unprotecting \"${ADDICTION_SUBDIR}\" for ${command}."
       exekutor chmod -R u+w "${ADDICTION_SUBDIR}"
@@ -192,11 +196,19 @@ install_brews()
          log_info "Force linking it, in case it was keg-only"
          exekutor "${BREW}" link --force "${formula}" || exit 1
       else
-         log_info "\"${formula}\" is already installed."
+         if [ "${flag}" = "NO" ]
+         then
+            log_info "\"${formula}\" is already installed."
+         else
+            log_fluff "\"${formula}\" is already installed."
+         fi
       fi
    done
 
-   write_protect_directory "${ADDICTION_SUBDIR}"
+   if [ "${flag}" = "YES" ]
+   then
+      write_protect_directory "${ADDICTION_SUBDIR}"
+   fi
 
    IFS="${old}"
 }
@@ -1416,7 +1428,7 @@ _common_main()
    #
    if [ "${COMMAND}" = "fetch" ]
    then
-       install_brews
+       install_brews NO
 #
 # remove these, as they aren't installing locally
 #
@@ -1427,7 +1439,7 @@ _common_main()
       clone_embedded_repositories
 
       # install brews again, in case we inherited some in the meantime
-      install_brews
+      install_brews YES
 
       check_tars
    else
