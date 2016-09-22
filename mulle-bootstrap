@@ -216,6 +216,10 @@ bootstrap_main()
             MULLE_EXECUTOR_DRY_RUN="YES"
          ;;
 
+         -is|--ignore-system)
+            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="NO"
+         ;;
+
          -ig|--ignore-graveyard)
             MULLE_BOOTSTRAP_IGNORE_GRAVEYARD="YES"
          ;;
