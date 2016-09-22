@@ -725,19 +725,19 @@ url_from_clone()
 
 _name_part_from_clone()
 {
-   echo "$@" | cut '-d;' -f 2
+   echo "$@" | cut -s '-d;' -f 2
 }
 
 
 _branch_part_from_clone()
 {
-   echo "$@" | cut '-d;' -f 3
+   echo "$@" | cut -s '-d;' -f 3
 }
 
 
 _scm_part_from_clone()
 {
-   echo "$@" | cut '-d;' -f 4
+   echo "$@" | cut -s '-d;' -f 4
 }
 
 

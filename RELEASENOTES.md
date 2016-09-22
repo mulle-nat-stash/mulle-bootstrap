@@ -1,3 +1,12 @@
+2.0.1
+===
+
+Fixes two bugs
+
+* fix problem in refresh using '==' instead of '='
+* fix cut not using -s for extra parameters
+
+
 2.0
 ===
 
