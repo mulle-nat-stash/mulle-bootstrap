@@ -29,13 +29,18 @@ git_must_be_clean()
 set -e
 
 git_must_be_clean
-git push public master
+
+branch="`git rev-parse --abbrev-ref HEAD`"
+
+git checkout release
+git rebase "${branch}"
+git push public release
 
 # seperate step, as it's tedious to remove tag when
 # previous push fails
 
 git tag "${TAG}"
-git push public master --tags
+git push public release --tags
 
 ./bin/generate-brew-formula.sh  > ../homebrew-software/mulle-bootstrap.rb
 (
@@ -43,4 +48,6 @@ git push public master --tags
  	git commit -m "${TAG} release of mulle-bootstrap" mulle-bootstrap.rb ; \
  	git push origin master
 )
+
+git checkout "${branch}"
 

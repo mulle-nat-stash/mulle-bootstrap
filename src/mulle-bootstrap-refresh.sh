@@ -635,7 +635,7 @@ refresh_main()
    #
    if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
    then
-      if [ "${COMMAND}" == "refresh_if_bare" ]
+      if [ "${COMMAND}" = "refresh_if_bare" ]
       then
           return
       fi
