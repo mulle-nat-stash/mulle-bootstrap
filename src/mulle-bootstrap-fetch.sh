@@ -756,7 +756,7 @@ clone_repository()
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
    doit=1
-   if [ "${DO_CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+   if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
    then
       has_usr_local_include "${name}"
       doit=$?
@@ -1057,16 +1057,17 @@ update_repositories()
       return
    fi
 
+   # __parse_expanded_clone
+   local name
+   local url
    local branch
+   local scm
+   local tag
+
    local dstdir
    local match
-   local name
-   local rval
-   local scm
    local stop
-   local tag
    local updated
-   local url
 
    updated=""
 
@@ -1091,34 +1092,35 @@ update_repositories()
             # avoid superflous updates
             match="`echo "${updated}" | grep -x "${clone}"`"
 
-            if [ "${match}" != "${clone}" ]
+            if [ "${match}" = "${clone}" ]
             then
-               updated="${updated}
+               continue
+            fi
+
+            updated="${updated}
 ${clone}"
+            __parse_expanded_clone "${clone}"
 
-               __parse_expanded_clone "${clone}"
+            dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
-               dstdir="${CLONESFETCH_SUBDIR}/${name}"
+            create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
-               create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-                  if [ -e "${dstdir}" ]
-                  then
-                     update_repository "${name}" "${url}" "${branch}"
-                     rval=$?
-                  else
-                     scm="`scm_from_clone "${clone}"`"
-                     clone_repository "${name}" "${url}" "${branch}" "${scm}"
-                     rval=1
-                  fi
-
-               remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-               if [ $rval -eq 1 ]
+               if [ -e "${dstdir}" ]
                then
-                  stop=0
-                  break
+                  update_repository "${name}" "${url}" "${branch}"
+                  rval=$?
+               else
+                  scm="`scm_from_clone "${clone}"`"
+                  clone_repository "${name}" "${url}" "${branch}" "${scm}"
+                  rval=1
                fi
+
+            remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+            if [ $rval -eq 1 ]
+            then
+               stop=0
+               break
             fi
          done
       fi
@@ -1303,20 +1305,26 @@ update_embedded_repositories()
    local clones
    local clone
    local old
+
+   # __parse_embedded_clone
    local name
    local url
    local branch
    local scm
+   local tag
+   local subdir
+
+   local dstdir
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
-   old="${IFS:-" "}"
-
+   set -x
    clones="`read_fetch_setting "embedded_repositories"`"
    clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
 
-   if [ "${clones}" != "" ]
+   if [ ! -z "${clones}" ]
    then
+      old="${IFS:-" "}"
       IFS="
 "
       for clone in ${clones}
@@ -1325,36 +1333,24 @@ update_embedded_repositories()
 
          __parse_embedded_clone "${clone}"
 
-         local doit
+         dstdir="${dstprefix}${subdir}"
+         log_fetch_action "${url}" "${dstdir}"
 
-         doit=1
-         if [ "${DO_CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+         if [ -e "${dstdir}" ]
          then
-            has_usr_local_include "${name}"
-            doit=$?
-         fi
-
-         if [ $doit -ne 0 ]
-         then
-            log_fetch_action "${url}" "${dstdir}"
-
-            create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-            if [ -e "${dstdir}" ]
-            then
-               update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
-            else
-               clone_embedded_repository "${dstprefix}" "${clone}"
-            fi
-
-            remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+            update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
          else
-            log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not updating"
+            clone_embedded_repository "${dstprefix}" "${clone}"
          fi
+
+         remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
       done
+
+      IFS="${old}"
    fi
 
-   IFS="${old}"
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }
 
@@ -1433,7 +1429,7 @@ _common_main()
    # should we check for '/usr/local/include/<name>' and don't fetch if
    # present (somewhat dangerous, because we do not check versions)
    #
-   DO_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    if [ "${COMMAND}" = "fetch" ]
    then

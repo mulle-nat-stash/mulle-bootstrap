@@ -373,12 +373,8 @@ bury_embedded_zombies()
       do
          if [ -f "${i}" ]
          then
-            log_info "CLONESFETCH_SUBDIR=${CLONESFETCH_SUBDIR}"
-            log_info "pwd=${PWD}"
-            log_info "i=${i}"
             dstdir="`embedded_repository_subdir_from_file "${i}" "${CLONESFETCH_SUBDIR}/.embedded"`"
             dstdir="${dstprefix}${dstdir}"
-            log_info "dstdir=${dstdir}"
 
             if [ -d "${dstdir}" -o -L "${dstdir}" ]
             then
@@ -649,19 +645,19 @@ refresh_main()
    then
       if [ "${DONT_RECURSE}" = "" ]
       then
-         log_verbose "Refreshing repository settings"
+         log_fluff "Refreshing repository settings"
          refresh_repositories_settings
       fi
 
-      log_verbose "Detect zombie repositories"
+      log_fluff "Detect zombie repositories"
       refresh_repositories
 
-      log_verbose "Detect embedded zombie repositories"
+      log_fluff "Detect embedded zombie repositories"
       refresh_embedded_repositories
 
       if [ "${DONT_RECURSE}" = "" ]
       then
-         log_verbose "Detect deeply embedded zombie repositories"
+         log_fluff "Detect deeply embedded zombie repositories"
          refresh_deeply_embedded_repositories
       fi
    fi
