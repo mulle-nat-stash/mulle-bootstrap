@@ -1,4 +1,4 @@
-# mulle-bootstrap, cross platform dependency manager using bash and cmake
+# mulle-bootstrap, cross platform dependency manager using bash
 
 ... for Linux, OS X, FreeBSD, Windows
 
@@ -81,6 +81,9 @@ libraries into the `dependencies/lib`  and `dependencies/include` folders.
 * [mulle-bootstrap: Understanding mulle-bootstrap (I)](https://www.mulle-kybernetik.com/weblog/2016/mulle_bootstrap_how_it_works.html)
 * [mulle-bootstrap: Understanding mulle-bootstrap (II), Recursion](https://www.mulle-kybernetik.com/weblog/2016/mulle_bootstrap_recursion.html)
 
+If you want to hack on mulle-bootstrap, I'd recommend to get
+[Sublime Text](//www.sublimetext.com) and [install the linter plugin](//blog.codybunch.com/2016/01/25/Better-Bash-with-Sublime-Linter-and-ShellCheck/) to use [Shellcheck](//www.shellcheck.net). It
+simplifies shell scripting by an order of magnitude.
 
 ## GitHub and Mulle kybernetiK
 

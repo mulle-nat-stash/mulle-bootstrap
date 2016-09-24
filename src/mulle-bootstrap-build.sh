@@ -753,13 +753,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 #   then
 #      rmdir_safer "${builddir}"
 #   fi
-
    mkdir_if_missing "${builddir}"
    exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
 
-      #
-      # cmake doesn't seem to "get" CMAKE_CXX_FLAGS or -INCLUDE
-      #
+      # DONT READ CONFIG SETTING IN THIS INDENT
       set -f
 
       logfile1="${owd}/${logfile1}"
@@ -810,6 +807,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+
+      if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+      then
+         includelines="`add_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
+         librarylines="`add_path "${librarylines}" "${USR_LOCAL_LIB}"`"
+      fi
 
       local relative_srcdir
       local prefixbuild
@@ -1019,6 +1022,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    mkdir_if_missing "${builddir}"
    exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
 
+      # DONT READ CONFIG SETTING IN THIS INDENT
        set -f
 
       logfile1="${owd}/${logfile1}"
@@ -1070,6 +1074,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
 
+      if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+      then
+         includelines="`add_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
+         librarylines="`add_path "${librarylines}" "${USR_LOCAL_LIB}"`"
+      fi
+
       local prefixbuild
       local dependenciesdir
       #local linker
@@ -1087,7 +1097,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
             frameworklines=
          ;;
       esac
-
 
       # assemble -I /I and -L /LIBPATH:
 
@@ -1360,7 +1369,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
    local toolname
 
-
    #
    # xctool needs schemes, these are often autocreated, which xctool cant do
    # xcodebuild can just use a target
@@ -1404,10 +1412,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       command=install
    fi
 
-      #
-      # headers are complicated, the preference is to get it uniform into
-      # dependencies/include/libraryname/..
-      #
+   #
+   # headers are complicated, the preference is to get it uniform into
+   # dependencies/include/libraryname/..
+   #
 
    local public_headers
    local private_headers
@@ -1480,11 +1488,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       other_ldflags="OTHER_LDFLAGS=${other_ldflags}"
    fi
 
-
    owd=`pwd`
    exekutor cd "${srcdir}" || exit 1
 
-
+      # DONT READ CONFIG SETTING IN THIS INDENT
       logfile="${owd}/${logfile}"
 
       if [ "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" = "YES" ]
@@ -1535,6 +1542,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          dependencies_lib_search_path="${path}"
       else
          dependencies_lib_search_path="${path} ${inherited}"
+      fi
+
+      if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+      then
+         dependencies_header_search_path="${path} ${USR_LOCAL_INCLUDE}"
+         dependencies_lib_search_path="${path} ${USR_LOCAL_LIB}"
       fi
 
       inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`" || exit 1
@@ -1698,9 +1711,6 @@ build_script()
    local builddir
    local name
    local sdk
-   local project
-   local schemename
-   local targetname
 
    configuration="$1"
    srcdir="$2"
@@ -1708,6 +1718,9 @@ build_script()
    name="$4"
    sdk="$5"
 
+   local project
+   local schemename
+   local targetname
    local logfile
 
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
@@ -1770,6 +1783,122 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 }
 
 
+build_with_configuration_sdk_preferences()
+{
+   local name
+   local configuration
+   local sdk
+   local preferences
+
+   name="$1"
+   [ $# -ne 0 ] && shift
+   configuration="$1"
+   [ $# -ne 0 ] && shift
+   sdk="$1"
+   [ $# -ne 0 ] && shift
+   preferences="$1"
+   [ $# -ne 0 ] && shift
+
+   if [ "/${configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_DIR_NAME}" ]
+   then
+      fail "You are just asking for trouble naming your configuration \"${configuration}\"."
+   fi
+
+   if [ "${configuration}" = "lib" -o "${configuration}" = "include" -o "${configuration}" = "Frameworks" ]
+   then
+      fail "You are just asking for major trouble naming your configuration \"${configuration}\"."
+   fi
+
+   local builddir
+
+   builddir="${CLONESBUILD_SUBDIR}/${configuration}/${name}"
+
+   if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" = "YES" ]
+   then
+      log_fluff "Cleaning build directory \"${builddir}\""
+      rmdir_safer "${builddir}"
+   fi
+
+   #
+   # execute pre-build script (f.e. for libcurl)
+   #
+   local script
+
+   script="`find_build_setting_file "${name}" "bin/pre-build.sh"`"
+   if [ -x "${script}" ]
+   then
+      build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" || exit 1
+   fi
+
+   local project
+
+   for preference in ${preferences}
+   do
+      case "${preference}" in
+         script)
+            script="`find_build_setting_file "${name}" "bin/build.sh"`"
+            if [ -x "${script}" ]
+            then
+               build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" || exit 1
+               return 0
+            else
+               [ ! -e "${script}" ] || fail "script ${script} is not executable"
+            fi
+         ;;
+
+         xcodebuild)
+            if [ ! -z "${XCODEBUILD}" ]
+            then
+               project=`(cd "${srcdir}" ; find_xcodeproj "${name}")`
+
+               if [ ! -z "$project" ]
+               then
+                  build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" "${project}"  || exit 1
+                  return 0
+               fi
+            fi
+         ;;
+
+         configure)
+            if [ ! -f "${srcdir}/configure" ]
+            then
+               # try for autogen if installed (not coded yet)
+               :
+            fi
+            if [ -x "${srcdir}/configure" ]
+            then
+               if [ -z "${MAKE}" ]
+               then
+                  log_warning "Found a configure, but make is not installed"
+               else
+                  build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
+                  return 0
+               fi
+            fi
+         ;;
+
+         cmake)
+            if [ -f "${srcdir}/CMakeLists.txt" ]
+            then
+               if [ -z "${CMAKE}" ]
+               then
+                  log_warning "Found a CMakeLists.txt, but cmake is not installed"
+               else
+                  build_cmake "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
+                  return 0
+               fi
+            fi
+         ;;
+
+         *)
+            fail "unknown build preference $1"
+         ;;
+      esac
+   done
+
+   return 1
+}
+
 
 build()
 {
@@ -1813,19 +1942,14 @@ configure"`"
       esac
    fi
 
-   local sdk
+   local configurations
+   local configuration
    local sdks
+   local sdk
 
    # need uniform SDK for our builds
    sdks=`read_build_root_setting "sdks" "Default"`
    [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
-
-
-   local builddir
-   local hasbuilt
-   local configuration
-   local preference
-   local configurations
 
    # settings can override the commandline default
    configurations="`read_repo_setting "${name}" "configurations" "${CONFIGURATIONS}"`"
@@ -1840,100 +1964,8 @@ configure"`"
 
       for configuration in ${configurations}
       do
-         if [ "/${configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_DIR_NAME}" ]
-         then
-            fail "You are just asking for trouble naming your configuration \"${configuration}\"."
-         fi
-
-         if [ "${configuration}" = "lib" -o "${configuration}" = "include" -o "${configuration}" = "Frameworks" ]
-         then
-            fail "You are just asking for major trouble naming your configuration \"${configuration}\"."
-         fi
-
-         builddir="${CLONESBUILD_SUBDIR}/${configuration}/${name}"
-
-         if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" = "YES" ]
-         then
-            log_fluff "Cleaning build directory \"${builddir}\""
-            rmdir_safer "${builddir}"
-         fi
-
-         #
-         # execute pre-build script (f.e. for libcurl)
-         #
-         local script
-
-         script="`find_build_setting_file "${name}" "bin/pre-build.sh"`"
-         if [ -x "${script}" ]
-         then
-            build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" || exit 1
-         fi
-
-         hasbuilt=no
-         for preference in ${preferences}
-         do
-            if [ "${preference}" = "script" ]
-            then
-               script="`find_build_setting_file "${name}" "bin/build.sh"`"
-               if [ -x "${script}" ]
-               then
-                  build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" || exit 1
-                  hasbuilt=yes
-                  break
-               else
-                  [ ! -e "${script}" ] || fail "script ${script} is not executable"
-               fi
-            fi
-
-            if [ "${preference}" = "xcodebuild" -a ! -z "${XCODEBUILD}" ]
-            then
-               project=`(cd "${srcdir}" ; find_xcodeproj "${name}")`
-
-               if [ "$project" != "" ]
-               then
-                  build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" "${project}"  || exit 1
-                  hasbuilt=yes
-                  break
-               fi
-            fi
-
-            if [ "${preference}" = "configure" ]
-            then
-               if [ ! -f "${srcdir}/configure" ]
-               then
-                  # try for autogen if installed (not coded yet)
-                  :
-               fi
-               if [ -x "${srcdir}/configure" ]
-               then
-                  if [ -z "${MAKE}" ]
-                  then
-                     log_warning "Found a configure, but make is not installed"
-                  else
-                     build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
-                     hasbuilt=yes
-                     break
-                  fi
-               fi
-            fi
-
-            if [ "${preference}" = "cmake" ]
-            then
-               if [ -f "${srcdir}/CMakeLists.txt" ]
-               then
-                  if [ -z "${CMAKE}" ]
-                  then
-                     log_warning "Found a CMakeLists.txt, but cmake is not installed"
-                  else
-                     build_cmake "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
-                     hasbuilt=yes
-                     break
-                  fi
-               fi
-            fi
-         done
-
-         if [ "$hasbuilt" != "yes" ]
+         build_with_configuration_sdk_preferences "${name}" "${configuration}" "${sdk}" "${preferences}"
+         if [ $? -ne 0 ]
          then
             fail "Don't know how to build ${name}"
          fi
@@ -2175,22 +2207,26 @@ build_main()
 
    [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 
+   #
+   # it is useful, that fetch understands build options and
+   # ignores them
+   #
    while [ $# -ne 0 ]
    do
       case "$1" in
-         -K)
+         -K|--clean)
             CLEAN_BEFORE_BUILD="YES"
          ;;
 
-         -k)
+         -k|--no-clean)
             CLEAN_BEFORE_BUILD=
          ;;
 
-         -f)
+         -f|--force)
             MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
          ;;
 
-         -j)
+         -j|--cores)
             case "${UNAME}" in
                mingw)
                   build_usage
@@ -2203,12 +2239,21 @@ build_main()
             CORES="$1"
             ;;
 
-         -c)
+         -c|--configuration)
             shift
             [ $# -ne 0 ] || fail "configuration names missing"
 
             CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
             ;;
+
+         # fetch options
+         -nr|--no-recursion|-e|--embedded-only|-u|--update-symlinks)
+            if [ -z "${MULLE_BOOTSTRAP_DID_FETCH}" ]
+            then
+               log_error "unknown option $1"
+               ${USAGE}
+            fi
+         ;;
 
          -*)
             log_error "unknown option $1"
@@ -2238,6 +2283,8 @@ build_main()
 
    [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+
+   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    if [ $# -eq 0 ]
    then

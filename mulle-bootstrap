@@ -120,41 +120,24 @@ bootstrap_nomagic_main()
    . mulle-bootstrap-build.sh
    . mulle-bootstrap-warn-scripts.sh
 
-   if [ "${DONT_RECURSE}" = "" ]
+   # used for option handling only
+   MULLE_BOOTSTRAP_WILL_BUILD="YES"
+
+   if [ -z "${DONT_RECURSE}" ]
    then
       fetch_main "$@" || exit 1
       refresh_main    || exit 1
-  else
+   else
       fetch_main --non-recursive "$@" || exit 1
       refresh_main nonrecursive       || exit 1
    fi
 
    warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
 
-   # do it again now!
+   # used for option handling only
+   MULLE_BOOTSTRAP_DID_FETCH="YES"
+
    build_main "$@" || exit 1
-}
-
-
-clone_main()
-{
-   local url
-
-   url="$1"
-   [ $# -ne 0 ] && shift
-
-   name="`basename -- "${url}"`"
-   name="`basename -- "${name}" .git`"
-
-   if [ ! -e "${name}" ]
-   then
-      git clone ${GITFLAGS} "${url}" "${name}" || exit 1
-   else
-      log_info "Directory ${name} already exists."
-   fi
-
-   ( cd "${name}"; refresh_main ) || exit 1
-   ( cd "${name}"; bootstrap_nomagic_main "$@" ) || exit 1
 }
 
 
@@ -393,7 +376,7 @@ bootstrap_main()
             refresh_main refresh_if_bare || exit 1
          ;;
 
-         update|refresh|clone)
+         update|refresh)
            . mulle-bootstrap-refresh.sh
 
            # 4 laters
@@ -402,10 +385,6 @@ bootstrap_main()
    fi
 
    case "${command}" in
-      clone)
-         clone_main "$@"
-      ;;
-
       bootstrap|nomagic)
          bootstrap_nomagic_main "${command}" "$@"
       ;;

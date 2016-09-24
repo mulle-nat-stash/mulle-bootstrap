@@ -48,6 +48,7 @@ usage:
       -f    :  override dirty harry check
       -u    :  try to update symlinked folders as well (not recommended)
       -nr   :  ignore .bootstrap folders of fetched repositories
+      -e    :  fetch embedded repositories only
 
    install  :  clone or symlink non-exisiting repositories and other resources
    update   :  execute a "pull" in fetched repositories
@@ -670,7 +671,7 @@ did_clone_repository()
 # checked out already it will use it, or ask
 # convention: .git suffix == repo to clone
 #          no .git suffix, try to symlink
-# return value 1 means: reread repositories, as it may have changed
+# return value 0 means: reread repositories, as it may have changed
 #
 checkout_repository()
 {
@@ -688,7 +689,8 @@ checkout_repository()
    local run_script
 
    run_script=-1
-   flag=0
+
+   stop=1
 
    if [ -e "${dstdir}" ]
    then
@@ -705,8 +707,10 @@ checkout_repository()
          checkout "$@"
          run_script=0  # yes, run it
 
-         bootstrap_auto_update "${name}" "${url}" "${dstdir}"
-         flag=$?
+         if bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+         then
+            stop=0
+         fi
       fi
    fi
 
@@ -726,7 +730,7 @@ checkout_repository()
       fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
    fi
 
-   return $flag
+   return $stop
 }
 
 
@@ -744,7 +748,6 @@ clone_repository()
 
    local tag
    local dstdir
-   local flag
    local doit
 
    log_verbose "Clone ${name} if needed ..."
@@ -759,7 +762,9 @@ clone_repository()
       doit=$?
    fi
 
-   flag=0
+   local stop
+
+   stop=1
 
    if [ $doit -ne 0 ]
    then
@@ -770,15 +775,17 @@ clone_repository()
 
       create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
-      checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
-      flag=$?
+      if checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
+      then
+         stop=0
+      fi
 
       remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
    else
       log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not fetching it"
    fi
 
-   return $flag
+   return $stop
 }
 
 
@@ -831,9 +838,7 @@ ${clone}"
 
                __parse_expanded_clone "${clone}"
 
-               clone_repository "${name}" "${url}" "${branch}" "${scm}"
-
-               if [ $? -eq 1 ]
+               if clone_repository "${name}" "${url}" "${branch}" "${scm}"
                then
                   stop=0
                   break
@@ -1356,6 +1361,10 @@ update_embedded_repositories()
 
 _common_main()
 {
+   #
+   # it is useful, that fetch understands build options and
+   # ignores them
+   #
    while [ $# -ne 0 ]
    do
       case "$1" in
@@ -1367,6 +1376,10 @@ _common_main()
             DONT_RECURSE="YES"
          ;;
 
+         -e|--embedded-only)
+            EMBEDDED_ONLY="YES"
+         ;;
+
          -f)
             MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
          ;;
@@ -1375,10 +1388,18 @@ _common_main()
             MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
          ;;
 
+         # build options
+         -K|--clean|-k|--no-clean|-j|--cores|-c|--configuration)
+            if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
+            then
+               log_error "unknown option $1"
+               ${USAGE}
+            fi
+         ;;
+
          -*)
             log_error "unknown option $1"
             ${USAGE}
-
          ;;
 
          *)
@@ -1435,7 +1456,10 @@ _common_main()
 #      install_gems
 #      install_pips
 
-      clone_repositories
+      if [ -z "${EMBEDDED_ONLY}" ]
+      then
+         clone_repositories
+      fi
       clone_embedded_repositories
 
       # install brews again, in case we inherited some in the meantime
@@ -1445,7 +1469,10 @@ _common_main()
    else
       if dir_has_files "${CLONESFETCH_SUBDIR}"
       then
-         update_repositories "$@"
+         if [ -z "${EMBEDDED_ONLY}" ]
+         then
+            update_repositories "$@"
+         fi
          update_embedded_repositories
       else
          log_info "Nothing to update, fetch first"

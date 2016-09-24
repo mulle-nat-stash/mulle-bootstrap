@@ -25,7 +25,7 @@ fi
 
 fail()
 {
-   echo "${BOLD_RED}$*${C_RESET}" >&2
+   echo "${C_BR_RED}$*${C_RESET}" >&2
    exit 1
 }
 
@@ -119,7 +119,7 @@ get_sh_windows_path()
    local directory
 
    directory="`which sh`"
-   directory="`dirname -- "${directory}"`" 
+   directory="`dirname -- "${directory}"`"
    directory="`get_windows_path "${directory}"`"
 
    if [ -z "${directory}" ]
@@ -132,7 +132,7 @@ get_sh_windows_path()
 
 sed_mangle_escape_slashes()
 {
-   sed -e 's|/|\\\\|g'  
+   sed -e 's|/|\\\\|g'
 }
 
 

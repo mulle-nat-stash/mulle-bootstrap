@@ -180,7 +180,7 @@ Setting Name                      |  Description                                
 `absolute_symlinks`               | Use absolute symlinks instead of relatives    | NO
 `symlink_forbidden`               | mulle-bootstrap will not attempt to symlink   | NO (ignored on MINGW)
 `update_gitignore`                | add cleanable directories to .gitignore       | YES
-`check_usr_local_include`         | do not install, if a system header of same    |
+`check_usr_local_include`         | do not fetch, if a system header of same      |
                                   | is present in `/usr/local/include`            | NO
 
 Build Config Settings

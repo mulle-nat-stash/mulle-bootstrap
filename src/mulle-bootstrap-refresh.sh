@@ -85,59 +85,57 @@ refresh_repositories_settings()
             match="`echo "${refreshed}" | grep -x "${clone}"`"
             # could remove prefixes here https:// http://
 
-            if [ "${match}" != "${clone}" ]
+            if [ "${match}" = "${clone}" ]
             then
-               refreshed="${refreshed}
+               continue
+            fi
+
+            refreshed="${refreshed}
 ${clone}"
 
-               local branch
-               local dstdir
-               local flag
-               local name
-               local scm
-               local tag
-               local url
+            local branch
+            local dstdir
+            local name
+            local scm
+            local tag
+            local url
 
-               __parse_expanded_clone "${clone}"
+            __parse_expanded_clone "${clone}"
 
-               dstdir="${CLONESFETCH_SUBDIR}/${name}"
-               if [ ! -d "${dstdir}" ]
+            dstdir="${CLONESFETCH_SUBDIR}/${name}"
+            if [ ! -d "${dstdir}" ]
+            then
+               log_fluff "${name} has not been fetched yet"
+               continue
+            fi
+
+            #
+            # dependency management, it could be nicer, but isn't.
+            # Currently matches only URLs
+            #
+            local sub_repos
+            local filename
+
+            filename="${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"
+            if [ -f "${filename}" ]
+            then
+               sub_repos="`_read_setting "${filename}"`"
+               if [ ! -z "${sub_repos}" ]
                then
-                  log_fluff "${name} has not been fetched yet"
-                  continue
-               fi
-
-               #
-               # dependency management, it could be nicer, but isn't.
-               # Currently matches only URLs
-               #
-               local sub_repos
-               local filename
-
-               filename="${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"
-               if [ -f "${filename}" ]
-               then
-                  sub_repos="`_read_setting "${filename}"`"
-                  if [ ! -z "${sub_repos}" ]
+                  dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${url}"`"
+                  dependency_map="`dependency_add_array "${dependency_map}" "${url}" "${sub_repos}"`"
+                  if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
                   then
-                     dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${url}"`"
-                     dependency_map="`dependency_add_array "${dependency_map}" "${url}" "${sub_repos}"`"
-                     if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
-                     then
-                        log_trace2 "add \"${sub_repos}\" for ${url} to ${dependency_map}"
-                     fi
+                     log_trace2 "add \"${sub_repos}\" for ${url} to ${dependency_map}"
                   fi
-               else
-                  log_fluff "${name} has no repositories"
                fi
+            else
+               log_fluff "${name} has no repositories"
+            fi
 
-               bootstrap_auto_update "${name}" "${url}" "${dstdir}"
-               flag=$?
-
-               if [ $flag -eq 0 ]
-               then
-                  stop=0
-               fi
+            if bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+            then
+               stop=0
             fi
          done
       fi

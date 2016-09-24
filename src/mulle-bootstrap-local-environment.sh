@@ -93,11 +93,6 @@ local_environment_initialize()
    DEPENDENCY_SUBDIR="${RELATIVE_ROOT}dependencies"
    ADDICTION_SUBDIR="${RELATIVE_ROOT}addictions"
 
-   #
-   # simplify UNAME from MINGW64_NT-10.0 to MINGW
-   # others should be ok
-   #
-
    log_fluff "${UNAME} detected"
    case "${UNAME}" in
       mingw)
@@ -113,6 +108,8 @@ local_environment_initialize()
          fi
 
          PATH_SEPARATOR=';'
+         USR_LOCAL_LIB=~/lib
+         USR_LOCAL_INCLUDE=~/include
       ;;
 
       "")
@@ -121,6 +118,8 @@ local_environment_initialize()
 
       *)
          PATH_SEPARATOR=':'
+         USR_LOCAL_LIB=/usr/local/lib
+         USR_LOCAL_INCLUDE=/usr/local/include
       ;;
    esac
 }
