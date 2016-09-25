@@ -701,7 +701,7 @@ checkout_repository()
       if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${CLONESFETCH_SUBDIR}/.graveyard/${name}" ]
       then
          log_info "Restoring ${name} from graveyard"
-         exekutor mv "${CLONESFETCH_SUBDIR}/.graveyard/${name}" "${CLONESFETCH_SUBDIR}" || fail "move failed"         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+         exekutor mv "${CLONESFETCH_SUBDIR}/.graveyard/${name}" "${CLONESFETCH_SUBDIR}" || fail "move failed"
          ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       else
          checkout "$@"
@@ -1167,6 +1167,39 @@ append_dir_to_gitignore_if_needed()
 }
 
 
+#
+# memorize how we embedded the repository, need URL to identify
+# and the subdir, where it was stored
+#
+# store it inside the possibly recursed dstprefix dependency
+#
+remember_embedded_repository()
+{
+   local dstprefix
+   local name
+   local url
+   local subdir
+
+   dstprefix="$1"
+   name="$2"
+   url="$3"
+   subdir="$4"
+
+   local content
+   local embeddeddir
+   local content
+
+   embeddeddir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
+   mkdir_if_missing "${embeddeddir}"
+   content="${subdir}
+${url}"
+
+   # dont't use symlinks anymore
+   log_fluff "Remember embedded repository \"${name}\" via \"${embeddeddir}/${name}\""
+   exekutor echo "${content}" > "${embeddeddir}/${name}"
+}
+
+
 clone_embedded_repository()
 {
    local dstprefix
@@ -1233,28 +1266,16 @@ clone_embedded_repository()
          fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
       fi
 
-      #
-      # memorize how we embedded the repository, need URL to identify
-      # and the subdir, where it was stored
-      #
-      # store it inside the possibly recursed dstprefix dependency
-      #
-      local content
-      local embeddeddir
-
-      embeddeddir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
-      mkdir_if_missing "${embeddeddir}"
-      content="${subdir}
-${url}"
-
-      # dont't use symlinks anymore
-      log_fluff "Remember embedded repository \"${name}\" via \"${embeddeddir}/${name}\""
-      exekutor echo "${content}" > "${embeddeddir}/${name}"
    else
       ensure_clone_branch_is_correct "${dstdir}" "${branch}"
 
       log_fluff "Repository \"${dstdir}\" already exists"
    fi
+
+   #
+   # always memorize, even if existed, which could be a clean gone wrong
+   #
+   remember_embedded_repository "${dstprefix}" "${name}" "${url}" "${subdir}"
 
    remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 }
@@ -1270,13 +1291,12 @@ clone_embedded_repositories()
    local clone
    local old
 
-   old="${IFS:-" "}"
-
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
    clones="`read_fetch_setting "embedded_repositories"`"
-   if [ "${clones}" != "" ]
+   if [ ! -z "${clones}" ]
    then
+      old="${IFS:-" "}"
       IFS="
 "
       for clone in ${clones}
@@ -1288,9 +1308,8 @@ clone_embedded_repositories()
 
       remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
+      IFS="${old}"
    fi
-
-   IFS="${old}"
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }
@@ -1318,7 +1337,6 @@ update_embedded_repositories()
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
-   set -x
    clones="`read_fetch_setting "embedded_repositories"`"
    clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
 

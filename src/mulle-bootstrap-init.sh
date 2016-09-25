@@ -133,18 +133,21 @@ init_main()
 # mulle-bootstrap [build] will then build them into "${DEPENDENCY_SUBDIR}"
 #
 # Each line consists of four fields, only the URL is necessary.
-#
-# URL;NAME;TAG;SCM
-# ================
-# ex. foo.com/bla.git;mybla;master;git
-# ex. foo.com/bla.svn;;;svn
-#
-# Possible URLS for repositories:
+# Possible URL forms for repositories:
 #
 # https://www.mulle-kybernetik.com/repositories/MulleScion
 # git@github.com:mulle-nat/MulleScion.git
 # ../MulleScion
 # /Volumes/Source/srcM/MulleScion
+#
+# The NAME should only be used, if you have an actual name conflict
+# in your dependencies. TAG can be a git branch or a tag. SCM can
+# be git or svn.
+#
+# URL;NAME;TAG;SCM
+# ================
+# ex. foo.com/bla.git;bla2;release;git
+# ex. foo.com/bla.svn;;;svn
 #
 EOF
 
@@ -156,18 +159,22 @@ EOF
 # mulle-bootstrap [build] will NOT build them
 #
 # Each line consists of four fields, only the URL is necessary.
-#
-# URL;NAME;TAG;SCM
-# ================
-# ex. foo.com/bla.git;mybla;master;git
-# ex. foo.com/bla.svn;;;svn
-#
-# Possible URLS for repositories:
+# Possible URL forms for repositories:
 #
 # https://www.mulle-kybernetik.com/repositories/MulleScion
 # git@github.com:mulle-nat/MulleScion.git
 # ../MulleScion
 # /Volumes/Source/srcM/MulleScion
+#
+# With SUBDIR you can place the embedded repository somewhere in your
+# project directory structure. TAG can be a git branch or a tag. SCM can
+# be git or svn.
+#
+# URL;SUBDIR;TAG;SCM
+# ================
+# ex. foo.com/bla.git;src/mybla;release;git
+# ex. foo.com/bla.svn;;;svn
+#
 #
 EOF
       exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"

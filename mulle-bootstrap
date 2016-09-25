@@ -187,6 +187,10 @@ bootstrap_main()
             MULLE_BOOTSTRAP_ANSWER="NO"
           ;;
 
+         -c|--check-usr-local-include)
+            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
+         ;;
+
          -y|--prefer-local)
             MULLE_BOOTSTRAP_ANSWER="YES"
          ;;
@@ -197,10 +201,6 @@ bootstrap_main()
 
          -n|--dry-run)
             MULLE_EXECUTOR_DRY_RUN="YES"
-         ;;
-
-         -is|--ignore-system)
-            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="NO"
          ;;
 
          -ig|--ignore-graveyard)

@@ -1,25 +1,26 @@
 2.1
 ===
 
+**The changes should be harmless, but to be safe
+`mulle-bootstrap dist clean` your projects**
+
+
 This version has some additions, that enable a more flexible use of
-embedded repositories to "compose" source trees. It also now contains
-better fecth and build code, so that dependencies, that are installed in
-/usr/local already need not be fetched again. This can be helpful, when used
-to build brew packages (for example).
+embedded repositories to "compose" source trees. Up till 2.1 embedded
+repositories were always placed into the project root. Now you can
+specify the subdirectory like "src/embedded/foo" (relative to project root).
 
-
-**The changes should be transparent, but to be safe `mulle-bootstrap dist clean`
-your projects**
+Better fetch and build code checks, that dependencies, that are
+installed in /usr/local already need not be fetched again. This can
+be helpful, when building brew packages (for example).
 
 * fixed a problem in the parsing of the repositories file
-* embedded repositories can now be placed at an arbitrary position within your
-project tree
+* embedded repositories can now be placed at an arbitrary position within your project tree
 * changes in deeply embedded repositories are now better tracked
 * fixed some as of yet unknown bugs, by improving some path functions
-* new -c switch to enable checking /usr/local/include for dependency libraries
-conveniently from the command line. Fix build to add /usr/local/include to
-build, if check_usr_local_include is YES.
+* new -c switch to enable checking `/usr/local/include for dependency libraries conveniently from the command line. Fix build to add /usr/local/include to build, if check_usr_local_include is YES.
 * allow build and fetch options to be passed to `bootstrap`
+* improved comments in repositories and embedded_repositories templates
 
 
 2.0.1
