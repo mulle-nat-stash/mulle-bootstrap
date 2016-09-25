@@ -31,6 +31,16 @@
 MULLE_BOOTSTRAP_SETTINGS_SH="included"
 
 
+config_usage()
+{
+    cat <<EOF >&2
+usage:
+   mulle-bootstrap config <name> [value]
+EOF
+  exit 1
+}
+
+
 warn_user_setting()
 {
    local file
@@ -678,6 +688,112 @@ ${keys4}
 ${keys5}
 ${keys6}" | sort | sort -u | egrep -v '^[ ]*$'
    return 0
+}
+
+#
+# "config" interface sorta like git config
+# obviously need to "vet" the keys sometime
+#
+config_read()
+{
+   read_config_setting "$1"
+}
+
+
+config_write()
+{
+   mkdir_if_missing "${BOOTSTRAP_SUBDIR}.local/config"
+   exekutor echo "$2" > "${BOOTSTRAP_SUBDIR}.local/config/$1"
+}
+
+
+config_delete()
+{
+   if [ -f "${BOOTSTRAP_SUBDIR}.local/config/$1" ]
+   then
+      exekutor rm "${BOOTSTRAP_SUBDIR}.local/config/$1"
+   fi
+}
+
+
+
+config_main()
+{
+   local name
+   local value
+   local command
+
+   command="read"
+
+   while [ $# -ne 0 ]
+   do
+      case "$1" in
+         -h|-help|--help)
+            config_usage
+         ;;
+
+         -d)
+            command="delete"
+         ;;
+
+         -n|--off|--no|--NO)
+            command="write"
+            value="NO"
+         ;;
+
+         -y|--on|--yes|--YES)
+            command="write"
+            value="YES"
+         ;;
+
+         -*)
+            log_error "unknown option $1"
+            config_usage
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+   name="$1"
+   [ $# -ne 0 ] && shift
+
+   if [ -z "${name}" ]
+   then
+      config_usage
+   fi
+
+   if [ $# -ne 0 ]
+   then
+      [ "${command}" != "read" ] && config_usage
+
+      command="write"
+      value="$1"
+      shift
+   fi
+
+   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
+
+   case "${command}" in
+      read)
+         config_read "${name}"
+      ;;
+
+      delete)
+         config_delete "${name}"
+         refresh_main || exit 1
+      ;;
+
+      write)
+         config_write "${name}" "${value}"
+         refresh_main || exit 1
+
+      ;;
+   esac
 }
 
 

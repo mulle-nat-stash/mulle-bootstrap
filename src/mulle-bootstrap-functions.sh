@@ -346,7 +346,7 @@ realpath()
 # stolen from: https://stackoverflow.com/questions/2564634/convert-absolute-path-into-relative-path-given-a-current-directory-using-bash
 # because the python dependency irked me
 #
-_relative_path_between()
+__relative_path_between()
 {
     [ $# -ge 1 ] && [ $# -le 2 ] || return 1
 
@@ -377,6 +377,23 @@ _relative_path_between()
 }
 
 
+_relative_path_between()
+{
+   local a
+   local b
+
+   # remove trailing '/' it upsets the code
+
+   a="`echo "$1" | sed -e 's|/$||g'`"
+   b="`echo "$2" | sed -e 's|/$||g'`"
+
+   [ -z "${a}" ] && internal_fail "Empty path (\$1)"
+   [ -z "${b}" ] && internal_fail "Empty path (\$2)"
+
+   __relative_path_between "${b}" "${a}"   # flip args (historic)
+}
+
+
 #
 # $1 is the directory, that we want to access relative from root
 # $2 is the root
@@ -385,24 +402,20 @@ _relative_path_between()
 # ex.   /usr/include /  -> /usr/include
 #
 # the routine can not deal with ../ and ./
+# but is a bit faster than perfect_relative_path_between
+# which uses simplify_path
 #
 relative_path_between()
 {
    local  a
    local  b
 
-   # remove trailing '/' it upsets the code
-
-   a="`echo "$1" | sed -e 's|/$||g'`"
-   b="`echo "$2" | sed -e 's|/$||g'`"
+   a="$1"
+   b="$2"
 
    # the function can't do mixed paths
 
    case "${a}" in
-      "")
-         internal_fail "Empty path"
-      ;;
-
       ../*|*/..|*/../*|..)
          internal_fail "Path \"${a}\" mustn't contain ../"
       ;;
@@ -414,10 +427,6 @@ relative_path_between()
 
       /*)
          case "${b}" in
-            "")
-               internal_fail "Empty path"
-            ;;
-
             ../*|*/..|*/../*|..)
                internal_fail "Path \"${b}\" mustn't contain ../"
             ;;
@@ -438,10 +447,6 @@ relative_path_between()
 
       *)
          case "${b}" in
-            "")
-               internal_fail "Empty path"
-            ;;
-
             ../*|*/..|*/../*|..)
                internal_fail "Path \"${b}\" mustn't contain ../"
             ;;
@@ -460,10 +465,15 @@ relative_path_between()
       ;;
    esac
 
-   _relative_path_between "${b}" "${a}"
+   _relative_path_between "${a}" "${b}"
 }
 
 
+
+#
+# compute number of .. needed to return from path
+# e.g.  cd "a/b/c" -> cd ../../..
+#
 compute_relative()
 {
    local depth
@@ -526,6 +536,23 @@ absolutepath()
 
    simplify_path "${path}"
 }
+
+
+#
+# this does relative_path_between perfectly
+# but its much slower than relative_path_between
+#
+perfect_relative_path_between()
+{
+   local a
+   local b
+
+   a="`absolutepath "$1"`"
+   b="`absolutepath "$2"`"
+
+   _relative_path_between "${a}" "${b}"
+}
+
 
 
 escaped_spaces()

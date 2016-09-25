@@ -34,15 +34,23 @@ MULLE_BOOTSTRAP_WARN_SCRIPTS_SH="included"
 
 warn_scripts()
 {
+   local bootstrapdir
+   local repodir
+
+   bootstrapdir="$1"
+   repodir="$2"
+
    local scripts
    local phases
    local ack
    local i
    local old
 
-   if [ -d "$1" ]
+   log_info "warn_scripts $1:$2:${DONT_ASK_AFTER_WARNING}:${MULLE_BOOTSTRAP_ANSWER}"
+
+   if [ -d "${bootstrapdir}" ]
    then
-      scripts="`find "$1" -name "*.sh" \( -perm +u+x -o -perm +g+x -o -perm +o+x \) -type f -print`"
+      scripts="`find "${bootstrapdir}" -name "*.sh" \( -perm +u+x -o -perm +g+x -o -perm +o+x \) -type f -print`"
       if [ ! -z "${scripts}" ]
       then
          log_warning "this .bootstrap contains shell scripts:"
@@ -64,14 +72,14 @@ warn_scripts()
 
    case "${UNAME}" in
       darwin)
-         if [ ! -z "$2" ]
+         if [ ! -z "${repodir}" ]
          then
-             exekutor [ -e "$2" ] || fail "Expected directory \"$2\" is missing.
+             exekutor [ -e "${repodir}" ] || fail "Expected directory \"${repodir}\" is missing.
 (hint: use fetch instead of update to track renames)"
 
-            if dir_has_files "$2"
+            if dir_has_files "${repodir}"
             then
-               phases="`(find "$2"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}' \; -print)`"
+               phases="`(find "${repodir}"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}' \; -print)`"
                if [ ! -z "${phases}" ]
                then
                   log_warning "This repository contains xcode projects with shellscript phases"
@@ -97,21 +105,25 @@ warn_scripts()
       ;;
    esac
 
-   if  [ "${DONT_ASK_AFTER_WARNING}" != "YES" ]
+   if [ -z "$phases" -a -z "$scripts" ]
    then
-      if [ "$phases" != "" -o "$scripts" != "" ]
-      then
-         user_say_yes "You should probably inspect them before continuing.
+      return 0
+   fi
+
+   if [ "${DONT_ASK_AFTER_WARNING}" = "YES" ]
+   then
+      return 0
+   fi
+
+   user_say_yes "You should probably inspect them before continuing.
 Abort now ?"
-         if [ $? -eq 0 ]
-         then
-             log_error "The bootstrap is in an inconsistent state. It would be good
+   if [ $? -eq 0 ]
+   then
+       log_error "The bootstrap is in an inconsistent state. It would be good
 to run
-           ${C_RESET}mulle-bootstrap clean dist${C_ERROR}
+     ${C_RESET}mulle-bootstrap clean dist${C_ERROR}
 now."
-             return 1
-         fi
-      fi
+       return 1
    fi
 }
 
@@ -124,11 +136,19 @@ warn_scripts_main()
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
-   if [ "${MULLE_BOOTSTRAP_ANSWER}" != "YES"  ]
+   local  dont_warn_scripts
+
+   #
+   # if MULLE_BOOTSTRAP_ANSWER is YES
+   # then don't warn either
+   #
+   dont_warn_scripts="`read_config_setting "dont_warn_scripts" "${MULLE_BOOTSTRAP_ANSWER:-NO}"`"
+
+   if [ "${dont_warn_scripts}" = "YES"  ]
    then
-      warn_scripts "$@"
+      log_verbose "Script checking disabled"
    else
-      log_verbose "Script checking by autoanswer YES disabled"
+      warn_scripts "$@"
    fi
 
    log_fluff "::: warn_scripts end :::"

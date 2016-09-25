@@ -20,7 +20,13 @@ be helpful, when building brew packages (for example).
 * fixed some as of yet unknown bugs, by improving some path functions
 * new -c switch to enable checking `/usr/local/include for dependency libraries conveniently from the command line. Fix build to add /usr/local/include to build, if check_usr_local_include is YES.
 * allow build and fetch options to be passed to `bootstrap`
-* improved comments in repositories and embedded_repositories templates
+* improved comments in repositories` and `embedded_repositories` templates
+* pass ADDICTIONS_DIR to build systems
+* renamed hidden option -r to -l (sorry)
+* remove obsolete mulle-bootstrap-project.sh
+* call warn scripts earlier, when bootstrapping
+* started on mulle-bootstrap config, first settings "warn_scripts"
+* turn off scripts warning, with `mulle-bootstrap config -on dont_warn_scripts`
 
 
 2.0.1

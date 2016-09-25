@@ -251,72 +251,6 @@ check_tars()
 
 
 #
-# Use gems for stuff we don't tag
-#
-# install_gems()
-# {
-#    local gems
-#    local gem
-
-#    log_fluff "Looking for gems"
-
-#    gems="`read_fetch_setting "gems" | sort | sort -u`"
-#    if [ "${gems}" != "" ]
-#    then
-#       local old
-
-#       old="${IFS:-" "}"
-#       IFS="
-# "
-#       for gem in ${gems}
-#       do
-#          IFS="${old}"
-#          log_fluff "gem install \"${gem}\""
-
-#          echo "gem needs sudo to install ${gem}" >&2
-#          exekutor sudo gem install "${gem}" || exit 1
-#       done
-#       IFS="${old}"
-#    else
-#       log_fluff "No gems found"
-#    fi
-# }
-
-
-#
-# Use pips for stuff we don't tag
-#
-# install_pips()
-# {
-#    local pips
-#    local pip
-
-#    log_fluff "Looking for pips"
-
-#    pips="`read_fetch_setting "pips" | sort | sort -u`"
-#    if [ "${pips}" != "" ]
-#    then
-#       local old
-
-#       old="${IFS:-" "}"
-#       IFS="
-# "
-#       for pip in ${pips}
-#       do
-#          IFS="${old}"
-#          log_fluff "pip install \"${gem}\""
-
-#          echo "pip needs sudo to install ${pip}" >&2
-#          exekutor sudo pip install "${pip}" || exit 1
-#       done
-#       IFS="${old}"
-#    else
-#       log_fluff "No pips found"
-#    fi
-# }
-
-
-#
 ###
 #
 link_command()
@@ -433,7 +367,6 @@ NO is safe, but you often say YES here."
       ;;
    esac
 }
-
 
 
 log_fetch_action()
@@ -618,6 +551,7 @@ checkout()
 
       scmflags="`read_repo_setting "${name}" "checkout" "${scmflagsdefault}"`"
       "${operation}" "${src}" "${dstdir}" "${branch}" "${tag}" "${scmflags}"
+
       warn_scripts_main "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
    fi
 }
@@ -663,6 +597,7 @@ did_clone_repository()
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
    fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
 }
+
 
 #
 # Use git clones for stuff that gets tagged
@@ -1425,7 +1360,7 @@ _common_main()
    done
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
    case "${UNAME}" in
       mingw)
@@ -1437,10 +1372,10 @@ _common_main()
       ;;
    esac
 
-   [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ] && . mulle-bootstrap-scm.sh
-   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]          && . mulle-bootstrap-scm.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]      && . mulle-bootstrap-scripts.sh
    [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh
-   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
+   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ]  && . mulle-bootstrap-auto-update.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
    #

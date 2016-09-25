@@ -31,19 +31,43 @@
 MULLE_BOOTSTRAP_CLEAN_SH="included"
 
 
-
-clean_usage()
+setup_clean_environment()
 {
-   cat <<EOF >&2
-usage:
-   mulle-bootstrap clean [build|dist|install|output]
+   [ -z "${DEPENDENCY_SUBDIR}"  ] && internal_fail "DEPENDENCY_SUBDIR is empty"
+   [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "CLONESBUILD_SUBDIR is empty"
+   [ -z "${ADDICTION_SUBDIR}"   ] && internal_fail "ADDICTION_SUBDIR is empty"
 
+   CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
+
+   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
+${DEPENDENCY_SUBDIR}/tmp"`"
+   OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
+   INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${CLONES_SUBDIR}
+.bootstrap.auto"`"
+   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
+${ADDICTION_SUBDIR}
+.bootstrap.auto"`"
+   EMBEDDED="`embedded_repository_directories_from_repos`"
+
+   if [ ! -z "$EMBEDDED" ]
+   then
+      DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
+${EMBEDDED}"
+   fi
+}
+
+
+_clean_usage()
+{
+   setup_clean_environment
+
+   cat <<EOF >&2
    build   : useful to remove intermediate build files. it cleans
 ---
 ${BUILD_CLEANABLE_SUBDIRS}
 ---
 
-   output  : useful to rebuild. This is the default. It cleans
+   output  : useful to rebuild. It cleans
 ---
 ${BUILD_CLEANABLE_SUBDIRS}
 ${OUTPUT_CLEANABLE_SUBDIRS}
@@ -58,9 +82,21 @@ ${DIST_CLEANABLE_SUBDIRS}
 
    install  : useful if you know, you don't want to rebuild ever. It cleans
 ---
+${BUILD_CLEANABLE_SUBDIRS}
 ${INSTALL_CLEANABLE_SUBDIRS}
 ---
 EOF
+}
+
+
+clean_usage()
+{
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap clean [build|dist|install|output]
+
+EOF
+   _clean_usage
    exit 1
 }
 
@@ -140,15 +176,15 @@ clean_directories()
 
 
 #
+# for mingw its faster, if we have separate clean functions
+#
 # cleanability is checked, because in some cases its convenient
 # to have other tools provide stuff besides /include and /lib
 # and sometimes  projects install other stuff into /share
-# for mingw its easier if we have separate clean functions
 #
 _clean_execute()
 {
    local flag
-   local old
 
    [ -z "${DEPENDENCY_SUBDIR}"  ] && internal_fail "DEPENDENCY_SUBDIR is empty"
    [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "CLONESBUILD_SUBDIR is empty"
@@ -237,16 +273,50 @@ clean_main()
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
-   COMMAND=${1:-"output"}
-   [ $# -eq 0 ] || shift
+   COMMAND=
+
+   while [ $# -ne 0 ]
+   do
+      case "$1" in
+         -h|-help|--help)
+            COMMAND=help
+         ;;
+
+         -*)
+            log_error "unknown option $1"
+            COMMAND=help
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+   if [ -z "${COMMAND}" ]
+   then
+      COMMAND=${1:-"output"}
+      [ $# -eq 0 ] || shift
+   fi
+
 
    case "$COMMAND" in
       output|dist|build|install)
          clean_execute "$@"
       ;;
 
+      help)
+         clean_usage
+      ;;
+
+      _help)
+         _clean_usage
+      ;;
+
       *)
-         log_error "Unknown command \${COMMAND}\""
+         log_error "Unknown command \"${COMMAND}\""
          clean_usage
       ;;
    esac

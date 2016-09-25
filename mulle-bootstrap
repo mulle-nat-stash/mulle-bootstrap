@@ -123,6 +123,8 @@ bootstrap_nomagic_main()
    # used for option handling only
    MULLE_BOOTSTRAP_WILL_BUILD="YES"
 
+   warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
+
    if [ -z "${DONT_RECURSE}" ]
    then
       fetch_main "$@" || exit 1
@@ -131,8 +133,6 @@ bootstrap_nomagic_main()
       fetch_main --non-recursive "$@" || exit 1
       refresh_main nonrecursive       || exit 1
    fi
-
-   warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
 
    # used for option handling only
    MULLE_BOOTSTRAP_DID_FETCH="YES"
@@ -187,12 +187,12 @@ bootstrap_main()
             MULLE_BOOTSTRAP_ANSWER="NO"
           ;;
 
-         -c|--check-usr-local-include)
-            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
-         ;;
-
          -y|--prefer-local)
             MULLE_BOOTSTRAP_ANSWER="YES"
+         ;;
+
+         -c|--check-usr-local-include)
+            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
          ;;
 
          -f|--force-fetch)
@@ -201,6 +201,10 @@ bootstrap_main()
 
          -n|--dry-run)
             MULLE_EXECUTOR_DRY_RUN="YES"
+         ;;
+
+         -l|--optimistic|--lucky)
+            MULLE_BOOTSTRAP_OPTIMISTIC="YES"
          ;;
 
          -ig|--ignore-graveyard)
@@ -249,10 +253,6 @@ bootstrap_main()
             MULLE_BOOTSTRAP_TRACE="TRACE"
             COPYMOVEFLAGS="-v"
             GITFLAGS="-v"
-         ;;
-
-         -r|--refresh)
-            MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH="YES"
          ;;
 
          -s|--silent)
@@ -356,7 +356,7 @@ bootstrap_main()
    fi
 
    # some commands refresh before execution
-   if [ "${MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH}" != "YES" ]
+   if [ "${MULLE_BOOTSTRAP_OPTIMISTIC}" != "YES" ]
    then
       case "${command}" in
          bootstrap|nomagic|fetch)
@@ -389,39 +389,27 @@ bootstrap_main()
          bootstrap_nomagic_main "${command}" "$@"
       ;;
 
-      # experimental stuff
-      project)
-         . mulle-bootstrap-project.sh
-
-         project_main "$@" || exit 1
-      ;;
-
-      install)
-         . mulle-bootstrap-install.sh
-
-         install_main "$@" || exit 1
-      ;;
-
       build)
          . mulle-bootstrap-build.sh
 
          build_main "$@" || exit 1
       ;;
 
-      refresh)
-         refresh_main "$@" || exit 1
-      ;;
-
       clean)
          . mulle-bootstrap-clean.sh
 
-         clean_main "$@"    || exit 1
+         clean_main "$@" || exit 1
+      ;;
+
+      config)
+         . mulle-bootstrap-settings.sh
+         config_main "$@" || exit 1
       ;;
 
       dist)
          . mulle-bootstrap-clean.sh
 
-         clean_main "dist"    || exit 1
+         clean_main "dist" || exit 1
       ;;
 
       fetch)
@@ -431,17 +419,32 @@ bootstrap_main()
          refresh_main || exit 1
       ;;
 
+      init)
+         . mulle-bootstrap-init.sh
+
+         init_main "$@" || exit 1
+      ;;
+
+      install)
+         . mulle-bootstrap-install.sh
+
+         install_main "$@" || exit 1
+      ;;
+
+      library-path)
+         echo "$PATH" | tr ':' '\012' | head -1
+         exit 0
+      ;;
+
+      refresh)
+         refresh_main "$@" || exit 1
+      ;;
+
       update)
          . mulle-bootstrap-fetch.sh
 
          update_main "$@" || exit 1
          refresh_main || exit 1
-      ;;
-
-      init)
-         . mulle-bootstrap-init.sh
-
-         init_main "$@" || exit 1
       ;;
 
       setup-xcode|xcode)
@@ -454,11 +457,6 @@ bootstrap_main()
          . mulle-bootstrap-tag.sh
 
          tag_main "$@" || exit 1
-      ;;
-
-      library-path)
-         echo "$PATH" | tr ':' '\012' | head -1
-         exit 0
       ;;
 
       version)

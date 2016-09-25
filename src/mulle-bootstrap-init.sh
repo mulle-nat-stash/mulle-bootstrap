@@ -35,8 +35,9 @@ init_usage()
 {
     cat <<EOF >&2
 usage:
-  mulle_bootstrap init [options]
+  mulle-bootstrap init [options]
 
+  Options
     -n :  don't ask for editor
     -e :  create example files
 EOF
@@ -89,7 +90,6 @@ init_main()
 
       shift
    done
-
 
    if [ -d "${BOOTSTRAP_SUBDIR}" ]
    then

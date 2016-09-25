@@ -817,12 +817,14 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local relative_srcdir
       local prefixbuild
       local dependenciesdir
+      local addictionsdir
       local cmakemodulepath
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
 
       prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
       dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
+      addictionsdir="`add_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}"`"
 
 #      cmakemodulepath="\${CMAKE_MODULE_PATH}"
 #      if [ ! -z "${CMAKE_MODULE_PATH}" ]
@@ -895,21 +897,23 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       oldpath="$PATH"
       PATH="${BUILDPATH}"
 
-      logging_exekutor "${CMAKE}" -G "${CMAKE_GENERATOR}" "-DCMAKE_BUILD_TYPE=${mapped}" \
-"${sdkparameter}" \
+      logging_exekutor "${CMAKE}" -G "${CMAKE_GENERATOR}" \
+"-DCMAKE_BUILD_TYPE=${mapped}" \
 "-DDEPENDENCIES_DIR=${dependenciesdir}" \
+"-DADDICTIONS_DIR=${addictionsdir}" \
 "-DCMAKE_INSTALL_PREFIX:PATH=${prefixbuild}"  \
 "-DCMAKE_INCLUDE_PATH=${includelines}" \
 "-DCMAKE_LIBRARY_PATH=${librarylines}" \
 "-DCMAKE_FRAMEWORK_PATH=${frameworklines}" \
-"${c_compiler_line}" \
-"${cxx_compiler_line}" \
 "-DCMAKE_C_FLAGS=${other_cflags}" \
 "-DCMAKE_CXX_FLAGS=${other_cxxflags}" \
 "-DCMAKE_EXE_LINKER_FLAGS=${other_ldflags}" \
 "-DCMAKE_SHARED_LINKER_FLAGS=${other_ldflags}" \
-${CMAKE_FLAGS} \
+"${sdkparameter}" \
+"${c_compiler_line}" \
+"${cxx_compiler_line}" \
 ${localcmakeflags} \
+${CMAKE_FLAGS} \
 "${relative_srcdir}" > "${logfile1}"
       rval=$?
 
@@ -1082,10 +1086,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       local prefixbuild
       local dependenciesdir
+      local addictionsdir
       #local linker
 
       pathrefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
       dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
+      addictionsdir="`add_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}"`"
 
       case "${UNAME}" in
          darwin)
@@ -1131,6 +1137,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       # use absolute paths for configure, safer (and easier to read IMO)
       DEPENDENCIES_DIR="'${dependenciesdir}'" \
+      ADDICTIONS_DIR="'${addictionsdir}'" \
       CC="${C_COMPILER:-${CC}}" \
       CXX="${CXX_COMPILER:-${CXX}}" \
       CFLAGS="${other_cflags}" \

@@ -102,9 +102,10 @@ local_environment_initialize()
            MULLE_BOOTSTRAP_VERBOSE="YES"
          fi
 
-         if [ -z "${MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH}" ]
+         # be optimistic because it's too slow on windows
+         if [ -z "${MULLE_BOOTSTRAP_OPTIMISTIC}" ]
          then
-           MULLE_BOOTSTRAP_SKIP_INITIAL_REFRESH="YES"
+           MULLE_BOOTSTRAP_OPTIMISTIC="YES"
          fi
 
          PATH_SEPARATOR=';'
