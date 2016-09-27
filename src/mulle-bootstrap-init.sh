@@ -125,7 +125,7 @@ init_main()
 # mod-pbxproj
 #EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/repositories"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/repositories" cat <<EOF
 #
 # Add repository URLs to this file.
 #
@@ -151,7 +151,7 @@ init_main()
 #
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/embedded_repositories"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/embedded_repositories" cat <<EOF
 #
 # Add repository URLs to this file.
 #
@@ -177,7 +177,7 @@ EOF
 #
 #
 EOF
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/brews"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/brews" cat <<EOF
 #
 # Add homebrew packages to this file (https://brew.sh/)
 #
@@ -195,33 +195,33 @@ EOF
 
       mkdir_if_missing "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin"
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/Release.map"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/Release.map" cat <<EOF
 # map configuration Release in project MulleScion to DebugRelease
 # leave commented out or delete file for no mapping
 # DebugRelease
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/project"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/project" cat <<EOF
 # Specify a xcodeproj to compile in project MulleScion instead of the default
 # leave commented out or delete file for default project
 # mulle-scion
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/scheme"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/scheme" cat <<EOF
 # Specify a scheme to compile in project MulleScion instead of the default
 # Might bite itself with TARGET, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/target"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/target" cat <<EOF
 # Specify a target to compile in project MulleScion instead of the default.
 # Might bite itself with SCHEME, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh" cat <<EOF
 # Run some commands after installing project MulleScion
 # leave commented out or delete file for no action
 # chmod 755 ${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh
@@ -230,7 +230,7 @@ EOF
 EOF
 #chmod 755 "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh"
 
-      exekutor cat <<EOF > "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-update.sh"
+      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-update.sh" cat <<EOF
 # Run some commands after upgrading project MulleScion
 # leave commented out or delete file for no action
 # chmod 755 ${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-update.sh

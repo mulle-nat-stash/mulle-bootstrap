@@ -210,7 +210,7 @@ run_build_settings_script()
    # can happen, if system libs override
    if [ ! -e "$srcdir" ]
    then
-      log_verbose "script \"${script}\" not executed, because ${srcdir} does not exist"
+      log_verbose "script \"${scriptname}\" not executed, because ${srcdir} does not exist"
       return 0
    fi
 
@@ -281,7 +281,7 @@ fetch__run_build_settings_script()
    # can happen, if system libs override
    if [ ! -e "$srcdir" ]
    then
-      log_verbose "script \"${script}\" not executed, because ${srcdir} does not exist"
+      log_verbose "script \"${scriptname}\" not executed, because ${srcdir} does not exist"
       return 0
    fi
 

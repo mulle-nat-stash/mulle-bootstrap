@@ -11,23 +11,53 @@ repositories were always placed into the project root. Now you can
 specify the subdirectory like "src/embedded/foo" (relative to project root).
 
 Better fetch and build code checks, that dependencies, that are
-installed in /usr/local already need not be fetched again. This can
+installed in `/usr/local` already need not be fetched again. This can
 be helpful, when building brew packages (for example).
 
-* fixed a problem in the parsing of the repositories file
-* embedded repositories can now be placed at an arbitrary position within your project tree
-* changes in deeply embedded repositories are now better tracked
-* fixed some as of yet unknown bugs, by improving some path functions
-* new -c switch to enable checking `/usr/local/include for dependency libraries conveniently from the command line. Fix build to add /usr/local/include to build, if check_usr_local_include is YES.
+Support for `mulle-build` which has an in general more optimistic approach to
+life.
+
+
+### Commands
+
+* started on `mulle-bootstrap config`. First implemented setting is
+`warn_scripts`. You can turn off scripts warning, with
+`mulle-bootstrap config -on dont_warn_scripts`
+* renamed hidden option **-r** to **-l** (sorry)
+* **-f** option removed from build/fetch options, as it didn't do anything. The
+**-f** for mulle-bootstrap is still there though.
+* new **-c** switch to enable checking `/usr/local/include` for dependency libraries
+conveniently from the command line. Fix build to add `/usr/local/include` to
+build, if `check_usr_local_include` is YES.
+* remove obsolete `mulle-bootstrap-project.sh` and `mulle-bootstrap project`.
+The idea behind that has been moved to `mulle-build`.
+
+### Features
+
+* embedded repositories can now be placed at an arbitrary position within your
+project tree
 * allow build and fetch options to be passed to `bootstrap`
 * improved comments in repositories` and `embedded_repositories` templates
 * pass ADDICTIONS_DIR to build systems
-* renamed hidden option -r to -l (sorry)
-* remove obsolete mulle-bootstrap-project.sh
-* call warn scripts earlier, when bootstrapping
-* started on mulle-bootstrap config, first settings "warn_scripts"
-* turn off scripts warning, with `mulle-bootstrap config -on dont_warn_scripts`
+* improve optimistic support, by memorizing if a fetch, refresh, build went
+thru successfully
 
+### Cmake
+
+* fixed multiple path settings for cmake
+* a project can indicate its preferred CC or CXX compiler by files .CC and .CXX
+in it's project root. e.g. `echo "mulle-clang" > .CC`. This can be overridden
+by settings. It's there because I have problems when not specifying the compiler
+on the command line.
+
+### Bugfixes
+
+* fixed a problem in the parsing of the repositories file
+* fixed some as of yet unknown bugs, by improving some path functions
+* changes in deeply embedded repositories are now better tracked
+* call warn scripts earlier, when bootstrapping
+* fix dry run for commands with output redirection
+* fix ALL/NONE in yes no answers to work again
 
 2.0.1
 ===

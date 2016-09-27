@@ -144,7 +144,7 @@ _read_setting()
       then
          log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
       else
-         log_verbose "Setting ${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
+         log_verbose "Setting ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} found in \"${file}\" as ${C_MAGENTA}${C_BOLD}${value}${C_VERBOSE}"
       fi
    fi
 
@@ -714,7 +714,6 @@ config_delete()
       exekutor rm "${BOOTSTRAP_SUBDIR}.local/config/$1"
    fi
 }
-
 
 
 config_main()

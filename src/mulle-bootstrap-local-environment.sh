@@ -38,7 +38,13 @@ user_say_yes()
    local  x
 
    x="${MULLE_BOOTSTRAP_ANSWER:-ASK}"
-   while [ "$x" != "Y" -a "$x" != "YES" -a  "$x" != "N"  -a  "$x" != "NO"  -a "$x" != "" ]
+   while [ "$x" != "Y" -a \
+           "$x" != "YES" -a \
+           "$x" != "ALL" -a \
+           "$x" != "N"  -a  \
+           "$x" != "NO"  -a \
+           "$x" != "NONE" -a \
+           "$x" != "" ]
    do
       printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
       read x

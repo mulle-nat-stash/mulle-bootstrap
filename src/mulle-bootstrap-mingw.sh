@@ -106,7 +106,7 @@ setup_mingw_buildenvironment()
    then
       LD="${linker}"
       export LD
-      log_verbose "Environment variable ${C_INFO}LD${C_FLUFF} set to ${C_RESET}\"${LD}\""
+      log_verbose "Environment variable ${C_INFO}LD${C_VERBOSE} set to ${C_RESET}\"${LD}\""
    else
       log_fluff "MSVC link.exe not found"
    fi
@@ -118,7 +118,7 @@ setup_mingw_buildenvironment()
    then
       CPP="${preprocessor}"
       export CPP
-      log_verbose "Environment variable ${C_INFO}CPP${C_FLUFF} set to ${C_RESET}\"${CPP}\""
+      log_verbose "Environment variable ${C_INFO}CPP${C_VERBOSE} set to ${C_RESET}\"${CPP}\""
    else
       log_fluff "mulle-mingw-cpp.sh not found"
    fi

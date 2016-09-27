@@ -89,7 +89,7 @@ bootstrap_auto_update_merge()
          log_fluff "Merging \"${settingname}\" from \"${srcfile}\""
 
          exekutor mv "${dstfile}" "${tmpfile}" || exit 1
-         exekutor merge_settings_in_front "${srcfile}" "${tmpfile}" > "${dstfile}"  || exit 1
+         redirect_exekutor "${dstfile}" exekutor merge_settings_in_front "${srcfile}" "${tmpfile}"  || exit 1
          exekutor rm "${tmpfile}" || exit 1
       else
          log_fluff "Copying \"${settingname}\" from \"${srcfile}\""

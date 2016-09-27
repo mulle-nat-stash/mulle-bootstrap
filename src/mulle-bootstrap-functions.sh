@@ -62,10 +62,39 @@ eval_exekutor()
 }
 
 
-logging_eval_exekutor()
+eval_redirect_append_exekutor()
 {
-   echo "==>" "$@" # to stdout
-   eval_exekutor "$@"
+   local output
+
+   output="$1"
+   shift
+
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
+   then
+      if [ -z "${MULLE_LOG_DEVICE}" ]
+      then
+         echo "==>" "$@" ">" "${output}" >&2
+      else
+         echo "==>" "$@" ">" "${output}" > "${MULLE_LOG_DEVICE}"
+      fi
+   fi
+
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   then
+      eval "$@" >> "${output}"
+   fi
+}
+
+
+logging_redirect_eval_exekutor()
+{
+   local output
+
+   output="$1"
+   shift
+
+   echo "==>" "$@" > "${output}" # to stdout
+   eval_redirect_append_exekutor "$1" "$@"
 }
 
 
@@ -88,10 +117,63 @@ exekutor()
 }
 
 
-logging_exekutor()
+redirect_exekutor()
 {
-   echo "==>" "$@" # to stdout
-   exekutor "$@"
+   local output
+
+   output="$1"
+   shift
+
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
+   then
+      if [ -z "${MULLE_LOG_DEVICE}" ]
+      then
+         echo "==>" "$@" ">" "${output}"  >&2
+      else
+         echo "==>" "$@" ">" "${output}" > "${MULLE_LOG_DEVICE}"
+      fi
+   fi
+
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   then
+      "$@" > "${output}"
+   fi
+}
+
+
+redirect_append_exekutor()
+{
+   local output
+
+   output="$1"
+   shift
+
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
+   then
+      if [ -z "${MULLE_LOG_DEVICE}" ]
+      then
+         echo "==>" "$@" ">" "${output}"  >&2
+      else
+         echo "==>" "$@" ">" "${output}" > "${MULLE_LOG_DEVICE}"
+      fi
+   fi
+
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   then
+      "$@" >> "${output}"
+   fi
+}
+
+
+logging_redirekt_exekutor()
+{
+   local output
+
+   output="$1"
+   shift
+
+   echo "==>" "$@" > "${output}"
+   redirect_append_exekutor "${output}" "$@"
 }
 
 
@@ -138,6 +220,23 @@ concat()
    done
 
    echo "${s}"
+}
+
+
+add_cmake_path()
+{
+   local line
+   local path
+
+   line="$1"
+   path="$2"
+
+   if [ -z "${line}" ]
+   then
+      echo "${path}"
+   else
+      echo "${line};${path}"
+   fi
 }
 
 
@@ -382,6 +481,11 @@ _relative_path_between()
    local a
    local b
 
+   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
    # remove trailing '/' it upsets the code
 
    a="`echo "$1" | sed -e 's|/$||g'`"
@@ -391,6 +495,11 @@ _relative_path_between()
    [ -z "${b}" ] && internal_fail "Empty path (\$2)"
 
    __relative_path_between "${b}" "${a}"   # flip args (historic)
+
+   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
 }
 
 
@@ -678,6 +787,11 @@ simplify_path()
 {
    local path
 
+   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
    path="$1"
 
    local components
@@ -690,6 +804,12 @@ simplify_path()
       final_components="`_simplify_components  "${components}"`"
       final_path="`_path_from_components "${final_components}"`"
    fi
+
+   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
+
    echo "${final_path}"
 }
 
@@ -810,7 +930,7 @@ create_file_if_missing()
 
 remove_file_if_present()
 {
-   if [ -f "$1" ]
+   if [ -e "$1" ]
    then
       log_fluff "Removing \"$1\" (`pwd -P`)"
       exekutor chmod u+w "$1" || fail "Failed to make $1 writable"
@@ -962,6 +1082,7 @@ has_usr_local_include()
    local include_name
 
    include_name="`echo "${name}" | tr '-' '_'`"
+
    [ -d "/usr/local/include/${include_name}" ]
 }
 

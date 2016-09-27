@@ -281,6 +281,7 @@ repository_directories_from_repos()
 # this sets valuse to variables that should be declared
 # in the caller!
 #
+#   # __parse_expanded_clone()
 #   local name
 #   local url
 #   local branch
@@ -308,6 +309,16 @@ __parse_expanded_clone()
 }
 
 
+# this sets valuse to variables that should be declared
+# in the caller!
+#
+#   # __parse_clone()
+#   local name
+#   local url
+#   local branch
+#   local scm
+#   local tag
+#
 __parse_clone()
 {
    local clone
@@ -321,6 +332,7 @@ __parse_clone()
 # this sets values to variables that should be declared
 # in the caller!
 #
+#   # __parse_embedded_clone
 #   local name
 #   local url
 #   local branch

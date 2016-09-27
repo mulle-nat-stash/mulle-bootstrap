@@ -50,7 +50,6 @@ build_usage()
 usage:
    mulle-bootstrap build [-ck] [repos]*
 
-   -f         :  override dirty harry check
    -k         :  don't clean before building $defk
    -K         :  always clean before building $defkk
    -c <name>  :  configurations to build ($defc), separate with comma
@@ -546,6 +545,7 @@ find_compiler()
 {
    local compiler_name
    local name
+   local file
 
    name="$1"
    compiler_name="$2"
@@ -553,6 +553,15 @@ find_compiler()
    local compiler
 
    compiler="`read_build_setting "${name}" "${compiler_name}"`"
+   if [ -z "${compiler}" ]
+   then
+      file="${CLONESFETCH_SUBDIR}/${name}/.${compiler_name}"
+      compiler="`cat "${file}" 2>/dev/null`"
+      if [  ! -z "${compiler}" ]
+      then
+         log_verbose "Compiler ${C_RESET_BOLD}${compiler_name}${C_VERBOSE} set to ${C_MAGENTA}${C_BOLD}${compiler}${C_VERBOSE} found in \"${file}\""
+      fi
+   fi
 
    case "${UNAME}" in
       mingw)
@@ -783,35 +792,35 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"`"
-      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_cmake_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_cmake_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}"`"
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"`"
 
-      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
-      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
 
       if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
       then
-         includelines="`add_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
-         librarylines="`add_path "${librarylines}" "${USR_LOCAL_LIB}"`"
+         includelines="`add_cmake_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
+         librarylines="`add_cmake_path "${librarylines}" "${USR_LOCAL_LIB}"`"
       fi
 
       local relative_srcdir
@@ -822,9 +831,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
 
-      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
-      dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
-      addictionsdir="`add_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}"`"
+      prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
+      dependenciesdir="`add_cmake_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
+      addictionsdir="`add_cmake_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}"`"
 
 #      cmakemodulepath="\${CMAKE_MODULE_PATH}"
 #      if [ ! -z "${CMAKE_MODULE_PATH}" ]
@@ -863,7 +872,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       memo="${IFS}"
 
-      IFS="${PATH_SEPARATOR}"
+      # cmake separator
+      IFS=";"
       for path in ${includelines}
       do
          other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
@@ -897,7 +907,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       oldpath="$PATH"
       PATH="${BUILDPATH}"
 
-      logging_exekutor "${CMAKE}" -G "${CMAKE_GENERATOR}" \
+      logging_redirekt_exekutor "${logfile1}" "${CMAKE}" -G "${CMAKE_GENERATOR}" \
 "-DCMAKE_BUILD_TYPE=${mapped}" \
 "-DDEPENDENCIES_DIR=${dependenciesdir}" \
 "-DADDICTIONS_DIR=${addictionsdir}" \
@@ -914,7 +924,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "${cxx_compiler_line}" \
 ${localcmakeflags} \
 ${CMAKE_FLAGS} \
-"${relative_srcdir}" > "${logfile1}"
+"${relative_srcdir}"
       rval=$?
 
       if [ $rval -ne 0 ]
@@ -923,7 +933,7 @@ ${CMAKE_FLAGS} \
          build_fail "${logfile1}" "cmake"
       fi
 
-      logging_exekutor "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install > "${logfile2}"
+      logging_redirekt_exekutor "${logfile2}" "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install
       rval=$?
 
       PATH="${oldpath}"
@@ -1143,8 +1153,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       CFLAGS="${other_cflags}" \
       CXXFLAGS="${other_cflags} ${other_cxxflags}" \
       LDFLAGS="${other_ldflags}" \
-      logging_exekutor "${owd}/${srcdir}/configure" ${configureflags} \
-          --prefix "${prefixbuild}" >> "${logfile1}" \
+      logging_redirekt_exekutor "${logfile1}" "${owd}/${srcdir}/configure" ${configureflags} \
+          --prefix "${prefixbuild}"
       rval=$?
 
       if [ $rval -ne 0 ]
@@ -1153,7 +1163,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          build_fail "${logfile1}" "configure"
       fi
 
-      logging_exekutor "${MAKE}" ${MAKE_FLAGS} install > "${logfile2}"
+      logging_redirekt_exekutor "${logfile2}" "${MAKE}" ${MAKE_FLAGS} install
       rval=$?
 
       PATH="${oldpath}"
@@ -1439,7 +1449,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    mkdir_if_missing "${BUILDLOG_SUBDIR}"
 
    logfile="`build_log_name "${toolname}" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
-   log_verbose "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
+   log_verbose "Build log will be in: ${C_RESET_BOLD}${logfile}${C_VERBOSE}"
 
    set -f
 
@@ -1607,7 +1617,7 @@ HEADER_SEARCH_PATHS='${dependencies_header_search_path}' \
 LIBRARY_SEARCH_PATHS='${dependencies_lib_search_path}' \
 FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
-      logging_eval_exekutor "${cmdline}" > "${logfile}"
+      logging_redirect_eval_exekutor "${logfile}" "${cmdline}"
       rval=$?
 
       PATH="${oldpath}"
@@ -2090,10 +2100,6 @@ get_source_dir()
 build_clones()
 {
    local clone
-   local xdone
-   local name
-   local srcdir
-   local srcsubdir
    local old
 
    old="${IFS:-" "}"
@@ -2108,11 +2114,20 @@ build_clones()
 
    run_build_root_settings_script "pre-build" "$@"
 
+   # _parse_clone
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+
    #
    # build order is there, because we want to have gits
    # and maybe later hgs
    #
    BUILT="`read_build_root_setting "build_ignore"`"
+
+   local srcdir
 
    if [ "$#" -eq 0 ]
    then
@@ -2125,16 +2140,15 @@ build_clones()
          do
             IFS="$old"
 
-            clone="`expanded_setting "${clone}"`"
+            __parse_clone "${clone}"
 
-            name="`canonical_name_from_clone "${clone}"`"
             srcdir="`get_source_dir "${name}"`"
 
             if [ -d "${srcdir}" ]
             then
                build_if_alive "${name}" "${srcdir}" || exit  1
             else
-               if has_usr_local_include "${name}"
+               if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
                then
                   :
                else
@@ -2152,7 +2166,7 @@ build_clones()
          then
             build_if_alive "${name}" "${srcdir}"|| exit 1
          else
-            if has_usr_local_include "${name}"
+            if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
             then
                :
             else
@@ -2229,10 +2243,6 @@ build_main()
             CLEAN_BEFORE_BUILD=
          ;;
 
-         -f|--force)
-            MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
-         ;;
-
          -j|--cores)
             case "${UNAME}" in
                mingw)
@@ -2289,9 +2299,12 @@ build_main()
    build_complete_environment
 
    [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
    CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.build_done"
 
    if [ $# -eq 0 ]
    then
@@ -2325,6 +2338,8 @@ build_main()
    else
       log_fluff "No dependencies have been generated"
    fi
+
+   create_file_if_missing "${CLONESFETCH_SUBDIR}/.build_done"
 
    log_fluff "::: build end :::"
 }

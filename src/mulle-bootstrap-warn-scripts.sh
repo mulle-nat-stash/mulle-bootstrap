@@ -46,7 +46,7 @@ warn_scripts()
    local i
    local old
 
-   log_info "warn_scripts $1:$2:${DONT_ASK_AFTER_WARNING}:${MULLE_BOOTSTRAP_ANSWER}"
+   # log_info "warn_scripts $1:$2:${DONT_ASK_AFTER_WARNING}:${MULLE_BOOTSTRAP_ANSWER}"
 
    if [ -d "${bootstrapdir}" ]
    then

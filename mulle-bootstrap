@@ -120,6 +120,8 @@ bootstrap_nomagic_main()
    . mulle-bootstrap-build.sh
    . mulle-bootstrap-warn-scripts.sh
 
+   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
+
    # used for option handling only
    MULLE_BOOTSTRAP_WILL_BUILD="YES"
 
@@ -174,6 +176,7 @@ bootstrap_main()
    # logging and UNAME
 
    . mulle-bootstrap-logging.sh
+   . mulle-bootstrap-local-environment.sh
 
    trap trap_fail INT
 
@@ -225,6 +228,10 @@ bootstrap_main()
 
          -tt|--trace-ignores-settings)
             MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
+         ;;
+
+         -tp|--trace-ignores-paths)
+            MULLE_BOOTSTRAP_PATHS_FLIP_X="YES"
          ;;
 
          -t|--trace)
@@ -355,8 +362,20 @@ bootstrap_main()
       esac
    fi
 
+   local do_refresh
+
+   do_refresh="YES"
+
+   if [ "${MULLE_BOOTSTRAP_OPTIMISTIC}" = "YES" ]
+   then
+      if [ -e "${CLONESFETCH_SUBDIR}/.refresh_done" ]
+      then
+         do_refresh="NO"
+      fi
+   fi
+
    # some commands refresh before execution
-   if [ "${MULLE_BOOTSTRAP_OPTIMISTIC}" != "YES" ]
+   if [ "${do_refresh}" = "YES" ]
    then
       case "${command}" in
          bootstrap|nomagic|fetch)

@@ -409,10 +409,10 @@ bury_embedded_zombies()
    fi
 }
 
+
 #
 # ###
 #
-
 refresh_repositories()
 {
    local clone
@@ -636,6 +636,8 @@ refresh_main()
       exekutor rm -rf "${BOOTSTRAP_SUBDIR}.auto"
    fi
 
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.refresh_done"
+
    bootstrap_auto_create
 
    #
@@ -661,6 +663,8 @@ refresh_main()
          refresh_deeply_embedded_repositories
       fi
    fi
+
+   create_file_if_missing "${CLONESFETCH_SUBDIR}/.refresh_done"
 
    log_fluff "::: refresh end :::"
 }

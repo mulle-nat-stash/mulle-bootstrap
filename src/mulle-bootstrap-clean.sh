@@ -39,6 +39,8 @@ setup_clean_environment()
 
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
+   BUILD_CLEANABLE_FILES="${CLONESFETCH_SUBDIR}/.build_done"
+
    BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCY_SUBDIR}/tmp"`"
    OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
@@ -65,11 +67,13 @@ _clean_usage()
    build   : useful to remove intermediate build files. it cleans
 ---
 ${BUILD_CLEANABLE_SUBDIRS}
+${BUILD_CLEANABLE_FILES}
 ---
 
    output  : useful to rebuild. It cleans
 ---
 ${BUILD_CLEANABLE_SUBDIRS}
+${BUILD_CLEANABLE_FILES}
 ${OUTPUT_CLEANABLE_SUBDIRS}
 ---
 
@@ -114,6 +118,20 @@ clean_asserted_folder()
 }
 
 
+clean_asserted_file()
+{
+   if [ -f "$1" ]
+   then
+      log_info "Deleting \"$1\""
+
+      remove_file_if_present "$1"
+   else
+      log_fluff "\"$1\" doesn't exist"
+   fi
+}
+
+
+
 clean_parent_folders_if_empty()
 {
    local dir
@@ -147,6 +165,30 @@ clean_parent_folders_if_empty()
 }
 
 
+clean_files()
+{
+   local files
+
+   files="$1"
+
+   local file
+   local old
+
+   old="${IFS:-" "}"
+
+   IFS="
+"
+   for file in ${files}
+   do
+      IFS="${old}"
+
+      clean_asserted_file "${file}"
+   done
+
+   IFS="${old}"
+}
+
+
 clean_directories()
 {
    local directories
@@ -161,9 +203,9 @@ clean_directories()
    old="${IFS:-" "}"
    IFS="
 "
-
    for directory in ${directories}
    do
+      IFS="${old}"
       clean_asserted_folder "${directory}"
       clean_parent_folders_if_empty "${directory}" "${PWD}"
       flag="YES"
@@ -193,18 +235,23 @@ _clean_execute()
    flag="NO"
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
+
    case "${COMMAND}" in
       build)
          BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCY_SUBDIR}/tmp"`"
+         BUILD_CLEANABLE_FILES="${CLONESFETCH_SUBDIR}/.build_done"
          clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"
+         clean_files "${BUILD_CLEANABLE_FILES}"
          return
       ;;
 
       dist|output|install)
          BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCY_SUBDIR}/tmp"`"
+         BUILD_CLEANABLE_FILES="${CLONESFETCH_SUBDIR}/.build_done"
          flag="`clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"`"
+         clean_files "${BUILD_CLEANABLE_FILES}"
       ;;
    esac
 
@@ -212,12 +259,14 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
       output)
          OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
          clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"
+         clean_files "${OUTPUT_CLEANABLE_FILES}"
          return
       ;;
 
       dist)
          OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
          flag="`clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"`"
+         clean_files "${OUTPUT_CLEANABLE_FILES}"
       ;;
    esac
 
@@ -226,6 +275,7 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
          INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${CLONES_SUBDIR}
 .bootstrap.auto"`"
          clean_directories "${INSTALL_CLEANABLE_SUBDIRS}" "${flag}"
+         clean_files "${INSTALL_CLEANABLE_FILES}"
          return
       ;;
    esac
@@ -243,6 +293,7 @@ ${ADDICTION_SUBDIR}
 ${EMBEDDED}"
          fi
          clean_directories "${DIST_CLEANABLE_SUBDIRS}" "${flag}"
+         clean_files "${DIST_CLEANABLE_FILES}"
       ;;
    esac
 }

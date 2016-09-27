@@ -45,7 +45,6 @@ usage:
    mulle-bootstrap ${COMMAND} [options] [repositories]
 
    Options
-      -f    :  override dirty harry check
       -u    :  try to update symlinked folders as well (not recommended)
       -nr   :  ignore .bootstrap folders of fetched repositories
       -e    :  fetch embedded repositories only
@@ -683,42 +682,35 @@ clone_repository()
 
    local tag
    local dstdir
-   local doit
 
    log_verbose "Clone ${name} if needed ..."
 
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
    dstdir="${CLONESFETCH_SUBDIR}/${name}"
 
-   doit=1
-   if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+   if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
    then
-      has_usr_local_include "${name}"
-      doit=$?
+      log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not fetching it"
+      return 1
    fi
 
    local stop
 
    stop=1
 
-   if [ $doit -ne 0 ]
+   log_fetch_action "${url}" "${dstdir}"
+
+   # mark the checkout progress, so that we don't do incomplete fetches and
+   # later on happily build
+
+   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+
+   if checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
    then
-      log_fetch_action "${url}" "${dstdir}"
-
-      # mark the checkout progress, so that we don't do incomplete fetches and
-      # later on happily build
-
-      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-      if checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
-      then
-         stop=0
-      fi
-
-      remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-   else
-      log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not fetching it"
+      stop=0
    fi
+
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
 
    return $stop
 }
@@ -1096,7 +1088,7 @@ append_dir_to_gitignore_if_needed()
    fgrep -s -x "${directory}" .gitignore > /dev/null 2>&1
    if [ $? -ne 0 ]
    then
-      exekutor echo "${directory}" >> .gitignore || fail "Couldn\'t append to .gitignore"
+      redirect_exekutor .gitignore echo "${directory}"  || fail "Couldn\'t append to .gitignore"
       log_info "Added \"${directory}\" to \".gitignore\""
    fi
 }
@@ -1131,7 +1123,14 @@ ${url}"
 
    # dont't use symlinks anymore
    log_fluff "Remember embedded repository \"${name}\" via \"${embeddeddir}/${name}\""
-   exekutor echo "${content}" > "${embeddeddir}/${name}"
+
+   # useful for old symlinks from previous version
+   if [ -L "${embeddeddir}/${name}" ]
+   then
+      exekutor rm "${embeddeddir}/${name}"
+   fi
+   remove_file_if_present "${embeddeddir}/${name}"
+   redirect_exekutor "${embeddeddir}/${name}" echo "${content}"
 }
 
 
@@ -1329,10 +1328,6 @@ _common_main()
             EMBEDDED_ONLY="YES"
          ;;
 
-         -f)
-            MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
-         ;;
-
          -u|--update-symlinks)
             MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
          ;;
@@ -1393,6 +1388,9 @@ _common_main()
       fi
    fi
 
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.refresh_done"
+   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_done"
+
    #
    # Run prepare scripts if present
    #
@@ -1438,6 +1436,7 @@ _common_main()
    fetch__run_fetch_settings_script "post-${COMMAND}" "$@"
 
    remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_done"
 
    if read_yes_no_config_setting "update_gitignore" "YES"
    then
@@ -1463,7 +1462,6 @@ update_main()
 
    log_fluff "::: update end :::"
 }
-
 
 
 fetch_main()
