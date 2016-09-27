@@ -59,6 +59,7 @@ on the command line.
 * fix dry run for commands with output redirection
 * fix ALL/NONE in yes no answers to work again
 
+
 2.0.1
 ===
 

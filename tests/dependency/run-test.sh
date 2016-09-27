@@ -62,7 +62,7 @@ clear_test_dirs()
 test()
 {
    cd a || exit 1
-   mulle-bootstrap -y fetch -f || exit 1
+   mulle-bootstrap -y -f fetch || exit 1
    mulle-bootstrap refresh || exit 1
 
    result="`cat .bootstrap.auto/repositories`"
