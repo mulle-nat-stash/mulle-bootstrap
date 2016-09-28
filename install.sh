@@ -25,7 +25,7 @@ fi
 
 fail()
 {
-   echo "${C_BR_RED}$*${C_RESET}" >&2
+   printf "${C_BR_RED}$*${C_RESET}\n" >&2
    exit 1
 }
 

@@ -841,6 +841,14 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 #         cmakemodulepath="${CMAKE_MODULE_PATH}${PATH_SEPARATOR}${cmakemodulepath}"   # prepend
 #      fi
 
+      local native_includelines
+      local native_librarylines
+      local native_frameworklines
+
+      native_includelines="${includelines}"
+      native_librarylines="${librarylines}"
+      native_frameworklines="${frameworklines}"
+
       local frameworkprefix
       local libraryprefix
       local includeprefix
@@ -856,13 +864,17 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
          mingw)
             relative_srcdir="`echo "${relative_srcdir}" | tr '/' '\\'  2> /dev/null`"
+            native_includelines="`echo "${native_includelines}" | tr '/' '\\'  2> /dev/null`"
+            native_librarylines="`echo "${native_librarylines}" | tr '/' '\\'  2> /dev/null`"
             libraryprefix="/LIBPATH:"
             includeprefix="/I"
             frameworklines=
+            native_frameworklines=
          ;;
 
          *)
             frameworklines=
+            native_frameworklines=
          ;;
       esac
 
@@ -874,18 +886,18 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       # cmake separator
       IFS=";"
-      for path in ${includelines}
+      for path in ${native_includelines}
       do
          other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
          other_cxxflags="`concat "${other_cxxflags}" "${includeprefix}${path}"`"
       done
 
-      for path in ${librarylines}
+      for path in ${native_librarylines}
       do
          other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
-      for path in ${frameworklines}
+      for path in ${native_frameworklines}
       do
          other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
          other_cxxflags="`concat "${other_cxxflags}" "${frameworkprefix}${path}"`"

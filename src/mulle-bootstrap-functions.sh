@@ -578,7 +578,6 @@ relative_path_between()
 }
 
 
-
 #
 # compute number of .. needed to return from path
 # e.g.  cd "a/b/c" -> cd ../../..
@@ -661,7 +660,6 @@ perfect_relative_path_between()
 
    _relative_path_between "${a}" "${b}"
 }
-
 
 
 escaped_spaces()
@@ -1108,9 +1106,6 @@ write_protect_directory()
 # ####################################################################
 #                               Init
 # ####################################################################
-
-
-
 functions_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
