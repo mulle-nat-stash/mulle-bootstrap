@@ -127,19 +127,24 @@ bootstrap_nomagic_main()
 
    warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
 
-   if [ -z "${DONT_RECURSE}" ]
+   if fetch_needed
    then
-      fetch_main "$@" || exit 1
-      refresh_main    || exit 1
-   else
-      fetch_main --non-recursive "$@" || exit 1
-      refresh_main nonrecursive       || exit 1
+      if [ -z "${DONT_RECURSE}" ]
+      then
+         fetch_main "$@" || exit 1
+         refresh_main    || exit 1
+      else
+         fetch_main --non-recursive "$@" || exit 1
+         refresh_main nonrecursive       || exit 1
+      fi
+      # used for option handling only
+      MULLE_BOOTSTRAP_DID_FETCH="YES"
    fi
 
-   # used for option handling only
-   MULLE_BOOTSTRAP_DID_FETCH="YES"
-
-   build_main "$@" || exit 1
+   if build_needed
+   then
+      build_main "$@" || exit 1
+   fi
 }
 
 
@@ -167,7 +172,6 @@ bootstrap_main()
          exit 0
       ;;
    esac
-
 
    MULLE_BOOTSTRAP_PID="$$"
    export MULLE_BOOTSTRAP_PID
@@ -202,6 +206,9 @@ bootstrap_main()
             MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
          ;;
 
+         -fr|--force-refresh)
+            MULLE_BOOTSTRAP_NEEDS_REFRESH="YES"
+         ;;
          -n|--dry-run)
             MULLE_EXECUTOR_DRY_RUN="YES"
          ;;
@@ -293,7 +300,7 @@ bootstrap_main()
          then
             MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
          fi
-         ;;
+      ;;
 
       FLUFF)
          MULLE_BOOTSTRAP_FLUFF="YES"
@@ -303,7 +310,7 @@ bootstrap_main()
          then
             MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
          fi
-         ;;
+      ;;
 
       TRACE)
          MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
@@ -315,7 +322,7 @@ bootstrap_main()
             MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
          fi
          log_trace "FULL trace started"
-         ;;
+      ;;
 
       1848)
          MULLE_BOOTSTRAP_TRACE_SETTINGS="NO"
@@ -328,7 +335,7 @@ bootstrap_main()
          fi
          log_trace "1848 trace (set -x) started"
          set -x
-         ;;
+      ;;
    esac
 
    if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" ]
@@ -362,20 +369,11 @@ bootstrap_main()
       esac
    fi
 
-   local do_refresh
-
-   do_refresh="YES"
-
-   if [ "${MULLE_BOOTSTRAP_OPTIMISTIC}" = "YES" ]
-   then
-      if [ -e "${CLONESFETCH_SUBDIR}/.refresh_done" ]
-      then
-         do_refresh="NO"
-      fi
-   fi
-
-   # some commands refresh before execution
-   if [ "${do_refresh}" = "YES" ]
+   #
+   # some commands should refresh before execution
+   # try to avoid pulling in the header if not needed
+   #
+   if [ "${MULLE_BOOTSTRAP_NEEDS_REFRESH}" = "YES" ] || refresh_needed
    then
       case "${command}" in
          bootstrap|nomagic|fetch)
@@ -456,13 +454,17 @@ bootstrap_main()
       ;;
 
       refresh)
+         [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
+
          refresh_main "$@" || exit 1
       ;;
 
-      update)
+      update|pull)
          . mulle-bootstrap-fetch.sh
 
          update_main "$@" || exit 1
+
+         [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
          refresh_main || exit 1
       ;;
 

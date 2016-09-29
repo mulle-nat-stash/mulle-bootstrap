@@ -531,22 +531,24 @@ refresh_embedded_repositories()
 
 refresh_deeply_embedded_repositories()
 {
-   local branch
    local clone
    local clones
    local dstprefix
-   local name
    local old
    local previous_bootstrap
    local previous_clones
-   local scm
-   local subdir
-   local tag
-   local url
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
    old="${IFS:-" "}"
+
+   # __parse_embedded_clone
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+   local subdir
 
    clones="`read_fetch_setting "repositories"`"
    if [ "${clones}" != "" ]
@@ -584,9 +586,9 @@ refresh_deeply_embedded_repositories()
 }
 
 
-
 # -------------------
-
+# TODO: check that refresh actually changed something in repositoires or
+#       embedded repositories and refetch as needed
 refresh_main()
 {
    log_fluff "::: refresh begin :::"

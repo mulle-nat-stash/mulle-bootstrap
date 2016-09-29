@@ -1372,6 +1372,7 @@ _common_main()
    [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh
    [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ]  && . mulle-bootstrap-auto-update.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ]      && . mulle-bootstrap-refresh.sh
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if
@@ -1436,7 +1437,6 @@ _common_main()
    fetch__run_fetch_settings_script "post-${COMMAND}" "$@"
 
    remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_done"
 
    if read_yes_no_config_setting "update_gitignore" "YES"
    then
@@ -1449,6 +1449,14 @@ _common_main()
          append_dir_to_gitignore_if_needed "${CLONES_SUBDIR}"
       fi
    fi
+
+   refresh_main || exit 1
+
+   #
+   # if fetch_done is older than refresh_done, we know we should
+   # fetch again
+   #
+   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_done"
 }
 
 

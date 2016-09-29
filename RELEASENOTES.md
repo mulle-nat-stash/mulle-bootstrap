@@ -40,7 +40,7 @@ project tree
 * improved comments in repositories` and `embedded_repositories` templates
 * pass ADDICTIONS_DIR to build systems
 * improve optimistic support, by memorizing if a fetch, refresh, build went
-thru successfully
+thru successfully. The automatic refresh should run much less often now.
 
 ### Cmake
 

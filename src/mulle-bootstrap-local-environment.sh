@@ -83,6 +83,85 @@ get_core_count()
 }
 
 
+# figure out if we need to run refresh
+build_needed()
+{
+   if [ ! -f "${CLONESFETCH_SUBDIR}/.build_done" ]
+   then
+      log_fluff "Need build because ${CLONESFETCH_SUBDIR}/.build_done does not exist."
+      return 0
+   fi
+
+   if [ "${CLONESFETCH_SUBDIR}/.build_done" -ot "${CLONESFETCH_SUBDIR}/.refresh_done" ]
+   then
+      log_fluff "Need build because \"${CLONESFETCH_SUBDIR}/.build_done\" is older than \"${CLONESFETCH_SUBDIR}/.refresh_done\""
+      return 0
+   fi
+
+   return 1
+}
+
+
+fetch_needed()
+{
+   if [ ! -f "${CLONESFETCH_SUBDIR}/.fetch_done" ]
+   then
+      log_fluff "Need fetch because ${CLONESFETCH_SUBDIR}/.fetch_done does not exist."
+      return 0
+   fi
+
+   if [ "${CLONESFETCH_SUBDIR}/.fetch_done" -ot "${CLONESFETCH_SUBDIR}/.refresh_done" ]
+   then
+      log_fluff "Need fetch because \"${CLONESFETCH_SUBDIR}/.fetch_done\" is older than \"${CLONESFETCH_SUBDIR}/.refresh_done\""
+      return 0
+   fi
+
+   return 1
+}
+
+
+refresh_needed()
+{
+   if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
+   then
+     log_fluff "Need refresh because ${BOOTSTRAP_SUBDIR}.auto does not exist."
+     return 0
+   fi
+
+   if [ ! -f "${CLONESFETCH_SUBDIR}/.refresh_done" ]
+   then
+      log_fluff "Need refresh because ${CLONESFETCH_SUBDIR}/.refresh_done does not exist."
+      return 0
+   fi
+
+   if [ "${CLONESFETCH_SUBDIR}/.refresh_done" -ot "${BOOTSTRAP_SUBDIR}/embedded_repositories" ]
+   then
+      log_fluff "Need refresh because \"${BOOTSTRAP_SUBDIR}/embedded_repositories\" is modified"
+      return 0
+   fi
+
+   if [ "${CLONESFETCH_SUBDIR}/.refresh_done" -ot "${BOOTSTRAP_SUBDIR}/repositories" ]
+   then
+      log_fluff "Need refresh because \"${BOOTSTRAP_SUBDIR}/repositories\" is modified"
+      return 0
+   fi
+
+   if [ "${CLONESFETCH_SUBDIR}/.refresh_done" -ot "${BOOTSTRAP_SUBDIR}.local/embedded_repositories" ]
+   then
+      log_fluff "Need refresh because \"${BOOTSTRAP_SUBDIR}.local/embedded_repositories\" is modified"
+      return 0
+   fi
+
+   if [ "${CLONESFETCH_SUBDIR}/.refresh_done" -ot "${BOOTSTRAP_SUBDIR}.local/repositories" ]
+   then
+      log_fluff "Need refresh because \"${BOOTSTRAP_SUBDIR}.local/repositories\" is modified"
+      return 0
+   fi
+
+   return 1
+}
+
+
 local_environment_initialize()
 {
    #
