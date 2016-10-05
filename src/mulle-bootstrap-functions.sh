@@ -128,7 +128,7 @@ redirect_exekutor()
    then
       if [ -z "${MULLE_LOG_DEVICE}" ]
       then
-         echo "==>" "$@" ">" "${output}"  >&2
+         echo "==>" "$@" ">" "${output}" >&2
       else
          echo "==>" "$@" ">" "${output}" > "${MULLE_LOG_DEVICE}"
       fi
@@ -152,7 +152,7 @@ redirect_append_exekutor()
    then
       if [ -z "${MULLE_LOG_DEVICE}" ]
       then
-         echo "==>" "$@" ">" "${output}"  >&2
+         echo "==>" "$@" ">" "${output}" >&2
       else
          echo "==>" "$@" ">" "${output}" > "${MULLE_LOG_DEVICE}"
       fi
