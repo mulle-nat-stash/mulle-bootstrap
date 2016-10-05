@@ -62,7 +62,7 @@ eval_exekutor()
 }
 
 
-eval_redirect_append_exekutor()
+redirect_append_eval_exekutor()
 {
    local output
 
@@ -94,7 +94,7 @@ logging_redirect_eval_exekutor()
    shift
 
    echo "==>" "$@" > "${output}" # to stdout
-   eval_redirect_append_exekutor "$1" "$@"
+   redirect_append_eval_exekutor "$1" "$@"
 }
 
 
