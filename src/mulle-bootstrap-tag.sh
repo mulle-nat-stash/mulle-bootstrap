@@ -170,7 +170,7 @@ tag()
             if [ -d "${i}/.git" -o -d "${i}/refs" ]
             then
                log_info "Tagging \"`basename -- "${i}"`\" with \"${tag}\""
-               (cd "$i" ; exekutor git tag $GIT_FLAGS "$@" "${tag}" ) || fail "tag failed"
+               (cd "$i" ; exekutor git tag $GITFLAGS "$@" "${tag}" ) || fail "tag failed"
             fi
          fi
       done
@@ -185,7 +185,7 @@ tag_main()
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
-   GIT_FLAGS=
+   GITFLAGS=
    TAG_OPERATION="tag"
 
    while :
@@ -197,7 +197,7 @@ tag_main()
 
       if [ "$1" = "-f" ]
       then
-         GIT_FLAGS="${GIT_FLAGS} $1"
+         GITFLAGS="${GITFLAGS} $1"
          TAG_OPERATION="force tag"
          [ $# -eq 0 ] || shift
          continue
@@ -205,7 +205,7 @@ tag_main()
 
       if [ "$1" = "-d" ]
       then
-         GIT_FLAGS="${GIT_FLAGS} $1"
+         GITFLAGS="${GITFLAGS} $1"
          TAG_OPERATION="delete the tag of"
          [ $# -eq 0 ] || shift
          continue
@@ -223,7 +223,7 @@ tag_main()
       tag_usage
    fi
 
-   if [ -z "${GIT_FLAGS}" ]
+   if [ -z "${GITFLAGS}" ]
    then
       ensure_tags_unknown "${CLONES_SUBDIR}" "${TAG}"
    fi
@@ -231,15 +231,15 @@ tag_main()
 
    if dir_has_files "${CLONES_SUBDIR}"
    then
-      echo "Will ${TAG_OPERATION} clones with ${TAG}" >&2
+      log_fluff "Will ${TAG_OPERATION} clones with ${TAG}"
    else
       log_info "There is nothing to tag."
       return 0
    fi
 
-   run_fetch_settings_script "pre-tag"
+   fetch__run_fetch_settings_script "pre-tag"
 
    tag "${CLONES_SUBDIR}" "${TAG}" "$@"
 
-   run_fetch_settings_script "pre-tag"
+   fetch__run_fetch_settings_script "pre-tag"
 }

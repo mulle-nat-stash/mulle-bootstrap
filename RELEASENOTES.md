@@ -23,6 +23,8 @@ life.
 * started on `mulle-bootstrap config`. First implemented setting is
 `warn_scripts`. You can turn off scripts warning, with
 `mulle-bootstrap config -on dont_warn_scripts`
+* added `git` command, so you can say `mulle-bootstrap git status`. Going to
+become more useful over time.
 * renamed hidden option **-r** to **-l** (sorry)
 * **-f** option removed from build/fetch options, as it didn't do anything. The
 **-f** for mulle-bootstrap is still there though.

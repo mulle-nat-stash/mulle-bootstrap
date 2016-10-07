@@ -229,7 +229,7 @@ run_build_settings_script()
 
 
 #
-# various scripts runner for fetch, designed to only load in the build
+# various scripts runner for fetch, designed to source in the build
 # environment (slow on mingw, if needed)
 #
 fetch__run_script()

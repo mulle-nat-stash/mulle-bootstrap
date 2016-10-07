@@ -216,6 +216,61 @@ svn_update()
 }
 
 
+run_git()
+{
+   local clonesdir
+
+   clonesdir="$1"
+   [ $# -eq 0 ] || shift
+
+   local i
+
+   for i in "${clonesdir}"/*
+   do
+      if [ -d "$i" ]
+      then
+         if [ -d "${i}/.git" -o -d "${i}/refs" ]
+         then
+            log_info "### $i:"
+            (cd "$i" ; exekutor git ${GITFLAGS} "$@" ) || fail "git failed"
+            log_info
+         fi
+      fi
+   done
+
+}
+
+
+git_main()
+{
+   log_fluff "::: git :::"
+
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+
+
+   while :
+   do
+      if [ "$1" = "-h" -o "$1" = "--help" ]
+      then
+         git_usage
+      fi
+
+      break
+   done
+
+   if dir_has_files "${CLONES_SUBDIR}"
+   then
+      log_fluff "Will git $* clones " >&2
+   else
+      log_info "There is nothing to run git over."
+      return 0
+   fi
+
+   run_git "${CLONES_SUBDIR}" "$@"
+}
+
+
 scm_initialize()
 {
    log_fluff ":scm_initialize:"

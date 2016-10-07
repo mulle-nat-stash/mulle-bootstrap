@@ -209,6 +209,7 @@ bootstrap_main()
          -fr|--force-refresh)
             MULLE_BOOTSTRAP_NEEDS_REFRESH="YES"
          ;;
+
          -n|--dry-run)
             MULLE_EXECUTOR_DRY_RUN="YES"
          ;;
@@ -244,7 +245,7 @@ bootstrap_main()
          -t|--trace)
             MULLE_BOOTSTRAP_TRACE="1848"
             COPYMOVEFLAGS="-v"
-            GITFLAGS="-v"
+            GITFLAGS="${GITFLAGS} -v"
          ;;
 
          -V|--verbose-build)
@@ -254,25 +255,25 @@ bootstrap_main()
          -v|--verbose)
             MULLE_BOOTSTRAP_TRACE="VERBOSE"
             COPYMOVEFLAGS="-v"
-            GITFLAGS="-v"
+            GITFLAGS="${GITFLAGS} -v"
          ;;
 
          -vv|--very-verbose)
             MULLE_BOOTSTRAP_TRACE="FLUFF"
             COPYMOVEFLAGS="-v"
-            GITFLAGS="-v"
+            GITFLAGS="${GITFLAGS} -v"
          ;;
 
          -vvv|--very-verbose-with-settings)
             MULLE_BOOTSTRAP_TRACE="TRACE"
             COPYMOVEFLAGS="-v"
-            GITFLAGS="-v"
+            GITFLAGS="${GITFLAGS} -v"
          ;;
 
          -s|--silent)
             MULLE_BOOTSTRAP_TRACE=
             MULLE_BOOTSTRAP_TERSE="YES"
-            GITFLAGS="-q"
+            GITFLAGS="${GITFLAGS} -q"
          ;;
 
          -h|--help)
@@ -478,6 +479,12 @@ bootstrap_main()
          . mulle-bootstrap-tag.sh
 
          tag_main "$@" || exit 1
+      ;;
+
+      git)
+         . mulle-bootstrap-scm.sh
+
+         git_main "$@" || exit 1
       ;;
 
       version)
