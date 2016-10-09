@@ -152,7 +152,7 @@ Say you are dependent on a and b, and a is dependent on b (but a is not a
 
 ### Is it a problem if a repository appears twice ?
 
-No, if the repositoris entry matches. If it doesn't match, it can be a problem.
+No, if the repository entries match. If they doen't match, it can be a problem.
 
 
 
@@ -160,8 +160,10 @@ No, if the repositoris entry matches. If it doesn't match, it can be a problem.
 ## Xcode problems
 
 
-### I have a depencency on another library in the same project. The headers of
-the dependency library are in `dependencies/usr/local/include`. What now ?
+### I have a depencency on another library in the same project.
+
+But the headers of the dependency library are in `dependencies/usr/local/include`.
+What now ?
 
 **mulle-bootstrap*+ can't manage xcodebuild dependencies, so you have to help
 it. Specify the targets you want to build or set the proper dependencies in the
