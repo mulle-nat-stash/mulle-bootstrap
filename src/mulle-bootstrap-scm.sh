@@ -263,7 +263,7 @@ git_main()
    then
       log_fluff "Will git $* clones " >&2
    else
-      log_info "There is nothing to run git over."
+      log_verbose "There is nothing to run git over."
       return 0
    fi
 

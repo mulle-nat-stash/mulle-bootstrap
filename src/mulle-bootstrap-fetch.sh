@@ -1068,27 +1068,44 @@ append_dir_to_gitignore_if_needed()
 
    local directory
 
-   # make it absolute dir for git
+   # make it absolute dir for git -> '/' <subdir> '/'
 
    case "$1" in
       /*/)
          directory="$1"
       ;;
+
       /*)
          directory="$1/"
       ;;
+
       */)
          directory="/$1"
       ;;
+
       *)
          directory="/$1/"
       ;;
    esac
 
-   fgrep -s -x "${directory}" .gitignore > /dev/null 2>&1
+   local pattern1
+   local pattern2
+   local pattern3
+
+   # also match without trailing slash
+   pattern1="`echo "${directory}" | sed 's|\(.*\)/$|\1|'`"
+
+   # also match without leading slash
+   pattern2="`echo "${directory}" | sed 's|^/\(.*\)|\1|'`"
+
+   # also match without leading or trailing slash
+   pattern3="`echo "${pattern1}"  | sed 's|^/\(.*\)|\1|'`"
+
+   fgrep -s -x -e "${directory}" -e "${pattern1}" -e "${pattern2}" -e "${pattern3}" .gitignore > /dev/null 2>&1
+
    if [ $? -ne 0 ]
    then
-      redirect_exekutor .gitignore echo "${directory}"  || fail "Couldn\'t append to .gitignore"
+      redirect_append_exekutor .gitignore echo "${directory}" || fail "Couldn\'t append to .gitignore"
       log_info "Added \"${directory}\" to \".gitignore\""
    fi
 }

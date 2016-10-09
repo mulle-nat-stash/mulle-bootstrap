@@ -233,7 +233,7 @@ tag_main()
    then
       log_fluff "Will ${TAG_OPERATION} clones with ${TAG}"
    else
-      log_info "There is nothing to tag."
+      log_verbose "There is nothing to tag."
       return 0
    fi
 
