@@ -10,13 +10,12 @@ embedded repositories to "compose" source trees. Up till 2.1 embedded
 repositories were always placed into the project root. Now you can
 specify the subdirectory like "src/embedded/foo" (relative to project root).
 
-Better fetch and build code checks, that dependencies, that are
-installed in `/usr/local` already need not be fetched again. This can
+Better fetch and build code checks that dependencies, that are
+installed in `/usr/local` already, need not be fetched again. This can
 be helpful, when building brew packages (for example).
 
 Support for `mulle-build` which has an in general more optimistic approach to
-life.
-
+life. 2.2 will focus on making operations faster in the Windows bash shell.
 
 ### Commands
 
