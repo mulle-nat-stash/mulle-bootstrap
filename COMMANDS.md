@@ -10,7 +10,7 @@ in it and you are all set:
 ```console
 mulle-bootstrap
 ```
-`mulle-bootstrap` is a the shortened command of `mulle-bootstrap bootstrap`, which
+`mulle-bootstrap` is the shortened command of `mulle-bootstrap bootstrap`, which
 in turn executes:
 
 
@@ -22,9 +22,7 @@ Downloads all required libraries into a `.repos` folder.
 #### mulle-bootstrap build
 
 Compiles the required libraries contained in the `.repos` folder into
-`./dependencies`. It compiles each project once for Release and once for Debug
-(and given a file `.bootstrap/sdks` multiplied by the number of sdks needed)
-
+`./dependencies`.
 
 
 ## Commands for a project maintainer
@@ -44,7 +42,7 @@ git@github.com:mulle-nat/MulleScion.git
 ```
 
 In the file `.bootstrap/brews` you can specify homebrew projects that need to
-be installed. These will be installed into `addictions`.
+be installed. These will be installed into `./addictions`.
 
 `./bootstrap/brews`:
 
