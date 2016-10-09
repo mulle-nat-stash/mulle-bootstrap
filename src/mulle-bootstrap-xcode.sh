@@ -110,11 +110,9 @@ map_configuration()
 
    local mapped
    local i
-   local old
 
    mapped=""
 
-   old="${IFS:-" "}"
    IFS="
 "
    for i in ${configurations}
@@ -124,7 +122,7 @@ map_configuration()
          mapped="${xcode_configuration}"
       fi
    done
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    if [ "$mapped" = "" ]
    then
@@ -161,17 +159,15 @@ patch_library_configurations()
    default="$4"
    flag="$5"
 
-   local old
-
-   old="${IFS:-" "}"
    IFS="
 "
    for i in ${xcode_configurations}
    do
+      IFS="${DEFAULT_IFS}"
       mapped=`map_configuration "${configurations}" "${i}" "${default}"`
       exekutor mulle-xcode-settings -configuration "${i}" "${flag}" "LIBRARY_CONFIGURATION" "${mapped}" "${project}" || exit 1
    done
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -316,13 +312,11 @@ Release"
          echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
          printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
 
-         local old
-
-         old="${IFS:-" "}"
          IFS="
 "
          for i in ${xcode_configurations}
          do
+            IFS="${DEFAULT_IFS}"
             mapped=`map_configuration "${configurations}" "${i}"`
 
             #     012345678901234567890123456789012345678901234567890123456789
@@ -334,7 +328,7 @@ Release"
             printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
          done
 
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
       fi
 
       query="Add ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"

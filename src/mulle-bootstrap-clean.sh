@@ -172,20 +172,17 @@ clean_files()
    files="$1"
 
    local file
-   local old
-
-   old="${IFS:-" "}"
 
    IFS="
 "
    for file in ${files}
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
 
       clean_asserted_file "${file}"
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -198,22 +195,20 @@ clean_directories()
    flag="$2"
 
    local directory
-   local old
 
-   old="${IFS:-" "}"
    IFS="
 "
    for directory in ${directories}
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
+
       clean_asserted_folder "${directory}"
       clean_parent_folders_if_empty "${directory}" "${PWD}"
       flag="YES"
    done
+   IFS="${DEFAULT_IFS}"
 
    echo "$flag"
-
-   IFS="${old}"
 }
 
 

@@ -1,3 +1,10 @@
+2.1.1
+===
+
+* Improve usage to show more available commands
+* redid the IFS setting/resetting chores
+
+
 2.1
 ===
 

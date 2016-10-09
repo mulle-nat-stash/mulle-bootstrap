@@ -41,14 +41,13 @@ find_msvc_executable()
    name="${2:-compiler}"
 
    local path
-   local old
    local compiler
 
-   old="${IFS}"
    IFS=":"
-
    for path in $PATH
    do
+      IFS="${DEFAULT_IFS}"
+
       case "${path}" in
          /usr/*|/bin)
             continue;
@@ -66,7 +65,7 @@ find_msvc_executable()
       esac
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -130,16 +129,16 @@ setup_mingw_buildenvironment()
 #
 mingw_buildpath()
 {
-   local old
    local i
    local fetchpath
    local match
 
-   old="${IFS}"
 
    IFS=":"
    for i in $PATH
    do
+      IFS="${DEFAULT_IFS}"
+
       if [ -x "${i}/sh.exe" ]
       then
          log_fluff "Remove \"$i\" from build PATH because it contains sh"
@@ -154,7 +153,7 @@ mingw_buildpath()
       fi
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    echo "${fetchpath}"
 }

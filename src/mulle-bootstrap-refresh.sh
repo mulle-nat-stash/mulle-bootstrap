@@ -55,13 +55,11 @@ refresh_repositories_settings()
    local stop
    local clones
    local clone
-   local old
    local stop
    local refreshed
    local match
    local dependency_map
 
-   old="${IFS:-" "}"
 
    refreshed=""
    dependency_map=""
@@ -78,7 +76,7 @@ refresh_repositories_settings()
 "
          for clone in ${clones}
          do
-            IFS="${old}"
+            IFS="${DEFAULT_IFS}"
 
             clone="`expanded_setting "${clone}"`"
             # avoid superflous updates
@@ -141,7 +139,7 @@ ${clone}"
       fi
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    #
    # output true repository dependencies
@@ -183,14 +181,19 @@ mark_all_repositories_zombies()
 
       mkdir_if_missing "${CLONESFETCH_SUBDIR}/.zombies"
 
+      IFS="
+"
       for i in `ls -1d "${CLONESFETCH_SUBDIR}/"*`
       do
+         IFS="${DEFAULT_IFS}"
+
          if [ -d "${i}" -o -L "${i}" ]
          then
             name="`basename -- "${i}"`"
             exekutor touch "${CLONESFETCH_SUBDIR}/.zombies/${name}"
          fi
       done
+      IFS="${DEFAULT_IFS}"
    fi
 }
 
@@ -267,29 +270,36 @@ bury_zombies()
       gravepath="${CLONESFETCH_SUBDIR}/.graveyard"
       mkdir_if_missing "${gravepath}"
 
+      IFS="
+"
       for i in `ls -1 "${zombiepath}/"* 2> /dev/null`
       do
-         if [ -e "${i}" ]
+         IFS="${DEFAULT_IFS}"
+
+         if [ ! -e "${i}" ]
          then
-            name="`basename -- "${i}"`"
-            dstdir="${CLONESFETCH_SUBDIR}/${name}"
-            if [ -d "${dstdir}" ]
+            continue
+         fi
+
+         name="`basename -- "${i}"`"
+         dstdir="${CLONESFETCH_SUBDIR}/${name}"
+         if [ -d "${dstdir}" ]
+         then
+            log_info "Removing unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"`pwd`/${dstdir}\""
+
+            if [ -e "${gravepath}/${name}" ]
             then
-               log_info "Removing unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"`pwd`/${dstdir}\""
-
-               if [ -e "${gravepath}/${name}" ]
-               then
-                  exekutor rm -rf "${gravepath}/${name}"
-                  log_fluff "Made room for a new grave at \"${gravepath}/${name}\""
-               fi
-
-               exekutor mv "${dstdir}" "${gravepath}"
-               exekutor rm "${i}"
-            else
-               log_fluff "\"${dstdir}\" zombie vanished or never existed"
+               exekutor rm -rf "${gravepath}/${name}"
+               log_fluff "Made room for a new grave at \"${gravepath}/${name}\""
             fi
+
+            exekutor mv "${dstdir}" "${gravepath}"
+            exekutor rm "${i}"
+         else
+            log_fluff "\"${dstdir}\" zombie vanished or never existed"
          fi
       done
+      IFS="${DEFAULT_IFS}"
    fi
 
    if [ -d "${zombiepath}" ]
@@ -312,19 +322,24 @@ mark_all_embedded_repositories_zombies()
 
    # first mark all repos as stale
    path="${CLONESFETCH_SUBDIR}/.embedded"
-   if dir_has_files "${CLONESFETCH_SUBDIR}/.embedded"
+   if dir_has_files "${path}"
    then
       log_fluff "Marking all embedded repositories as zombies for now"
 
-      zombiepath="${CLONESFETCH_SUBDIR}/.embedded/.zombies"
+      zombiepath="${path}/.zombies"
       mkdir_if_missing "${zombiepath}"
 
+      IFS="
+"
       for symlink in `ls -1d "${path}/"*`
       do
-         i="`head -1 "$symlink" 2>/dev/null`" || fail "Old style mulle-bootstrap files detected, \`mulle-bootstrap dist clean\` it ($PWD/$symlink)"
+         IFS="${DEFAULT_IFS}"
+
+         i="`head -1 "$symlink" 2>/dev/null`" || fail "Old style mulle-bootstrap files (\"${symlink}\") detected, \`mulle-bootstrap dist clean\` it ($PWD)"
          name="`basename -- "${i}"`"
          exekutor cp "${symlink}" "${zombiepath}/${name}"
       done
+      IFS="${DEFAULT_IFS}"
    fi
 }
 
@@ -418,7 +433,6 @@ refresh_repositories()
    local clone
    local clones
    local dstdir
-   local old
 
    mark_all_repositories_zombies
 
@@ -430,8 +444,6 @@ refresh_repositories()
    local tag
    local subdir
 
-   old="${IFS:-" "}"
-
    clones="`read_fetch_setting "repositories"`"
    if [ "${clones}" != "" ]
    then
@@ -441,7 +453,7 @@ refresh_repositories()
 "
       for clone in ${clones}
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
 
          __parse_clone "${clone}"
 
@@ -450,9 +462,8 @@ refresh_repositories()
          # if it's not there it's not fetched yet, that's OK
          mark_repository_alive "${name}" "${dstdir}"
       done
+      IFS="${DEFAULT_IFS}"
    fi
-
-   IFS="${old}"
 
    bury_zombies
 }
@@ -472,12 +483,6 @@ _refresh_embedded_repositories()
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ ! -z "${clones}" ]
    then
-
-      local old
-
-      old="${IFS:-" "}"
-      IFS="
-"
       # local variables for __parse_embedded_clone
       local name
       local url
@@ -489,9 +494,11 @@ _refresh_embedded_repositories()
       local dstdir
       local olddir
 
+      IFS="
+"
       for clone in ${clones}
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
 
          ensure_clones_directory
 
@@ -511,9 +518,9 @@ _refresh_embedded_repositories()
             fi
          fi
       done
-   fi
+      IFS="${DEFAULT_IFS}"
 
-   IFS="${old}"
+   fi
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }
@@ -534,13 +541,10 @@ refresh_deeply_embedded_repositories()
    local clone
    local clones
    local dstprefix
-   local old
    local previous_bootstrap
    local previous_clones
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
-
-   old="${IFS:-" "}"
 
    # __parse_embedded_clone
    local name
@@ -557,7 +561,7 @@ refresh_deeply_embedded_repositories()
 "
       for clone in ${clones}
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
 
          __parse_embedded_clone "${clone}"
 
@@ -578,9 +582,8 @@ refresh_deeply_embedded_repositories()
             log_warn  "Don't refresh embedded repositories of symlinked \"${name}\""
          fi
       done
+      IFS="${DEFAULT_IFS}"
    fi
-
-   IFS="${old}"
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
 }

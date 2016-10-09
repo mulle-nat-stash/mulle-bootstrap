@@ -880,36 +880,40 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       # assemble -I /I and -L /LIBPATH:
 
-      local memo
-
-      memo="${IFS}"
 
       # cmake separator
       IFS=";"
       for path in ${native_includelines}
       do
+         IFS="${DEFAULT_IFS}"
          other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
          other_cxxflags="`concat "${other_cxxflags}" "${includeprefix}${path}"`"
       done
 
+      IFS=";"
       for path in ${native_librarylines}
       do
+         IFS="${DEFAULT_IFS}"
          other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
+      IFS=";"
       for path in ${native_frameworklines}
       do
+         IFS="${DEFAULT_IFS}"
          other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
          other_cxxflags="`concat "${other_cxxflags}" "${frameworkprefix}${path}"`"
          other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
 
+      IFS=";"
       if [ MULLE_BOOTSTRAP_VERBOSE_BUILD = "YES" ]
       then
+         IFS="${DEFAULT_IFS}"
          local_make_flags="${local_make_flags} VERBOSE=1"
       fi
 
-      IFS="${memo}"
+      IFS="${DEFAULT_IFS}"
 
       local oldpath
       local rval
@@ -1128,28 +1132,30 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       # assemble -I /I and -L /LIBPATH:
 
-      local memo
-
-      memo="${IFS}"
 
       IFS="${PATH_SEPARATOR}"
       for path in ${includelines}
       do
+         IFS="${DEFAULT_IFS}"
          other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
       done
 
+      IFS="${PATH_SEPARATOR}"
       for path in ${librarylines}
       do
+         IFS="${DEFAULT_IFS}"
          other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
+      IFS="${PATH_SEPARATOR}"
       for path in ${frameworklines}
       do
+         IFS="${DEFAULT_IFS}"
          other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
          other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
 
-      IFS="${memo}"
+      IFS="${DEFAULT_IFS}"
 
       local oldpath
       local rval
@@ -1660,34 +1666,30 @@ build_xcodebuild_schemes_or_target()
 
    schemes=`read_repo_setting "${name}" "xcode_schemes"`
 
-   local old
-
-   old="${IFS:-" "}"
    IFS="
 "
    for scheme in $schemes
    do
-      IFS="$old"
+      IFS="${DEFAULT_IFS}"
       log_fluff "Building scheme \"${scheme}\" of \"${project}\" ..."
       build_xcodebuild "$@" "${scheme}" ""
    done
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    local target
    local targets
 
    targets=`read_repo_setting "${name}" "xcode_targets"`
 
-   old="$IFS"
    IFS="
 "
    for target in $targets
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
       log_fluff "Building target \"${target}\" of \"${project}\" ..."
       build_xcodebuild "$@" "" "${target}"
    done
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    if [ "${targets}" = "" -a "${schemes}" = "" ]
    then
@@ -1920,7 +1922,7 @@ build_with_configuration_sdk_preferences()
          ;;
 
          *)
-            fail "unknown build preference $1"
+            fail "Unknown build preference \"$1\""
          ;;
       esac
    done
@@ -2112,17 +2114,18 @@ get_source_dir()
 build_clones()
 {
    local clone
-   local old
 
-   old="${IFS:-" "}"
-
-   for clone in ${CLONES_SUBDIR}/*.failed
+   IFS="
+"
+   for clone in `ls -1d ${CLONES_SUBDIR}/*.failed 2> /dev/null`
    do
+      IFS="${DEFAULT_IFS}"
       if [ -d "${clone}" ]
       then
          fail "failed checkout $clone detected, can't continue"
       fi
    done
+   IFS="${DEFAULT_IFS}"
 
    run_build_root_settings_script "pre-build" "$@"
 
@@ -2150,7 +2153,7 @@ build_clones()
 "
          for clone in ${clones}
          do
-            IFS="$old"
+            IFS="${DEFAULT_IFS}"
 
             __parse_clone "${clone}"
 
@@ -2188,7 +2191,7 @@ build_clones()
       done
    fi
 
-   IFS="$old"
+   IFS="${DEFAULT_IFS}"
 
    run_build_root_settings_script "post-build" "$@"
 }
@@ -2212,13 +2215,12 @@ install_tars()
       return 0
    fi
 
-   local old
-
-   old="${IFS:-" "}"
    IFS="
 "
    for tar in ${tarballs}
    do
+      IFS="${DEFAULT_IFS}"
+
       if [ ! -f "$tar" ]
       then
          fail "tarball \"$tar\" not found"
@@ -2228,7 +2230,7 @@ install_tars()
          exekutor tar -xz -C "${DEPENDENCY_SUBDIR}" -f "${tar}" || fail "failed to extract ${tar}"
       fi
    done
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 

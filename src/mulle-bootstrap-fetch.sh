@@ -78,17 +78,14 @@ install_taps()
    then
       fetch_brew_if_needed
 
-      local old
-
-      old="${IFS:-" "}"
       IFS="
 "
       for tap in ${taps}
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
          exekutor "${BREW}" tap "${tap}" > /dev/null || exit 1
       done
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
    else
       log_fluff "No taps found"
    fi
@@ -157,15 +154,13 @@ install_brews()
       exekutor chmod -R u+w "${ADDICTION_SUBDIR}"
    fi
 
-   local old
    local flag
 
-   old="${IFS:-" "}"
    IFS="
 "
    for formula in ${brews}
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
 
       if [ ! -x "${BREW}" ]
       then
@@ -204,13 +199,12 @@ install_brews()
          fi
       fi
    done
+   IFS="${DEFAULT_IFS}"
 
    if [ "${flag}" = "YES" ]
    then
       write_protect_directory "${ADDICTION_SUBDIR}"
    fi
-
-   IFS="${old}"
 }
 
 
@@ -228,21 +222,20 @@ check_tars()
    tarballs="`read_fetch_setting "tarballs" | sort | sort -u`"
    if [ "${tarballs}" != "" ]
    then
-      local old
-
-      old="${IFS:-" "}"
       IFS="
 "
       for tar in ${tarballs}
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
+
          if [ ! -f "$tar" ]
          then
             fail "tarball \"$tar\" not found"
          fi
          log_fluff "tarball \"$tar\" found"
       done
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
+
    else
       log_fluff "No tarballs found"
    fi
@@ -722,11 +715,9 @@ clone_repositories()
    local clones
    local fetched
    local match
-   local old
    local rval
    local stop
 
-   old="${IFS:-" "}"
    fetched=""
 
    # __parse_expanded_clone variables
@@ -750,7 +741,7 @@ clone_repositories()
 "
          for clone in ${clones}
          do
-            IFS="${old}"
+            IFS="${DEFAULT_IFS}"
 
             clone="`expanded_setting "${clone}"`"
 
@@ -772,6 +763,8 @@ ${clone}"
                fi
             fi
          done
+         IFS="${DEFAULT_IFS}"
+
       fi
    done
 
@@ -779,14 +772,14 @@ ${clone}"
 "
    for clone in ${fetched}
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
 
       __parse_clone "${clone}"
 
       did_clone_repository "${name}" "${url}" "${branch}"
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -955,9 +948,6 @@ update_repositories()
    local clone
    local name
    local i
-   local old
-
-   old="${IFS:-" "}"
 
    if [ $# -ne 0 ]
    then
@@ -965,7 +955,7 @@ update_repositories()
 "
       for name in "$@"
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
          create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
             update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
          remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
@@ -975,12 +965,13 @@ update_repositories()
 "
       for name in "$@"
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
          create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
             did_update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
          remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-         done
-      IFS="${old}"
+      done
+
+      IFS="${DEFAULT_IFS}"
       return
    fi
 
@@ -1012,7 +1003,7 @@ update_repositories()
 "
          for clone in ${clones}
          do
-            IFS="${old}"
+            IFS="${DEFAULT_IFS}"
 
             clone="`expanded_setting "${clone}"`"
 
@@ -1050,10 +1041,9 @@ ${clone}"
                break
             fi
          done
+         IFS="${DEFAULT_IFS}"
       fi
    done
-
-   IFS="${old}"
 }
 
 
@@ -1240,26 +1230,23 @@ clone_embedded_repositories()
 
    local clones
    local clone
-   local old
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ ! -z "${clones}" ]
    then
-      old="${IFS:-" "}"
       IFS="
 "
       for clone in ${clones}
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
 
          clone_embedded_repository "${dstprefix}" "${clone}"
       done
+      IFS="${DEFAULT_IFS}"
 
       remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-
-      IFS="${old}"
    fi
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
@@ -1274,7 +1261,6 @@ update_embedded_repositories()
 
    local clones
    local clone
-   local old
 
    # __parse_embedded_clone
    local name
@@ -1293,12 +1279,11 @@ update_embedded_repositories()
 
    if [ ! -z "${clones}" ]
    then
-      old="${IFS:-" "}"
       IFS="
 "
       for clone in ${clones}
       do
-         IFS="${old}"
+         IFS="${DEFAULT_IFS}"
 
          __parse_embedded_clone "${clone}"
 
@@ -1317,7 +1302,7 @@ update_embedded_repositories()
          remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
       done
 
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
    fi
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
@@ -1349,13 +1334,29 @@ _common_main()
             MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
          ;;
 
-         # build options
-         -K|--clean|-k|--no-clean|-j|--cores|-c|--configuration)
+         # build options with no parameters
+         -K|--clean|-k|--no-clean)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then
                log_error "unknown option $1"
                ${USAGE}
             fi
+         ;;
+
+         # build options with no parameters
+         -j|--cores|-c|--configuration)
+            if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
+            then
+               log_error "unknown option $1"
+               ${USAGE}
+            fi
+
+            if [ $# -eq 1 ]
+            then
+               log_error "missing parameter to option $1"
+               ${USAGE}
+            fi
+            shift
          ;;
 
          -*)
@@ -1401,7 +1402,7 @@ _common_main()
    then
       if [ $# -ne 0 ]
       then
-         log_error  "Additional parameters not allowed for install"
+         log_error "Additional parameters not allowed for install"
          ${USAGE}
       fi
    fi

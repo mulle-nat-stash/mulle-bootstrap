@@ -55,18 +55,15 @@ _dependency_resolve()
    UNRESOLVED_DEPENDENCIES="`array_add "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
 
    local sub_name
-   local old
    #local insert
 
    #insert="`array_count "${RESOLVED_DEPENDENCIES}"`"
 
-
-   old="${IFS}"
    IFS="
 "
    for sub_name in ${dependencies}
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
 
       if array_contains "${RESOLVED_DEPENDENCIES}" "${sub_name}"
       then
@@ -80,7 +77,8 @@ _dependency_resolve()
 
       _dependency_resolve "${map}" "${sub_name}"
    done
-   IFS="${old}"
+
+   IFS="${DEFAULT_IFS}"
 
    UNRESOLVED_DEPENDENCIES="`array_remove "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
    RESOLVED_DEPENDENCIES="`array_add "${RESOLVED_DEPENDENCIES}" "${name}"`"
@@ -129,20 +127,18 @@ dependency_add_array()
    name="$2"
    array="$3"
 
-   local old
-
-   old="${IFS}"
-   IFS="
-"
    local sub_name
 
+   IFS="
+"
    for sub_name in ${array}
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
+
       map="`dependency_add "${map}" "${name}" "${sub_name}"`"
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    echo "${map}"
 }

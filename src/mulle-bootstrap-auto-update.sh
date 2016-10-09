@@ -48,15 +48,13 @@ bootstrap_auto_update_merge()
    local tmpfile
    local settingname
    local match
-   local old
    local i
 
-   old="${IFS:-' '}"
    IFS="
 "
    for i in `ls -1 "${directory}/.bootstrap"`
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
 
       settingname="`basename -- "${i}"`"
       srcfile="${directory}/.bootstrap/${settingname}"
@@ -98,7 +96,7 @@ bootstrap_auto_update_merge()
       fi
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -227,15 +225,14 @@ bootstrap_auto_create()
    # don't copy config if exists (it could be malicious)
    # don't copy settings (must be duplicated by inheritor)
    #
-   local old
    local file
    local name
 
-   old="${IFS}"
    IFS="
 "
    for file in `ls -1 "${BOOTSTRAP_SUBDIR}"`
    do
+      IFS="${DEFAULT_IFS}"
       name="`basename -- "${file}"`"
 
       case "$name" in
@@ -253,7 +250,7 @@ bootstrap_auto_create()
       esac
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 

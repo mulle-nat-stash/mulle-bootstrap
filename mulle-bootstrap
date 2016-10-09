@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-MULLE_BOOTSTRAP_VERSION="2.1"
+MULLE_BOOTSTRAP_VERSION="2.1.1"
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -45,20 +45,25 @@ trap_fail()
 usage()
 {
    cat <<EOF
-usage: mulle-bootstrap [options] [command] [--help]
- Common Options:
+usage: mulle-bootstrap [options] [command] ...
+ Options:
    -a -y     : default answer to questions (scripts wont be checked)
                -a (clone preferred) -y (local copy/symlink preferred)
    -n        : do nothing creative or destructive
    -v        : -v to be more verbose (-vv or -vvv for more verbosity)
    -V        : show build commands
 
- Common user commands:
+ Commands:
    bootstrap : does fetch and build recursively [default]
+   build     : builds fetched repositories
    clean     : cleans mulle-bootstrap produced files.
-
- Common maintainer commands:
+   fetch     : fetches required repositories recursively. Use it after updating
+               the repositories and embedded_repositories files.
    init      : initializes a bootstrap project
+   install   : install dependencies as system headers
+   git       : run git commands on fetched repositories
+   tag       : tag fetched repositories
+   update    : updates repositories (pull).
 EOF
 
    if [ "${UNAME}" = 'darwin' ]
@@ -69,14 +74,6 @@ EOF
    fi
 
 cat <<EOF
-   tag       : tag this project and fetched repositories
-
- Specialized commands:
-   build     : builds fetched repositories
-   fetch     : fetches required repositories recursively. Use it after updating
-               the repositories and embedded_repositories files.
-   update    : updates repositories (pull).
-   install   : install dependencies as system headers
 EOF
    exit 1
 }

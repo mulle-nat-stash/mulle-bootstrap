@@ -44,7 +44,6 @@ warn_scripts()
    local phases
    local ack
    local i
-   local old
 
    # log_info "warn_scripts $1:$2:${DONT_ASK_AFTER_WARNING}:${MULLE_BOOTSTRAP_ANSWER}"
 
@@ -54,10 +53,10 @@ warn_scripts()
       if [ ! -z "${scripts}" ]
       then
          log_warning "this .bootstrap contains shell scripts:"
-         old="${IFS:-" "}"
+         echo "${C_BOLD}--------------------------------------------------------${C_RESET}" >&2
+
          IFS="
 "
-         echo "${C_BOLD}--------------------------------------------------------${C_RESET}" >&2
          for i in $scripts
          do
             echo "${C_BOLD}$i:${C_RESET}" >&2
@@ -65,8 +64,9 @@ warn_scripts()
             cat "$i" >&2
             echo "${C_BOLD}--------------------------------------------------------${C_RESET}" >&2
          done
+         IFS="${DEFAULT_IFS}"
+
          echo "" >&2
-         IFS="${old}"
       fi
    fi
 

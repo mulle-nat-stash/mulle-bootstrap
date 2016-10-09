@@ -197,15 +197,12 @@ find_embedded_repository_subdir_in_repos()
    url="$1"
 
    local filename
-   local old
 
-   old="${IFS}"
    IFS="
 "
-
    for i in `fgrep -l -x "${url}" "${CLONESFETCH_SUBDIR}/.embedded/"* 2> /dev/null`
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
 
       #
       # ensure that it's the URL that matched
@@ -218,7 +215,7 @@ find_embedded_repository_subdir_in_repos()
       fi
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -234,16 +231,13 @@ embedded_repository_directories_from_repos()
    dstprefix="$1"
 
    local filename
-   local old
    local embedded
 
-
-   old="${IFS}"
    IFS="
 "
    for filename in `ls -1 "${CLONESFETCH_SUBDIR}/.embedded/" 2> /dev/null`
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
 
       embedded="`embedded_repository_subdir_in_repos "${filename}"`"
       if [ ! -z "${embedded}" ]
@@ -256,25 +250,22 @@ embedded_repository_directories_from_repos()
       fi
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 
 repository_directories_from_repos()
 {
    local filename
-   local old
 
-   old="${IFS}"
    IFS="
 "
-
    for filename in `ls -1 "${CLONESFETCH_SUBDIR}" 2> /dev/null`
    do
       echo "${CLONESFETCH_SUBDIR}/$filename"
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 

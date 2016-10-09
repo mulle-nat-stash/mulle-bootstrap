@@ -56,16 +56,15 @@ find_library_in_directories()
    filename="$1"
    directories="$2"
 
-   local old
-
-   old="${IFS}"
-   IFS="
-"
    local directory
    local path
 
+   IFS="
+"
    for directory in ${directories}
    do
+      IFS="${DEFAULT_IFS}"
+
       path="${directory}/${filename}"
 
       if [ -f "${path}" ]
@@ -75,7 +74,7 @@ find_library_in_directories()
       fi
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 }
 
 

@@ -694,17 +694,13 @@ combined_escaped_search_path()
 _simplify_components()
 {
    local i
-   local old
-
-
    local components
 
-   old="${IFS}"
    IFS="
 "
    for i in $*
    do
-      IFS="${old}"
+      IFS="${DEFAULT_IFS}"
 
       case "${i}" in
          # ./foo -> foo
@@ -740,7 +736,7 @@ _simplify_components()
       esac
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    echo "${components}"
 }
@@ -753,20 +749,16 @@ _path_from_components()
    components="$1"
 
    local i
-   local old
    local path
 
-   old="${IFS}"
    IFS="
 "
-
    for i in $components
    do
       path="${path}${i}"
    done
 
-
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    if [ -z "${path}" ]
    then
@@ -1108,6 +1100,8 @@ write_protect_directory()
 # ####################################################################
 functions_initialize()
 {
+   DEFAULT_IFS="${IFS}"
+
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
    [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 

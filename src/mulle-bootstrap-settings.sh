@@ -577,12 +577,10 @@ merge_settings_in_front()
 
    result="${settings2}"
 
-   local old
    local line1
 
    # https://stackoverflow.com/questions/742466/how-can-i-reverse-the-order-of-lines-in-a-file/744093#744093
 
-   old="${IFS:-" "}"
    IFS="
 "
    for line in `echo "${settings1}" | sed -n '1!G;h;$p'`
@@ -592,7 +590,7 @@ merge_settings_in_front()
 ${result}"
    done
 
-   IFS="${old}"
+   IFS="${DEFAULT_IFS}"
 
    if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
    then
