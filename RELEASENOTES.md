@@ -1,3 +1,10 @@
+2.1.2
+===
+
+* expose some more flags to usage. Distinguish between flags and options.
+* The description of -V was wrong.
+* Moved -c to fetch options as -cs to avoid clash with build flags
+
 2.1.1
 ===
 
@@ -19,7 +26,7 @@ specify the subdirectory like "src/embedded/foo" (relative to project root).
 
 Better fetch and build code checks that dependencies, that are
 installed in `/usr/local` already, need not be fetched again. This can
-be helpful, when building brew packages (for example).
+be helpful, when building brew packages (for example). (**-nb**)
 
 Support for `mulle-build` which has an in general more optimistic approach to
 life. 2.2 will focus on making operations faster in the Windows bash shell.

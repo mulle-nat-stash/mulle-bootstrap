@@ -29,7 +29,7 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 
-MULLE_BOOTSTRAP_VERSION="2.1.1"
+MULLE_BOOTSTRAP_VERSION="2.1.2"
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -45,13 +45,12 @@ trap_fail()
 usage()
 {
    cat <<EOF
-usage: mulle-bootstrap [options] [command] ...
- Options:
+usage: mulle-bootstrap [flags] [command] [options]
+ Flags:
    -a -y     : default answer to questions (scripts wont be checked)
                -a (clone preferred) -y (local copy/symlink preferred)
    -n        : do nothing creative or destructive
    -v        : -v to be more verbose (-vv or -vvv for more verbosity)
-   -V        : show build commands
 
  Commands:
    bootstrap : does fetch and build recursively [default]
@@ -64,6 +63,8 @@ usage: mulle-bootstrap [options] [command] ...
    git       : run git commands on fetched repositories
    tag       : tag fetched repositories
    update    : updates repositories (pull).
+
+ Options are command specific. Use mulle-bootstrap <command> -h for help.
 EOF
 
    if [ "${UNAME}" = 'darwin' ]
@@ -193,10 +194,6 @@ bootstrap_main()
 
          -y|--prefer-local)
             MULLE_BOOTSTRAP_ANSWER="YES"
-         ;;
-
-         -c|--check-usr-local-include)
-            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
          ;;
 
          -f|--force-fetch)

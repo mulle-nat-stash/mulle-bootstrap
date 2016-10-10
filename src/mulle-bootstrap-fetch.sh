@@ -45,9 +45,10 @@ usage:
    mulle-bootstrap ${COMMAND} [options] [repositories]
 
    Options
-      -u    :  try to update symlinked folders as well (not recommended)
-      -nr   :  ignore .bootstrap folders of fetched repositories
+      -cs   :  check /usr/local for duplicates
       -e    :  fetch embedded repositories only
+      -nr   :  ignore .bootstrap folders of fetched repositories
+      -u    :  try to update symlinked folders as well (not recommended)
 
    install  :  clone or symlink non-exisiting repositories and other resources
    update   :  execute a "pull" in fetched repositories
@@ -1324,6 +1325,10 @@ _common_main()
 
          -nr|--no-recursion)
             DONT_RECURSE="YES"
+         ;;
+
+         -cs|--check-usr-local-include)
+            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
          ;;
 
          -e|--embedded-only)

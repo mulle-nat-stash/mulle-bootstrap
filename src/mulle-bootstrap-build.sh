@@ -2278,7 +2278,7 @@ build_main()
             ;;
 
          # fetch options
-         -nr|--no-recursion|-e|--embedded-only|-u|--update-symlinks)
+         -cs|--check-usr-local-include|-nr|--no-recursion|-e|--embedded-only|-u|--update-symlinks)
             if [ -z "${MULLE_BOOTSTRAP_DID_FETCH}" ]
             then
                log_error "unknown option $1"
