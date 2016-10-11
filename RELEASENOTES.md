@@ -1,3 +1,9 @@
+2.1.1
+===
+
+* Improve perfomance (especially on Windows) by removing superflous refresh steps
+
+
 2.1
 ===
 
