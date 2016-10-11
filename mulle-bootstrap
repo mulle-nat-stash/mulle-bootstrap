@@ -106,8 +106,11 @@ bootstrap_nomagic_main()
 {
    local command
 
+
    command="$1"
    shift
+
+   log_fluff "::: $command begin :::"
 
    if [ "${command}" = "nomagic" ]
    then
@@ -130,10 +133,8 @@ bootstrap_nomagic_main()
       if [ -z "${DONT_RECURSE}" ]
       then
          fetch_main "$@" || exit 1
-         refresh_main    || exit 1
       else
          fetch_main --non-recursive "$@" || exit 1
-         refresh_main nonrecursive       || exit 1
       fi
       # used for option handling only
       MULLE_BOOTSTRAP_DID_FETCH="YES"
@@ -143,6 +144,8 @@ bootstrap_nomagic_main()
    then
       build_main "$@" || exit 1
    fi
+
+   log_fluff "::: $command end :::"
 }
 
 
@@ -428,7 +431,6 @@ bootstrap_main()
          . mulle-bootstrap-fetch.sh
 
          DONT_ASK_AFTER_WARNING=YES fetch_main "$@" || exit 1
-         refresh_main || exit 1
       ;;
 
       init)
