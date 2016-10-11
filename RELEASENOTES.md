@@ -1,3 +1,8 @@
+2.1.3
+===
+
+* Improve performance especially on windows, due to less superflous refreshes
+
 2.1.2
 ===
 
