@@ -41,6 +41,7 @@ git push public release
 
 git tag "${TAG}"
 git push public release --tags
+git push github release --tags
 
 ./bin/generate-brew-formula.sh  > ../homebrew-software/mulle-bootstrap.rb
 (

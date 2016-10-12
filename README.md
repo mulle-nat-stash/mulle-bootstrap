@@ -35,7 +35,6 @@ shell scripts. If your system can run the bash, it can run **mulle-bootstrap**.
 
 ## What it does technically
 
-
 * fetches [git](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories.
 In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
 * builds [cmake](//blog.cppcms.com/post/54),
@@ -74,8 +73,11 @@ libraries into the `dependencies/lib`  and `dependencies/include` folders.
 
 ## Tell me more
 
-* [How to install](INSTALL.md)
+* [How to install](dox/INSTALL.md)
+* [How to use](dox(COMMANDS.md)
 * [What has changed ?](RELEASENOTES.md)
+* [Tweak guide](dox/SETTINGS.md)
+* [FAQ](dox/FAQ.md)
 
 * [mulle-bootstrap: A dependency management tool](https://www.mulle-kybernetik.com/weblog/2015/mulle_bootstrap_work_in_progr.html)
 * [mulle-bootstrap: Understanding mulle-bootstrap (I)](https://www.mulle-kybernetik.com/weblog/2016/mulle_bootstrap_how_it_works.html)
