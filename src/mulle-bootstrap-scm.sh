@@ -165,7 +165,6 @@ svn_checkout()
    [ ! -z "$src" ] || internal_fail "src is empty"
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
-
    if [ ! -z "${branch}" ]
    then
       log_info "SVN checkout ${C_RESET_BOLD}${branch}${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
@@ -179,7 +178,6 @@ svn_checkout()
          log_info "SVN checkout ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
       fi
    fi
-
 
    exekutor svn checkout ${flags} ${SVNFLAGS} "${src}" "${dst}" || fail "svn clone of \"${src}\" into \"${dst}\" failed"
 }
@@ -218,26 +216,24 @@ svn_update()
 
 run_git()
 {
-   local clonesdir
-
-   clonesdir="$1"
-   [ $# -eq 0 ] || shift
-
    local i
+   local name
 
-   for i in "${clonesdir}"/*
+   IFS="
+"
+   for i in `all_repository_directories_from_repos`
    do
-      if [ -d "$i" ]
+      IFS="${DEFAULT_IFS}"
+
+      if [ -d "${i}/.git" -o -d "${i}/refs" ]
       then
-         if [ -d "${i}/.git" -o -d "${i}/refs" ]
-         then
-            log_info "### $i:"
-            (cd "$i" ; exekutor git ${GITFLAGS} "$@" ) || fail "git failed"
-            log_info
-         fi
+         log_info "### $i:"
+         (cd "$i" ; exekutor git ${GITFLAGS} "$@" ) || fail "git failed"
+         log_info
       fi
    done
 
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -267,7 +263,7 @@ git_main()
       return 0
    fi
 
-   run_git "${CLONES_SUBDIR}" "$@"
+   run_git "$@"
 }
 
 
@@ -275,6 +271,7 @@ scm_initialize()
 {
    log_fluff ":scm_initialize:"
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 }
 
 scm_initialize

@@ -40,12 +40,13 @@ tag_usage()
 {
    cat <<EOF >&2
 usage:
-   mulle-bootstrap tag [-f] <tag>
+   mulle-bootstrap tag [options] <tag>
 
-   -d           : delete tag
-   -f           : force tag
+   Options:
+      -d   : delete tag
+      -f   : force tag
 
-   tag          : the tag for your fetched repositories
+      tag  : the tag for your fetched repositories
 EOF
    exit 1
 }
@@ -101,80 +102,89 @@ git_must_be_clean()
 
 ensure_repos_clean()
 {
-   local clonesdir
-
-   clonesdir="$1"
-
    #
    # Make sure that tagging is OK
    # all git repos must be clean
    #
-   if dir_has_files "${clonesdir}"
-   then
-      for i in "${clonesdir}"/*
-      do
-         # only tag what looks like a git repo
-         if [ -d "${i}/.git" -o -d "${i}/refs" ]
-         then
-            (cd "${i}" ; git_must_be_clean "${i}" ) || exit 1
-         fi
-      done
-   fi
+   local i
+
+   IFS="
+"
+   for i in `all_repository_directories_from_repos`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      # only tag what looks like a git repo
+      if [ -d "${i}/.git" -o -d "${i}/refs" ]
+      then
+         (cd "${i}" ; git_must_be_clean "${i}" ) || exit 1
+      fi
+   done
+   IFS="${DEFAULT_IFS}"
 }
 
 
 ensure_tags_unknown()
 {
    local tag
-   local clonesdir
 
-   clonesdir="$1"
-   tag="$2"
+   tag="$1"
 
    #
    # Make sure that tagging is OK
    # all git repos must be clean
    #
-   if dir_has_files "${clonesdir}"
-   then
-      for i in "${clonesdir}"/*
-      do
-         # only tag what looks like a git repo
-         if [ -d "${i}/.git" -o -d "${i}/refs" ]
-         then
-            (cd "${i}" ; git_tag_unknown "${i}" "${tag}" ) || exit 1
-         fi
-      done
-   fi
+   local i
+
+   IFS="
+"
+   for i in `all_repository_directories_from_repos`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      # only tag what looks like a git repo
+      # make it scm_tag sometimes
+      if [ -d "${i}/.git" -o -d "${i}/refs" ]
+      then
+         (cd "${i}" ; git_tag_unknown "${i}" "${tag}" ) || exit 1
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
 }
 
 
 tag()
 {
-   local clonesdir
    local tag
 
-   clonesdir="$1"
-   [ $# -eq 0 ] || shift
    tag="$1"
    [ $# -eq 0 ] || shift
 
    local i
+   local name
 
-   if dir_has_files "${clonesdir}"
-   then
-      for i in "${clonesdir}"/*
-      do
-         if [ -d "$i" ]
+   IFS="
+"
+   for i in `all_repository_directories_from_repos`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if [ -d "${i}/.git" -o -d "${i}/refs" ]
+      then
+         name="`basename -- "${i}"`"
+         if [ -z "${tag}" ]
          then
-            if [ -d "${i}/.git" -o -d "${i}/refs" ]
-            then
-               log_info "Tagging \"`basename -- "${i}"`\" with \"${tag}\""
-               (cd "$i" ; exekutor git tag $GITFLAGS "$@" "${tag}" ) || fail "tag failed"
-            fi
+            log_info "### ${name}:"
+            (cd "$i" ; exekutor git tag $GITFLAGS "$@" ) || fail "tag failed"
+         else
+            log_info "Tagging \"${name}\" with \"${tag}\""
+            (cd "$i" ; exekutor git tag $GITFLAGS "$@" "${tag}" ) || fail "tag failed"
          fi
-      done
-   fi
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -184,50 +194,75 @@ tag_main()
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
    GITFLAGS=
    TAG_OPERATION="tag"
 
-   while :
+   while [ $# -ne 0 ]
    do
-      if [ "$1" = "-h" -o "$1" = "--help" ]
+      case "$1" in
+         -h|--help)
+            tag_usage
+         ;;
+
+         -f|--force)
+            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            TAG_OPERATION="force tag"
+         ;;
+
+         -l|--list|-v|--verify)
+            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            TAG_OPERATION="list/verify tags"
+            UNCLEAN_OK=YES
+         ;;
+
+         -d|--delete)
+            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            TAG_OPERATION="delete the tag of"
+         ;;
+
+         # no argument gitflags
+         -n|-a|--annotate|-s|--sign|-create-reflog|--column)
+            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+         ;;
+         # argument gitflags
+         -*)
+            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            shift
+            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+
+   if [ -z "${UNCLEAN_OK}" ]
+   then
+      TAG=$1
+      [ $# -eq 0 ] || shift
+
+      if [ -z "${TAG}" ]
       then
          tag_usage
       fi
 
-      if [ "$1" = "-f" ]
+      if [ -z "${GITFLAGS}" ]
       then
-         GITFLAGS="${GITFLAGS} $1"
-         TAG_OPERATION="force tag"
-         [ $# -eq 0 ] || shift
-         continue
+         ensure_tags_unknown "${TAG}"
       fi
 
-      if [ "$1" = "-d" ]
+      # clumsy compare
+      if [ "${TAG_OPERATION}" != "delete the tag of" ]
       then
-         GITFLAGS="${GITFLAGS} $1"
-         TAG_OPERATION="delete the tag of"
-         [ $# -eq 0 ] || shift
-         continue
+         ensure_repos_clean
       fi
-
-      break
-   done
-
-
-   TAG=$1
-   [ $# -eq 0 ] || shift
-
-   if [ -z "${TAG}" ]
-   then
-      tag_usage
    fi
-
-   if [ -z "${GITFLAGS}" ]
-   then
-      ensure_tags_unknown "${CLONES_SUBDIR}" "${TAG}"
-   fi
-   ensure_repos_clean "${CLONES_SUBDIR}"
 
    if dir_has_files "${CLONES_SUBDIR}"
    then
@@ -239,7 +274,7 @@ tag_main()
 
    fetch__run_fetch_settings_script "pre-tag"
 
-   tag "${CLONES_SUBDIR}" "${TAG}" "$@"
+   tag "${TAG}" "$@"
 
    fetch__run_fetch_settings_script "pre-tag"
 }

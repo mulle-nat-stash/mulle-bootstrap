@@ -1094,9 +1094,13 @@ append_dir_to_gitignore_if_needed()
 
    fgrep -s -x -e "${directory}" -e "${pattern1}" -e "${pattern2}" -e "${pattern3}" .gitignore > /dev/null 2>&1
 
+   #
+   # prepend \n because it is safer, in case .gitignore has no trailing
+   # LF which it often seems to not have
+   #
    if [ $? -ne 0 ]
    then
-      redirect_append_exekutor .gitignore echo "${directory}" || fail "Couldn\'t append to .gitignore"
+      redirect_append_exekutor .gitignore echo "\n${directory}" || fail "Couldn\'t append to .gitignore"
       log_info "Added \"${directory}\" to \".gitignore\""
    fi
 }

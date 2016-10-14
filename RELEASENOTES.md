@@ -1,3 +1,16 @@
+2.2
+===
+
+* `mulle-bootstrap tag` will now also tag embedded repositories
+* `mulle-bootstrap git` will now also grace embedded repositories, so `mulle-bootstrap git status -s` is now better
+* reworked tag to be more aware of git flags, so `mulle-bootstrap tag -l` now
+works
+
+2.1.4
+===
+
+* use a safer but uglier method to append to .gitignore
+
 2.1.3
 ===
 
@@ -34,7 +47,7 @@ installed in `/usr/local` already, need not be fetched again. This can
 be helpful, when building brew packages (for example). (**-nb**)
 
 Support for `mulle-build` which has an in general more optimistic approach to
-life. 2.2 will focus on making operations faster in the Windows bash shell.
+life. 2.3 will focus on making operations faster in the Windows bash shell.
 
 ### Commands
 

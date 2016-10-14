@@ -269,6 +269,18 @@ repository_directories_from_repos()
 }
 
 
+# dstprefix
+all_repository_directories_from_repos()
+{
+   local dstprefix
+
+   dstprefix="$1"
+
+   repository_directories_from_repos
+   embedded_repository_directories_from_repos "${dstprefix}"
+}
+
+
 # this sets valuse to variables that should be declared
 # in the caller!
 #
