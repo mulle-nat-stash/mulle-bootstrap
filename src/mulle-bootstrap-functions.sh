@@ -694,8 +694,9 @@ combined_escaped_search_path()
 _simplify_components()
 {
    local i
-   local components
+   local result
 
+   result= # voodoo linux fix ?
    IFS="
 "
    for i in $*
@@ -709,13 +710,13 @@ _simplify_components()
 
          # bar/.. -> ""
          ../)
-            if [ -z "${components}" ]
+            if [ -z "${result}" ]
             then
-               components="`array_add "${components}" "../"`"
+               result="`array_add "${result}" "../"`"
             else
-               if [ "${components}" != "/" ]
+               if [ "${result}" != "/" ]
                then
-                  components="`array_remove_last "${components}"`"
+                  result="`array_remove_last "${result}"`"
                fi
                # /.. -> /
             fi
@@ -724,21 +725,21 @@ _simplify_components()
 
          # foo/ -> foo
          "/")
-            if [ -z "${components}" ]
+            if [ -z "${result}" ]
             then
-               components="${i}"
+               result="${i}"
             fi
          ;;
 
          *)
-            components="`array_add "${components}" "${i}"`"
+            result="`array_add "${result}" "${i}"`"
          ;;
       esac
    done
 
    IFS="${DEFAULT_IFS}"
 
-   echo "${components}"
+   echo "${result}"
 }
 
 
@@ -791,7 +792,7 @@ simplify_path()
    if [ ! -z "${path}" ]
    then
       components="`echo "${path}" | tr '/' '\012' | sed -e 's|$|/|'`"
-      final_components="`_simplify_components  "${components}"`"
+      final_components="`_simplify_components "${components}"`"
       final_path="`_path_from_components "${final_components}"`"
    fi
 
