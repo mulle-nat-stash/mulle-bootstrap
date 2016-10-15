@@ -74,7 +74,7 @@ libraries into the `dependencies/lib`  and `dependencies/include` folders.
 ## Tell me more
 
 * [How to install](dox/INSTALL.md)
-* [How to use](dox(COMMANDS.md)
+* [How to use](dox/COMMANDS.md)
 * [What has changed ?](RELEASENOTES.md)
 * [Tweak guide](dox/SETTINGS.md)
 * [FAQ](dox/FAQ.md)
