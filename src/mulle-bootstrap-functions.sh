@@ -671,23 +671,23 @@ escaped_spaces()
 combined_escaped_search_path()
 {
    local i
-   local path
+   local combinedpath
 
    for i in "$@"
    do
-      if [ ! -z "$i" ]
+      if [ ! -z "${i}" ]
       then
-         i="`escaped_spaces "$i"`"
-         if [ -z "$path" ]
+         i="`escaped_spaces "${i}"`"
+         if [ -z "$combinedpath" ]
          then
-            path="$i"
+            combinedpath="${i}"
          else
-            path="$path $i"
+            combinedpath="${combinedpath} ${i}"
          fi
       fi
    done
 
-   echo "${path}"
+   echo "${combinedpath}"
 }
 
 
@@ -750,22 +750,22 @@ _path_from_components()
    components="$1"
 
    local i
-   local path
+   local composedpath  # renamed this from path, fixes crazy bug on linux
 
    IFS="
 "
    for i in $components
    do
-      path="${path}${i}"
+      composedpath="${composedpath}${i}"
    done
 
    IFS="${DEFAULT_IFS}"
 
-   if [ -z "${path}" ]
+   if [ -z "${composedpath}" ]
    then
       echo "."
    else
-      echo "$path" | sed 's|^\(..*\)/$|\1|'
+      echo "${composedpath}" | sed 's|^\(..*\)/$|\1|'
    fi
 }
 
@@ -958,10 +958,10 @@ lso()
 #
 dir_has_files()
 {
-   local path
+   local dirpath
    local flag
 
-   path="$1"
+   dirpath="$1"
    shift
 
    case "$1" in
@@ -979,15 +979,15 @@ dir_has_files()
    local empty
    local result
 
-   empty="`find "${path}" -xdev -mindepth 1 -maxdepth 1 -name "[a-zA-Z0-9_-]*" ${flags} "$@" -print 2> /dev/null`"
+   empty="`find "${dirpath}" -xdev -mindepth 1 -maxdepth 1 -name "[a-zA-Z0-9_-]*" ${flags} "$@" -print 2> /dev/null`"
    [ "$empty" != "" ]
    result=$?
 
    if [ "$result" -eq 1 ]
    then
-      log_fluff "Directory \"$path\" has no files"
+      log_fluff "Directory \"$dirpath\" has no files"
    else
-      log_fluff "Directory \"$path\" has files"
+      log_fluff "Directory \"$dirpath\" has files"
    fi
    return "$result"
 }
