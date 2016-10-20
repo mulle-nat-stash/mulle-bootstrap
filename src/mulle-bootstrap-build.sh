@@ -882,6 +882,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
 
       # cmake separator
+      [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
       IFS=";"
       for path in ${native_includelines}
       do
@@ -2185,7 +2186,7 @@ build_clones()
             then
                :
             else
-               fail "unknown repo ${name}"
+               fail "Unknown repo ${name}"
             fi
          fi
       done
@@ -2242,6 +2243,8 @@ build_main()
 
    [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
 
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+
    #
    # it is useful, that fetch understands build options and
    # ignores them
@@ -2277,17 +2280,13 @@ build_main()
             CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
             ;;
 
-         # fetch options
-         -cs|--check-usr-local-include|-nr|--no-recursion|-e|--embedded-only|-u|--update-symlinks)
-            if [ -z "${MULLE_BOOTSTRAP_DID_FETCH}" ]
-            then
-               log_error "unknown option $1"
-               ${USAGE}
-            fi
+         # fetch options, are just ignored
+         -i|--ignore-branch|-fc|--force-checkout|-cs|--check-usr-local-include|-nr|--no-recursion|-e|--embedded-only|-u|--update-symlinks)
+            :
          ;;
 
          -*)
-            log_error "unknown option $1"
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown build option $1"
             build_usage
          ;;
 

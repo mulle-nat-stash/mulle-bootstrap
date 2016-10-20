@@ -59,6 +59,8 @@ find_library_in_directories()
    local directory
    local path
 
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+
    IFS="
 "
    for directory in ${directories}
@@ -290,7 +292,7 @@ ${SEARCH_PATH}"
          ;;
 
          -*)
-            echo "unknown option $1" >&2
+            echo "mulle-mingw-dumpdef.sh: Unknown option $1" >&2
             usage
          ;;
 

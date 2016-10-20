@@ -595,56 +595,12 @@ ${result}"
    if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
    then
       log_trace2 "----------------------"
-      log_trace2 "merged settings:"
+      log_trace2 "Merged settings: $1, $2"
       log_trace2 "----------------------"
       log_trace2 "${result}"
       log_trace2 "----------------------"
    fi
    echo "${result}"
-}
-
-
-#
-# expands ${setting} and ${setting:-foo}
-#
-expanded_setting()
-{
-   local string
-
-   string="$1"
-
-   local key
-   local value
-   local prefix
-   local suffix
-   local next
-   local default
-   local tmp
-
-   key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
-   if [ -z "${key}" ]
-   then
-      echo "$1"
-      return
-   fi
-
-   prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
-   suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
-
-   tmp="`echo "${key}" | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[:][-]\(.*\)$/\1/p'`"
-   if [ ! -z "${tmp}" ]
-   then
-      default="`echo "${key}" | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[:][-]\(.*\)$/\2/p'`"
-      key="${tmp}"
-   fi
-
-   value="`read_fetch_setting "${key}" "${default}"`"
-   next="${prefix}${value}${suffix}"
-   if [ "${next}" = "${string}" ]
-   then
-      fail "${string} expands to itself"
-   fi
-   expanded_setting "${next}"
 }
 
 
@@ -744,7 +700,7 @@ config_main()
          ;;
 
          -*)
-            log_error "unknown option $1"
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown config option $1"
             config_usage
          ;;
 

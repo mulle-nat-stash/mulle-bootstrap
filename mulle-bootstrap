@@ -28,8 +28,12 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+MULLE_BOOTSTRAP_VERSION_MAJOR=2
+MULLE_BOOTSTRAP_VERSION_MINOR=3
+MULLE_BOOTSTRAP_VERSION_PATCH=0
 
-MULLE_BOOTSTRAP_VERSION="2.2.1"
+MULLE_BOOTSTRAP_VERSION="${MULLE_BOOTSTRAP_VERSION_MAJOR}.${MULLE_BOOTSTRAP_VERSION_MINOR}.${MULLE_BOOTSTRAP_VERSION_PATCH}"
+MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap"
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -49,6 +53,7 @@ usage: mulle-bootstrap [flags] [command] [options]
  Flags:
    -a -y     : default answer to questions (scripts wont be checked)
                -a (clone preferred) -y (local copy/symlink preferred)
+   -f        : force operation
    -n        : do nothing creative or destructive
    -v        : -v to be more verbose (-vv or -vvv for more verbosity)
 
@@ -106,7 +111,6 @@ bootstrap_nomagic_main()
 {
    local command
 
-
    command="$1"
    shift
 
@@ -130,6 +134,7 @@ bootstrap_nomagic_main()
 
    if fetch_needed
    then
+      MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap fetch"
       if [ -z "${DONT_RECURSE}" ]
       then
          fetch_main "$@" || exit 1
@@ -142,6 +147,7 @@ bootstrap_nomagic_main()
 
    if build_needed
    then
+      MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap build"
       build_main "$@" || exit 1
    fi
 
@@ -184,6 +190,8 @@ bootstrap_main()
    . mulle-bootstrap-local-environment.sh
 
    trap trap_fail INT
+
+   source_environment
 
    #
    # simple option handling
@@ -242,7 +250,7 @@ bootstrap_main()
          -t|--trace)
             MULLE_BOOTSTRAP_TRACE="1848"
             COPYMOVEFLAGS="-v"
-            GITFLAGS="${GITFLAGS} -v"
+            GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
          ;;
 
          -V|--verbose-build)
@@ -252,25 +260,25 @@ bootstrap_main()
          -v|--verbose)
             MULLE_BOOTSTRAP_TRACE="VERBOSE"
             COPYMOVEFLAGS="-v"
-            GITFLAGS="${GITFLAGS} -v"
+            GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
          ;;
 
          -vv|--very-verbose)
             MULLE_BOOTSTRAP_TRACE="FLUFF"
             COPYMOVEFLAGS="-v"
-            GITFLAGS="${GITFLAGS} -v"
+            GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
          ;;
 
          -vvv|--very-verbose-with-settings)
             MULLE_BOOTSTRAP_TRACE="TRACE"
             COPYMOVEFLAGS="-v"
-            GITFLAGS="${GITFLAGS} -v"
+            GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
          ;;
 
          -s|--silent)
             MULLE_BOOTSTRAP_TRACE=
             MULLE_BOOTSTRAP_TERSE="YES"
-            GITFLAGS="${GITFLAGS} -q"
+            GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
          ;;
 
          -h|--help)
@@ -278,7 +286,7 @@ bootstrap_main()
          ;;
 
          -*)
-            log_error "unknown option \"$1\""
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown flag \"$1\""
             usage
          ;;
 
@@ -341,6 +349,10 @@ bootstrap_main()
       log_trace "Dry run is active."
    fi
 
+   # source in environment now
+
+   local_environment_main
+
    #
    # some commands only run when we have a .bootstrap folder
    #
@@ -374,7 +386,7 @@ bootstrap_main()
    if [ "${MULLE_BOOTSTRAP_NEEDS_REFRESH}" = "YES" ] || refresh_needed
    then
       case "${command}" in
-         bootstrap|nomagic|fetch)
+         bootstrap|nomagic|fetch|update)
             MULLE_BOOTSTRAP_WILL_FETCH="YES"
             . mulle-bootstrap-refresh.sh
             refresh_main || exit 1
@@ -391,7 +403,7 @@ bootstrap_main()
             refresh_main refresh_if_bare || exit 1
          ;;
 
-         update|refresh)
+         refresh)
            . mulle-bootstrap-refresh.sh
 
            # 4 laters
@@ -407,41 +419,49 @@ bootstrap_main()
       build)
          . mulle-bootstrap-build.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap build"
          build_main "$@" || exit 1
       ;;
 
       clean)
          . mulle-bootstrap-clean.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap clean"
          clean_main "$@" || exit 1
       ;;
 
       config)
          . mulle-bootstrap-settings.sh
+
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap config"
          config_main "$@" || exit 1
       ;;
 
       dist)
          . mulle-bootstrap-clean.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap clean"
          clean_main "dist" || exit 1
       ;;
 
       fetch)
          . mulle-bootstrap-fetch.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap fetch"
          DONT_ASK_AFTER_WARNING=YES fetch_main "$@" || exit 1
       ;;
 
       init)
          . mulle-bootstrap-init.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap init"
          init_main "$@" || exit 1
       ;;
 
       install)
          . mulle-bootstrap-install.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap install"
          install_main "$@" || exit 1
       ;;
 
@@ -453,33 +473,39 @@ bootstrap_main()
       refresh)
          [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap refresh"
          refresh_main "$@" || exit 1
       ;;
 
       update|pull)
          . mulle-bootstrap-fetch.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap update"
          update_main "$@" || exit 1
 
          [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap refresh"
          refresh_main || exit 1
       ;;
 
       setup-xcode|xcode)
          . mulle-bootstrap-xcode.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap xcode"
          xcode_main "$@" || exit 1
       ;;
 
       tag)
          . mulle-bootstrap-tag.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap tag"
          tag_main "$@" || exit 1
       ;;
 
       git)
          . mulle-bootstrap-scm.sh
 
+         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap git"
          git_main "$@" || exit 1
       ;;
 
@@ -488,7 +514,7 @@ bootstrap_main()
       ;;
 
       *)
-         log_error "Unknown command \"${command}\""
+         log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown command \"${command}\""
          usage
       ;;
    esac

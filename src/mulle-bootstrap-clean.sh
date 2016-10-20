@@ -51,11 +51,7 @@ ${ADDICTION_SUBDIR}
 .bootstrap.auto"`"
    EMBEDDED="`embedded_repository_directories_from_repos`"
 
-   if [ ! -z "$EMBEDDED" ]
-   then
-      DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
-${EMBEDDED}"
-   fi
+   DIST_CLEANABLE_SUBDIRS="`add_line "${EMBEDDED}" "${DIST_CLEANABLE_SUBDIRS}"`"
 }
 
 
@@ -319,6 +315,8 @@ clean_main()
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+
    COMMAND=
 
    while [ $# -ne 0 ]
@@ -329,7 +327,7 @@ clean_main()
          ;;
 
          -*)
-            log_error "unknown option $1"
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown clean option $1"
             COMMAND=help
          ;;
 

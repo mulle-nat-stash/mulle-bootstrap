@@ -31,7 +31,6 @@
 #
 MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH="included"
 
-
 # returns 0 if said yes
 user_say_yes()
 {
@@ -162,8 +161,218 @@ refresh_needed()
 }
 
 
+#
+# version must be <= min_major.min_minor
+#
+check_version()
+{
+   local version
+   local min_major
+   local min_minor
+
+   version="$1"
+   min_major="$2"
+   min_minor="$3"
+
+   local major
+   local minor
+
+   if [ -z "${version}" ]
+   then
+      return 0
+   fi
+
+   major="`echo "${version}" | head -1 | cut -d. -f1`"
+   if [ "${major}" -lt "${min_major}" ]
+   then
+      return 0
+   fi
+
+   if [ "${major}" -ne "${min_major}" ]
+   then
+      return 1
+   fi
+
+   minor="`echo "${version}" | head -1 | cut -d. -f2`"
+   [ "${minor}" -le "${min_minor}" ]
+}
+
+
+assert_mulle_bootstrap_version()
+{
+   local version
+
+   # has to be read before .auto is setup
+   version="`_read_setting "${BOOTSTRAP_SUBDIR}/version"`"
+   if check_version "$version" "${MULLE_BOOTSTRAP_VERSION_MAJOR}" "${MULLE_BOOTSTRAP_VERSION_MINOR}"
+   then
+      return
+   fi
+
+   fail "This ${BOOTSTRAP_SUBDIR} requires mulle-bootstrap version ${version} at least, you have ${MULLE_BOOTSTRAP_VERSION}"
+}
+
+
+#
+# expands ${setting} and ${setting:-foo}
+#
+_expanded_variables()
+{
+   local string
+
+   string="$1"
+
+   local key
+   local value
+   local prefix
+   local suffix
+   local next
+   local default
+   local tmp
+
+
+   key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
+   if [ -z "${key}" ]
+   then
+      echo "$1"
+      return
+   fi
+
+   prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
+   suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
+
+   tmp="`echo "${key}" | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[:][-]\(.*\)$/\1/p'`"
+   if [ ! -z "${tmp}" ]
+   then
+      default="`echo "${key}" | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[:][-]\(.*\)$/\2/p'`"
+      key="${tmp}"
+   fi
+
+   value="`read_fetch_setting "${key}" "${default}"`"
+   next="${prefix}${value}${suffix}"
+   if [ "${next}" = "${string}" ]
+   then
+      fail "${string} expands to itself"
+   fi
+
+   _expanded_variables "${next}"
+}
+
+
+expanded_variables()
+{
+   local memo
+   local value
+
+   # a hack ?
+
+   memo="${MULLE_BOOTSTRAP_SETTINGS_NO_AUTO}"
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="NO"
+
+   value="`_expanded_variables "$1"`"
+
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="${memo}"
+
+   if [ "$1" != "${value}" ]
+   then
+      log_fluff "Expanded \"$1\" to \"${value}\""
+   fi
+
+   echo "$value"
+}
+
+
+source_environment_file()
+{
+   local filename
+
+   filename="$1"
+   if [ ! -r "${filename}" ]
+   then
+      log_fluff "Environment file ${filename} not found"
+      return 1
+   fi
+
+   local lines
+   local line
+   local key
+   local value
+
+   log_fluff "Environment file ${filename} exists"
+
+   lines="`egrep -s -v '^#|^[ ]*$' "${filename}"`"
+   IFS="
+"
+   for line in $lines
+   do
+      IFS="${DEFAULT_IFS}"
+
+      key="`echo "${line}" | cut -d= -f1`"
+      value="`echo "${line}" | cut -d= -f2`"
+
+      value="`expanded_variables "${value}"`"
+      case "${key}" in
+         *\`*|*\$*|*\!*)
+            fail "Illegal characters in $key of $filename"
+         ;;
+      esac
+      case "${value}" in
+         *\`*|*\$*|*\!*)
+            fail "Illegal characters in $value of $filename"
+         ;;
+      esac
+      log_verbose "Environment variable $key defined as $value"
+
+      eval "${key}=${value}; export ${key}"
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   return 0
+}
+
+
+#
+# source environment
+#
+source_environment()
+{
+   local flag
+
+   flag=""
+
+   if source_environment_file "${HOME}/.mulle-bootstrap/environment"
+   then
+      flag="${MULLE_BOOTSTRAP_FLUFF}"
+   fi
+
+   if source_environment_file "${BOOTSTRAP_SUBDIR}.auto/environment"
+   then
+      flag="${MULLE_BOOTSTRAP_FLUFF}"
+   else
+      if source_environment_file "${BOOTSTRAP_SUBDIR}.local/environment"
+      then
+         flag="${MULLE_BOOTSTRAP_FLUFF}"
+      else
+         if source_environment_file "${BOOTSTRAP_SUBDIR}/environment"
+         then
+            flag="${MULLE_BOOTSTRAP_FLUFF}"
+         fi
+      fi
+   fi
+
+   if [ "${flag}" = "YES" ]
+   then
+      log_fluff "Environment:"
+      env >&2
+   fi
+}
+
+
 local_environment_initialize()
 {
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
    #
    # read local environment
    # source this file
@@ -208,6 +417,14 @@ local_environment_initialize()
          USR_LOCAL_INCLUDE=/usr/local/include
       ;;
    esac
+}
+
+
+local_environment_main()
+{
+#  don't do it, so far it's been overkill
+#   source_environment
+   :
 }
 
 local_environment_initialize

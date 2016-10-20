@@ -50,6 +50,8 @@ bootstrap_auto_update_merge()
    local match
    local i
 
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+
    IFS="
 "
    for i in `ls -1 "${directory}/.bootstrap"`
@@ -213,6 +215,8 @@ bootstrap_auto_create()
 {
    log_verbose "Creating .bootstrap.auto from .bootstrap and .bootstrap.local"
 
+   assert_mulle_bootstrap_version
+
    mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto"
 
    if dir_has_files "${BOOTSTRAP_SUBDIR}.local"
@@ -228,6 +232,7 @@ bootstrap_auto_create()
    local file
    local name
 
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
    IFS="
 "
    for file in `ls -1 "${BOOTSTRAP_SUBDIR}"`
@@ -256,9 +261,10 @@ bootstrap_auto_create()
 
 auto_update_initialize()
 {
-    log_fluff ":auto_update_initialize:"
+   log_fluff ":auto_update_initialize:"
 
-  NON_MERGABLE_SETTINGS='embedded_repositories
+   NON_MERGABLE_SETTINGS='embedded_repositories
+version
 '
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 }

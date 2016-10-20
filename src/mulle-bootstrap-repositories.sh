@@ -326,7 +326,7 @@ __parse_clone()
 {
    local clone
 
-   clone="`expanded_setting "${1}"`"
+   clone="`expanded_variables "${1}"`"
 
    __parse_expanded_clone "${clone}"
 }
@@ -347,7 +347,7 @@ __parse_embedded_clone()
 {
    local clone
 
-   clone="`expanded_setting "${1}"`"
+   clone="`expanded_variables "${1}"`"
 
    __parse_expanded_clone "${clone}"
 

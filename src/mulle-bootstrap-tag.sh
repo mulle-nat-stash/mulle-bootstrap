@@ -176,10 +176,10 @@ tag()
          if [ -z "${tag}" ]
          then
             log_info "### ${name}:"
-            (cd "$i" ; exekutor git tag $GITFLAGS "$@" ) || fail "tag failed"
+            (cd "$i" ; exekutor git ${GITFLAGS} tag ${GITOPTIONS} "$@" ) || fail "tag failed"
          else
             log_info "Tagging \"${name}\" with \"${tag}\""
-            (cd "$i" ; exekutor git tag $GITFLAGS "$@" "${tag}" ) || fail "tag failed"
+            (cd "$i" ; exekutor git ${GITFLAGS} tag ${GITOPTIONS} "$@" "${tag}" ) || fail "tag failed"
          fi
       fi
    done
@@ -196,7 +196,6 @@ tag_main()
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
-   GITFLAGS=
    TAG_OPERATION="tag"
 
    while [ $# -ne 0 ]
@@ -207,30 +206,30 @@ tag_main()
          ;;
 
          -f|--force)
-            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            GITOPTIONS="`concat "${GITOPTIONS}" "$1"`"
             TAG_OPERATION="force tag"
          ;;
 
          -l|--list|-v|--verify)
-            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            GITOPTIONS="`concat "${GITOPTIONS}" "$1"`"
             TAG_OPERATION="list/verify tags"
             UNCLEAN_OK=YES
          ;;
 
          -d|--delete)
-            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            GITOPTIONS="`concat "${GITOPTIONS}" "$1"`"
             TAG_OPERATION="delete the tag of"
          ;;
 
          # no argument gitflags
          -n|-a|--annotate|-s|--sign|-create-reflog|--column)
-            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            GITOPTIONS="`concat "${GITOPTIONS}" "$1"`"
          ;;
          # argument gitflags
          -*)
-            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            GITOPTIONS="`concat "${GITOPTIONS}" "$1"`"
             shift
-            GITFLAGS="`concat "${GITFLAGS}" "$1"`"
+            GITOPTIONS="`concat "${GITOPTIONS}" "$1"`"
          ;;
 
          *)
@@ -252,7 +251,7 @@ tag_main()
          tag_usage
       fi
 
-      if [ -z "${GITFLAGS}" ]
+      if [ -z "${GITOPTIONS}" ]
       then
          ensure_tags_unknown "${TAG}"
       fi

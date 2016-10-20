@@ -41,6 +41,73 @@ git_is_bare_repository()
 }
 
 
+git_get_url()
+{
+   local remote
+   remote="$2"
+
+   ( cd "$1" ; git remote get-url "${remote}" )
+}
+
+
+git_set_url()
+{
+   local remote
+   local url
+
+   remote="$2"
+   url="$3"
+
+   (
+      cd "$1" ;
+      git remote set-url "${remote}" "${url}" ;
+      git fetch "${remote}" # prefetch to get new branches
+   )
+}
+
+
+#
+# prefer origin over others, probably could be smarter
+# by passing in the desired branch and figuring more
+# stuff out
+#
+git_get_default_remote()
+{
+   local i
+   local match
+
+   match=""
+   IFS="
+"
+   for i in `( cd "$1" ; git remote)`
+   do
+      case "$i" in
+         origin)
+            match="$i"
+            break
+         ;;
+
+         *)
+            if [ -z "${match}" ]
+            then
+               match="$i"
+            fi
+         ;;
+      esac
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   echo "$match"
+}
+
+
+git_has_branch()
+{
+   ( cd "$1" ; git branch | cut -c3- | fgrep -q -s -x "$2" > /dev/null )
+}
+
+
 git_get_branch()
 {
    ( cd "$1" ; git rev-parse --abbrev-ref HEAD 2> /dev/null )
@@ -55,13 +122,16 @@ git_checkout_tag()
    dst="$1"
    tag="$2"
 
-   local flags
+   [ -z "${dst}" ] && internal_fail "dst is empty"
+   [ -z "${tag}" ] && internal_fail "tag is empty"
+
+   local options
 
    # checkout don't know -v
-   flags="${GITFLAGS}"
-   if [ "${flags}" = "-v" ]
+   options="${GITOPTIONS}"
+   if [ "${options}" = "-v" ]
    then
-      flags=""
+      options=""
    fi
 
    local branch
@@ -71,13 +141,12 @@ git_checkout_tag()
    if [ "${branch}" != "${tag}" ]
    then
       log_info "Checking out version ${C_WHITE}${C_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
-      ( exekutor cd "${dst}" ; exekutor git checkout ${flags} "${tag}" )
+      ( exekutor cd "${dst}" ; exekutor git ${GITFLAGS} checkout ${options} "${tag}" )
 
       if [ $? -ne 0 ]
       then
          log_error "Checkout failed, moving ${C_CYAN}${C_BOLD}${dst}${C_ERROR} to ${C_CYAN}${C_BOLD}${dst}.failed${C_ERROR}"
          log_error "You need to fix this manually and then move it back."
-         log_info "Hint: check ${BOOTSTRAP_SUBDIR}/`basename -- "${dst}"`/TAG" >&2
 
          rmdir_safer "${dst}.failed"
          exekutor mv "${dst}" "${dst}.failed"
@@ -95,28 +164,29 @@ git_clone()
    local dst
    local branch
    local tag
-   local flags
+   local options
 
    src="$1"
    dst="$2"
    branch="$3"
    tag="$4"
-   flags="$5"
+   options="$5"
 
    [ ! -z "${src}" ] || internal_fail "src is empty"
    [ ! -z "${dst}" ] || internal_fail "dst is empty"
+   [ -z "${DEFAULT_IFS}" ] && internal_internal_fail "IFS fail"
 
    if [ ! -z "${branch}" ]
    then
       log_info "Cloning branch ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
-      flags="${flags} -b ${branch}"
+      options="`concat "${options}" "-b ${branch}"`"
    else
       log_info "Cloning ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
    fi
 
-   exekutor git clone ${flags} ${GITFLAGS} "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
+   exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
 
-   if [ "${tag}" != "" ]
+   if [ ! -z "${tag}" ]
    then
       git_checkout_tag "${dst}" "${tag}"
    fi
@@ -128,20 +198,20 @@ git_pull()
    local dst
    local branch
    local tag
-   local flags
+   local options
 
    dst="$1"
    branch="$2"
    tag="$3"
-   tag="$4"
+   options="$4"
 
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
    log_info "Updating ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
 
-   ( exekutor cd "${dst}" ; exekutor git pull ${GITFLAGS} ) || fail "git pull of \"${dst}\" failed"
+   ( exekutor cd "${dst}" ; exekutor git ${GITFLAGS} pull ${options} ${GITOPTIONS} ) || fail "git pull of \"${dst}\" failed"
 
-   if [ "${tag}" != "" ]
+   if [ ! -z "${tag}" ]
    then
       git_checkout_tag "${dst}" "${tag}"
    fi
@@ -154,13 +224,13 @@ svn_checkout()
    local dst
    local tag
    local branch
-   local flags
+   local options
 
    src="$1"
    dst="$2"
    branch="$3"
    tag="$4"
-   flags="$5"
+   options="$5"
 
    [ ! -z "$src" ] || internal_fail "src is empty"
    [ ! -z "$dst" ] || internal_fail "dst is empty"
@@ -168,18 +238,18 @@ svn_checkout()
    if [ ! -z "${branch}" ]
    then
       log_info "SVN checkout ${C_RESET_BOLD}${branch}${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
-      flags="${flags} -r ${branch}"
+      options="${options} -r ${branch}"
    else
       if [ ! -z "${tag}" ]
       then
          log_info "SVN checkout ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
-         flags="${flags} -r ${tag}"
+         options="${options} -r ${tag}"
       else
          log_info "SVN checkout ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
       fi
    fi
 
-   exekutor svn checkout ${flags} ${SVNFLAGS} "${src}" "${dst}" || fail "svn clone of \"${src}\" into \"${dst}\" failed"
+   exekutor svn checkout ${options} ${SVNOPTIONS} "${src}" "${dst}" || fail "svn clone of \"${src}\" into \"${dst}\" failed"
 }
 
 
@@ -188,12 +258,12 @@ svn_update()
    local dst
    local branch
    local tag
-   local flags
+   local options
 
    dst="$1"
    branch="$2"
    tag="$3"
-   flags="$4"
+   options="$4"
 
    [ ! -z "$dst" ] || internal_fail "dst is empty"
 
@@ -202,15 +272,15 @@ svn_update()
 
    if [ ! -z "$branch" ]
    then
-      flags="-r ${branch} ${flags}"
+      options="-r ${branch} ${options}"
    else
       if [ ! -z "$tag" ]
       then
-         flags="-r ${tag} ${flags}"
+         options="-r ${tag} ${options}"
       fi
    fi
 
-   ( exekutor cd "${dst}" ; exekutor svn update ${flags} ${SVNFLAGS} ) || fail "svn update of \"${dst}\" failed"
+   ( exekutor cd "${dst}" ; exekutor svn update ${options} ${SVNOPTIONS} ) || fail "svn update of \"${dst}\" failed"
 }
 
 
@@ -228,7 +298,7 @@ run_git()
       if [ -d "${i}/.git" -o -d "${i}/refs" ]
       then
          log_info "### $i:"
-         (cd "$i" ; exekutor git ${GITFLAGS} "$@" ) || fail "git failed"
+         (cd "$i" ; exekutor git ${GITFLAGS} "$@" ${GITOPTIONS} ) || fail "git failed"
          log_info
       fi
    done

@@ -108,7 +108,7 @@ log_trace2()
 #
 fail()
 {
-   log_error "$@"
+   log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}:" "$@"
    if [ ! -z "${MULLE_BOOTSTRAP_PID}" ]
    then
       kill -INT "${MULLE_BOOTSTRAP_PID}"  # kill myself (especially, if executing in subshell)
@@ -128,9 +128,40 @@ internal_fail()
 }
 
 
+#
+# here because often needed :-/
+#
+concat()
+{
+   local i
+   local s
+
+   for i in "$@"
+   do
+      if [ -z "${i}" ]
+      then
+         continue
+      fi
+
+      if [ -z "${s}" ]
+      then
+         s="${i}"
+      else
+         s="${s} ${i}"
+      fi
+   done
+
+   echo "${s}"
+}
+
+
+
+
 # Escape sequence and resets, should use tput here instead of ANSI
 logging_initialize()
 {
+   DEFAULT_IFS="${IFS}" # as early as possible
+
    #
    # need this for scripts also
    #

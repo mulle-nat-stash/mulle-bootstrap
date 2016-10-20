@@ -47,6 +47,7 @@ usage:
    Options
       -cs   :  check /usr/local for duplicates
       -e    :  fetch embedded repositories only
+      -i    :  ignore wrongly checked out branches
       -nr   :  ignore .bootstrap folders of fetched repositories
       -u    :  try to update symlinked folders as well (not recommended)
 
@@ -73,6 +74,8 @@ install_taps()
    local taps
 
    log_fluff "Looking for taps"
+
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 
    taps=`read_fetch_setting "taps" | sort | sort -u`
    if [ "${taps}" != "" ]
@@ -223,6 +226,7 @@ check_tars()
    tarballs="`read_fetch_setting "tarballs" | sort | sort -u`"
    if [ "${tarballs}" != "" ]
    then
+      [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
       IFS="
 "
       for tar in ${tarballs}
@@ -288,9 +292,10 @@ link_command()
          local name
 
          name="`basename -- "${dst}"`"
-         log_warning "tag ${tag} will be ignored, due to symlink" >&2
-         log_warning "if you want to checkout this tag do:" >&2
-         log_warning "${C_RESET}${C_BOLD}(cd .repos/${name}; git checkout ${GITFLAGS} \"${tag}\" )${C_WARNING}" >&2
+         log_warning "The intended tag ${C_RESET_BOLD}${tag}${C_WARNING} will be ignored, because"
+         log_warning "the repository is symlinked."
+         log_warning "If you want to checkout this tag do:"
+         log_warning "${C_RESET_BOLD}(cd .repos/${name}; git checkout ${GITOPTIONS} \"${tag}\" )${C_WARNING}"
       fi
    fi
 
@@ -465,7 +470,7 @@ checkout()
          ;;
 
       *)
-         fail "unknown scm system ${scm}"
+         fail "Unknown scm system ${scm}"
          ;;
    esac
 
@@ -540,12 +545,38 @@ checkout()
          ;;
       esac
 
-      local scmflags
+      local options
 
-      scmflags="`read_repo_setting "${name}" "checkout" "${scmflagsdefault}"`"
-      "${operation}" "${src}" "${dstdir}" "${branch}" "${tag}" "${scmflags}"
+      options="`read_repo_setting "${name}" "checkout" "${scmflagsdefault}"`"
+      "${operation}" "${src}" "${dstdir}" "${branch}" "${tag}" "${options}"
 
       warn_scripts_main "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
+   fi
+}
+
+
+ensure_clone_url_is_correct()
+{
+   local dstdir
+   local url
+
+   dstdir="$1"
+   url="$2"
+
+   local remote
+   local actual
+
+   remote="`git_get_default_remote "${dstdir}"`"
+   if [ -z "${remote}" ]
+   then
+      fail "Could not figure out a remote for \"${dstdir}\""
+   fi
+
+   actual="`git_get_url "${dstdir}" "${remote}"`"
+   if [ "${actual}" != "${url}" ]
+   then
+      log_verbose "URL change for $remote in \"${dstdir}\" from $actual to $url"
+      git_set_url "${dstdir}" "${remote}" "${url}"
    fi
 }
 
@@ -560,16 +591,25 @@ ensure_clone_branch_is_correct()
 
    local actual
 
-   if [ ! -z "${branch}" ]
+   if [ ! -z "${branch}" -a -z "${MULLE_BOOTSTRAP_IGNORE_BRANCH}" ]
    then
       actual="`git_get_branch "${dstdir}"`"
       if [ "${actual}" != "${branch}" ]
       then
-         fail "Repository \"${dstdir}\" checked-out branch is \"${actual}\".
+         if [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" = "NO" ] # abuse force flag
+         then
+            git_checkout_tag "${dstdir}" "${branch}"
+            actual="`git_get_branch "${dstdir}"`"
+         fi
+
+         if [ "${actual}" != "${branch}" ]
+         then
+            fail "Repository \"${dstdir}\" checked-out branch is \"${actual}\".
 But \"${branch}\" is specified.
 Suggested fix:
    mulle-bootstrap clean dist
    mulle-bootstrap"
+         fi
       fi
    fi
 }
@@ -622,6 +662,7 @@ checkout_repository()
 
    if [ -e "${dstdir}" ]
    then
+      ensure_clone_url_is_correct "${dstdir}" "${url}"
       ensure_clone_branch_is_correct "${dstdir}" "${branch}"
 
       log_fluff "Repository \"${dstdir}\" already exists"
@@ -630,6 +671,8 @@ checkout_repository()
       then
          log_info "Restoring ${name} from graveyard"
          exekutor mv "${CLONESFETCH_SUBDIR}/.graveyard/${name}" "${CLONESFETCH_SUBDIR}" || fail "move failed"
+
+         ensure_clone_url_is_correct "${dstdir}" "${url}"
          ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       else
          checkout "$@"
@@ -728,6 +771,8 @@ clone_repositories()
    local scm
    local tag
 
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+
    stop=0
    while [ $stop -eq 0 ]
    do
@@ -744,7 +789,7 @@ clone_repositories()
          do
             IFS="${DEFAULT_IFS}"
 
-            clone="`expanded_setting "${clone}"`"
+            clone="`expanded_variables "${clone}"`"
 
             # avoid superflous updates
             match="`echo "${fetched}" | grep -x "${clone}"`"
@@ -764,6 +809,7 @@ ${clone}"
                fi
             fi
          done
+
          IFS="${DEFAULT_IFS}"
 
       fi
@@ -820,7 +866,7 @@ update()
          operation="svn_update"
          ;;
       *)
-         fail "unknown scm system ${scm}"
+         fail "Unknown scm system ${scm}"
          ;;
    esac
 
@@ -850,6 +896,7 @@ update()
       fetch__run_repo_settings_script "${name}" "${dstdir}" "post-update" "$@"
    else
       ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+
       log_info "Repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} exists and is symlinked, so not updated."
 
       rval=1
@@ -913,6 +960,7 @@ update_repository()
       fi
    fi
 
+   ensure_clone_url_is_correct "${dstdir}" "${url}"
    ensure_clone_branch_is_correct "${dstdir}" "${branch}"
    [ $rval -eq 0 -o $rval -eq 2 ]
    return $?
@@ -952,11 +1000,13 @@ update_repositories()
 
    if [ $# -ne 0 ]
    then
+      [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
       IFS="
 "
       for name in "$@"
       do
          IFS="${DEFAULT_IFS}"
+
          create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
             update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
          remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
@@ -967,6 +1017,7 @@ update_repositories()
       for name in "$@"
       do
          IFS="${DEFAULT_IFS}"
+
          create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
             did_update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
          remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
@@ -989,6 +1040,7 @@ update_repositories()
    local updated
 
    updated=""
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 
    stop=0
    while [ $stop -eq 0 ]
@@ -1006,7 +1058,7 @@ update_repositories()
          do
             IFS="${DEFAULT_IFS}"
 
-            clone="`expanded_setting "${clone}"`"
+            clone="`expanded_variables "${clone}"`"
 
             # avoid superflous updates
             match="`echo "${updated}" | grep -x "${clone}"`"
@@ -1188,6 +1240,8 @@ clone_embedded_repository()
          esac
 
          exekutor mv "${CLONESFETCH_SUBDIR}/.embedded/.graveyard/${name}" "${dstdir}" || fail "move failed"
+
+         ensure_clone_url_is_correct "${dstdir}" "${url}"
          ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       else
          #
@@ -1213,6 +1267,7 @@ clone_embedded_repository()
       fi
 
    else
+      ensure_clone_url_is_correct "${dstdir}" "${url}"
       ensure_clone_branch_is_correct "${dstdir}" "${branch}"
 
       log_fluff "Repository \"${dstdir}\" already exists"
@@ -1237,6 +1292,7 @@ clone_embedded_repositories()
    local clone
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 
    clones="`read_fetch_setting "embedded_repositories"`"
    if [ ! -z "${clones}" ]
@@ -1278,6 +1334,7 @@ update_embedded_repositories()
    local dstdir
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 
    clones="`read_fetch_setting "embedded_repositories"`"
    clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
@@ -1339,6 +1396,10 @@ _common_main()
             EMBEDDED_ONLY="YES"
          ;;
 
+         -i|--ignore-branch)
+            MULLE_BOOTSTRAP_IGNORE_BRANCH="YES"
+         ;;
+
          -u|--update-symlinks)
             MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
          ;;
@@ -1347,7 +1408,7 @@ _common_main()
          -K|--clean|-k|--no-clean)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then
-               log_error "unknown option $1"
+               log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"
                ${USAGE}
             fi
          ;;
@@ -1356,20 +1417,20 @@ _common_main()
          -j|--cores|-c|--configuration)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then
-               log_error "unknown option $1"
+               log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"
                ${USAGE}
             fi
 
             if [ $# -eq 1 ]
             then
-               log_error "missing parameter to option $1"
+               log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Missing parameter to fetch option $1"
                ${USAGE}
             fi
             shift
          ;;
 
          -*)
-            log_error "unknown option $1"
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"
             ${USAGE}
          ;;
 

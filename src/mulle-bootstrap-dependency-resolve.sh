@@ -33,58 +33,6 @@
 MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH="included"
 
 
-_dependency_resolve()
-{
-   local map
-   local name
-
-   map="$1"
-   name="$2"
-
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
-   then
-      log_trace2 "resolve ${name}"
-   fi
-
-   local escaped_dependencies
-   local dependencies
-
-   escaped_dependencies="`assoc_array_get "${map}" "${name}"`"
-   dependencies="`unescape_linefeeds "${escaped_dependencies}"`"
-
-   UNRESOLVED_DEPENDENCIES="`array_add "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
-
-   local sub_name
-   #local insert
-
-   #insert="`array_count "${RESOLVED_DEPENDENCIES}"`"
-
-   IFS="
-"
-   for sub_name in ${dependencies}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      if array_contains "${RESOLVED_DEPENDENCIES}" "${sub_name}"
-      then
-         continue
-      fi
-
-      if array_contains "${UNRESOLVED_DEPENDENCIES}" "${sub_name}"
-      then
-         fail "circular dependency ${sub_name} and ${name}"
-      fi
-
-      _dependency_resolve "${map}" "${sub_name}"
-   done
-
-   IFS="${DEFAULT_IFS}"
-
-   UNRESOLVED_DEPENDENCIES="`array_remove "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
-   RESOLVED_DEPENDENCIES="`array_add "${RESOLVED_DEPENDENCIES}" "${name}"`"
-}
-
-
 dependency_add()
 {
    local map
@@ -141,6 +89,58 @@ dependency_add_array()
    IFS="${DEFAULT_IFS}"
 
    echo "${map}"
+}
+
+
+_dependency_resolve()
+{
+   local map
+   local name
+
+   map="$1"
+   name="$2"
+
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+   then
+      log_trace2 "resolve ${name}"
+   fi
+
+   local escaped_dependencies
+   local dependencies
+
+   escaped_dependencies="`assoc_array_get "${map}" "${name}"`"
+   dependencies="`unescape_linefeeds "${escaped_dependencies}"`"
+
+   UNRESOLVED_DEPENDENCIES="`array_add "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
+
+   local sub_name
+   #local insert
+
+   #insert="`array_count "${RESOLVED_DEPENDENCIES}"`"
+
+   IFS="
+"
+   for sub_name in ${dependencies}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if array_contains "${RESOLVED_DEPENDENCIES}" "${sub_name}"
+      then
+         continue
+      fi
+
+      if array_contains "${UNRESOLVED_DEPENDENCIES}" "${sub_name}"
+      then
+         fail "circular dependency ${sub_name} and ${name}"
+      fi
+
+      _dependency_resolve "${map}" "${sub_name}"
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   UNRESOLVED_DEPENDENCIES="`array_remove "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
+   RESOLVED_DEPENDENCIES="`array_add "${RESOLVED_DEPENDENCIES}" "${name}"`"
 }
 
 

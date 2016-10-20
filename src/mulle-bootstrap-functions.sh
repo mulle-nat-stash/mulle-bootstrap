@@ -201,28 +201,6 @@ is_yes()
 }
 
 
-concat()
-{
-   local i
-   local s
-
-   for i in "$@"
-   do
-      if [ "${i}" != "" ]
-      then
-         if [ "${s}" != "" ]
-         then
-            s="${s} ${i}"
-         else
-            s="${i}"
-         fi
-      fi
-   done
-
-   echo "${s}"
-}
-
-
 add_cmake_path()
 {
    local line
@@ -277,7 +255,6 @@ add_line()
    then
       echo "${line}"
    else
-
       echo "${lines}
 ${line}"
    fi
@@ -1101,8 +1078,6 @@ write_protect_directory()
 # ####################################################################
 functions_initialize()
 {
-   DEFAULT_IFS="${IFS}"
-
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
    [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 

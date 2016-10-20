@@ -1,3 +1,41 @@
+2.3
+===
+The main new feature of 2.3 is support for working with different repositories.
+E.g. I host releases on GitHub on a branch "release", which are accessed via
+https://, but when I develop I use Mulle KybernetiK on branch "master".
+
+The "trick" is to use parameterized branches and urls like so:
+
+```
+$ cat .bootstrap/repositories
+${MULLE_REPOSITORIES}/mulle-c11;;${MULLE_C11_BRANCH:-release}
+$ cat .bootstrap/MULLE_REPOSITORIES
+https://github.com/mulle-nat
+```
+
+This works for the release part. Locally though in the non-committed
+`.bootstrap.local`:
+
+```
+$ cat MULLE_REPOSITORIES
+nat@mulle-kybernetik.com:/scm/public_git/repositories
+$ cat MULLE_C11_BRANCH
+master
+```
+
+Changes:
+
+* clarified the use of options vs. flags some more. e.g. git GITFLAGS command GITOPTIONS.
+* update will now also refresh
+* start version checking bootstrap contents
+* -f flag will now also try to checkout branches, that are checked out
+incorrectly
+* fetch gains -i option, to ignore "wrongly" checked out repositories
+* fails are prefixed with the command, that caused the failure now
+* use unexpanded URLs for dependency matches and store those into .bootstrap.auto
+* mulle-bootstrap now picks up URL changes and corrects them in fetched
+repositiories, but that does not per se force an update.
+
 2.2.1
 ===
 

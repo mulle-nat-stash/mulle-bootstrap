@@ -78,7 +78,7 @@ init_main()
          ;;
 
          -*)
-            log_error "unknown option $1"
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown init option $1"
             ${USAGE}
 
          ;;
@@ -113,6 +113,11 @@ init_main()
 
    log_fluff "Create \"${BOOTSTRAP_SUBDIR}\""
    mkdir_if_missing "${BOOTSTRAP_SUBDIR}"
+
+   redirect_exekutor "${BOOTSTRAP_SUBDIR}/version" cat <<EOF
+# required mulle-bootstrap version
+${MULLE_BOOTSTRAP_VERSION_MAJOR}.0.0
+EOF
 
    if [ "${CREATE_DEFAULT_FILES}" = "YES" ]
    then

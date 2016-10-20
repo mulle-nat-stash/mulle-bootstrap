@@ -54,12 +54,12 @@ refresh_repositories_settings()
 {
    local stop
    local clones
-   local clone
    local stop
    local refreshed
    local match
    local dependency_map
-
+   local unexpanded
+   local unexpanded_url
 
    refreshed=""
    dependency_map=""
@@ -74,22 +74,20 @@ refresh_repositories_settings()
       then
          IFS="
 "
-         for clone in ${clones}
+         for unexpanded in ${clones}
          do
             IFS="${DEFAULT_IFS}"
 
-            clone="`expanded_setting "${clone}"`"
-            # avoid superflous updates
-            match="`echo "${refreshed}" | grep -x "${clone}"`"
-            # could remove prefixes here https:// http://
-
-            if [ "${match}" = "${clone}" ]
+            match="`echo "${refreshed}" | fgrep -s -x "${unexpanded}"`"
+            if [ ! -z "${match}" ]
             then
                continue
             fi
 
             refreshed="${refreshed}
-${clone}"
+${unexpanded}"
+
+            # avoid superflous updates
 
             local branch
             local dstdir
@@ -97,7 +95,9 @@ ${clone}"
             local scm
             local tag
             local url
+            local clone
 
+            clone="`expanded_variables "${unexpanded}"`"
             __parse_expanded_clone "${clone}"
 
             dstdir="${CLONESFETCH_SUBDIR}/${name}"
@@ -120,11 +120,12 @@ ${clone}"
                sub_repos="`_read_setting "${filename}"`"
                if [ ! -z "${sub_repos}" ]
                then
-                  dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${url}"`"
-                  dependency_map="`dependency_add_array "${dependency_map}" "${url}" "${sub_repos}"`"
+#                  unexpanded_url="`url_from_clone "${unexpanded}"`"
+                  dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${unexpanded}"`"
+                  dependency_map="`dependency_add_array "${dependency_map}" "${unexpanded}" "${sub_repos}"`"
                   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
                   then
-                     log_trace2 "add \"${sub_repos}\" for ${url} to ${dependency_map}"
+                     log_trace2 "add \"${sub_repos}\" for ${unexpanded} to ${dependency_map}"
                   fi
                fi
             else
