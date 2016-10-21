@@ -62,8 +62,9 @@ clear_test_dirs()
 test()
 {
    cd a || exit 1
-   mulle-bootstrap -y -f fetch || exit 1
-   mulle-bootstrap refresh || exit 1
+   mulle-bootstrap ${BOOTSTRAP_FLAGS} -y -f fetch || exit 1
+
+   mulle-bootstrap ${BOOTSTRAP_FLAGS} refresh || exit 1
 
    result="`cat .bootstrap.auto/repositories`"
    expect=
@@ -75,6 +76,8 @@ test()
    fi
 }
 
+
+BOOTSTRAP_FLAGS="$@"
 
 #
 # not that much of a test

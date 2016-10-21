@@ -73,7 +73,8 @@ echo ""
 
    [ -d src/b_1 ] || fail "b as src/b_1 failed to be embedded"
    [ -d src/b_1/src/a_1 ] && fail "a was wrongly embedded"
-)
+   :
+) || exit 1
 
 echo ""
 echo ""
@@ -88,7 +89,8 @@ echo ""
    mulle-bootstrap fetch
    [ -d src/b_1 ] && fail "b as src/b_1 failed to be removed"
    [ -d src/b_2 ] || fail "b as src/b_2 failed to be added"
-)
+   :
+) || exit 1 
 
 echo ""
 echo ""
@@ -101,7 +103,8 @@ echo ""
    cd d ;
    mulle-bootstrap -a fetch
    [ -d .repos/c/src/b_1 ] || fail "b as .repos/c/src/b_1 failed to be fetched"
-)
+   :
+) || exit 1 
 
 echo ""
 echo ""
@@ -116,7 +119,8 @@ echo ""
    mulle-bootstrap -vvv fetch
    [ -d .repos/c/src/b_1 ] && fail "b as .repos/c/src/b_1 failed to be removed"
    [ -d .repos/c/src/b_2 ] || fail "b as .repos/c/src/b_2 failed to be added"
-)
+   :
+) || exit 1
 
 echo ""
 echo ""
