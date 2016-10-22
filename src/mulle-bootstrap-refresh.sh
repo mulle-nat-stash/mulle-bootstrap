@@ -495,13 +495,13 @@ _refresh_embedded_repositories()
       local dstdir
       local olddir
 
+      ensure_clones_directory
+
       IFS="
 "
       for clone in ${clones}
       do
          IFS="${DEFAULT_IFS}"
-
-         ensure_clones_directory
 
          __parse_embedded_clone "${clone}"
 

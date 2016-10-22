@@ -30,14 +30,19 @@
 #
 MULLE_BOOTSTRAP_SCM_SH="included"
 
+git_is_repository()
+{
+   [ -d "${dstdir}.git" ] || [ -d  "${dstdir}/refs" -a  -f "${dstdir}/HEAD" ]
+}
+
 
 git_is_bare_repository()
 {
    local is_bare
 
-       # if bare repo, we can only clone anyway
-    is_bare=`( cd "$1"; git rev-parse --is-bare-repository 2> /dev/null )`
-    [ "${is_bare}" = "true" ]
+   # if bare repo, we can only clone anyway
+   is_bare=`( cd "$1"; git rev-parse --is-bare-repository 2> /dev/null )`
+   [ "${is_bare}" = "true" ]
 }
 
 
@@ -140,7 +145,7 @@ git_checkout_tag()
 
    if [ "${branch}" != "${tag}" ]
    then
-      log_info "Checking out version ${C_WHITE}${C_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
+      log_info "Checking out version ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
       ( exekutor cd "${dst}" ; exekutor git ${GITFLAGS} checkout ${options} "${tag}" )
 
       if [ $? -ne 0 ]

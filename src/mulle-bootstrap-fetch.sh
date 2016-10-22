@@ -566,18 +566,24 @@ ensure_clone_url_is_correct()
    local remote
    local actual
 
-   remote="`git_get_default_remote "${dstdir}"`"
-   if [ -z "${remote}" ]
+   if git_is_repository "${dstdir}"
    then
-      fail "Could not figure out a remote for \"${dstdir}\""
+      remote="`git_get_default_remote "${dstdir}"`"
+      if [ -z "${remote}" ]
+      then
+         fail "Could not figure out a remote for \"$PWD/${dstdir}\""
+      fi
+
+      actual="`git_get_url "${dstdir}" "${remote}"`"
+      if [ "${actual}" != "${url}" ]
+      then
+         log_verbose "URL change for $remote in \"$PWD/${dstdir}\" from $actual to $url"
+         git_set_url "${dstdir}" "${remote}" "${url}"
+      fi
+      return 0
    fi
 
-   actual="`git_get_url "${dstdir}" "${remote}"`"
-   if [ "${actual}" != "${url}" ]
-   then
-      log_verbose "URL change for $remote in \"${dstdir}\" from $actual to $url"
-      git_set_url "${dstdir}" "${remote}" "${url}"
-   fi
+   return 1
 }
 
 
@@ -662,9 +668,10 @@ checkout_repository()
 
    if [ -e "${dstdir}" ]
    then
-      ensure_clone_url_is_correct "${dstdir}" "${url}"
-      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-
+      if ensure_clone_url_is_correct "${dstdir}" "${url}"
+      then
+         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+      fi
       log_fluff "Repository \"${dstdir}\" already exists"
    else
       if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${CLONESFETCH_SUBDIR}/.graveyard/${name}" ]
@@ -960,8 +967,11 @@ update_repository()
       fi
    fi
 
-   ensure_clone_url_is_correct "${dstdir}" "${url}"
-   ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+   if ensure_clone_url_is_correct "${dstdir}" "${url}"
+   then
+      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+   fi
+
    [ $rval -eq 0 -o $rval -eq 2 ]
    return $?
 }
@@ -1267,9 +1277,10 @@ clone_embedded_repository()
       fi
 
    else
-      ensure_clone_url_is_correct "${dstdir}" "${url}"
-      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-
+      if ensure_clone_url_is_correct "${dstdir}" "${url}"
+      then
+         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
+      fi
       log_fluff "Repository \"${dstdir}\" already exists"
    fi
 

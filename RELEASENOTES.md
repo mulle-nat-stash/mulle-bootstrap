@@ -27,6 +27,8 @@ Changes:
 
 * clarified the use of options vs. flags some more. e.g. git GITFLAGS command GITOPTIONS.
 * update will now also refresh
+* improved refresh check, should not properly detect edited config files if the
+edit is at least a second after the last refresh run. Death of the hidden -fr flag
 * start version checking bootstrap contents
 * -f flag will now also try to checkout branches, that are checked out
 incorrectly
@@ -35,6 +37,8 @@ incorrectly
 * use unexpanded URLs for dependency matches and store those into .bootstrap.auto
 * mulle-bootstrap now picks up URL changes and corrects them in fetched
 repositiories, but that does not per se force an update.
+* try to detect changes in .bootstrap better
+
 
 2.2.1
 ===

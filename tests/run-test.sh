@@ -1,6 +1,16 @@
 #! /bin/sh
 
-( cd "dependency" ; ./run-test.sh )
-( cd "refresh" ; ./run-test.sh )
-( cd "refresh-embedded" ; ./run-test.sh )
+main()
+{
+   local i
 
+   for i in *
+   do
+      if [ -x "$i/run-test.sh" ]
+      then
+         "./$i/run-test.sh" "$@" || exit 1
+      fi
+   done
+}
+
+main "$@"

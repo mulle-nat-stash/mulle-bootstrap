@@ -211,10 +211,6 @@ bootstrap_main()
             MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
          ;;
 
-         -fr|--force-refresh)
-            MULLE_BOOTSTRAP_NEEDS_REFRESH="YES"
-         ;;
-
          -n|--dry-run)
             MULLE_EXECUTOR_DRY_RUN="YES"
          ;;
@@ -383,7 +379,7 @@ bootstrap_main()
    # some commands should refresh before execution
    # try to avoid pulling in the header if not needed
    #
-   if [ "${MULLE_BOOTSTRAP_NEEDS_REFRESH}" = "YES" ] || refresh_needed
+   if refresh_needed
    then
       case "${command}" in
          bootstrap|nomagic|fetch|update)
