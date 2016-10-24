@@ -694,13 +694,11 @@ checkout_repository()
 
    if [ "${COMMAND}" = "fetch" -a "${DONT_RECURSE}" = "" ]
    then
-      local old_bootstrap
-
-      old_bootstrap="${BOOTSTRAP_SUBDIR}"
+      ROOT_BOOTSTRAP_SUBDIR="${BOOTSTRAP_SUBDIR}"
 
       BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
       clone_embedded_repositories "${dstdir}/"
-      BOOTSTRAP_SUBDIR="${old_bootstrap}"
+      BOOTSTRAP_SUBDIR="${ROOT_BOOTSTRAP_SUBDIR}"
    fi
 
    if [ $run_script -eq 0 ]
@@ -951,10 +949,9 @@ update_repository()
    then
       if [ $rval -eq 0 -o $rval -eq 2 ]
       then
-         local old_bootstrap
 #      local old_fetch
 
-         old_bootstrap="${BOOTSTRAP_SUBDIR}"
+         ROOT_BOOTSTRAP_SUBDIR="${BOOTSTRAP_SUBDIR}"
 #      old_fetch="${CLONESFETCH_SUBDIR}"
 
          BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
@@ -962,7 +959,7 @@ update_repository()
 
          update_embedded_repositories "${dstdir}/"
 
-         BOOTSTRAP_SUBDIR="${old_bootstrap}"
+         BOOTSTRAP_SUBDIR="${ROOT_BOOTSTRAP_SUBDIR}"
 #      CLONESFETCH_SUBDIR="${old_fetch}"
       fi
    fi
@@ -1488,7 +1485,6 @@ _common_main()
       fi
    fi
 
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.refresh_done"
    remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_done"
 
    #

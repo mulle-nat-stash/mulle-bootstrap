@@ -23,12 +23,12 @@ $ cat MULLE_C11_BRANCH
 master
 ```
 
-Changes:
+### Changes
 
 * clarified the use of options vs. flags some more. e.g. git GITFLAGS command GITOPTIONS.
 * update will now also refresh
-* improved refresh check, should not properly detect edited config files if the
-edit is at least a second after the last refresh run. Death of the hidden -fr flag
+* improved refresh check, should now properly detect edited config files, except if the
+edit is less than a second after the last refresh run. Death of the hidden -fr flag
 * start version checking bootstrap contents
 * -f flag will now also try to checkout branches, that are checked out
 incorrectly
@@ -38,6 +38,8 @@ incorrectly
 * mulle-bootstrap now picks up URL changes and corrects them in fetched
 repositiories, but that does not per se force an update.
 * try to detect changes in .bootstrap better
+* improved retrieval of settings for embedded repositories
+* improved dependency code
 
 
 2.2.1

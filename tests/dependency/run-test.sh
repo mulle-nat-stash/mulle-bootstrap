@@ -16,7 +16,6 @@ setup_test_case1()
    echo "b
 e" > a/.bootstrap/repositories
 
-
    echo "d
 c" > b/.bootstrap/repositories
 
@@ -29,7 +28,6 @@ setup_test_case2()
 {
    echo "b
 e" > a/.bootstrap/repositories
-
 
    echo "d
 c" > b/.bootstrap/repositories
@@ -92,6 +90,7 @@ b"
 
 ( setup_test_case2 ; test "d
 c
-b"
+b
+e"
 )
 

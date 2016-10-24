@@ -70,7 +70,7 @@ refresh_repositories_settings()
       stop=1
 
       clones="`read_fetch_setting "repositories"`"
-      if [ "${clones}" != "" ]
+      if [ ! -z "${clones}" ]
       then
          IFS="
 "
@@ -87,6 +87,11 @@ refresh_repositories_settings()
             refreshed="${refreshed}
 ${unexpanded}"
 
+            if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+            then
+               log_trace2 "Dealing with ${unexpanded}"
+            fi
+
             # avoid superflous updates
 
             local branch
@@ -100,6 +105,8 @@ ${unexpanded}"
             clone="`expanded_variables "${unexpanded}"`"
             __parse_expanded_clone "${clone}"
 
+            dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${unexpanded}"`"
+
             dstdir="${CLONESFETCH_SUBDIR}/${name}"
             if [ ! -d "${dstdir}" ]
             then
@@ -111,21 +118,23 @@ ${unexpanded}"
             # dependency management, it could be nicer, but isn't.
             # Currently matches only URLs
             #
+
             local sub_repos
             local filename
 
             filename="${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"
             if [ -f "${filename}" ]
             then
+
                sub_repos="`_read_setting "${filename}"`"
                if [ ! -z "${sub_repos}" ]
                then
 #                  unexpanded_url="`url_from_clone "${unexpanded}"`"
-                  dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${unexpanded}"`"
                   dependency_map="`dependency_add_array "${dependency_map}" "${unexpanded}" "${sub_repos}"`"
                   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
                   then
-                     log_trace2 "add \"${sub_repos}\" for ${unexpanded} to ${dependency_map}"
+                     log_trace2 "add \"${unexpanded}\" to __ROOT__ as dependencies"
+                     log_trace2 "add [ ${sub_repos} ] to ${unexpanded} as dependencies"
                   fi
                fi
             else

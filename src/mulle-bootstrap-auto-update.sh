@@ -215,6 +215,8 @@ bootstrap_auto_create()
 {
    log_verbose "Creating .bootstrap.auto from .bootstrap and .bootstrap.local"
 
+   [ -z "${BOOTSTRAP_SUBDIR}" ] && internal_fail "empty bootstrap"
+
    assert_mulle_bootstrap_version
 
    mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto"

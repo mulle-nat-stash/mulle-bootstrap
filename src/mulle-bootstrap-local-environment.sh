@@ -263,17 +263,9 @@ _expanded_variables()
 
 expanded_variables()
 {
-   local memo
    local value
 
-   # a hack ?
-
-   memo="${MULLE_BOOTSTRAP_SETTINGS_NO_AUTO}"
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="NO"
-
    value="`_expanded_variables "$1"`"
-
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="${memo}"
 
    if [ "$1" != "${value}" ]
    then
@@ -282,6 +274,53 @@ expanded_variables()
 
    echo "$value"
 }
+
+
+expanded_embedded_variables()
+{
+   local memo1
+   local memo2
+
+   local value
+
+   [ -z "${ROOT_BOOTSTRAP_SUBDIR}" ] && internal_fail "root bootstrap"
+
+   # first search in /.bootstrap.auto
+   # a bit hackish
+
+   memo1="${MULLE_BOOTSTRAP_SETTINGS_NO_AUTO}"
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
+
+      memo2="${BOOTSTRAP_SUBDIR}"
+      BOOTSTRAP_SUBDIR="${ROOT_BOOTSTRAP_SUBDIR}"
+
+         value="`_expanded_variables "$1"`"
+
+      BOOTSTRAP_SUBDIR="${memo2}"
+
+      # then search in (embedded).bootstrap
+
+      if [ "$1" != "${value}" ]
+      then
+         log_fluff "Expanded \"$1\" to \"${value}\""
+      else
+         #
+         # else don't search in .auto
+         #
+         MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+         value="`_expanded_variables "$1"`"
+
+         if [ "$1" != "${value}" ]
+         then
+            log_fluff "Expanded \"$1\" to \"${value}\""
+         fi
+      fi
+
+   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="${memo1}"
+
+   echo "$value"
+}
+
 
 
 source_environment_file()
