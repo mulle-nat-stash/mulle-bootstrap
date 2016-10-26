@@ -33,13 +33,15 @@ edit is less than a second after the last refresh run. Death of the hidden -fr f
 * -f flag will now also try to checkout branches, that are checked out
 incorrectly
 * fetch gains -i option, to ignore "wrongly" checked out repositories
-* fails are prefixed with the command, that caused the failure now
+* fails are prefixed with the command, that caused the failure
 * use unexpanded URLs for dependency matches and store those into .bootstrap.auto
 * mulle-bootstrap now picks up URL changes and corrects them in fetched
 repositiories, but that does not per se force an update.
 * try to detect changes in .bootstrap better
 * improved retrieval of settings for embedded repositories
 * improved dependency code
+* some more checks, that embedded repositories do not clobber symlinked content
+* added -D bootstrap flag to create .bootstrap.local definition files. Convenient for specifiying alternate URLs for example.
 
 
 2.2.1
@@ -84,7 +86,6 @@ works
 
 **The changes should be harmless, but to be safe
 `mulle-bootstrap dist clean` your projects**
-
 
 This version has some additions, that enable a more flexible use of
 embedded repositories to "compose" source trees. Up till 2.1 embedded

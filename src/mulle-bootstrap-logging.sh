@@ -155,8 +155,6 @@ concat()
 }
 
 
-
-
 # Escape sequence and resets, should use tput here instead of ANSI
 logging_initialize()
 {

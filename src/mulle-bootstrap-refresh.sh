@@ -401,7 +401,13 @@ bury_embedded_zombies()
             dstdir="`embedded_repository_subdir_from_file "${i}" "${CLONESFETCH_SUBDIR}/.embedded"`"
             dstdir="${dstprefix}${dstdir}"
 
-            if [ -d "${dstdir}" -o -L "${dstdir}" ]
+            if [ -L "${dstdir}" -a "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" != "YES" ]
+            then
+               log_fluff "${dstdir} is symlinked, so ignored"
+               continue
+            fi
+
+            if [ -d "${dstdir}" ]
             then
                name="`basename -- "${i}"`"
 
@@ -575,10 +581,9 @@ refresh_deeply_embedded_repositories()
 
          __parse_embedded_clone "${clone}"
 
-         dstprefix="${CLONESFETCH_SUBDIR}/${subdir}/"
-
-         if [ ! -L "${dstprefix}" ]
+         if [ ! -L "${CLONESFETCH_SUBDIR}/${subdir}" ]
          then
+            dstprefix="${CLONESFETCH_SUBDIR}/${subdir}/"
             previous_bootstrap="${BOOTSTRAP_SUBDIR}"
             previous_clones="${CLONESFETCH_SUBDIR}"
             BOOTSTRAP_SUBDIR="${dstprefix}.bootstrap"
@@ -589,7 +594,7 @@ refresh_deeply_embedded_repositories()
             BOOTSTRAP_SUBDIR="${previous_bootstrap}"
             CLONESFETCH_SUBDIR="${previous_clones}"
          else
-            log_warn  "Don't refresh embedded repositories of symlinked \"${name}\""
+            log_fluff "Don't refresh embedded repositories of symlinked \"${name}\""
          fi
       done
       IFS="${DEFAULT_IFS}"

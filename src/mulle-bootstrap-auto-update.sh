@@ -74,7 +74,7 @@ bootstrap_auto_update_merge()
          continue
       fi
 
-      match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -x "${settingname}"`"
+      match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
       if [ ! -z "${match}" ]
       then
          log_fluff "Setting \"${settingname}\" is not mergable"

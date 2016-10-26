@@ -297,6 +297,11 @@ expand_environment_variables()
        prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
        suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
        value="`eval echo \$\{${key}\}`"
+       if [ -z "${value}" ]
+       then
+          log_verbose "${key} expanded to empty string ($1)"
+       fi
+
        next="${prefix}${value}${suffix}"
        if [ "${next}" != "${string}" ]
        then

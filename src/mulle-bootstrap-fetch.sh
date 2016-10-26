@@ -308,6 +308,7 @@ ask_symlink_it()
    local  clone
 
    clone="$1"
+
    if [ ! -d "${clone}" ]
    then
       fail "You need to check out ${clone} yourself, as it's not there."
@@ -692,13 +693,20 @@ checkout_repository()
       fi
    fi
 
+   #
+   # If we symlinked the repositiory, we don't embed
+   # repos into it, unless the user is really crazy
+   #
    if [ "${COMMAND}" = "fetch" -a "${DONT_RECURSE}" = "" ]
    then
-      ROOT_BOOTSTRAP_SUBDIR="${BOOTSTRAP_SUBDIR}"
+      if [ ! -L "${dstdir}" -o "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" = "YES" ]
+      then
+         ROOT_BOOTSTRAP_SUBDIR="${BOOTSTRAP_SUBDIR}"
 
-      BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
-      clone_embedded_repositories "${dstdir}/"
-      BOOTSTRAP_SUBDIR="${ROOT_BOOTSTRAP_SUBDIR}"
+         BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
+         clone_embedded_repositories "${dstdir}/"
+         BOOTSTRAP_SUBDIR="${ROOT_BOOTSTRAP_SUBDIR}"
+      fi
    fi
 
    if [ $run_script -eq 0 ]
@@ -795,17 +803,20 @@ clone_repositories()
             IFS="${DEFAULT_IFS}"
 
             clone="`expanded_variables "${clone}"`"
+            __parse_expanded_clone "${clone}"
 
-            # avoid superflous updates
-            match="`echo "${fetched}" | grep -x "${clone}"`"
+            #
+            # avoid superflous updates, match by "canonical name"
+            # this has the advantage, that https://foo/a.git and
+            # git:foo.git match
+            #
+            match="`echo "${fetched}" | fgrep -s -x "${name}"`"
             # could remove prefixes here https:// http://
 
-            if [ "${match}" != "${clone}" ]
+            if [ "${match}" != "${name}" ]
             then
                fetched="${fetched}
-${clone}"
-
-               __parse_expanded_clone "${clone}"
+${name}"
 
                if clone_repository "${name}" "${url}" "${branch}" "${scm}"
                then
@@ -1065,19 +1076,19 @@ update_repositories()
          do
             IFS="${DEFAULT_IFS}"
 
-            clone="`expanded_variables "${clone}"`"
+            __parse_clone "${clone}"
 
+            #
             # avoid superflous updates
-            match="`echo "${updated}" | grep -x "${clone}"`"
-
-            if [ "${match}" = "${clone}" ]
+            # match by name
+            #
+            match="`echo "${updated}" | fgrep -s -x "${name}"`"
+            if [ "${match}" = "${name}" ]
             then
                continue
             fi
-
             updated="${updated}
-${clone}"
-            __parse_expanded_clone "${clone}"
+${name}"
 
             dstdir="${CLONESFETCH_SUBDIR}/${name}"
 

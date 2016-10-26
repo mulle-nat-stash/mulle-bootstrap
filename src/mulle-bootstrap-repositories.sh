@@ -44,16 +44,12 @@ MULLE_BOOTSTRAP_REPOSITORIES_SH="included"
 # https://www./foo.git
 # host:foo
 #
-
 canonical_clone_name()
 {
    local  url
 
    url="$1"
-
-
    # cut off scheme part
-
    case "$url" in
       *:*)
          url="`echo "$@" | sed 's/^\(.*\):\(.*\)/\2/'`"
@@ -303,10 +299,9 @@ __parse_expanded_clone()
    scm="`scm_from_clone "${clone}"`"
    tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
-
    case "${name}" in
       /*|~*|..*|.*)
-         fail "Destination name \"${name}\" of repository ${name} looks fishy"
+         fail "Destination \"${name}\" of ${1} looks fishy"
       ;;
    esac
 }

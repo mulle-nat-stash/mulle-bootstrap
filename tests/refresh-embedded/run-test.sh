@@ -18,7 +18,7 @@ setup()
       echo "# a" > README.md
       git init
       git add README.md
-      git commit -m "Mercyful Release"
+      git commit -m "Merciful Release"
       cd ..
 
    cd b
@@ -27,7 +27,7 @@ setup()
       echo "# b" > README.md
       git init
       git add README.md .bootstrap/embedded_repositories
-      git commit -m "Mercyful Release"
+      git commit -m "Merciful Release"
       cd ..
 
 
@@ -37,7 +37,7 @@ setup()
       echo "# c" > README.md
       git init
       git add README.md .bootstrap/embedded_repositories
-      git commit -m "Mercyful Release"
+      git commit -m "Merciful Release"
       cd ..
 
    cd d
@@ -46,7 +46,7 @@ setup()
       echo "# d" > README.md
       git init
       git add README.md .bootstrap/repositories
-      git commit -m "Mercyful Release"
+      git commit -m "Merciful Release"
       cd ..
 
 }

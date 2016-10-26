@@ -30,9 +30,10 @@
 #
 MULLE_BOOTSTRAP_SCM_SH="included"
 
+
 git_is_repository()
 {
-   [ -d "${dstdir}.git" ] || [ -d  "${dstdir}/refs" -a  -f "${dstdir}/HEAD" ]
+   [ -d "${1}.git" ] || [ -d  "${1}/refs" -a  -f "${1}/HEAD" ]
 }
 
 
@@ -49,6 +50,7 @@ git_is_bare_repository()
 git_get_url()
 {
    local remote
+
    remote="$2"
 
    ( cd "$1" ; git remote get-url "${remote}" )

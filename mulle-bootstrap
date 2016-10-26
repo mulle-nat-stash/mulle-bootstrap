@@ -56,6 +56,7 @@ usage: mulle-bootstrap [flags] [command] [options]
    -f        : force operation
    -n        : do nothing creative or destructive
    -v        : -v to be more verbose (-vv or -vvv for more verbosity)
+   -DKEY=VAL : define local key/value C style
 
  Commands:
    bootstrap : does fetch and build recursively [default]
@@ -104,6 +105,41 @@ But you've gotta ask yourself one question: Do I feel lucky ?
 Well, do ya, punk?"
       exit 1
    fi
+}
+
+
+define_local_keyvalue()
+{
+   local keyvalue
+
+   keyvalue="$1"
+
+   if [ -z "${keyvalue}" ]
+   then
+      fail "Missing key, directly after -D"
+      usage
+   fi
+
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+
+   local key
+   local value
+
+   key="`echo "${keyvalue}" | cut -d= -f1`"
+   if [ -z "${key}" ]
+   then
+      key="${keyvalue}"
+      value="YES"
+   else
+      value="`echo "${keyvalue}" | cut -d= -f2-`"
+   fi
+
+   local path
+
+   path="${BOOTSTRAP_SUBDIR}.local/${key}"
+   mkdir_if_missing "`dirname -- "${path}"`"
+   redirect_exekutor "${path}" echo "# commandline argument -D${keyvalue}
+${value}"
 }
 
 
@@ -249,10 +285,6 @@ bootstrap_main()
             GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
          ;;
 
-         -V|--verbose-build)
-            MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
-         ;;
-
          -v|--verbose)
             MULLE_BOOTSTRAP_TRACE="VERBOSE"
             COPYMOVEFLAGS="-v"
@@ -279,6 +311,15 @@ bootstrap_main()
 
          -h|--help)
             usage
+         ;;
+
+         -D*)  # just like C
+            # define key values (by putting them into .bootstrap.local)
+            define_local_keyvalue "`echo "$1" | sed s'/^-D[ ]*//'`"
+         ;;
+
+         -V|--verbose-build)
+            MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
          ;;
 
          -*)

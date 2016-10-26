@@ -12,7 +12,7 @@ create_demo_repo()
    echo "# ${name}" > README.md
    git init
    git add README.md
-   git commit -m "Mercyful Release" README.md
+   git commit -m "Merciful Release" README.md
    cd ..
    set +e
 }
