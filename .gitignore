@@ -34,3 +34,7 @@ tests/refresh/main/g/
 tutorial/a/.bootstrap
 tutorial/b/.bootstrap
 tutorial/c/.bootstrap
+mulle-mingw-cpp.exe
+tests/embedded-symlink/a/
+tests/embedded-symlink/b/
+tests/embedded-symlink/c/

@@ -1521,18 +1521,18 @@ _common_main()
 
       check_tars
    else
-      if dir_has_files "${CLONESFETCH_SUBDIR}"
+      if dir_is_empty "${CLONESFETCH_SUBDIR}"
       then
-         if [ -z "${EMBEDDED_ONLY}" ]
-         then
-            update_repositories "$@"
-         fi
-         update_embedded_repositories
-      else
          log_info "Nothing to update, fetch first"
 
          return 0
       fi
+
+      if [ -z "${EMBEDDED_ONLY}" ]
+      then
+         update_repositories "$@"
+      fi
+      update_embedded_repositories
    fi
 
    #

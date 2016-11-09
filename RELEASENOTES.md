@@ -1,3 +1,8 @@
+2.3.1
+===
+
+Fix failing update for projects with only embedded repositories.
+
 2.3
 ===
 The main new feature of 2.3 is support for working with different repositories.

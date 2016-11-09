@@ -232,7 +232,6 @@ _expanded_variables()
    local default
    local tmp
 
-
    key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
    if [ -z "${key}" ]
    then
@@ -243,6 +242,7 @@ _expanded_variables()
    prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
    suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
 
+   default="" # crazy linux bug, where local vars are reused ?
    tmp="`echo "${key}" | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[:][-]\(.*\)$/\1/p'`"
    if [ ! -z "${tmp}" ]
    then
