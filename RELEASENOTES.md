@@ -1,7 +1,11 @@
-2.3.1
+2.4.0
 ===
 
 Fix failing update for projects with only embedded repositories.
+
+* experimental fetch flag -es added. This allows fetch to symlink embedded
+repositories.
+
 
 2.3
 ===

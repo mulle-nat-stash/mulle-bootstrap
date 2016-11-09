@@ -2281,7 +2281,7 @@ build_main()
             ;;
 
          # fetch options, are just ignored
-         -i|--ignore-branch|-fc|--force-checkout|-cs|--check-usr-local-include|-nr|--no-recursion|-e|--embedded-only|-u|--update-symlinks)
+         -i|--ignore-branch|-fc|--force-checkout|-cs|--check-usr-local-include|-nr|--no-recursion|-e|--embedded-only|-es|--embedded-symlink|-u|--update-symlinks)
             :
          ;;
 

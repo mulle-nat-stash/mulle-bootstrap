@@ -50,6 +50,7 @@ usage:
       -i    :  ignore wrongly checked out branches
       -nr   :  ignore .bootstrap folders of fetched repositories
       -u    :  try to update symlinked folders as well (not recommended)
+      -es   :  allow embedded symlinks (very experimental)
 
    install  :  clone or symlink non-exisiting repositories and other resources
    update   :  execute a "pull" in fetched repositories
@@ -1262,16 +1263,20 @@ clone_embedded_repository()
          ensure_clone_url_is_correct "${dstdir}" "${url}"
          ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       else
-         #
-         # embedded_repositories are just cloned, no symlinks,
-         #
-         local old_forbidden
+         if [ -z "${EMBEDDED_SYMLINKS}" ]
+         then
+            #
+            # embedded_repositories should be cloned, no symlinks,
+            #
+            local old_forbidden
 
-         old_forbidden="${SYMLINK_FORBIDDEN}"
-
-         SYMLINK_FORBIDDEN="YES"
-         checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
-         SYMLINK_FORBIDDEN="${old_forbidden}"
+            old_forbidden="${SYMLINK_FORBIDDEN}"
+            SYMLINK_FORBIDDEN="YES"
+            checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
+            SYMLINK_FORBIDDEN="${old_forbidden}"
+         else
+            checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
+         fi
 
          if read_yes_no_config_setting "update_gitignore" "YES"
          then
@@ -1413,6 +1418,10 @@ _common_main()
 
          -e|--embedded-only)
             EMBEDDED_ONLY="YES"
+         ;;
+
+         -es|--embedded-symlinks)
+            EMBEDDED_SYMLINKS="YES"
          ;;
 
          -i|--ignore-branch)
