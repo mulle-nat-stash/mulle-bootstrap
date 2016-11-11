@@ -1131,22 +1131,23 @@ append_dir_to_gitignore_if_needed()
    local directory
 
    # make it absolute dir for git -> '/' <subdir> '/'
+   # emit w/o trailing '/' for symlinks
 
    case "$1" in
       /*/)
-         directory="$1"
+         directory="`echo "$1" | sed 's/.$//'`"
       ;;
 
       /*)
-         directory="$1/"
+         directory="$1"
       ;;
 
       */)
-         directory="/$1"
+         directory="`echo "/$1" | sed 's/.$//'`"
       ;;
 
       *)
-         directory="/$1/"
+         directory="/$1"
       ;;
    esac
 
@@ -1154,14 +1155,14 @@ append_dir_to_gitignore_if_needed()
    local pattern2
    local pattern3
 
-   # also match without trailing slash
-   pattern1="`echo "${directory}" | sed 's|\(.*\)/$|\1|'`"
+   # also match with trailing slash
+   pattern1="${directory}/"
 
    # also match without leading slash
    pattern2="`echo "${directory}" | sed 's|^/\(.*\)|\1|'`"
 
-   # also match without leading or trailing slash
-   pattern3="`echo "${pattern1}"  | sed 's|^/\(.*\)|\1|'`"
+   # also match without leading but with trailing slash
+   pattern3="${pattern2}/"
 
    fgrep -s -x -e "${directory}" -e "${pattern1}" -e "${pattern2}" -e "${pattern3}" .gitignore > /dev/null 2>&1
 

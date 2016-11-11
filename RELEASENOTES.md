@@ -1,3 +1,14 @@
+2.4.2
+===
+
+Exit with 0 when printing version.
+
+
+2.4.1
+===
+
+Emit better .gitignore code for symlinked embedded repos
+
 2.4.0
 ===
 

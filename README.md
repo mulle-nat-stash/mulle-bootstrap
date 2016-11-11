@@ -1,11 +1,14 @@
 # mulle-bootstrap, cross platform dependency manager using bash
 
+![Last version](https://img.shields.io/github/tag/mulle-nat/mulle-bootstrap.svg)
+
 ... for Linux, OS X, FreeBSD, Windows
 
 ... for C, C++, Objective-C
 
 ... certainly not a "minimal" or "lightweight" project with ca. 10000 lines of
   shell script code
+
 
 ## Why you may want it
 
