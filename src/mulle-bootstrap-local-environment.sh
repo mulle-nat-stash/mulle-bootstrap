@@ -82,6 +82,78 @@ get_core_count()
 }
 
 
+add_path()
+{
+   local line
+   local path
+
+   [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
+
+   line="$1"
+   path="$2"
+
+   case "${UNAME}" in
+      mingw)
+         path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
+      ;;
+   esac
+
+   if [ -z "${line}" ]
+   then
+      echo "${path}"
+   else
+      echo "${line}${PATH_SEPARATOR}${path}"
+   fi
+}
+
+
+make_executable_search_path()
+{
+   local path
+
+   path="$1"
+   #
+   #
+   #
+   local new_path
+   local tail_path
+   local directory
+
+   tail_path=""
+   new_path=""
+   directory="`pwd -P`"
+
+   tail_path="`add_path "${tail_path}" "${directory}/addictions/bin"`"
+   tail_path="`add_path "${tail_path}" "${directory}/dependencies/bin"`"
+
+   local i
+   local oldifs
+
+   oldifs="$IFS"
+   IFS=":"
+
+   for i in $path
+   do
+      IFS="${oldifs}"
+
+      # shims stay in front (homebrew)
+      case "$i" in
+         */shims/*)
+            new_path="`add_path "${new_path}" "$i"`"
+         ;;
+
+         *)
+            tail_path="`add_path "${tail_path}" "$i"`"
+         ;;
+      esac
+   done
+
+   IFS="${oldifs}"
+
+   add_path "${new_path}" "${tail_path}"
+}
+
+
 # figure out if we need to run refresh
 build_needed()
 {

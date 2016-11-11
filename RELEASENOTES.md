@@ -1,12 +1,13 @@
 2.4.2
 ===
 
-Exit with 0 when printing version.
+Make PATH generation compatible with homebrew shims
 
 
 2.4.1
 ===
 
+Exit with 0 when printing version.
 Emit better .gitignore code for symlinked embedded repos
 
 2.4.0

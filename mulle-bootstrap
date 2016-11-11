@@ -30,7 +30,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_VERSION_MAJOR=2
 MULLE_BOOTSTRAP_VERSION_MINOR=4
-MULLE_BOOTSTRAP_VERSION_PATCH=1
+MULLE_BOOTSTRAP_VERSION_PATCH=2
 
 MULLE_BOOTSTRAP_VERSION="${MULLE_BOOTSTRAP_VERSION_MAJOR}.${MULLE_BOOTSTRAP_VERSION_MINOR}.${MULLE_BOOTSTRAP_VERSION_PATCH}"
 MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap"
@@ -197,7 +197,7 @@ bootstrap_main()
 
    BOOTSTRAP_SUBDIR=.bootstrap
 
-   PATH="/usr/local/libexec/mulle-bootstrap:`pwd -P`/dependencies/bin:`pwd -P`/addictions/bin:$PATH"
+   PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
    export PATH
 
    #
@@ -223,7 +223,7 @@ bootstrap_main()
    # logging and UNAME
 
    . mulle-bootstrap-logging.sh
-   . mulle-bootstrap-local-environment.sh
+   . mulle-bootstrap-local-environment.sh || fail "not loaded"
 
    trap trap_fail INT
 
@@ -390,6 +390,11 @@ bootstrap_main()
 
    local_environment_main
 
+   PATH="`make_executable_search_path "$PATH"`"
+   export PATH
+
+   log_verbose "PATH set to: $PATH"
+
    #
    # some commands only run when we have a .bootstrap folder
    #
@@ -504,7 +509,7 @@ bootstrap_main()
 
       library-path)
          echo "$PATH" | tr ':' '\012' | head -1
-         exit 0
+         return 0
       ;;
 
       refresh)
@@ -548,7 +553,7 @@ bootstrap_main()
 
       version)
          echo "${MULLE_BOOTSTRAP_VERSION}"
-         exit 0
+         return 0
       ;;
 
       *)
@@ -559,3 +564,6 @@ bootstrap_main()
 }
 
 bootstrap_main "$@"
+
+trap - TERM EXIT
+

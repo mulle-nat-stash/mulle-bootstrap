@@ -218,31 +218,6 @@ add_cmake_path()
 }
 
 
-add_path()
-{
-   local line
-   local path
-
-   [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
-
-   line="$1"
-   path="$2"
-
-   case "${UNAME}" in
-      mingw)
-         path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
-      ;;
-   esac
-
-   if [ -z "${line}" ]
-   then
-      echo "${path}"
-   else
-      echo "${line}${PATH_SEPARATOR}${path}"
-   fi
-}
-
-
 add_line()
 {
    local lines
@@ -311,6 +286,7 @@ expand_environment_variables()
     fi
     echo "$1"
 }
+
 
 
 # ####################################################################
