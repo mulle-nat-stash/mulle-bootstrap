@@ -184,7 +184,7 @@ logging_initialize()
             C_FAINT="\033[2m"
 
             C_RESET_BOLD="${C_RESET}${C_BOLD}"
-            trap 'printf "${C_RESET}"' TERM EXIT
+            trap 'printf "${C_RESET} >&2 ; exit 1"' TERM INT
             ;;
       esac
    fi

@@ -38,8 +38,9 @@ usage:
   mulle-bootstrap init [options]
 
   Options
-    -n :  don't ask for editor
+    -d :  don't create default files
     -e :  create example files
+    -n :  don't ask for editor
 EOF
   exit 1
 }
@@ -246,7 +247,7 @@ EOF
 
    fi
 
-   log_info "\"${BOOTSTRAP_SUBDIR}\" folder has been set up."
+   log_verbose "\"${BOOTSTRAP_SUBDIR}\" folder has been set up."
 
    local open
 

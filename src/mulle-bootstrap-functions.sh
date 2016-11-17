@@ -1023,7 +1023,7 @@ has_usr_local_include()
    local name
 
    name="$1"
-   if [ -d "/usr/local/include/${name}" ]
+   if [ -d "${USR_LOCAL_INCLUDE}/${name}" ]
    then
       return 0
    fi
@@ -1032,7 +1032,7 @@ has_usr_local_include()
 
    include_name="`echo "${name}" | tr '-' '_'`"
 
-   [ -d "/usr/local/include/${include_name}" ]
+   [ -d "${USR_LOCAL_INCLUDE}/${include_name}" ]
 }
 
 

@@ -50,9 +50,10 @@ build_usage()
 usage:
    mulle-bootstrap build [-ck] [repos]*
 
-   -k         :  don't clean before building $defk
-   -K         :  always clean before building $defkk
-   -c <name>  :  configurations to build ($defc), separate with comma
+   -k             :  don't clean before building $defk
+   -K             :  always clean before building $defkk
+   -c <name>      :  configurations to build ($defc), separate with comma
+   --prefix <dir> :  use <dir> instead of /usr/local
 EOF
 
    case "${UNAME}" in
@@ -369,10 +370,10 @@ cmake_sdk_parameter()
    local sdkpath
 
    sdkpath=`gcc_sdk_parameter "${sdk}"`
-   if [ "${sdkpath}" != "" ]
+   if [ ! -z "${sdkpath}" ]
    then
       log_fluff "Set cmake -DCMAKE_OSX_SYSROOT to \"${sdkpath}\""
-      echo '-DCMAKE_OSX_SYSROOT='"${sdkpath}"
+      echo "-DCMAKE_OSX_SYSROOT='${sdkpath}'"
    fi
 }
 
@@ -717,11 +718,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    if [ ! -z "${C_COMPILER}" ]
    then
-      c_compiler_line="-DCMAKE_C_COMPILER=${C_COMPILER}"
+      c_compiler_line="-DCMAKE_C_COMPILER='${C_COMPILER}'"
    fi
    if [ ! -z "${CXX_COMPILER}" ]
    then
-      cxx_compiler_line="-DCMAKE_CXX_COMPILER=${CXX_COMPILER}"
+      cxx_compiler_line="-DCMAKE_CXX_COMPILER='${CXX_COMPILER}'"
    fi
 
    # linker="`read_build_setting "${name}" "LD"`"
@@ -817,7 +818,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
       frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
 
-      if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+      if [ "${ADD_USR_LOCAL}" = "YES" ]
       then
          includelines="`add_cmake_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
          librarylines="`add_cmake_path "${librarylines}" "${USR_LOCAL_LIB}"`"
@@ -924,24 +925,25 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       oldpath="$PATH"
       PATH="${BUILDPATH}"
 
-      logging_redirekt_exekutor "${logfile1}" "${CMAKE}" -G "${CMAKE_GENERATOR}" \
-"-DCMAKE_BUILD_TYPE=${mapped}" \
-"-DDEPENDENCIES_DIR=${dependenciesdir}" \
-"-DADDICTIONS_DIR=${addictionsdir}" \
-"-DCMAKE_INSTALL_PREFIX:PATH=${prefixbuild}"  \
-"-DCMAKE_INCLUDE_PATH=${includelines}" \
-"-DCMAKE_LIBRARY_PATH=${librarylines}" \
-"-DCMAKE_FRAMEWORK_PATH=${frameworklines}" \
-"-DCMAKE_C_FLAGS=${other_cflags}" \
-"-DCMAKE_CXX_FLAGS=${other_cxxflags}" \
-"-DCMAKE_EXE_LINKER_FLAGS=${other_ldflags}" \
-"-DCMAKE_SHARED_LINKER_FLAGS=${other_ldflags}" \
+      logging_redirect_eval_exekutor "${logfile1}" "'${CMAKE}'" \
+-G "'${CMAKE_GENERATOR}'" \
+"-DCMAKE_BUILD_TYPE='${mapped}'" \
+"-DDEPENDENCIES_DIR='${dependenciesdir}'" \
+"-DADDICTIONS_DIR='${addictionsdir}'" \
+"-DCMAKE_INSTALL_PREFIX:PATH='${prefixbuild}'"  \
+"-DCMAKE_INCLUDE_PATH='${includelines}'" \
+"-DCMAKE_LIBRARY_PATH='${librarylines}'" \
+"-DCMAKE_FRAMEWORK_PATH='${frameworklines}'" \
+"-DCMAKE_C_FLAGS='${other_cflags}'" \
+"-DCMAKE_CXX_FLAGS='${other_cxxflags}'" \
+"-DCMAKE_EXE_LINKER_FLAGS='${other_ldflags}'" \
+"-DCMAKE_SHARED_LINKER_FLAGS='${other_ldflags}'" \
 "${sdkparameter}" \
 "${c_compiler_line}" \
 "${cxx_compiler_line}" \
-${localcmakeflags} \
-${CMAKE_FLAGS} \
-"${relative_srcdir}"
+"${localcmakeflags}" \
+"${CMAKE_FLAGS}" \
+"'${relative_srcdir}'"
       rval=$?
 
       if [ $rval -ne 0 ]
@@ -1105,7 +1107,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
 
-      if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+      if [ "${ADD_USR_LOCAL}" = "YES" ]
       then
          includelines="`add_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
          librarylines="`add_path "${librarylines}" "${USR_LOCAL_LIB}"`"
@@ -1156,6 +1158,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
 
+      other_cxxflags"`concat "${other_cflags}" "${other_cxxflags}"`"
       IFS="${DEFAULT_IFS}"
 
       local oldpath
@@ -1165,15 +1168,17 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       PATH="${BUILDPATH}"
 
       # use absolute paths for configure, safer (and easier to read IMO)
-      DEPENDENCIES_DIR="'${dependenciesdir}'" \
-      ADDICTIONS_DIR="'${addictionsdir}'" \
-      CC="${C_COMPILER:-${CC}}" \
-      CXX="${CXX_COMPILER:-${CXX}}" \
-      CFLAGS="${other_cflags}" \
-      CXXFLAGS="${other_cflags} ${other_cxxflags}" \
-      LDFLAGS="${other_ldflags}" \
-      logging_redirekt_exekutor "${logfile1}" "${owd}/${srcdir}/configure" ${configureflags} \
-          --prefix "${prefixbuild}"
+      logging_eval_redirekt_exekutor "${logfile1}" \
+         DEPENDENCIES_DIR="'${dependenciesdir}'" \
+         ADDICTIONS_DIR="'${addictionsdir}'" \
+         CC="'${C_COMPILER:-${CC}}'" \
+         CXX="'${CXX_COMPILER:-${CXX}}'" \
+         CFLAGS="'${other_cflags}'" \
+         CXXFLAGS="'${other_cxxflags}'" \
+         LDFLAGS="'${other_ldflags}'" \
+         "'${owd}/${srcdir}/configure'" \
+            "${configureflags}" \
+             --prefix "'${prefixbuild}'"
       rval=$?
 
       if [ $rval -ne 0 ]
@@ -1580,7 +1585,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          dependencies_lib_search_path="${path} ${inherited}"
       fi
 
-      if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ]
+      if [ "${ADD_USR_LOCAL}" = "YES" ]
       then
          dependencies_header_search_path="${path} ${USR_LOCAL_INCLUDE}"
          dependencies_lib_search_path="${path} ${USR_LOCAL_LIB}"
@@ -2164,11 +2169,11 @@ build_clones()
             then
                build_if_alive "${name}" "${srcdir}" || exit  1
             else
-               if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
+               if [ "${check_usr_local_include}" = "YES" ] && has_usr_local_include "${name}"
                then
                   :
                else
-                  fail "build failed for repository \"${clone}\": not found in (\"${srcdir}\") ($PWD)"
+                  fail "build failed for repository \"${name}\": not found in (\"${srcdir}\") ($PWD)"
                fi
             fi
          done
@@ -2182,7 +2187,7 @@ build_clones()
          then
             build_if_alive "${name}" "${srcdir}"|| exit 1
          else
-            if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
+            if [ "${check_usr_local_include}" = "YES" ] && has_usr_local_include "${name}"
             then
                :
             else
@@ -2260,6 +2265,15 @@ build_main()
             CLEAN_BEFORE_BUILD=
          ;;
 
+         --prefix)
+            shift
+            [ $# -ne 0 ] || fail "prefix missing"
+
+            USR_LOCAL_INCLUDE="$1/include"
+            USR_LOCAL_LIB="$1/lib"
+         ;;
+
+
          -j|--cores)
             case "${UNAME}" in
                mingw)
@@ -2280,8 +2294,18 @@ build_main()
             CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
             ;;
 
+         -cs|--check-usr-local-include)
+            # set environment to be picked up by config
+            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
+            export MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE
+         ;;
+
+         --use-prefix-libraries)
+            ADD_USR_LOCAL=YES
+         ;;
+
          # fetch options, are just ignored
-         -i|--ignore-branch|-fc|--force-checkout|-cs|--check-usr-local-include|-nr|--no-recursion|-e|--embedded-only|-es|--embedded-symlink|-u|--update-symlinks)
+         -i|--ignore-branch|-fc|--force-checkout|-nr|--no-recursion|-e|--embedded-only|-es|--embedded-symlink|-u|--update-symlinks)
             :
          ;;
 
@@ -2315,7 +2339,7 @@ build_main()
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
-   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   check_usr_local_include="`read_config_setting "check_usr_local_include" "NO"`"
 
    remove_file_if_present "${CLONESFETCH_SUBDIR}/.build_done"
 

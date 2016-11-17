@@ -457,7 +457,6 @@ checkout()
    fi
    name2="`basename -- "${url}"`"  # only works for git really
 
-
    local operation
    local map
    local scmflagsdefault
@@ -599,7 +598,7 @@ ensure_clone_branch_is_correct()
 
    local actual
 
-   if [ ! -z "${branch}" -a -z "${MULLE_BOOTSTRAP_IGNORE_BRANCH}" ]
+   if [ ! -z "${branch}" -a -z "${IGNORE_BRANCH}" ]
    then
       actual="`git_get_branch "${dstdir}"`"
       if [ "${actual}" != "${branch}" ]
@@ -687,9 +686,12 @@ checkout_repository()
          checkout "$@"
          run_script=0  # yes, run it
 
-         if bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+         if [ -z "${DONT_RECURSE}" ]
          then
-            stop=0
+            if bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+            then
+               stop=0
+            fi
          fi
       fi
    fi
@@ -698,7 +700,7 @@ checkout_repository()
    # If we symlinked the repositiory, we don't embed
    # repos into it, unless the user is really crazy
    #
-   if [ "${COMMAND}" = "fetch" -a "${DONT_RECURSE}" = "" ]
+   if [ "${COMMAND}" = "fetch" -a "${DONT_RECURSE_EMBEDDED}" = "" ]
    then
       if [ ! -L "${dstdir}" -o "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" = "YES" ]
       then
@@ -957,7 +959,7 @@ update_repository()
    rval=$?
    #update will return 1 if repo is symlinked
 
-   if [ "${DONT_RECURSE}" = "" ]
+   if [ -z "${DONT_RECURSE_EMBEDDED}" ]
    then
       if [ $rval -eq 0 -o $rval -eq 2 ]
       then
@@ -1413,9 +1415,14 @@ _common_main()
             DONT_RECURSE="YES"
          ;;
 
+         -ne|--ne-embedded)
+            DONT_RECURSE_EMBEDDED="YES"
+         ;;
+
          -cs|--check-usr-local-include)
             MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
-         ;;
+            export MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE
+            ;;
 
          -e|--embedded-only)
             EMBEDDED_ONLY="YES"
@@ -1426,7 +1433,7 @@ _common_main()
          ;;
 
          -i|--ignore-branch)
-            MULLE_BOOTSTRAP_IGNORE_BRANCH="YES"
+            IGNORE_BRANCH="YES"
          ;;
 
          -u|--update-symlinks)
@@ -1434,7 +1441,7 @@ _common_main()
          ;;
 
          # build options with no parameters
-         -K|--clean|-k|--no-clean)
+         -K|--clean|-k|--no-clean|--use-prefix-libraries)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then
                log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"
@@ -1442,8 +1449,8 @@ _common_main()
             fi
          ;;
 
-         # build options with no parameters
-         -j|--cores|-c|--configuration)
+         # build options with one parameter
+         -j|--cores|-c|--configuration|--prefix)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then
                log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"
@@ -1501,7 +1508,7 @@ _common_main()
    then
       if [ $# -ne 0 ]
       then
-         log_error "Additional parameters not allowed for install"
+         log_error "Additional parameters not allowed for fetch ($@)"
          ${USAGE}
       fi
    fi

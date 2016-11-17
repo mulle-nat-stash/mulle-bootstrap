@@ -1,3 +1,16 @@
+2.5.0
+===
+
+* Improve usage for `mulle-bootstrap init`
+* Reduce verbosity for PATH to fluff
+* The --no-recursion flag has been fixed, the  old behaviour is now available
+as --no-embedded.
+* Use eval exekutor for cmake to better inherit CMAKE_FLAGS and protect paths
+with spaces.
+* build now acknowledges --check-usr-local-include also
+* With --prefix you can change /usr/local on the commandline for build and fetch
+
+
 2.4.2
 ===
 

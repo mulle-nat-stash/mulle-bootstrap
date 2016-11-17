@@ -19,7 +19,7 @@ then
    #
    # restore colors if stuff gets wonky
    #
-   trap 'printf "${C_RESET}"' TERM EXIT
+   trap 'printf "${C_RESET} >&2 ; exit 1"' TERM INT
 fi
 
 

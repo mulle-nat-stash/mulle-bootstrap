@@ -286,14 +286,39 @@ install_main()
    CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
    N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
-   while :
+   while [ $# -ne 0 ]
    do
-      if [ "$1" = "-h" -o "$1" = "--help" ]
-      then
-         install_usage
-      fi
+      case "$1" in
+         -h|--help)
+            install_usage
+         ;;
 
-      break
+         --prefix)
+            shift
+            [ $# -ne 0 ] || fail "prefix missing"
+
+            DEFAULT_PREFIX="$1"
+         ;;
+
+         --framework-prefix)
+            shift
+            [ $# -ne 0 ] || fail "prefix missing"
+
+            DEFAULT_FRAMEWORK_PREFIX="$1"
+         ;;
+
+         -*)
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown build option $1"
+            install_usage
+         ;;
+
+         ""|*)
+            break
+         ;;
+      esac
+
+      shift
+      continue
    done
 
 
