@@ -1,3 +1,10 @@
+2.5.1
+===
+
+* Allow --debug and --release as shortcuts for -c Debug and -c Release, because
+I am lazy and I expect it.
+
+
 2.5.0
 ===
 

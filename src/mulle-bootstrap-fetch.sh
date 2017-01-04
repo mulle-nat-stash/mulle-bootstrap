@@ -1441,7 +1441,7 @@ _common_main()
          ;;
 
          # build options with no parameters
-         -K|--clean|-k|--no-clean|--use-prefix-libraries)
+         -K|--clean|-k|--no-clean|--use-prefix-libraries|--debug|--release)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then
                log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"

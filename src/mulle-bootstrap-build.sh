@@ -2169,8 +2169,9 @@ build_clones()
             then
                build_if_alive "${name}" "${srcdir}" || exit  1
             else
-               if [ "${check_usr_local_include}" = "YES" ] && has_usr_local_include "${name}"
+               if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
                then
+                  log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                   :
                else
                   fail "build failed for repository \"${name}\": not found in (\"${srcdir}\") ($PWD)"
@@ -2187,8 +2188,9 @@ build_clones()
          then
             build_if_alive "${name}" "${srcdir}"|| exit 1
          else
-            if [ "${check_usr_local_include}" = "YES" ] && has_usr_local_include "${name}"
+            if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
             then
+               log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                :
             else
                fail "Unknown repo ${name}"
@@ -2285,7 +2287,15 @@ build_main()
             [ $# -ne 0 ] || fail "core count missing"
 
             CORES="$1"
-            ;;
+         ;;
+
+         --debug)
+            CONFIGURATIONS="Debug"
+         ;;
+
+         --release)
+            CONFIGURATIONS="Release"
+         ;;
 
          -c|--configuration)
             shift
@@ -2339,7 +2349,7 @@ build_main()
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
-   check_usr_local_include="`read_config_setting "check_usr_local_include" "NO"`"
+   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    remove_file_if_present "${CLONESFETCH_SUBDIR}/.build_done"
 
