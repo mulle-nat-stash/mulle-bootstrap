@@ -48,6 +48,7 @@ projects and installs their output into a "dependencies" folder.
 libraries into an "addictions" folder (on participating platforms)
 * alerts to the presence of shell scripts in fetched dependencies
 
+
 ## A first use
 
 So you need a bunch of third party projects to build your own
@@ -80,6 +81,7 @@ libraries into the `dependencies/lib`  and `dependencies/include` folders.
 * [How to use](dox/COMMANDS.md)
 * [What has changed ?](RELEASENOTES.md)
 * [Tweak guide](dox/SETTINGS.md)
+* [CMakeLists.txt.example](dox/CMakeLists.txt.example) shows how to access dependencies from **cmake**
 * [FAQ](dox/FAQ.md)
 
 * [mulle-bootstrap: A dependency management tool](https://www.mulle-kybernetik.com/weblog/2015/mulle_bootstrap_work_in_progr.html)

@@ -1,0 +1,120 @@
+#
+# This is an example CMakeLists.txt file.
+#
+# It shows how to import libraries and
+# frameworks provided by the mulle-bootstrap
+# environment.
+#
+cmake_minimum_required (VERSION 3.4)
+
+project (Foo)
+
+##
+## mulle-bootstrap environment
+##
+
+include_directories( BEFORE SYSTEM
+dependencies/include
+addictions/include
+)
+
+
+set( CMAKE_LIBRARY_PATH
+dependencies/Frameworks
+dependencies/lib
+addictions/Frameworks
+addictions/lib
+)
+
+
+
+##
+## Foo framework
+##
+## A hypothetical Framework, consisting of a header and
+## a source file. It depends on a framework "Bar", that
+## is provide by mulle-bootstrap
+##
+
+#
+# Sources and Headers
+#
+set( PUBLIC_HEADERS
+src/Foo.h
+)
+
+set( PRIVATE_HEADERS
+)
+
+set( SOURCES
+src/Foo.m
+)
+
+
+add_library( Foo SHARED
+${SOURCES}
+${PRIVATE_HEADERS}
+${PUBLIC_HEADERS}
+)
+
+
+#
+# Dependencies
+#
+# This will locate "Bar" in "dependecies/Frameworks"
+#
+find_library( BAR_LIBRARY Bar)
+find_library( FOUNDATION_LIBRARY Foundation)
+
+
+set( DEPENDENCIES
+${BAR_LIBRARY}
+${FOUNDATION_LIBRARY}
+)
+
+
+#
+# Versioning
+#
+set( FOO_VERSION "0.0.1")
+set( FOO_SO_VERSION "${FOO_VERSION}")
+
+set( MACOSX_FRAMEWORK_BUNDLE_VERSION       "${FOO_VERSION}")
+set( MACOSX_FRAMEWORK_SHORT_VERSION_STRING "${FOO_VERSION}")
+
+
+#
+# Platform-specific shenanigans
+#
+
+if (APPLE)
+   set(BEGIN_ALL_LOAD "-all_load")
+   set(END_ALL_LOAD)
+
+   set_target_properties( Foo PROPERTIES
+     FRAMEWORK TRUE
+     FRAMEWORK_VERSION A
+     MACOSX_FRAMEWORK_IDENTIFIER "com.mulle-kybernetik.software.Foo"
+     VERSION "${FOO_VERSION}"
+     SOVERSION "${FOO_SO_VERSION}"
+     PUBLIC_HEADER "${PUBLIC_HEADERS}"
+   )
+
+   INSTALL( TARGETS Foo DESTINATION "Frameworks")
+else()
+   #  linux / gcc
+   set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+
+   set(BEGIN_ALL_LOAD "-Wl,--whole-archive")
+   set(END_ALL_LOAD "-Wl,--no-whole-archive")
+
+   INSTALL( TARGETS Foo DESTINATION "lib")
+   INSTALL( FILES ${PUBLIC_HEADERS} DESTINATION "include/Foo")
+endif()
+
+
+target_link_libraries( Foo
+${BEGIN_ALL_LOAD}
+${DEPENDENCIES}
+${END_ALL_LOAD}
+)
