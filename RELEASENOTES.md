@@ -1,12 +1,20 @@
-2.5.1
-===
+## 2.6.0
+
+* mulle-bootstrap announces itself to cmake with -DMULLE_BOOTSTRAP_VERSION
+
+### 2.5.2
+
+
+* -v -h gives more help
+* renamed -tt  to -tit and -tp to -tip, because it's more logical
+
+### 2.5.1
 
 * Allow --debug and --release as shortcuts for -c Debug and -c Release, because
 I am lazy and I expect it.
 
 
-2.5.0
-===
+## 2.5.0
 
 * Improve usage for `mulle-bootstrap init`
 * Reduce verbosity for PATH to fluff
@@ -18,20 +26,17 @@ with spaces.
 * With --prefix you can change /usr/local on the commandline for build and fetch
 
 
-2.4.2
-===
+### 2.4.2
 
 Make PATH generation compatible with homebrew shims
 
 
-2.4.1
-===
+### 2.4.1
 
 Exit with 0 when printing version.
 Emit better .gitignore code for symlinked embedded repos
 
-2.4.0
-===
+## 2.4.0
 
 Fix failing update for projects with only embedded repositories.
 
@@ -39,8 +44,8 @@ Fix failing update for projects with only embedded repositories.
 repositories.
 
 
-2.3
-===
+## 2.3
+
 The main new feature of 2.3 is support for working with different repositories.
 E.g. I host releases on GitHub on a branch "release", which are accessed via
 https://, but when I develop I use Mulle KybernetiK on branch "master".
@@ -85,45 +90,39 @@ repositiories, but that does not per se force an update.
 * added -D bootstrap flag to create .bootstrap.local definition files. Convenient for specifiying alternate URLs for example.
 
 
-2.2.1
-===
+### 2.2.1
+
 
 * fix for Linux
 
-2.2
-===
+## 2.2
 
 * `mulle-bootstrap tag` will now also tag embedded repositories
 * `mulle-bootstrap git` will now also grace embedded repositories, so `mulle-bootstrap git status -s` is now better
 * reworked tag to be more aware of git flags, so `mulle-bootstrap tag -l` now
 works
 
-2.1.4
-===
+### 2.1.4
 
 * use a safer but uglier method to append to .gitignore
 
-2.1.3
-===
+### 2.1.3
 
 * Improve performance especially on windows, due to less superflous refreshes
 
-2.1.2
-===
+### 2.1.2
 
 * expose some more flags to usage. Distinguish between flags and options.
 * The description of -V was wrong.
 * Moved -c to fetch options as -cs to avoid clash with build flags
 
-2.1.1
-===
+### 2.1.1
 
 * Improve usage to show more available commands
 * redid the IFS setting/resetting chores
 
 
-2.1
-===
+## 2.1
 
 **The changes should be harmless, but to be safe
 `mulle-bootstrap dist clean` your projects**
@@ -140,7 +139,7 @@ be helpful, when building brew packages (for example). (**-nb**)
 Support for `mulle-build` which has an in general more optimistic approach to
 life. 2.3 will focus on making operations faster in the Windows bash shell.
 
-### Commands
+#### Commands
 
 * started on `mulle-bootstrap config`. First implemented setting is
 `warn_scripts`. You can turn off scripts warning, with
@@ -156,7 +155,7 @@ build, if `check_usr_local_include` is YES.
 * remove obsolete `mulle-bootstrap-project.sh` and `mulle-bootstrap project`.
 The idea behind that has been moved to `mulle-build`.
 
-### Features
+#### Features
 
 * embedded repositories can now be placed at an arbitrary position within your
 project tree
@@ -166,7 +165,7 @@ project tree
 * improve optimistic support, by memorizing if a fetch, refresh, build went
 thru successfully. The automatic refresh should run much less often now.
 
-### Cmake
+#### Cmake
 
 * fixed multiple path settings for cmake
 * a project can indicate its preferred CC or CXX compiler by files .CC and .CXX
@@ -174,7 +173,7 @@ in it's project root. e.g. `echo "mulle-clang" > .CC`. This can be overridden
 by settings. It's there because I have problems when not specifying the compiler
 on the command line.
 
-### Bugfixes
+#### Bugfixes
 
 * fixed a problem in the parsing of the repositories file
 * fixed some as of yet unknown bugs, by improving some path functions
@@ -184,8 +183,7 @@ on the command line.
 * fix ALL/NONE in yes no answers to work again
 
 
-2.0.1
-===
+### 2.0.1
 
 Fixes two bugs
 
@@ -193,10 +191,9 @@ Fixes two bugs
 * fix cut not using -s for extra parameters
 
 
-2.0
-===
+# 2.0
 
-### YOUR OLD STUFF MAY NOT RUN ANYMORE
+#### YOUR OLD STUFF MAY NOT RUN ANYMORE
 
 Do a `mulle-bootstrap dist clean`.
 
@@ -211,12 +208,12 @@ to
 
 `.bootstrap/<reponame>`
 
-### YOUR OLD SCRIPTS MAY NOT WORK ANYMORE!
+#### YOUR OLD SCRIPTS MAY NOT WORK ANYMORE!
 
 * Fetch script names have changed. *-install.sh is now *-fetch.sh.
 
 
-## Changes
+#### Changes
 
 * Add pre-build.sh script phase (for libcurl really)
 * Brew formulas are now installed locally into "addictions". A folder which
@@ -248,8 +245,7 @@ it doesn't matter.
 * reduced configurability of mulle-bootstrap, since I didn't use it so far much and it slows things down on MINGW
 
 
-1.1
-===
+## 1.1
 
 * Fix tar install, which was broken
 * Fix some wordings
@@ -260,8 +256,7 @@ it doesn't matter.
 * Don't complain if there are no dependencies generated
 
 
-1.0
-===
+# 1.0
 
 Version 1.0 breaks compatibility with the previous version. You should "clean"
 everything.
@@ -284,9 +279,7 @@ eliminated.
 * redid the verbosity logging with -v, -vv , -vvv, -t
 * clean before build is no longer the default
 
-
-0.26
-===
+## 0.26
 
 * Check library scripts version vs. executable version (paranoia)
 * Skip Dirty Harry with -f flag.
@@ -297,22 +290,20 @@ eliminated.
 * Make the Dirty Harry check less foolproof, but also less annoying.
 
 
-0.25
-===
+## 0.25
 
 *  Remove python dependency
 *  **bootstrap: refresh between fetch and build**
 
 
-0.24
-===
+## 0.24
 
 *  Fix releasenotes underscores
 *  Fix xcodebuild path
 
 
-0.23
-===
+## 0.23
+
 *  Added -k options to build, to control cleaning before build.
    You can now specify the default configurations to build with -c.
    e.g. `mulle-bootstrap -c "Debug"
@@ -337,8 +328,8 @@ eliminated.
    cmake flags via "cmakeflags" root build setting.
 
 
-0.22
-===
+## 0.22
+
 *  Fix repository order when merging. You should know, that the
    repository order in `.bootstrap/repositories` needs to be in proper sorted
    order. Only than can mulle-bootstrap figure out the recursive dependencies
@@ -364,8 +355,8 @@ eliminated.
    `CMAKE_LD_FLAGS`.
 *  Fix wrong --recursive for svn checkout.
 
-0.21
-===
+
+## 0.21
 
 *  Fix a bug when updating
 *  When updating ignore symlinked repositories and do not update embedded
@@ -378,8 +369,7 @@ eliminated.
    there (yet).
 
 
-0.20
-===
+## 0.20
 
 *  Replace `CLONES_FETCH_SUBDIR` with `CLONESFETCH_SUBDIR`.
 *  mulle-bootstrap now uses the zombie repository detection to actually bury
@@ -401,8 +391,8 @@ eliminated.
 *  Grep those lines with an exact line match
 
 
-0.19
-===
+## 0.19
+
 *  Forgot a -f on a ln -s , which could result in an irritating output.
 *  Now also refresh before fetching. mulle-bootstrap will now be able to
    pick up changes in recursive repositories. And fetch additional repos as
@@ -412,25 +402,25 @@ eliminated.
    a remote repository.
 *  Nicer markup for RELEASENOTES.md
 
-0.18
-===
+## 0.18
+
 *  Refixed: Fix old favorite bug build_ignore became a directory bug) again ...
 *  Added refresh, which will be called before build and update automatically
    to rebuild .bootstrap.auto.
 
-0.17
-===
+## 0.17
+
 *  Fixed the broken inheritance. The "Always redo bootstrap.auto folder
    on fetch" fix in 0.15, was in the wrong position. So 0.15 and 0.16 are
    totally broken releases. Sorry.
 
-0.16
-===
+## 0.16
+
 *  Fixed misnamed exekutor.
 *  Fix old favorite bug build_ignore became a directory bug) again ...
 
-0.15
-===
+## 0.15
+
 *  `tag` checks in all repositories, that a tag does not exist.
 *  Remove some fluff from regular output.
 *  Fix a bug involving settings copy  (build_ignore became a directory bug)
@@ -439,30 +429,30 @@ eliminated.
    to clean dist anymore after editing .bootstrap files.
 *  Forgot to write-protect dependencies, when only partial builds were done.
 
-0.14
-===
+## 0.14
+
 *  Fix various uglies.
 *  Make white terminals more happening with color choices.
 *  -v circumvents building into a logfile, which is sometimes more convenient.
 
-0.13
-===
+## 0.13
+
 *  Fix colorization by using printf, instead of echo.
 
-0.12
-===
+## 0.12
+
 *  Run post-install.sh also on embedded repositories. Sometimes useful, when
    you need ./configure to produce some headers.
 *  Add parameters to "Executing script" line.
 *  Add "checkout" git flags, to fine tune the clone. But use --recursive
    per default.
 
-0.11
-===
+## 0.11
+
 *  Fixes another stale headers problem. Project is creeping towards a 1.0.
 
-0.10
-===
+## 0.10
+
 *  Fetch settings can be platform specific by using the `uname` as a file
    extension. e.g. repositories.Darwin. Other settings may follow, if the need
    arises. So far it hasn't.
@@ -481,22 +471,22 @@ eliminated.
 *  Always overwrite headers, otherwise old and stale headers make life
    unnecessarily more complicated.
 
-0.9.8
-===
+### 0.9.8
+
 *  Brings more Linux fixes
 
-0.9.7
-===
+### 0.9.7
+
 *  Allow mulle-bootstrap version to work everywhere.
 
-0.9.6
-===
+### 0.9.6
+
 *  Figured out that some terminal windows have a white background (duh).
 *  Fixed shifts for Ubuntu's hated dash.
 *  Fixed some other Linux problems.
 
-0.9.5
-===
+### 0.9.5
+
 *  Messed up the tagging somewhat... 0.9.1 and 0.9.2 were the same and
 *  0.9.3 doesn't even exist. So now 0.9.5 is the one.
 
@@ -507,12 +497,12 @@ eliminated.
 *  Less output during dispensal, when not using -v.
 *  Reduce usage output to 25 lines.
 
-0.9.1
-===
+### 0.9.1
+
 *  Fix cmake and configure build.
 
-0.9
-===
+## 0.9
+
 *  Specifying repos with mulle-bootstrap build <repos> was broken.
 *  Added -y option, so everything is answered YES. I use this all the time.
 *  Log xcodebuild command line into logfile.
@@ -528,14 +518,14 @@ eliminated.
 *  Add VENDOR_PREFIX to mulle-bootstrap-tag as third parameter.
 
 
-0.8.1
-===
+### 0.8.1
+
 *  And the fix, just minutes after the "release". warn scripts didn't
    find a function, and now I have cleaned this up properly, I think.
 *  No more duplicate functions.
 
-0.8
-===
+## 0.8
+
 *  Added dist shortcut, because I always like to type "dist-clean".
 *  Allow upper-case user input for yes/no questions.
 *  Write protect dependencies folder, because I have a tendency to edit
@@ -546,16 +536,16 @@ eliminated.
 *  Redirect build logs to "build/.repos/.logs", because especially
    xcodebuild is just too verbose.
 
-0.7.1
-===
+### 0.7.1
+
 *  Fixed an internal error, when using mulle-bootstrap update.
 
-0.7
-===
+## 0.7
+
 *  Added version command
 
-0.6
-===
+##  0.6
+
 *  Improve scripts handling and add a some new phases to
    the proceedings. Actually the whole script stuff didn't work before...
 *  Scripts in general aren't documented yet, because it's still very much

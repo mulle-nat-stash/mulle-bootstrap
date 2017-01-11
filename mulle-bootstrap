@@ -29,8 +29,8 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_VERSION_MAJOR=2
-MULLE_BOOTSTRAP_VERSION_MINOR=5
-MULLE_BOOTSTRAP_VERSION_PATCH=1
+MULLE_BOOTSTRAP_VERSION_MINOR=6
+MULLE_BOOTSTRAP_VERSION_PATCH=0
 
 MULLE_BOOTSTRAP_VERSION="${MULLE_BOOTSTRAP_VERSION_MAJOR}.${MULLE_BOOTSTRAP_VERSION_MINOR}.${MULLE_BOOTSTRAP_VERSION_PATCH}"
 MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap"
@@ -57,6 +57,27 @@ usage: mulle-bootstrap [flags] [command] [options]
    -n        : do nothing creative or destructive
    -v        : -v to be more verbose (-vv or -vvv for more verbosity)
    -DKEY=VAL : define local key/value C style
+EOF
+
+   if [ ! -z "${VERBOSE}" -o ! -z "${MULLE_BOOTSTRAP_TRACE}" ]
+   then
+      cat <<EOF
+   -l        : be more optimistic and faster
+   -ig       : ignore .repos/.graveyard
+   -te       : trace execution
+   -tm       : trace merge and dependency
+   -ts       : trace scripts
+   -tit      : don't trace settings
+   -tip      : don't trace path functionality
+   -t        : trace executrion
+   -vv       : very verbose
+   -vvv      : extremely vebose
+   -s        : be silent
+   -V        : verbose build
+EOF
+   fi
+
+   cat <<EOF
 
  Commands:
    bootstrap : does fetch and build recursively [default]
@@ -271,11 +292,11 @@ bootstrap_main()
             MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="YES"
          ;;
 
-         -tt|--trace-ignores-settings)
+         -tit|--trace-ignores-settings)
             MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
          ;;
 
-         -tp|--trace-ignores-paths)
+         -tip|--trace-ignores-paths)
             MULLE_BOOTSTRAP_PATHS_FLIP_X="YES"
          ;;
 

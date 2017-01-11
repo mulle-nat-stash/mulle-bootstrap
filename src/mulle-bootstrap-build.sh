@@ -927,6 +927,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       logging_redirect_eval_exekutor "${logfile1}" "'${CMAKE}'" \
 -G "'${CMAKE_GENERATOR}'" \
+"-DMULLE_BOOTSTRAP_VERSION=${MULLE_BOOTSTRAP_VERSION}" \
 "-DCMAKE_BUILD_TYPE='${mapped}'" \
 "-DDEPENDENCIES_DIR='${dependenciesdir}'" \
 "-DADDICTIONS_DIR='${addictionsdir}'" \

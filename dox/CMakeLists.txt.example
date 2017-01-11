@@ -13,18 +13,30 @@ project (Foo)
 ## mulle-bootstrap environment
 ##
 
-include_directories( BEFORE SYSTEM
+# check if compiling with mulle-bootstrap (works since 2.6)
+
+if( NOT MULLE_BOOTSTRAP_VERSION)
+  include_directories( BEFORE SYSTEM
 dependencies/include
 addictions/include
 )
 
-
-set( CMAKE_LIBRARY_PATH
+  set( CMAKE_FRAMEWORK_PATH
 dependencies/Frameworks
-dependencies/lib
 addictions/Frameworks
-addictions/lib
+${CMAKE_FRAMEWORK_PATH}
 )
+
+  set( CMAKE_LIBRARY_PATH
+dependencies/lib
+addictions/lib
+${CMAKE_LIBRARY_PATH}
+)
+
+set( DEPENDENCIES_DIR dependencies)
+set( ADDICTIONS_DIR addictions)
+
+endif()
 
 
 
