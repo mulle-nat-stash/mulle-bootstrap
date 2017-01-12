@@ -255,18 +255,43 @@ link_command()
 {
    local src
    local dst
+   local branch
    local tag
 
    src="$1"
    dst="$2"
-   tag="$3"
+   branch="$3"
+   tag="$4"
+
+   local branchlabel
+
+   branchlabel="branch"
+   if [ -z "${branch}" -a ! -z "${tag}" ]
+   then
+      branchlabel="tag"
+      branch="${tag}"
+   fi
 
    local dstdir
+   local linkname
+   local srcname
+
+   srcname="`basename -- ${src}`"
+   linkname="`basename -- ${dst}`"
    dstdir="`dirname -- "${dst}"`"
 
-   if [ ! -e "${dstdir}/${src}" -a "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+
+   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
    then
-      fail "${C_RESET}${C_BOLD}${dstdir}/${src}${C_ERROR} does not exist ($PWD)"
+      local owd
+
+      owd="`pwd -P`"
+      cd "${dstdir}"
+      if [ ! -e "${src}" ]
+      then
+         fail "${C_RESET}${C_BOLD}${src}${C_ERROR} does not exist ($PWD)"
+      fi
+      cd "${owd}"
    fi
 
    if [ "${COMMAND}" = "fetch" ]
@@ -285,22 +310,17 @@ link_command()
          src="${real}"
       fi
 
-      log_info "Symlinking ${C_MAGENTA}${C_BOLD}`basename -- ${src}`${C_INFO} ..."
-      exekutor ln -s -f "$src" "$dst" || fail "failed to setup symlink \"$dst\" (to \"$src\")"
+      log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} ..."
+      exekutor ln -s -f "${src}" "${dst}" || fail "failed to setup symlink \"${dst}\" (to \"${src}\")"
 
-      if [ "$tag" != "" ]
+      if [ -z "${branch}" ]
       then
-         local name
-
-         name="`basename -- "${dst}"`"
-         log_warning "The intended tag ${C_RESET_BOLD}${tag}${C_WARNING} will be ignored, because"
+         log_warning "The intended ${branchlabel} ${C_RESET_BOLD}${branch}${C_WARNING} will be ignored, because"
          log_warning "the repository is symlinked."
-         log_warning "If you want to checkout this tag do:"
-         log_warning "${C_RESET_BOLD}(cd .repos/${name}; git checkout ${GITOPTIONS} \"${tag}\" )${C_WARNING}"
+         log_warning "If you want to checkout this ${branchlabel} do:"
+         log_warning "${C_RESET_BOLD}(cd .repos/${linkname}; git checkout ${GITOPTIONS} \"${branch}\" )${C_WARNING}"
       fi
    fi
-
-   # when we link, we assume that dependencies are there
 }
 
 

@@ -1,9 +1,13 @@
+### 2.6.1
+
+* fix bug with absolute paths
+
+
 ## 2.6.0
 
 * mulle-bootstrap announces itself to cmake with -DMULLE_BOOTSTRAP_VERSION
 
 ### 2.5.2
-
 
 * -v -h gives more help
 * renamed -tt  to -tit and -tp to -tip, because it's more logical
