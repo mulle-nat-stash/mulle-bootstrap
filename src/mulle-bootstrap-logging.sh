@@ -197,6 +197,18 @@ logging_initialize()
    C_FLUFF="${C_GREEN}${C_BOLD}"
    C_TRACE="${C_FLUFF}${C_FAINT}"
    C_TRACE2="${C_RESET}${C_FAINT}"
+
+   if [ ! -z "${MULLE_BOOTSTRAP_LIBEXEC_TRACE}" ]
+   then
+      local exedir
+      local prefix
+      local exedirpath
+
+      exedir="`dirname "${BASH_SOURCE}"`"
+      prefix="`dirname "$0"`"
+      exedirpath="`( cd "${exedir}" ; pwd -P )`"
+      echo "mulle-bootstrap libexec: ${exedirpath}" >&2
+   fi
 }
 
-logging_initialize
+logging_initialize "$@"

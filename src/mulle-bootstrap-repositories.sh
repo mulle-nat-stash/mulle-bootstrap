@@ -90,6 +90,13 @@ _scm_part_from_clone()
 }
 
 
+_tag_part_from_clone()
+{
+   echo "$@" | cut -s '-d;' -f 4
+}
+
+
+
 canonical_name_from_clone()
 {
    local url
@@ -133,6 +140,19 @@ scm_from_clone()
 }
 
 
+tag_from_clone()
+{
+   local count
+
+   count="`count_clone_components "$@"`"
+   if [ "$count" -ge 5 ]
+   then
+      _tag_part_from_clone "$@"
+   fi
+}
+
+
+
 embedded_repository_subdir_from_file()
 {
    local path
@@ -147,15 +167,17 @@ embedded_repository_subdir_from_file()
 
 embedded_repository_subdir_in_repos()
 {
+   local reposdir
    local filename
 
-   filename="$1"
+   reposdir="$1"
+   filename="$2"
 
    [ -z "${filename}" ] && internal_fail "Empty parameter"
 
    local relpath
 
-   relpath="${CLONESFETCH_SUBDIR}/.embedded/${filename}"
+   relpath="${reposdir}/.bootstrap_embedded/${filename}"
    if [ -f "${relpath}" ]
    then
       embedded_repository_subdir_from_file "${relpath}"
@@ -165,14 +187,16 @@ embedded_repository_subdir_in_repos()
 
 embedded_repository_url_in_repos()
 {
+   local reposdir
    local filename
 
-   filename="$1"
+   reposdir="$1"
+   filename="$2"
 
    local url
    local relpath
 
-   relpath="${CLONESFETCH_SUBDIR}/.embedded/${filename}"
+   relpath="${reposdir}/.bootstrap_embedded/${filename}"
    if [ -f "${relpath}" ]
    then
       #
@@ -184,19 +208,21 @@ embedded_repository_url_in_repos()
 
 #
 # search by url, may actually not exist though
-# CLONESFETCH_SUBDIR must have the proper dstprefix set
+# reposdir must have the proper dstprefix set
 #
 find_embedded_repository_subdir_in_repos()
 {
+   local reposdir
    local url
 
-   url="$1"
+   reposdir="$1"
+   url="$2"
 
    local filename
 
    IFS="
 "
-   for i in `fgrep -l -x "${url}" "${CLONESFETCH_SUBDIR}/.embedded/"* 2> /dev/null`
+   for i in `fgrep -l -x "${url}" "${reposdir}/.bootstrap_embedded/"* 2> /dev/null`
    do
       IFS="${DEFAULT_IFS}"
 
@@ -217,25 +243,29 @@ find_embedded_repository_subdir_in_repos()
 
 #
 # look through embedded repositories
-# CLONESFETCH_SUBDIR must have the proper dstprefix set
+# reposdir must have the proper dstprefix set
 # used by clean, don't need deeply embedded repos
 #
 embedded_repository_directories_from_repos()
 {
+   local reposdir
    local dstprefix
 
-   dstprefix="$1"
+   reposdir="$1"
+   dstprefix="$2"
+
+   [ -z "${reposdir}" ] && internal_fail "repos is empty"
 
    local filename
    local embedded
 
    IFS="
 "
-   for filename in `ls -1 "${CLONESFETCH_SUBDIR}/.embedded/" 2> /dev/null`
+   for filename in `ls -1 "${reposdir}/.bootstrap_embedded/" 2> /dev/null`
    do
       IFS="${DEFAULT_IFS}"
 
-      embedded="`embedded_repository_subdir_in_repos "${filename}"`"
+      embedded="`embedded_repository_subdir_in_repos "${reposdir}" "${filename}"`"
       if [ ! -z "${embedded}" ]
       then
          embedded="${dstprefix}${embedded}"
@@ -252,13 +282,17 @@ embedded_repository_directories_from_repos()
 
 repository_directories_from_repos()
 {
+   local reposdir
+
+   reposdir="$1"
+
    local filename
 
    IFS="
 "
-   for filename in `ls -1 "${CLONESFETCH_SUBDIR}" 2> /dev/null`
+   for filename in `ls -1 "${reposdir}" 2> /dev/null`
    do
-      echo "${CLONESFETCH_SUBDIR}/$filename"
+      echo "${reposdir}/$filename"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -268,12 +302,14 @@ repository_directories_from_repos()
 # dstprefix
 all_repository_directories_from_repos()
 {
+   local reposdir
    local dstprefix
 
-   dstprefix="$1"
+   reposdir="$1"
+   dstprefix="$2"
 
-   repository_directories_from_repos
-   embedded_repository_directories_from_repos "${dstprefix}"
+   repository_directories_from_repos "${reposdir}"
+   embedded_repository_directories_from_repos "${reposdir}" "${dstprefix}"
 }
 
 
@@ -297,7 +333,7 @@ __parse_expanded_clone()
    url="`url_from_clone "${clone}"`"
    branch="`branch_from_clone "${clone}"`"
    scm="`scm_from_clone "${clone}"`"
-   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
+   tag="`tag_from_clone "${clone}"`"
 
    case "${name}" in
       /*|~*|..*|.*)
@@ -363,13 +399,16 @@ __parse_embedded_clone()
 
 ensure_clones_directory()
 {
-   if [ ! -d "${CLONESFETCH_SUBDIR}" ]
+   local reposdir
+
+   reposdir="$1"
+   if [ ! -d "${reposdir}" ]
    then
       if [ "${COMMAND}" = "update" ]
       then
          fail "install first before upgrading"
       fi
-      mkdir_if_missing "${CLONESFETCH_SUBDIR}"
+      mkdir_if_missing "${reposdir}"
    fi
 }
 

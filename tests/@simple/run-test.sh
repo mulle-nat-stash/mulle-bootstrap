@@ -4,36 +4,13 @@
 setup_test_dirs()
 {
    mkdir -p a/.bootstrap
-   mkdir -p b/.bootstrap
-   mkdir -p c/.bootstrap
-   mkdir -p d/.bootstrap
-   mkdir -p e
+   mkdir -p b
 }
 
 
-setup_test_case1()
+setup_test_case()
 {
-   echo "b
-e" > a/.bootstrap/repositories
-
-   echo "d
-c" > b/.bootstrap/repositories
-
-   echo "d" > c/.bootstrap/repositories
-   echo "e" > d/.bootstrap/repositories
-}
-
-
-setup_test_case2()
-{
-   echo "b
-e" > a/.bootstrap/repositories
-
-   echo "d
-c" > b/.bootstrap/repositories
-
-   rm c/.bootstrap/repositories 2> /dev/null
-   rm d/.bootstrap/repositories 2> /dev/null
+   echo "b" > a/.bootstrap/repositories
 }
 
 
@@ -81,17 +58,12 @@ BOOTSTRAP_FLAGS="$@"
 #
 # not that much of a test
 #
-clear_test_dirs a b c d e
-setup_test_dirs
-( setup_test_case1 ; test "e
-d
-c
-b"
-)
+echo "mulle-bootstrap: `mulle-bootstrap version`(`mulle-bootstrap library-path`)" >&2
 
-( setup_test_case2 ; test "d
-c
-b
-e"
+clear_test_dirs a b
+setup_test_dirs
+(
+   setup_test_case ;
+   test "b"
 )
 

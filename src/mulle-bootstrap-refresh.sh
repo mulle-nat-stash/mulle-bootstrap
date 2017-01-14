@@ -30,13 +30,15 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_REFRESH_SH="included"
 
-#
-# this script installs the proper git clones into "clones"
-# it does not to git subprojects.
-# You can also specify a list of "brew" dependencies. That
-# will be third party libraries, you don't tag or debug
-#
 
+# What refresh does:
+#
+# 1. remove .bootstrap.auto
+# 2. recreate .bootstrap.auto (without .repos/<name>/.bootstrap)
+# 3. augment .bootstrap.auto/repositories file with contents of
+#     .repos/<name>/.bootstrap/repositories files
+# 4. augment .bootstrap.auto with other contents of .repos/<name>/.bootstrap
+#
 refresh_usage()
 {
    cat <<EOF >&2
@@ -52,6 +54,12 @@ EOF
 
 refresh_repositories_settings()
 {
+   local reposdir
+
+   reposdir="$1"
+
+   [ $# -eq 1 ] || internal_fail "parameter error"
+
    local stop
    local clones
    local stop
@@ -107,7 +115,7 @@ ${unexpanded}"
 
             dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${unexpanded}"`"
 
-            dstdir="${CLONESFETCH_SUBDIR}/${name}"
+            dstdir="${reposdir}/${name}"
             if [ ! -d "${dstdir}" ]
             then
                log_fluff "${name} has not been fetched yet"
@@ -122,10 +130,14 @@ ${unexpanded}"
             local sub_repos
             local filename
 
-            filename="${dstdir}/${BOOTSTRAP_SUBDIR}/repositories"
+            filename="${dstdir}/.bootstrap.local/repositories"
+            if [ ! -f "${filename}" ]
+            then
+               filename="${dstdir}/.bootstrap/repositories"
+            fi
+
             if [ -f "${filename}" ]
             then
-
                sub_repos="`_read_setting "${filename}"`"
                if [ ! -z "${sub_repos}" ]
                then
@@ -141,7 +153,10 @@ ${unexpanded}"
                log_fluff "${name} has no repositories"
             fi
 
-            if bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+            #
+            # we always update the "root" repository
+            #
+            if bootstrap_auto_update "${name}" "${dstdir}"
             then
                stop=0
             fi
@@ -167,7 +182,7 @@ ${unexpanded}"
          log_trace2 "${repositories}"
          log_trace2 "----------------------"
       fi
-      echo "${repositories}" > "${BOOTSTRAP_SUBDIR}.auto/repositories"
+      echo "${repositories}" > "${BOOTSTRAP_DIR}.auto/repositories"
    fi
 }
 
@@ -181,26 +196,32 @@ ${unexpanded}"
 #
 mark_all_repositories_zombies()
 {
+   local reposdir
+
+   reposdir="$1"
+
+   [ $# -eq 1 ] || internal_fail "parameter error"
+
    local i
    local name
 
       # first mark all repos as stale
-   if dir_has_files "${CLONESFETCH_SUBDIR}"
+   if dir_has_files "${reposdir}"
    then
       log_fluff "Marking all repositories as zombies for now"
 
-      mkdir_if_missing "${CLONESFETCH_SUBDIR}/.zombies"
+      mkdir_if_missing "${reposdir}/.zombies"
 
       IFS="
 "
-      for i in `ls -1d "${CLONESFETCH_SUBDIR}/"*`
+      for i in `ls -1d "${reposdir}/"*`
       do
          IFS="${DEFAULT_IFS}"
 
          if [ -d "${i}" -o -L "${i}" ]
          then
             name="`basename -- "${i}"`"
-            exekutor touch "${CLONESFETCH_SUBDIR}/.zombies/${name}"
+            exekutor touch "${reposdir}/.zombies/${name}"
          fi
       done
       IFS="${DEFAULT_IFS}"
@@ -210,13 +231,17 @@ mark_all_repositories_zombies()
 
 _mark_repository_alive()
 {
+   local reposdir
    local dstdir
    local name
    local zombie
 
-   name="$1"
-   dstdir="$2"
-   zombie="$3"
+   reposdir="$1"
+   name="$2"
+   dstdir="$3"
+   zombie="$4"
+
+   [ $# -eq 4 ] || internal_fail "parameter error"
 
    # mark as alive
    if [ -d "${dstdir}" -o -L "${dstdir}" ]
@@ -232,7 +257,7 @@ _mark_repository_alive()
    else
       if [ -e "${dstdir}" ]
       then
-         log_fail "\"${dstdir}\" is neither a symlink nor a directory"
+         fail "\"${dstdir}\" is neither a symlink nor a directory (`pwd -P`)"
       fi
 
       # repository should be there but hasn't been fetched yet
@@ -249,22 +274,32 @@ _mark_repository_alive()
 
 mark_repository_alive()
 {
+   local reposdir
    local dstdir
    local name
 
-   name="$1"
-   dstdir="$2"
+   reposdir="$1"
+   name="$2"
+   dstdir="$3"
+
+   [ $# -eq 3 ] || internal_fail "parameter error"
 
    local zombie
 
    zombie="`dirname -- "${dstdir}"`/.zombies/${name}"
 
-   _mark_repository_alive "${name}" "${dstdir}" "${zombie}"
+   _mark_repository_alive "${reposdir}" "${name}" "${dstdir}" "${zombie}"
 }
 
 
 bury_zombies()
 {
+   local reposdir
+
+   reposdir="$1"
+
+   [ $# -eq 1 ] || internal_fail "parameter error"
+
    local i
    local name
    local dstdir
@@ -272,12 +307,12 @@ bury_zombies()
    local gravepath
 
       # first mark all repos as stale
-   zombiepath="${CLONESFETCH_SUBDIR}/.zombies"
+   zombiepath="${reposdir}/.zombies"
    if dir_has_files "${zombiepath}"
    then
       log_fluff "Burying zombies into graveyard"
 
-      gravepath="${CLONESFETCH_SUBDIR}/.graveyard"
+      gravepath="${reposdir}/.bootstrap_graveyard"
       mkdir_if_missing "${gravepath}"
 
       IFS="
@@ -292,7 +327,7 @@ bury_zombies()
          fi
 
          name="`basename -- "${i}"`"
-         dstdir="${CLONESFETCH_SUBDIR}/${name}"
+         dstdir="${reposdir}/${name}"
          if [ -d "${dstdir}" ]
          then
             log_info "Removing unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"`pwd`/${dstdir}\""
@@ -324,6 +359,15 @@ bury_zombies()
 #
 mark_all_embedded_repositories_zombies()
 {
+   local reposdir
+   local dstprefix
+
+   reposdir="$1"
+   #dstprefix="$2"
+
+   [ -z "${reposdir}" ] && internal_fail "reposdir"
+   [ $# -le 2 ] || internal_fail "parameter error"
+
    local i
    local name
    local symlink
@@ -331,7 +375,7 @@ mark_all_embedded_repositories_zombies()
    local zombiepath
 
    # first mark all repos as stale
-   path="${CLONESFETCH_SUBDIR}/.embedded"
+   path="${reposdir}/.bootstrap_embedded"
    if dir_has_files "${path}"
    then
       log_fluff "Marking all embedded repositories as zombies for now"
@@ -345,7 +389,7 @@ mark_all_embedded_repositories_zombies()
       do
          IFS="${DEFAULT_IFS}"
 
-         i="`head -1 "$symlink" 2>/dev/null`" || fail "Old style mulle-bootstrap files (\"${symlink}\") detected, \`mulle-bootstrap dist clean\` it ($PWD)"
+         i="`head -1 "$symlink" 2>/dev/null`" || fail "Old style mulle-bootstrap files"
          name="`basename -- "${i}"`"
          exekutor cp "${symlink}" "${zombiepath}/${name}"
       done
@@ -356,25 +400,35 @@ mark_all_embedded_repositories_zombies()
 
 mark_embedded_repository_alive()
 {
+   local reposdir
    local dstdir
    local name
 
-   name="$1"
-   dstdir="$2"
+   reposdir="$1"
+   name="$2"
+   dstdir="$3"
+
+   [ -z "${reposdir}" ] && internal_fail "reposdir"
+   [ $# -eq 3 ] || internal_fail "parameter error"
 
    local zombie
 
-   zombie="${CLONESFETCH_SUBDIR}/.embedded/.zombies/${name}"
+   zombie="${reposdir}/.bootstrap_embedded/.zombies/${name}"
 
-   _mark_repository_alive "${name}" "${dstdir}" "${zombie}"
+   _mark_repository_alive "${reposdir}" "${name}" "${dstdir}" "${zombie}"
 }
 
 
 bury_embedded_zombies()
 {
+   local reposdir
    local dstprefix
 
-   dstprefix="$1"
+   reposdir="$1"
+   dstprefix="$2"
+
+   [ -z "${reposdir}" ] && internal_fail "reposdir"
+   [ $# -le 2 ] || internal_fail "parameter error"
 
    local i
    local name
@@ -385,20 +439,20 @@ bury_embedded_zombies()
    local path2
 
    # first mark all repos as stale
-   zombiepath="${CLONESFETCH_SUBDIR}/.embedded/.zombies"
+   zombiepath="${reposdir}/.bootstrap_embedded/.zombies"
 
    if dir_has_files "${zombiepath}"
    then
       log_fluff "Burying embedded zombies into graveyard"
 
-      gravepath="${CLONESFETCH_SUBDIR}/.embedded/.graveyard"
+      gravepath="${reposdir}/.bootstrap_embedded/.bootstrap_graveyard"
       mkdir_if_missing "${gravepath}"
 
       for i in `ls -1 "${zombiepath}/"* 2> /dev/null`
       do
          if [ -f "${i}" ]
          then
-            dstdir="`embedded_repository_subdir_from_file "${i}" "${CLONESFETCH_SUBDIR}/.embedded"`"
+            dstdir="`embedded_repository_subdir_from_file "${i}"`"
             dstdir="${dstprefix}${dstdir}"
 
             if [ -L "${dstdir}" -a "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" != "YES" ]
@@ -425,7 +479,7 @@ bury_embedded_zombies()
                fi
 
                exekutor rm "${i}"
-               exekutor rm "${CLONESFETCH_SUBDIR}/.embedded/${name}"
+               exekutor rm "${reposdir}/.bootstrap_embedded/${name}"
                log_info "Removed unused embedded repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"${dstdir}\""
             else
                log_fluff "Embedded zombie \"${dstdir}\" vanished or never existed ($PWD)"
@@ -446,11 +500,17 @@ bury_embedded_zombies()
 #
 refresh_repositories()
 {
+   local reposdir
+
+   reposdir="$1"
+
+   [ $# -eq 1 ] || internal_fail "parameter error"
+
    local clone
    local clones
    local dstdir
 
-   mark_all_repositories_zombies
+   mark_all_repositories_zombies "${reposdir}"
 
    # local variables for __parse_clone
    local name
@@ -463,7 +523,7 @@ refresh_repositories()
    clones="`read_fetch_setting "repositories"`"
    if [ "${clones}" != "" ]
    then
-      ensure_clones_directory
+      ensure_clones_directory "${reposdir}"
 
       IFS="
 "
@@ -473,23 +533,27 @@ refresh_repositories()
 
          __parse_clone "${clone}"
 
-         dstdir="${CLONESFETCH_SUBDIR}/${name}"
+         dstdir="${reposdir}/${name}"
 
          # if it's not there it's not fetched yet, that's OK
-         mark_repository_alive "${name}" "${dstdir}"
+         mark_repository_alive "${reposdir}" "${name}" "${dstdir}"
       done
       IFS="${DEFAULT_IFS}"
    fi
 
-   bury_zombies
+   bury_zombies "${reposdir}"
 }
 
 
 _refresh_embedded_repositories()
 {
+   local reposdir
    local dstprefix
 
-   dstprefix="$1"
+   reposdir="$1"
+   dstprefix="$2"
+
+   [ $# -le 2 ] || internal_fail "parameter error"
 
    local clone
    local clones
@@ -510,7 +574,7 @@ _refresh_embedded_repositories()
       local dstdir
       local olddir
 
-      ensure_clones_directory
+      ensure_clones_directory "${reposdir}"
 
       IFS="
 "
@@ -520,7 +584,7 @@ _refresh_embedded_repositories()
 
          __parse_embedded_clone "${clone}"
 
-         olddir="`find_embedded_repository_subdir_in_repos "${url}"`"
+         olddir="`find_embedded_repository_subdir_in_repos "${reposdir}" "${url}"`"
          if [ ! -z "${olddir}" ]
          then
             if [ "${subdir}" != "${olddir}" ]
@@ -530,7 +594,7 @@ _refresh_embedded_repositories()
                   log_info "Embedded repository ${name} should move from ${olddir} to ${subdir}. A refetch is needed."
                fi
             else
-               mark_embedded_repository_alive "${name}" "${dstprefix}${subdir}"
+               mark_embedded_repository_alive "${reposdir}" "${name}" "${dstprefix}${subdir}"
             fi
          fi
       done
@@ -544,7 +608,7 @@ _refresh_embedded_repositories()
 
 refresh_embedded_repositories()
 {
-   mark_all_embedded_repositories_zombies
+   mark_all_embedded_repositories_zombies "$@"
 
    _refresh_embedded_repositories "$@"
 
@@ -554,6 +618,13 @@ refresh_embedded_repositories()
 
 refresh_deeply_embedded_repositories()
 {
+   local reposdir
+
+   reposdir="$1"
+
+   [ -z "${reposdir}" ] && internal_fail "reposdir empty"
+   [ $# -eq 1 ] || internal_fail "parameter error"
+
    local clone
    local clones
    local dstprefix
@@ -581,18 +652,16 @@ refresh_deeply_embedded_repositories()
 
          __parse_embedded_clone "${clone}"
 
-         if [ ! -L "${CLONESFETCH_SUBDIR}/${subdir}" ]
+         if [ ! -L "${reposdir}/${subdir}" -o "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" = "YES" ]
          then
-            dstprefix="${CLONESFETCH_SUBDIR}/${subdir}/"
-            previous_bootstrap="${BOOTSTRAP_SUBDIR}"
-            previous_clones="${CLONESFETCH_SUBDIR}"
-            BOOTSTRAP_SUBDIR="${dstprefix}.bootstrap"
-            CLONESFETCH_SUBDIR="${dstprefix}${CLONESFETCH_SUBDIR}"
+            dstprefix="${reposdir}/${subdir}/"
 
-            refresh_embedded_repositories "${dstprefix}"
+            previous_bootstrap="${BOOTSTRAP_DIR}"
+            BOOTSTRAP_DIR="${dstprefix}.bootstrap"
 
-            BOOTSTRAP_SUBDIR="${previous_bootstrap}"
-            CLONESFETCH_SUBDIR="${previous_clones}"
+            refresh_embedded_repositories "${dstprefix}${reposdir}" "${dstprefix}"
+
+            BOOTSTRAP_DIR="${previous_bootstrap}"
          else
             log_fluff "Don't refresh embedded repositories of symlinked \"${name}\""
          fi
@@ -611,21 +680,31 @@ refresh_main()
 {
    log_fluff "::: refresh begin :::"
 
-   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ]  && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]           && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ]        && . mulle-bootstrap-auto-update.sh
    [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
-   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ]       && . mulle-bootstrap-repositories.sh
 
    while :
    do
-      if [ "$1" = "-h" -o "$1" = "--help" ]
-      then
-         refresh_usage
-      fi
+      case "$1" in
+         -h*|--h*)
+            refresh_usage
+         ;;
 
-      break
+         -us|--update-symlinks)
+            MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
    done
+
 
    COMMAND=${1:-"refresh"}
    [ $# -eq 0 ] || shift
@@ -647,44 +726,44 @@ refresh_main()
    #
    # recreate .auto because it's contents are stale now
    #
-   if [ -d "${BOOTSTRAP_SUBDIR}.auto" ]
+   if [ -d "${BOOTSTRAP_DIR}.auto" ]
    then
       if [ "${COMMAND}" = "refresh_if_bare" ]
       then
           return
       fi
-      exekutor rm -rf "${BOOTSTRAP_SUBDIR}.auto"
+      exekutor rm -rf "${BOOTSTRAP_DIR}.auto"
    fi
 
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.refresh_done"
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_refresh_done"
 
    bootstrap_auto_create
 
    #
    # short cut if there are no .repos
    #
-   if [ "${COMMAND}" != "clear" -a -d "${CLONESFETCH_SUBDIR}" ]
+   if [ "${COMMAND}" != "clear" -a -d "${REPOS_DIR}" ]
    then
       if [ "${DONT_RECURSE}" = "" ]
       then
          log_fluff "Refreshing repository settings"
-         refresh_repositories_settings
+         refresh_repositories_settings "${REPOS_DIR}"
       fi
 
       log_fluff "Detect zombie repositories"
-      refresh_repositories
+      refresh_repositories "${REPOS_DIR}"
 
       log_fluff "Detect embedded zombie repositories"
-      refresh_embedded_repositories
+      refresh_embedded_repositories "${REPOS_DIR}"
 
       if [ "${DONT_RECURSE}" = "" ]
       then
          log_fluff "Detect deeply embedded zombie repositories"
-         refresh_deeply_embedded_repositories
+         refresh_deeply_embedded_repositories "${REPOS_DIR}"
       fi
    fi
 
-   create_file_if_missing "${CLONESFETCH_SUBDIR}/.refresh_done"
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_refresh_done"
 
    log_fluff "::: refresh end :::"
 }

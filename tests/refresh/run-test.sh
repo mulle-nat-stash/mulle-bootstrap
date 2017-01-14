@@ -48,7 +48,7 @@ EOF
    git commit -m "embedded added"
 )
 
-# one project depends on a another unknown
+# one project depends on "a": another unknown
 (
    cd b;
    mkdir .bootstrap
@@ -59,7 +59,7 @@ EOF
    git commit -m "repository added"
 )
 
-# one project depends on a another known
+# one project depends on "a": another known
 (
    cd c;
    mkdir .bootstrap
@@ -85,32 +85,34 @@ cat <<EOF > .bootstrap/embedded_repositories
 ../g
 EOF
 
+echo "mulle-bootstrap: `mulle-bootstrap version`(`mulle-bootstrap library-path`)" >&2
+
 ##
 ## Now test
 ##
 echo "--| 1 |--------------------------------"
-mulle-bootstrap -a fetch
+mulle-bootstrap "$@" -a fetch
 
-[ ! -d .repos/a ]   && echo "failed to fetch a" && exit 1
-[ ! -d .repos/b ]   && echo "failed to fetch b" && exit 1
-[ ! -d .repos/c ]   && echo "failed to fetch c" && exit 1
-[ ! -d .repos/a/d ] && echo "failed to fetch a/d" && exit 1
-[ ! -d e ]          && echo "failed to fetch d" && exit 1
-[ ! -d f ]          && echo "failed to fetch e" && exit 1
-[ ! -d g ]          && echo "failed to fetch f" && exit 1
-[ ! -d .repos/h ]   && echo "failed to fetch h" && exit 1
+[ ! -d .repos/a ]   && echo "failed to fetch .repos/a ($PWD)" && exit 1
+[ ! -d .repos/b ]   && echo "failed to fetch .repos/b ($PWD)" && exit 1
+[ ! -d .repos/c ]   && echo "failed to fetch .repos/c ($PWD)" && exit 1
+[ ! -d .repos/a/d ] && echo "failed to fetch .repos/a/d ($PWD)" && exit 1
+[ ! -d e ]          && echo "failed to fetch d ($PWD)" && exit 1
+[ ! -d f ]          && echo "failed to fetch e ($PWD)" && exit 1
+[ ! -d g ]          && echo "failed to fetch f ($PWD)" && exit 1
+[ ! -d .repos/h ]   && echo "failed to fetch .repos/h ($PWD)" && exit 1
 
 echo "--| 2 |--------------------------------"
-mulle-bootstrap refresh
+mulle-bootstrap "$@" refresh
 
-[ ! -d .repos/a ]   && echo "wrongly removed a" && exit 1
-[ ! -d .repos/b ]   && echo "wrongly removed b" && exit 1
-[ ! -d .repos/c ]   && echo "wrongly removed c" && exit 1
-[ ! -d .repos/a/d ] && echo "wrongly removed a/d" && exit 1
-[ ! -d e ]          && echo "wrongly removed e" && exit 1
-[ ! -d f ]          && echo "wrongly removed f" && exit 1
-[ ! -d g ]          && echo "wrongly removed g" && exit 1
-[ ! -d .repos/h ]   && echo "wrongly removed h" && exit 1
+[ ! -d .repos/a ]   && echo "wrongly removed .repos/a ($PWD)" && exit 1
+[ ! -d .repos/b ]   && echo "wrongly removed .repos/b ($PWD)" && exit 1
+[ ! -d .repos/c ]   && echo "wrongly removed .repos/c ($PWD)" && exit 1
+[ ! -d .repos/a/d ] && echo "wrongly removed .repos/a/d ($PWD)" && exit 1
+[ ! -d e ]          && echo "wrongly removed e ($PWD)" && exit 1
+[ ! -d f ]          && echo "wrongly removed f ($PWD)" && exit 1
+[ ! -d g ]          && echo "wrongly removed g ($PWD)" && exit 1
+[ ! -d .repos/h ]   && echo "wrongly removed .repos/h ($PWD)" && exit 1
 
 
 cat <<EOF > .bootstrap/embedded_repositories
@@ -119,16 +121,16 @@ cat <<EOF > .bootstrap/embedded_repositories
 EOF
 
 echo "--| 3 |--------------------------------"
-mulle-bootstrap refresh
+mulle-bootstrap "$@" refresh
 
-[ ! -d .repos/a ]   && echo "wrongly removed a" && exit 1
-[ ! -d .repos/b ]   && echo "wrongly removed b" && exit 1
-[ ! -d .repos/c ]   && echo "wrongly removed c" && exit 1
-[ ! -d .repos/a/d ] && echo "wrongly removed a/d" && exit 1
-[ ! -d e ]          && echo "wrongly removed e" && exit 1
-[   -d f ]          && echo "failed to remove f" && exit 1
-[ ! -d g ]          && echo "wrongly removed g" && exit 1
-[ ! -d .repos/h ]   && echo "wrongly removed h" && exit 1
+[ ! -d .repos/a ]   && echo "wrongly removed .repos/a ($PWD)" && exit 1
+[ ! -d .repos/b ]   && echo "wrongly removed .repos/b ($PWD)" && exit 1
+[ ! -d .repos/c ]   && echo "wrongly removed .repos/c ($PWD)" && exit 1
+[ ! -d .repos/a/d ] && echo "wrongly removed .repos/a/d ($PWD)" && exit 1
+[ ! -d e ]          && echo "wrongly removed e ($PWD)" && exit 1
+[   -d f ]          && echo "failed to remove f ($PWD)" && exit 1
+[ ! -d g ]          && echo "wrongly removed g ($PWD)" && exit 1
+[ ! -d .repos/h ]   && echo "wrongly removed .repos/h ($PWD)" && exit 1
 
 cat <<EOF > .bootstrap/repositories
 ../a
@@ -136,30 +138,30 @@ cat <<EOF > .bootstrap/repositories
 EOF
 
 echo "--| 4 |--------------------------------"
-mulle-bootstrap refresh
+mulle-bootstrap "$@" refresh
 
-[ ! -d .repos/a ]   && echo "wrongly removed a" && exit 1
-[   -d .repos/b ]   && echo "failed to remove b" && exit 1
-[ ! -d .repos/c ]   && echo "wrongly removed c" && exit 1
-[ ! -d .repos/a/d ] && echo "wrongly removed a/d" && exit 1
-[ ! -d e ]          && echo "wrongly removed e" && exit 1
-[   -d f ]          && echo "failed to remove f" && exit 1
-[ ! -d g ]          && echo "wrongly removed g" && exit 1
-[   -d .repos/h ]   && echo "mistakenly refetched h" && exit 1
+[ ! -d .repos/a ]   && echo "wrongly removed .repos/a ($PWD)" && exit 1
+[   -d .repos/b ]   && echo "failed to remove .repos/b ($PWD)" && exit 1
+[ ! -d .repos/c ]   && echo "wrongly removed .repos/c ($PWD)" && exit 1
+[ ! -d .repos/a/d ] && echo "wrongly removed .repos/a/d ($PWD)" && exit 1
+[ ! -d e ]          && echo "wrongly removed e ($PWD)" && exit 1
+[   -d f ]          && echo "failed to remove f ($PWD)" && exit 1
+[ ! -d g ]          && echo "wrongly removed g ($PWD)" && exit 1
+[   -d .repos/h ]   && echo "mistakenly refetched .repos/h ($PWD)" && exit 1
 
 # hack
 rm .repos/a/.bootstrap/embedded_repositories
 
 echo "--| 5 |--------------------------------"
-mulle-bootstrap refresh
+mulle-bootstrap "$@" refresh
 
-[ ! -d .repos/a ]   && echo "wrongly removed a" && exit 1
-[   -d .repos/b ]   && echo "mistakenly refetched b" && exit 1
-[ ! -d .repos/c ]   && echo "wrongly removed c" && exit 1
-[   -d .repos/a/d ] && echo "failed to remove a/d" && exit 1
-[ ! -d e ]          && echo "wrongly removed e" && exit 1
-[   -d f ]          && echo "mistakenly refetched f" && exit 1
-[ ! -d g ]          && echo "wrongly removed g" && exit 1
-[   -d .repos/h ]   && echo "mistakenly refetched h" && exit 1
+[ ! -d .repos/a ]   && echo "wrongly removed .repos/a ($PWD)" && exit 1
+[   -d .repos/b ]   && echo "mistakenly refetched .repos/b ($PWD)" && exit 1
+[ ! -d .repos/c ]   && echo "wrongly removed .repos/c ($PWD)" && exit 1
+[   -d .repos/a/d ] && echo "failed to remove .repos/a/d ($PWD)" && exit 1
+[ ! -d e ]          && echo "wrongly removed e ($PWD)" && exit 1
+[   -d f ]          && echo "mistakenly refetched f ($PWD)" && exit 1
+[ ! -d g ]          && echo "wrongly removed g ($PWD)" && exit 1
+[   -d .repos/h ]   && echo "mistakenly refetched .repos/h ($PWD)" && exit 1
 
 echo "--| PASS |-----------------------------"

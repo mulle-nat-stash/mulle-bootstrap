@@ -142,10 +142,9 @@ prefix="`realpath "${prefix}"`"
 
 mode=${1:-755}
 [ $# -eq 0 ] || shift
-bin=${1:-"${prefix}/bin"}
-[ $# -eq 0 ] || shift
-libexec=${1:-"${prefix}/libexec/mulle-bootstrap"}
-[ $# -eq 0 ] || shift
+
+bin="${prefix}/bin"
+libexec="${prefix}/libexec/mulle-bootstrap"
 
 if [ "$prefix" = "" ] || [ "$bin" = "" ] || [ "$libexec" = "" ] || [ "$mode" = "" ]
 then
@@ -165,17 +164,16 @@ fi
 
 for i in mulle*bootstrap
 do
-   sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
-   chmod "${mode}" "${bin}/${i}" || exit 1
+   install -m "${mode}" "${i}" "${bin}/$i" || exit 1
    printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
 done
+
 
 case `uname` in
    MINGW*)
       for i in mulle-mingw-*sh
       do
-         sed "s|/usr/local/libexec/mulle-bootstrap|${libexec}|g" < "${i}" > "${bin}/$i" || exit 1
-         chmod "${mode}" "${bin}/${i}" || exit 1
+         install -m "${mode}" "${i}" "${bin}/$i" || exit 1
          printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
       done
 
@@ -195,7 +193,7 @@ esac
 for i in src/mulle*.sh
 do
    mkdir -p "${libexec}" 2> /dev/null
-   install -v -m "${mode}" "$i" "${libexec}" || exit 1
+   install -v -m "${mode}" "${i}" "${libexec}" || exit 1
 done
 
 if [ -d "test" ]

@@ -41,14 +41,14 @@ MULLE_BOOTSTRAP_BREW_SH="included"
 #    directory
 #
 
-BREW="${ADDICTION_SUBDIR}/bin/brew"
+BREW="${ADDICTIONS_DIR}/bin/brew"
 
 
 touch_last_update()
 {
    local last_update
 
-   last_update="${ADDICTION_SUBDIR}/.last_update"
+   last_update="${ADDICTIONS_DIR}/.last_update"
    log_fluff "Touching ${last_update}"
    exekutor touch "${last_update}"
 }
@@ -64,16 +64,16 @@ fetch_brew_if_needed()
    case "${UNAME}" in
       darwin)
          log_info "Installing OS X brew"
-         exekutor git clone https://github.com/Homebrew/brew.git "${ADDICTION_SUBDIR}"
+         exekutor git clone https://github.com/Homebrew/brew.git "${ADDICTIONS_DIR}"
          ;;
 
       linux)
          log_info "Installing Linux brew"
-         exekutor git clone https://github.com/Linuxbrew/brew.git "${ADDICTION_SUBDIR}"
+         exekutor git clone https://github.com/Linuxbrew/brew.git "${ADDICTIONS_DIR}"
          ;;
 
       *)
-         log_fail "Missing brew support for ${UNAME}"
+         fail "Missing brew support for ${UNAME}"
          ;;
    esac
 

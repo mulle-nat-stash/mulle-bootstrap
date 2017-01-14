@@ -57,10 +57,10 @@ usage:
 
    You can specify the names of the repositories to update.
 EOF
-   if [ -d "${CLONESFETCH_SUBDIR}" ]
+   if [ -d "${REPOS_DIR}" ]
    then
       echo "Currently available repositories are:"
-      (cd "${CLONESFETCH_SUBDIR}" ; ls -1 | sed 's/^/   /')
+      (cd "${REPOS_DIR}" ; ls -1 */.bootstrap | sed 's/^\(.*\)/.bootstrap/   \1/')
    fi
    exit 1
 }
@@ -153,10 +153,10 @@ install_brews()
 
    [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
 
-   if [ "${flag}" = "NO" -a -d "${ADDICTION_SUBDIR}" ]
+   if [ "${flag}" = "NO" -a -d "${ADDICTIONS_DIR}" ]
    then
-      log_fluff "Unprotecting \"${ADDICTION_SUBDIR}\" for ${command}."
-      exekutor chmod -R u+w "${ADDICTION_SUBDIR}"
+      log_fluff "Unprotecting \"${ADDICTIONS_DIR}\" for ${command}."
+      exekutor chmod -R u+w "${ADDICTIONS_DIR}"
    fi
 
    local flag
@@ -175,7 +175,7 @@ install_brews()
          if [ $flag -eq 2 ]
          then
             log_info "No brewing being done."
-            write_protect_directory "${ADDICTION_SUBDIR}"
+            write_protect_directory "${ADDICTIONS_DIR}"
             return 1
          fi
       fi
@@ -208,7 +208,7 @@ install_brews()
 
    if [ "${flag}" = "YES" ]
    then
-      write_protect_directory "${ADDICTION_SUBDIR}"
+      write_protect_directory "${ADDICTIONS_DIR}"
    fi
 }
 
@@ -313,7 +313,7 @@ link_command()
       log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} ..."
       exekutor ln -s -f "${src}" "${dst}" || fail "failed to setup symlink \"${dst}\" (to \"${src}\")"
 
-      if [ -z "${branch}" ]
+      if [ ! -z "${branch}" ]
       then
          log_warning "The intended ${branchlabel} ${C_RESET_BOLD}${branch}${C_WARNING} will be ignored, because"
          log_warning "the repository is symlinked."
@@ -348,7 +348,7 @@ ask_symlink_it()
          return 1
       fi
 
-      flag=1  # mens clone it
+      flag=1  # means clone it
       if [ "${SYMLINK_FORBIDDEN}" != "YES" ]
       then
          local prompt
@@ -383,7 +383,8 @@ NO is safe, but you often say YES here."
       ;;
 
       *)
-         fail "Can't symlink, as its forbidden by setting \"symlink_forbidden\""
+         fail "Can't symlink embeded repositories by default. \
+Use --embedded-symlinks option to allow it"
       ;;
    esac
 }
@@ -414,6 +415,8 @@ search_git_repo_in_parent_directory()
 {
    local name
    local branch
+
+   [ $# -ne 2 ] && internal_fail "fail"
 
    name="$1"
    branch="$2"
@@ -465,6 +468,7 @@ checkout()
    [ ! -z "$name" ]   || internal_fail "name is empty"
    [ ! -z "$url" ]    || internal_fail "url is empty"
    [ ! -z "$dstdir" ] || internal_fail "dstdir is empty"
+   [ $# -le 6 ] || internal_fail "too many parameters"
 
    local relative
    local name2
@@ -644,17 +648,17 @@ Suggested fix:
 
 did_clone_repository()
 {
+   local reposdir
    local name
    local url
-   local branch
 
-   name="$1"
-   url="$2"
-   branch="$3"
+   reposdir="$1"
+   name="$2"
+   url="$3"
 
    local dstdir
 
-   dstdir="${CLONESFETCH_SUBDIR}/${name}"
+   dstdir="${reposdir}/${name}"
    fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
 }
 
@@ -670,15 +674,17 @@ did_clone_repository()
 #
 checkout_repository()
 {
+   local reposdir
    local name
    local url
    local dstdir
    local branch
 
-   name="$1"
-   url="$2"
-   dstdir="$3"
-   branch="$4"
+   reposdir="$1"
+   name="$2"
+   url="$3"
+   dstdir="$4"
+   branch="$5"
 
    local flag
    local run_script
@@ -695,20 +701,23 @@ checkout_repository()
       fi
       log_fluff "Repository \"${dstdir}\" already exists"
    else
-      if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${CLONESFETCH_SUBDIR}/.graveyard/${name}" ]
+      if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${reposdir}/.bootstrap_graveyard/${name}" ]
       then
          log_info "Restoring ${name} from graveyard"
-         exekutor mv "${CLONESFETCH_SUBDIR}/.graveyard/${name}" "${CLONESFETCH_SUBDIR}" || fail "move failed"
+         exekutor mv "${reposdir}/.bootstrap_graveyard/${name}" "${reposdir}" || fail "move failed"
 
          ensure_clone_url_is_correct "${dstdir}" "${url}"
          ensure_clone_branch_is_correct "${dstdir}" "${branch}"
       else
-         checkout "$@"
+         checkout "$name" "${url}" "${dstdir}" "${branch}"
          run_script=0  # yes, run it
 
          if [ -z "${DONT_RECURSE}" ]
          then
-            if bootstrap_auto_update "${name}" "${url}" "${dstdir}"
+            #
+            # we always update the "root" repository
+            #
+            if bootstrap_auto_update "${name}" "${dstdir}"
             then
                stop=0
             fi
@@ -716,19 +725,22 @@ checkout_repository()
       fi
    fi
 
-   #
-   # If we symlinked the repositiory, we don't embed
-   # repos into it, unless the user is really crazy
-   #
-   if [ "${COMMAND}" = "fetch" -a "${DONT_RECURSE_EMBEDDED}" = "" ]
+   if [ "${COMMAND}" = "fetch" -a -z "${DONT_RECURSE_EMBEDDED}" ]
    then
+      #
+      # If we symlinked the repository, we don't embed
+      # repos into it, unless the user is really crazy
+      #
       if [ ! -L "${dstdir}" -o "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" = "YES" ]
       then
-         ROOT_BOOTSTRAP_SUBDIR="${BOOTSTRAP_SUBDIR}"
+         local previous
 
-         BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
-         clone_embedded_repositories "${dstdir}/"
-         BOOTSTRAP_SUBDIR="${ROOT_BOOTSTRAP_SUBDIR}"
+         previous="${BOOTSTRAP_DIR}"
+         BOOTSTRAP_DIR="${dstdir}/.bootstrap"
+
+         clone_embedded_repositories "${REPOS_DIR}" "${dstdir}/"
+
+         BOOTSTRAP_DIR="${previous}"
       fi
    fi
 
@@ -743,23 +755,28 @@ checkout_repository()
 
 clone_repository()
 {
+   local reposdir
    local name
    local url
    local branch
    local scm
+   local tag
 
-   name="$1"
-   url="$2"
-   branch="$3"
-   scm="$4"
+   reposdir="$1"
+   name="$2"
+   url="$3"
+   branch="$4"
+   scm="$5"
+   tag="$6"
+
+   [ $# -eq 6 ] || internal_fail "fail"
 
    local tag
    local dstdir
 
    log_verbose "Clone ${name} if needed ..."
 
-   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
-   dstdir="${CLONESFETCH_SUBDIR}/${name}"
+   dstdir="${reposdir}/${name}"
 
    if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
    then
@@ -776,14 +793,20 @@ clone_repository()
    # mark the checkout progress, so that we don't do incomplete fetches and
    # later on happily build
 
-   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
 
-   if checkout_repository "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
+   if checkout_repository "${reposdir}" \
+                          "${name}" \
+                          "${url}" \
+                          "${dstdir}" \
+                          "${branch}" \
+                          "${tag}" \
+                          "${scm}"
    then
       stop=0
    fi
 
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
 
    return $stop
 }
@@ -791,6 +814,10 @@ clone_repository()
 
 clone_repositories()
 {
+   local reposdir
+
+   reposdir="$1"
+
    local clone
    local clones
    local fetched
@@ -817,7 +844,7 @@ clone_repositories()
       clones="`read_fetch_setting "repositories"`"
       if [ "${clones}" != "" ]
       then
-         ensure_clones_directory
+         ensure_clones_directory "${reposdir}"
 
          IFS="
 "
@@ -841,7 +868,12 @@ clone_repositories()
                fetched="${fetched}
 ${name}"
 
-               if clone_repository "${name}" "${url}" "${branch}" "${scm}"
+               if clone_repository "${reposdir}" \
+                                   "${name}" \
+                                   "${url}" \
+                                   "${branch}" \
+                                   "${scm}" \
+                                   "${tag}"
                then
                   stop=0
                   break
@@ -862,7 +894,9 @@ ${name}"
 
       __parse_clone "${clone}"
 
-      did_clone_repository "${name}" "${url}" "${branch}"
+      did_clone_repository "${reposdir}" \
+                           "${name}" \
+                           "${url}"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -955,21 +989,28 @@ update()
 
 update_repository()
 {
+   local reposdir
    local name
    local url
    local branch
    local dstdir
+   local scm
+   local tag
 
-   name="$1"
-   url="$2"
-   branch="$3"
-   dstdir="${CLONESFETCH_SUBDIR}/${name}"
+   reposdir="$1"
+   name="$2"
+   url="$3"
+   branch="$4"
+   scm="$5"
+   tag="$6"
+
+   localdir dstdir
+
+   dstdir="${reposdir}/${name}"
 
    local name
    local tag
    local rval
-
-   tag="`read_repo_setting "${name}" "tag"`" #repo (sic)
 
    exekutor [ -x "${dstdir}" ] || fail "\"${name}\" is not a known repository, check \".boostrap.auto/repositories\""
 
@@ -983,18 +1024,7 @@ update_repository()
    then
       if [ $rval -eq 0 -o $rval -eq 2 ]
       then
-#      local old_fetch
-
-         ROOT_BOOTSTRAP_SUBDIR="${BOOTSTRAP_SUBDIR}"
-#      old_fetch="${CLONESFETCH_SUBDIR}"
-
-         BOOTSTRAP_SUBDIR="${dstdir}/.bootstrap"
-#      CLONESFETCH_SUBDIR="${dstdir}/.repos"
-
-         update_embedded_repositories "${dstdir}/"
-
-         BOOTSTRAP_SUBDIR="${ROOT_BOOTSTRAP_SUBDIR}"
-#      CLONESFETCH_SUBDIR="${old_fetch}"
+         update_embedded_repositories "${dstdir}/.bootstrap" "${reposdir}" "${dstdir}/"
       fi
    fi
 
@@ -1010,15 +1040,17 @@ update_repository()
 
 did_update_repository()
 {
+   local reposdir
    local name
    local url
 
-   name="$1"
-   url="$2"
+   reposdir="$1"
+   name="$2"
+   url="$3"
 
    local dstdir
 
-   dstdir="${CLONESFETCH_SUBDIR}/${name}"
+   dstdir="${reposdir}/${name}"
 
    fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "did-update" "${dstdir}" "${name}"
 }
@@ -1034,6 +1066,11 @@ did_update_repository()
 #
 update_repositories()
 {
+   local reposdir
+
+   reposdir="$1"
+   shift
+
    local clones
    local clone
    local name
@@ -1048,9 +1085,12 @@ update_repositories()
       do
          IFS="${DEFAULT_IFS}"
 
-         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-            update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
-         remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+         create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
+            update_repository "${reposdir}" \
+                              "${name}" \
+                              "${reposdir}/${name}"
+
+         remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
       done
 
       IFS="
@@ -1059,9 +1099,11 @@ update_repositories()
       do
          IFS="${DEFAULT_IFS}"
 
-         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
-            did_update_repository "${name}" "${CLONESFETCH_SUBDIR}/${name}"
-         remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+         create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
+            did_update_repository "${reposdir}" \
+                                  "${name}" \
+                                  "${reposdir}/${name}"
+         remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
       done
 
       IFS="${DEFAULT_IFS}"
@@ -1113,21 +1155,31 @@ update_repositories()
             updated="${updated}
 ${name}"
 
-            dstdir="${CLONESFETCH_SUBDIR}/${name}"
+            dstdir="${reposdir}/${name}"
 
-            create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+            create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
 
                if [ -e "${dstdir}" ]
                then
-                  update_repository "${name}" "${url}" "${branch}"
+                  update_repository "${reposdir}" \
+                                    "${name}" \
+                                    "${url}" \
+                                    "${branch}" \
+                                    "${scm}" \
+                                    "${tag}"
                   rval=$?
                else
                   scm="`scm_from_clone "${clone}"`"
-                  clone_repository "${name}" "${url}" "${branch}" "${scm}"
+                  clone_repository "${reposdir}" \
+                                   "${name}" \
+                                   "${url}" \
+                                   "${branch}" \
+                                   "${scm}" \
+                                   "${tag}"
                   rval=1
                fi
 
-            remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+            remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
 
             if [ $rval -eq 1 ]
             then
@@ -1145,7 +1197,7 @@ append_dir_to_gitignore_if_needed()
 {
 
    case "${1}" in
-      "${CLONES_SUBDIR}/"*)
+      "${REPOS_DIR}/"*)
          return 0
       ;;
    esac
@@ -1208,21 +1260,23 @@ append_dir_to_gitignore_if_needed()
 #
 remember_embedded_repository()
 {
+   local reposdir
    local dstprefix
    local name
    local url
    local subdir
 
-   dstprefix="$1"
-   name="$2"
-   url="$3"
-   subdir="$4"
+   reposdir="$1"
+   dstprefix="$2"
+   name="$3"
+   url="$4"
+   subdir="$5"
 
    local content
    local embeddeddir
    local content
 
-   embeddeddir="${dstprefix}${CLONESFETCH_SUBDIR}/.embedded"
+   embeddeddir="${dstprefix}${reposdir}/.bootstrap_embedded"
    mkdir_if_missing "${embeddeddir}"
    content="${subdir}
 ${url}"
@@ -1242,11 +1296,13 @@ ${url}"
 
 clone_embedded_repository()
 {
+   local reposdir
    local dstprefix
    local clone
 
-   dstprefix="$1"
-   clone="$2"
+   reposdir="$1"
+   dstprefix="$2"
+   clone="$3"
 
    local name
    local url
@@ -1264,9 +1320,9 @@ clone_embedded_repository()
 
    if [ ! -d "${dstdir}" ]
    then
-      create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+      create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
 
-      if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${CLONESFETCH_SUBDIR}/.embedded/.graveyard/${name}" ]
+      if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${reposdir}/.bootstrap_embedded/.bootstrap_graveyard/${name}" ]
       then
          local parent
 
@@ -1281,7 +1337,7 @@ clone_embedded_repository()
             ;;
          esac
 
-         exekutor mv "${CLONESFETCH_SUBDIR}/.embedded/.graveyard/${name}" "${dstdir}" || fail "move failed"
+         exekutor mv "${reposdir}/.bootstrap_embedded/.bootstrap_graveyard/${name}" "${dstdir}" || fail "move failed"
 
          ensure_clone_url_is_correct "${dstdir}" "${url}"
          ensure_clone_branch_is_correct "${dstdir}" "${branch}"
@@ -1323,17 +1379,21 @@ clone_embedded_repository()
    #
    # always memorize, even if existed, which could be a clean gone wrong
    #
-   remember_embedded_repository "${dstprefix}" "${name}" "${url}" "${subdir}"
+   remember_embedded_repository "${reposdir}" "${dstprefix}" "${name}" "${url}" "${subdir}"
 
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
 }
 
 
 clone_embedded_repositories()
 {
+   local reposdir
    local dstprefix
 
-   dstprefix="$1"
+   reposdir="$1"
+   dstprefix="$2"
+
+   [ $# -le 2 ] || internal_fail "wrong number of parameters"
 
    local clones
    local clone
@@ -1350,11 +1410,11 @@ clone_embedded_repositories()
       do
          IFS="${DEFAULT_IFS}"
 
-         clone_embedded_repository "${dstprefix}" "${clone}"
+         clone_embedded_repository "${reposdir}" "${dstprefix}" "${clone}"
       done
       IFS="${DEFAULT_IFS}"
 
-      remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+      remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
    fi
 
    MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
@@ -1363,9 +1423,11 @@ clone_embedded_repositories()
 
 update_embedded_repositories()
 {
+   local reposdir
    local dstprefix
 
-   dstprefix="$1"
+   reposdir="$1"
+   dstprefix="$2"
 
    local clones
    local clone
@@ -1399,16 +1461,16 @@ update_embedded_repositories()
          dstdir="${dstprefix}${subdir}"
          log_fetch_action "${url}" "${dstdir}"
 
-         create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+         create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
 
          if [ -e "${dstdir}" ]
          then
-            update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
+            update "${reposdir}" "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
          else
-            clone_embedded_repository "${dstprefix}" "${clone}"
+            clone_embedded_repository "${reposdir}" "${dstprefix}" "${clone}"
          fi
 
-         remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+         remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
       done
 
       IFS="${DEFAULT_IFS}"
@@ -1456,7 +1518,7 @@ _common_main()
             IGNORE_BRANCH="YES"
          ;;
 
-         -u|--update-symlinks)
+         -us|--update-symlinks)
             MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
          ;;
 
@@ -1528,12 +1590,12 @@ _common_main()
    then
       if [ $# -ne 0 ]
       then
-         log_error "Additional parameters not allowed for fetch ($@)"
+         log_error "Additional parameters not allowed for fetch (" "$@" ")"
          ${USAGE}
       fi
    fi
 
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_done"
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
 
    #
    # Run prepare scripts if present
@@ -1549,16 +1611,16 @@ _common_main()
 
       if [ -z "${EMBEDDED_ONLY}" ]
       then
-         clone_repositories
+         clone_repositories "${REPOS_DIR}"
       fi
-      clone_embedded_repositories
+      clone_embedded_repositories "${REPOS_DIR}"
 
       # install brews again, in case we inherited some in the meantime
       install_brews YES
 
       check_tars
    else
-      if dir_is_empty "${CLONESFETCH_SUBDIR}"
+      if dir_is_empty "${REPOS_DIR}"
       then
          log_info "Nothing to update, fetch first"
 
@@ -1567,29 +1629,29 @@ _common_main()
 
       if [ -z "${EMBEDDED_ONLY}" ]
       then
-         update_repositories "$@"
+         update_repositories "${REPOS_DIR}" "$@"
       fi
-      update_embedded_repositories
+      update_embedded_repositories "${REPOS_DIR}"
    fi
 
    #
    # Run prepare scripts if present
    #
-   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_started"
 
    fetch__run_fetch_settings_script "post-${COMMAND}" "$@"
 
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.fetch_update_started"
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_started"
 
    if read_yes_no_config_setting "update_gitignore" "YES"
    then
       if [ -d .git ]
       then
-         append_dir_to_gitignore_if_needed "${BOOTSTRAP_SUBDIR}.auto"
-         append_dir_to_gitignore_if_needed "${BOOTSTRAP_SUBDIR}.local"
-         append_dir_to_gitignore_if_needed "${DEPENDENCY_SUBDIR}"
-         append_dir_to_gitignore_if_needed "${ADDICTION_SUBDIR}"
-         append_dir_to_gitignore_if_needed "${CLONES_SUBDIR}"
+         append_dir_to_gitignore_if_needed "${BOOTSTRAP_DIR}.auto"
+         append_dir_to_gitignore_if_needed "${BOOTSTRAP_DIR}.local"
+         append_dir_to_gitignore_if_needed "${DEPENDENCIES_SUBDIR}"
+         append_dir_to_gitignore_if_needed "${ADDICTIONS_DIR}"
+         append_dir_to_gitignore_if_needed "${REPOS_DIR}"
       fi
    fi
 
@@ -1599,7 +1661,7 @@ _common_main()
    # if fetch_done is older than refresh_done, we know we should
    # fetch again
    #
-   create_file_if_missing "${CLONESFETCH_SUBDIR}/.fetch_done"
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_done"
 }
 
 

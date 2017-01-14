@@ -30,17 +30,31 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_BOOTSTRAP_AUTO_UPDATE_SH="included"
 
+
 #
-# MERGE some settings
+# What auto_update does:
+#
+# 1. bootstrap_auto_create:
+#    1.a. run once to copy roots .bootstrap.local to .bootstrap.auto
+#    1.b) augment .bootstrap.local with stuff from .bootstrap
+#
+# 2. bootstrap_auto_update:
+#    2.a) augment .bootstrap.local with stuff from .repos/<name>/.bootstrap
+#
+
 #
 # prepend new contents to old contents
 # of a few select and known files, these are merged with whats there
+# `BOOTSTRAP_DIR` is the "root" bootstrap to update
+# `directory` can be the inferior bootstrap of a fetched repository
 #
-bootstrap_auto_update_merge()
+_bootstrap_auto_update_merge()
 {
    local directory
 
    directory="$1"
+
+   [ -z "${directory}" ] && internal_fail "wrong"
 
    local srcfile
    local dstfile
@@ -66,7 +80,7 @@ bootstrap_auto_update_merge()
          continue
       fi
 
-      localfile="${BOOTSTRAP_SUBDIR}.local/${settingname}"
+      localfile="${BOOTSTRAP_DIR}.local/${settingname}"
 
       if [ -e "${localfile}" ]
       then
@@ -81,10 +95,10 @@ bootstrap_auto_update_merge()
          continue
       fi
 
-      dstfile="${BOOTSTRAP_SUBDIR}.auto/${settingname}"
+      dstfile="${BOOTSTRAP_DIR}.auto/${settingname}"
       if [ -f "${dstfile}" ]
       then
-         tmpfile="${BOOTSTRAP_SUBDIR}.auto/${settingname}.tmp"
+         tmpfile="${BOOTSTRAP_DIR}.auto/${settingname}.tmp"
 
          log_fluff "Merging \"${settingname}\" from \"${srcfile}\""
 
@@ -102,7 +116,7 @@ bootstrap_auto_update_merge()
 }
 
 
-bootstrap_auto_copy_public_settings()
+_bootstrap_auto_copy_public_settings()
 {
    local name
    local directory
@@ -110,11 +124,13 @@ bootstrap_auto_copy_public_settings()
    name="$1"
    directory="$2"
 
+   [ -z "${name}" -o -z "${directory}" ] && internal_fail "wrong"
+
    local srcdir
    local dstdir
 
    srcdir="${directory}/.bootstrap/public_settings"
-   dstdir="${BOOTSTRAP_SUBDIR}.auto/${name}"
+   dstdir="${BOOTSTRAP_DIR}.auto/${name}"
 
    if dir_has_files "${srcdir}"
    then
@@ -123,7 +139,7 @@ bootstrap_auto_copy_public_settings()
 }
 
 
-bootstrap_auto_update_repo_settings()
+_bootstrap_auto_update_repo_settings()
 {
    local directory
 
@@ -134,7 +150,7 @@ bootstrap_auto_update_repo_settings()
    local reponame
 
    srcdir="${directory}/.bootstrap"
-   dstdir="${BOOTSTRAP_SUBDIR}.auto"
+   dstdir="${BOOTSTRAP_DIR}.auto"
 
    mkdir_if_missing "${dstdir}"
 
@@ -165,25 +181,31 @@ bootstrap_auto_update_repo_settings()
 
 
 #
+# This function is called periodocally to update .bootstrap.auto with the
+# contents of fetched repository .bootstraps
+#
+# `BOOTSTRAP_DIR` is the "root" bootstrap to update
+# `directory` the fetched repository
 # return 0, if something changed
 #
 bootstrap_auto_update()
 {
    local name
-   local url
    local directory
 
    name="$1"
-   url="$2"
-   directory="$3"
+   directory="$2"
 
-   [ -z "${directory}" ]         && internal_fail "src was empty"
+   [ -z "${BOOTSTRAP_DIR}" ]     && internal_fail "BOOTSTRAP_DIR was empty"
+   [ -z "${directory}" ]         && internal_fail "directory was empty"
    [ "${PWD}" = "${directory}" ] && internal_fail "configuration error"
 
    if [ "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES" ]
    then
-      log_trace2 "bootstrap.auto: ${name}"
+      log_trace2 "bootstrap.auto: ${name} from ${directory}"
    fi
+
+   log_verbose "Auto update \"${name}\" settings ($directory)"
 
    # contains own bootstrap ? and not a symlink
    if [ ! -d "${directory}/.bootstrap" ] # -a ! -L "${dst}" ]
@@ -192,38 +214,47 @@ bootstrap_auto_update()
       return 1
    fi
 
-   log_verbose "Updating .bootstrap.auto with ${directory}"
+   log_verbose "Updating .bootstrap.auto with ${directory}/.bootstrap ($PWD)"
 
    log_fluff "Acquiring \"${name}\" merge settings"
-   bootstrap_auto_update_merge "${directory}"
+   _bootstrap_auto_update_merge "${directory}"
 
    log_fluff "Acquiring \"${name}\" public settings"
-   bootstrap_auto_copy_public_settings "${name}" "${directory}"
+   _bootstrap_auto_copy_public_settings "${name}" "${directory}"
 
    log_fluff "Acquiring \"${name}\" repo settings"
-   bootstrap_auto_update_repo_settings "${directory}"
+   _bootstrap_auto_update_repo_settings "${directory}"
 
-   log_fluff "Acquisiton of \"${name}\" complete"
+   log_fluff "Acquisiton of \"${name}\" settings complete"
+
    return 0
 }
 
+
+#
+# This function is called initially to setup .bootstrap.auto before
+# doing anything else. It is clear that .bootstrap.auto does not exist
 #
 # copy contents of .bootstrap.local to .bootstrap.auto
 # them add contents of .bootstrap to .bootstrap.auto, if not present
 #
 bootstrap_auto_create()
 {
-   log_verbose "Creating .bootstrap.auto from .bootstrap and .bootstrap.local"
+   [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "empty bootstrap"
+   [ -d "${BOOTSTRAP_DIR}.auto" ] && internal_fail "${BOOTSTRAP_DIR}.auto already exists"
 
-   [ -z "${BOOTSTRAP_SUBDIR}" ] && internal_fail "empty bootstrap"
+   log_verbose "Creating .bootstrap.auto from ${BOOTSTRAP_DIR} (`pwd -P`)"
 
    assert_mulle_bootstrap_version
 
-   mkdir_if_missing "${BOOTSTRAP_SUBDIR}.auto"
+   mkdir_if_missing "${BOOTSTRAP_DIR}.auto"
 
-   if dir_has_files "${BOOTSTRAP_SUBDIR}.local"
+   #
+   # Copy over .local verbatim
+   #
+   if dir_has_files "${BOOTSTRAP_DIR}.local"
    then
-      exekutor cp -Ra "${BOOTSTRAP_SUBDIR}.local/" "${BOOTSTRAP_SUBDIR}.auto/"
+      exekutor cp -Ra "${BOOTSTRAP_DIR}.local/" "${BOOTSTRAP_DIR}.auto/"
    fi
 
    #
@@ -237,7 +268,7 @@ bootstrap_auto_create()
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
    IFS="
 "
-   for file in `ls -1 "${BOOTSTRAP_SUBDIR}"`
+   for file in `ls -1 "${BOOTSTRAP_DIR}"`
    do
       IFS="${DEFAULT_IFS}"
       name="`basename -- "${file}"`"
@@ -248,11 +279,11 @@ bootstrap_auto_create()
          ;;
 
          public_settings)
-            exekutor cp -Ran "${BOOTSTRAP_SUBDIR}/public_settings/" "${BOOTSTRAP_SUBDIR}.auto/settings"
+            exekutor cp -Ran "${BOOTSTRAP_DIR}/public_settings/" "${BOOTSTRAP_DIR}.auto/settings"
          ;;
 
          *)
-            exekutor cp -Ran "${BOOTSTRAP_SUBDIR}/${name}" "${BOOTSTRAP_SUBDIR}.auto/"
+            exekutor cp -Ran "${BOOTSTRAP_DIR}/${name}" "${BOOTSTRAP_DIR}.auto/"
          ;;
       esac
    done

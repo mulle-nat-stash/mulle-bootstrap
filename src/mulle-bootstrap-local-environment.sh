@@ -107,65 +107,18 @@ add_path()
 }
 
 
-make_executable_search_path()
-{
-   local path
-
-   path="$1"
-   #
-   #
-   #
-   local new_path
-   local tail_path
-   local directory
-
-   tail_path=""
-   new_path=""
-   directory="`pwd -P`"
-
-   tail_path="`add_path "${tail_path}" "${directory}/addictions/bin"`"
-   tail_path="`add_path "${tail_path}" "${directory}/dependencies/bin"`"
-
-   local i
-   local oldifs
-
-   oldifs="$IFS"
-   IFS=":"
-
-   for i in $path
-   do
-      IFS="${oldifs}"
-
-      # shims stay in front (homebrew)
-      case "$i" in
-         */shims/*)
-            new_path="`add_path "${new_path}" "$i"`"
-         ;;
-
-         *)
-            tail_path="`add_path "${tail_path}" "$i"`"
-         ;;
-      esac
-   done
-
-   IFS="${oldifs}"
-
-   add_path "${new_path}" "${tail_path}"
-}
-
-
 # figure out if we need to run refresh
 build_needed()
 {
-   if [ ! -f "${CLONESFETCH_SUBDIR}/.build_done" ]
+   if [ ! -f "${REPOS_DIR}/.bootstrap_build_done" ]
    then
-      log_fluff "Need build because ${CLONESFETCH_SUBDIR}/.build_done does not exist."
+      log_fluff "Need build because ${REPOS_DIR}/.bootstrap_build_done does not exist."
       return 0
    fi
 
-   if [ "${CLONESFETCH_SUBDIR}/.build_done" -ot "${CLONESFETCH_SUBDIR}/.refresh_done" ]
+   if [ "${REPOS_DIR}/.bootstrap_build_done" -ot "${REPOS_DIR}/.bootstrap_refresh_done" ]
    then
-      log_fluff "Need build because \"${CLONESFETCH_SUBDIR}/.build_done\" is older than \"${CLONESFETCH_SUBDIR}/.refresh_done\""
+      log_fluff "Need build because \"${REPOS_DIR}/.bootstrap_build_done\" is older than \"${REPOS_DIR}/.bootstrap_refresh_done\""
       return 0
    fi
 
@@ -175,21 +128,21 @@ build_needed()
 
 fetch_needed()
 {
-   if [ ! -f "${CLONESFETCH_SUBDIR}/.fetch_done" ]
+   if [ ! -f "${REPOS_DIR}/.bootstrap_fetch_done" ]
    then
-      log_fluff "Need fetch because ${CLONESFETCH_SUBDIR}/.fetch_done does not exist."
+      log_fluff "Need fetch because ${REPOS_DIR}/.bootstrap_fetch_done does not exist."
       return 0
    fi
 
-   if [ "${CLONESFETCH_SUBDIR}/.fetch_done" -ot "${CLONESFETCH_SUBDIR}/.refresh_done" ]
+   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${REPOS_DIR}/.bootstrap_refresh_done" ]
    then
-      log_fluff "Need fetch because \"${CLONESFETCH_SUBDIR}/.fetch_done\" is older than \"${CLONESFETCH_SUBDIR}/.refresh_done\""
+      log_fluff "Need fetch because \"${REPOS_DIR}/.bootstrap_fetch_done\" is older than \"${REPOS_DIR}/.bootstrap_refresh_done\""
       return 0
    fi
 
-   if [ "${CLONESFETCH_SUBDIR}/.fetch_done" -ot "${BOOTSTRAP_SUBDIR}" ]
+   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_DIR}" ]
    then
-      log_fluff "Need fetch because \"${BOOTSTRAP_SUBDIR}\" is modified"
+      log_fluff "Need fetch because \"${BOOTSTRAP_DIR}\" is modified"
       return 0
    fi
 
@@ -199,33 +152,33 @@ fetch_needed()
 
 refresh_needed()
 {
-   if [ ! -d "${BOOTSTRAP_SUBDIR}.auto" ]
+   if [ ! -d "${BOOTSTRAP_DIR}.auto" ]
    then
-     log_fluff "Need refresh because \"${BOOTSTRAP_SUBDIR}.auto\" does not exist."
+     log_fluff "Need refresh because \"${BOOTSTRAP_DIR}.auto\" does not exist."
      return 0
    fi
 
-   if [ ! -f "${CLONESFETCH_SUBDIR}/.refresh_done" ]
+   if [ ! -f "${REPOS_DIR}/.bootstrap_refresh_done" ]
    then
-      log_fluff "Need refresh because \"${CLONESFETCH_SUBDIR}/.refresh_done\" does not exist."
+      log_fluff "Need refresh because \"${REPOS_DIR}/.bootstrap_refresh_done\" does not exist."
       return 0
    fi
 
-   if [ ! -z "`find "${BOOTSTRAP_SUBDIR}" -newer "${CLONESFETCH_SUBDIR}/.refresh_done" 2> /dev/null`" ]
+   if [ ! -z "`find "${BOOTSTRAP_DIR}" -newer "${REPOS_DIR}/.bootstrap_refresh_done" 2> /dev/null`" ]
    then
-      log_fluff "Need refresh because \"${BOOTSTRAP_SUBDIR}\" is modified"
+      log_fluff "Need refresh because \"${BOOTSTRAP_DIR}\" is modified"
       return 0
    fi
 
-   if [ ! -z "`find "${BOOTSTRAP_SUBDIR}.local" -newer "${CLONESFETCH_SUBDIR}/.refresh_done" 2> /dev/null`" ]
+   if [ ! -z "`find "${BOOTSTRAP_DIR}.local" -newer "${REPOS_DIR}/.bootstrap_refresh_done" 2> /dev/null`" ]
    then
-      log_fluff "Need refresh because \"${BOOTSTRAP_SUBDIR}.local\" is modified"
+      log_fluff "Need refresh because \"${BOOTSTRAP_DIR}.local\" is modified"
       return 0
    fi
 
-   if [ ! -z "`find "${CLONESFETCH_SUBDIR}"/*/"${BOOTSTRAP_SUBDIR}" -newer "${CLONESFETCH_SUBDIR}/.refresh_done" 2> /dev/null`" ]
+   if [ ! -z "`find "${REPOS_DIR}"/*/"${BOOTSTRAP_DIR}" -newer "${REPOS_DIR}/.bootstrap_refresh_done" 2> /dev/null`" ]
    then
-      log_fluff "Need refresh because \"${BOOTSTRAP_SUBDIR}.local\" is modified"
+      log_fluff "Need refresh because \"${BOOTSTRAP_DIR}.local\" is modified"
       return 0
    fi
 
@@ -277,13 +230,13 @@ assert_mulle_bootstrap_version()
    local version
 
    # has to be read before .auto is setup
-   version="`_read_setting "${BOOTSTRAP_SUBDIR}/version"`"
+   version="`_read_setting "${BOOTSTRAP_DIR}/version"`"
    if check_version "$version" "${MULLE_BOOTSTRAP_VERSION_MAJOR}" "${MULLE_BOOTSTRAP_VERSION_MINOR}"
    then
       return
    fi
 
-   fail "This ${BOOTSTRAP_SUBDIR} requires mulle-bootstrap version ${version} at least, you have ${MULLE_BOOTSTRAP_VERSION}"
+   fail "This ${BOOTSTRAP_DIR} requires mulle-bootstrap version ${version} at least, you have ${MULLE_BOOTSTRAP_VERSION}"
 }
 
 
@@ -346,53 +299,6 @@ expanded_variables()
 
    echo "$value"
 }
-
-
-expanded_embedded_variables()
-{
-   local memo1
-   local memo2
-
-   local value
-
-   [ -z "${ROOT_BOOTSTRAP_SUBDIR}" ] && internal_fail "root bootstrap"
-
-   # first search in /.bootstrap.auto
-   # a bit hackish
-
-   memo1="${MULLE_BOOTSTRAP_SETTINGS_NO_AUTO}"
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
-
-      memo2="${BOOTSTRAP_SUBDIR}"
-      BOOTSTRAP_SUBDIR="${ROOT_BOOTSTRAP_SUBDIR}"
-
-         value="`_expanded_variables "$1"`"
-
-      BOOTSTRAP_SUBDIR="${memo2}"
-
-      # then search in (embedded).bootstrap
-
-      if [ "$1" != "${value}" ]
-      then
-         log_fluff "Expanded \"$1\" to \"${value}\""
-      else
-         #
-         # else don't search in .auto
-         #
-         MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
-         value="`_expanded_variables "$1"`"
-
-         if [ "$1" != "${value}" ]
-         then
-            log_fluff "Expanded \"$1\" to \"${value}\""
-         fi
-      fi
-
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="${memo1}"
-
-   echo "$value"
-}
-
 
 
 source_environment_file()
@@ -459,15 +365,15 @@ source_environment()
       flag="${MULLE_BOOTSTRAP_FLUFF}"
    fi
 
-   if source_environment_file "${BOOTSTRAP_SUBDIR}.auto/environment"
+   if source_environment_file "${BOOTSTRAP_DIR}.auto/environment"
    then
       flag="${MULLE_BOOTSTRAP_FLUFF}"
    else
-      if source_environment_file "${BOOTSTRAP_SUBDIR}.local/environment"
+      if source_environment_file "${BOOTSTRAP_DIR}.local/environment"
       then
          flag="${MULLE_BOOTSTRAP_FLUFF}"
       else
-         if source_environment_file "${BOOTSTRAP_SUBDIR}/environment"
+         if source_environment_file "${BOOTSTRAP_DIR}/environment"
          then
             flag="${MULLE_BOOTSTRAP_FLUFF}"
          fi
@@ -490,15 +396,13 @@ local_environment_initialize()
    # read local environment
    # source this file
    #
-   BOOTSTRAP_SUBDIR=.bootstrap
-   # can't rename this because of embedded reposiories
-   CLONES_SUBDIR=.repos
-   # future: shared dependencies folder for many projects
-   #RELATIVE_ROOT=""
+   BOOTSTRAP_DIR=.bootstrap
 
-   CLONESFETCH_SUBDIR="${CLONES_SUBDIR}"
-   DEPENDENCY_SUBDIR="${RELATIVE_ROOT}dependencies"
-   ADDICTION_SUBDIR="${RELATIVE_ROOT}addictions"
+   # can't repositions this because of embedded reposiories
+   REPOS_DIR=.repos
+
+   # this can be variable though...
+   REPOS_DIR="${REPOS_DIR}"
 
    log_fluff "${UNAME} detected"
    case "${UNAME}" in

@@ -263,7 +263,7 @@ tag_main()
       fi
    fi
 
-   if dir_has_files "${CLONES_SUBDIR}"
+   if dir_has_files "${REPOS_DIR}"
    then
       log_fluff "Will ${TAG_OPERATION} clones with ${TAG}"
    else

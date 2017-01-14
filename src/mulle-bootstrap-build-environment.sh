@@ -78,6 +78,58 @@ build_complete_environment()
 }
 
 
+make_executable_search_path()
+{
+   local path
+   local dependencies
+   local addictions
+
+   path="$1"
+   dependencies="$2"
+   addictions="$3"
+
+   #
+   #
+   #
+   local new_path
+   local tail_path
+
+   tail_path=""
+   new_path=""
+   addictions="`realpath "${addictions}"`"
+   dependencies="`realpath "${dependencies}"`"
+
+   tail_path="`add_path "${tail_path}" "${dependencies}/bin"`"
+   tail_path="`add_path "${tail_path}" "${addictions}/bin"`"
+
+   local i
+   local oldifs
+
+   oldifs="$IFS"
+   IFS=":"
+
+   for i in $path
+   do
+      IFS="${oldifs}"
+
+      # shims stay in front (homebrew)
+      case "$i" in
+         */shims/*)
+            new_path="`add_path "${new_path}" "$i"`"
+         ;;
+
+         *)
+            tail_path="`add_path "${tail_path}" "$i"`"
+         ;;
+      esac
+   done
+
+   IFS="${oldifs}"
+
+   add_path "${new_path}" "${tail_path}"
+}
+
+
 build_environment_initialize()
 {
    log_fluff ":build_environment_initialize:"
@@ -85,11 +137,20 @@ build_environment_initialize()
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
-   CLONESBUILD_SUBDIR=`read_sane_config_path_setting "build_foldername" "${RELATIVE_ROOT}build/.repos"`
-   BUILDLOG_SUBDIR=`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`
+   CLONESBUILD_SUBDIR="`read_sane_config_path_setting "build_foldername" "build/.repos"`"
+   BUILDLOG_SUBDIR="`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`"
+   DEPENDENCIES_DIR="`read_sane_config_path_setting "dependency_dir" "dependencies"`"
+   ADDICTIONS_DIR="`read_sane_config_path_setting "addictions_dir" "addictions"`"
 
-   [ -z "${CLONESBUILD_SUBDIR}" ]   && internal_fail "variable CLONESBUILD_SUBDIR is empty"
-   [ -z "${BUILDLOG_SUBDIR}" ]      && internal_fail "variable BUILDLOG_SUBDIR is empty"
+   [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "variable CLONESBUILD_SUBDIR is empty"
+   [ -z "${BUILDLOG_SUBDIR}" ]    && internal_fail "variable BUILDLOG_SUBDIR is empty"
+   [ -z "${DEPENDENCIES_DIR}" ]     && internal_fail "variable DEPENDENCIES_DIR is empty"
+   [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "variable ADDICTIONS_DIR is empty"
+
+   PATH="`make_executable_search_path "$PATH" "${DEPENDENCIES_DIR}" "${ADDICTIONS_DIR}"`"
+   export PATH
+
+   log_fluff "PATH set to: $PATH"
 
    #
    # Global Settings

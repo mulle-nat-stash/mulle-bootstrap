@@ -332,7 +332,7 @@ git_main()
       break
    done
 
-   if dir_has_files "${CLONES_SUBDIR}"
+   if dir_has_files "${REPOS_DIR}"
    then
       log_fluff "Will git $* clones " >&2
    else

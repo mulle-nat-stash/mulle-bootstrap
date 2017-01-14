@@ -33,23 +33,23 @@ MULLE_BOOTSTRAP_CLEAN_SH="included"
 
 setup_clean_environment()
 {
-   [ -z "${DEPENDENCY_SUBDIR}"  ] && internal_fail "DEPENDENCY_SUBDIR is empty"
+   [ -z "${DEPENDENCIES_DIR}"  ] && internal_fail "DEPENDENCIES_DIR is empty"
    [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "CLONESBUILD_SUBDIR is empty"
-   [ -z "${ADDICTION_SUBDIR}"   ] && internal_fail "ADDICTION_SUBDIR is empty"
+   [ -z "${ADDICTIONS_DIR}"   ] && internal_fail "ADDICTIONS_DIR is empty"
 
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
-   BUILD_CLEANABLE_FILES="${CLONESFETCH_SUBDIR}/.build_done"
+   BUILD_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
 
    BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
-${DEPENDENCY_SUBDIR}/tmp"`"
-   OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
-   INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${CLONES_SUBDIR}
+${DEPENDENCIES_DIR}/tmp"`"
+   OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
+   INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
 .bootstrap.auto"`"
-   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
-${ADDICTION_SUBDIR}
+   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${REPOS_DIR}
+${ADDICTIONS_DIR}
 .bootstrap.auto"`"
-   EMBEDDED="`embedded_repository_directories_from_repos`"
+   EMBEDDED="`embedded_repository_directories_from_repos "${REPOS_DIR}"`"
 
    DIST_CLEANABLE_SUBDIRS="`add_line "${EMBEDDED}" "${DIST_CLEANABLE_SUBDIRS}"`"
 }
@@ -153,7 +153,7 @@ clean_parent_folders_if_empty()
          then
             assert_sane_subdir_path "${parent}"
             log_info "Deleting \"${parent}\" because it was empty. "
-            log_fluff "Set \"${BOOTSTRAP_SUBDIR}/config/clean_empty_parent_folders\" to NO if you don't like it."
+            log_fluff "Set \"${BOOTSTRAP_DIR}/config/clean_empty_parent_folders\" to NO if you don't like it."
             exekutor rmdir "${parent}"
          fi
       done
@@ -219,9 +219,9 @@ _clean_execute()
 {
    local flag
 
-   [ -z "${DEPENDENCY_SUBDIR}"  ] && internal_fail "DEPENDENCY_SUBDIR is empty"
+   [ -z "${DEPENDENCIES_DIR}"  ] && internal_fail "DEPENDENCIES_DIR is empty"
    [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "CLONESBUILD_SUBDIR is empty"
-   [ -z "${ADDICTION_SUBDIR}"   ] && internal_fail "ADDICTION_SUBDIR is empty"
+   [ -z "${ADDICTIONS_DIR}"   ] && internal_fail "ADDICTIONS_DIR is empty"
 
    flag="NO"
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
@@ -230,8 +230,8 @@ _clean_execute()
    case "${COMMAND}" in
       build)
          BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
-${DEPENDENCY_SUBDIR}/tmp"`"
-         BUILD_CLEANABLE_FILES="${CLONESFETCH_SUBDIR}/.build_done"
+${DEPENDENCIES_DIR}/tmp"`"
+         BUILD_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
          clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"
          clean_files "${BUILD_CLEANABLE_FILES}"
          return
@@ -239,8 +239,8 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
 
       dist|output|install)
          BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
-${DEPENDENCY_SUBDIR}/tmp"`"
-         BUILD_CLEANABLE_FILES="${CLONESFETCH_SUBDIR}/.build_done"
+${DEPENDENCIES_DIR}/tmp"`"
+         BUILD_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
          flag="`clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"`"
          clean_files "${BUILD_CLEANABLE_FILES}"
       ;;
@@ -248,14 +248,14 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
 
    case "${COMMAND}" in
       output)
-         OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
+         OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
          clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"
          clean_files "${OUTPUT_CLEANABLE_FILES}"
          return
       ;;
 
       dist)
-         OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCY_SUBDIR}"`"
+         OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
          flag="`clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"`"
          clean_files "${OUTPUT_CLEANABLE_FILES}"
       ;;
@@ -263,7 +263,7 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
 
    case "${COMMAND}" in
       install)
-         INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${CLONES_SUBDIR}
+         INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
 .bootstrap.auto"`"
          clean_directories "${INSTALL_CLEANABLE_SUBDIRS}" "${flag}"
          clean_files "${INSTALL_CLEANABLE_FILES}"
@@ -273,10 +273,10 @@ ${DEPENDENCY_SUBDIR}/tmp"`"
 
    case "${COMMAND}" in
       dist)
-         DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${CLONES_SUBDIR}
-${ADDICTION_SUBDIR}
+         DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${REPOS_DIR}
+${ADDICTIONS_DIR}
 .bootstrap.auto"`"
-         EMBEDDED="`embedded_repository_directories_from_repos`"
+         EMBEDDED="`embedded_repository_directories_from_repos "${REPOS_DIR}"`"
 
          if [ ! -z "$EMBEDDED" ]
          then

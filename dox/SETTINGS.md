@@ -163,8 +163,6 @@ in the environment. These can only be specified locally. They are not inherited.
 
 Setting Name                      |  Description                                  | Default
 ----------------------------------|-----------------------------------------------|--------------
-`repos_foldername`                | Where to place cloned repositories            | `.repos`
-`output_foldername`               | DSTROOT, --prefix of headers and libraries    | `dependencies`
 `no_warn_environment_setting`     | don't warn when a setting is defined by       |
                                   | environment                                   | NO
 `no_warn_local_setting`           | don't warn when a setting is defined by       |

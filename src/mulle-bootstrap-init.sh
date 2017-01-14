@@ -92,9 +92,9 @@ init_main()
       shift
    done
 
-   if [ -d "${BOOTSTRAP_SUBDIR}" ]
+   if [ -d "${BOOTSTRAP_DIR}" ]
    then
-      log_warning "\"${BOOTSTRAP_SUBDIR}\" already exists"
+      log_warning "\"${BOOTSTRAP_DIR}\" already exists"
       exit 1
    fi
 
@@ -112,10 +112,10 @@ init_main()
    done
 
 
-   log_fluff "Create \"${BOOTSTRAP_SUBDIR}\""
-   mkdir_if_missing "${BOOTSTRAP_SUBDIR}"
+   log_fluff "Create \"${BOOTSTRAP_DIR}\""
+   mkdir_if_missing "${BOOTSTRAP_DIR}"
 
-   redirect_exekutor "${BOOTSTRAP_SUBDIR}/version" cat <<EOF
+   redirect_exekutor "${BOOTSTRAP_DIR}/version" cat <<EOF
 # required mulle-bootstrap version
 ${MULLE_BOOTSTRAP_VERSION_MAJOR}.0.0
 EOF
@@ -125,18 +125,18 @@ EOF
       log_fluff "Create default files"
 
 
-#cat <<EOF > "${BOOTSTRAP_SUBDIR}/pips"
+#cat <<EOF > "${BOOTSTRAP_DIR}/pips"
 # add projects that should be installed by pip
 # try to avoid it, since it needs sudo (uncool)
 # mod-pbxproj
 #EOF
 
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/repositories" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/repositories" cat <<EOF
 #
 # Add repository URLs to this file.
 #
-# mulle-bootstrap [fetch] will download these into "${CLONES_SUBDIR}"
-# mulle-bootstrap [build] will then build them into "${DEPENDENCY_SUBDIR}"
+# mulle-bootstrap [fetch] will download these into "${REPOS_DIR}"
+# mulle-bootstrap [build] will then build them into "${DEPENDENCIES_DIR}"
 #
 # Each line consists of four fields, only the URL is necessary.
 # Possible URL forms for repositories:
@@ -147,17 +147,17 @@ EOF
 # /Volumes/Source/srcM/MulleScion
 #
 # The NAME should only be used, if you have an actual name conflict
-# in your dependencies. TAG can be a git branch or a tag. SCM can
-# be git or svn.
+# in your dependencies. BRANCH can be a git branch. SCM can
+# be git or svn. TAG can be specific tag on this branch
 #
-# URL;NAME;TAG;SCM
+# URL;NAME;BRANCH;SCM;TAG
 # ================
-# ex. foo.com/bla.git;bla2;release;git
-# ex. foo.com/bla.svn;;;svn
+# ex. foo.com/bla.git;bla2;release;git;bla-tag
+# ex. foo.com/bla.svn;;;svn;
 #
 EOF
 
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/embedded_repositories" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/embedded_repositories" cat <<EOF
 #
 # Add repository URLs to this file.
 #
@@ -183,11 +183,11 @@ EOF
 #
 #
 EOF
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/brews" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/brews" cat <<EOF
 #
 # Add homebrew packages to this file (https://brew.sh/)
 #
-# mulle-bootstrap [fetch] will install those into "${ADDICTION_SUBDIR}"
+# mulle-bootstrap [fetch] will install those into "${ADDICTIONS_DIR}"
 #
 # e.g.
 # zlib
@@ -199,55 +199,55 @@ EOF
    then
       log_verbose "Create example repository settings"
 
-      mkdir_if_missing "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin"
+      mkdir_if_missing "${BOOTSTRAP_DIR}/MulleScion.example/bin"
 
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/Release.map" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/Release.map" cat <<EOF
 # map configuration Release in project MulleScion to DebugRelease
 # leave commented out or delete file for no mapping
 # DebugRelease
 EOF
 
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/project" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/project" cat <<EOF
 # Specify a xcodeproj to compile in project MulleScion instead of the default
 # leave commented out or delete file for default project
 # mulle-scion
 EOF
 
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/scheme" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/scheme" cat <<EOF
 # Specify a scheme to compile in project MulleScion instead of the default
 # Might bite itself with TARGET, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/target" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/target" cat <<EOF
 # Specify a target to compile in project MulleScion instead of the default.
 # Might bite itself with SCHEME, so only specify one.
 # leave commented out or delete file for default scheme
 # mulle-scion
 EOF
 
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/bin/post-install.sh" cat <<EOF
 # Run some commands after installing project MulleScion
 # leave commented out or delete file for no action
-# chmod 755 ${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh
+# chmod 755 ${BOOTSTRAP_DIR}/MulleScion.example/bin/post-install.sh
 # to make it work
 # echo "1848"
 EOF
-#chmod 755 "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-install.sh"
+#chmod 755 "${BOOTSTRAP_DIR}/MulleScion.example/bin/post-install.sh"
 
-      redirect_exekutor "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-update.sh" cat <<EOF
+      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/bin/post-update.sh" cat <<EOF
 # Run some commands after upgrading project MulleScion
 # leave commented out or delete file for no action
-# chmod 755 ${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-update.sh
+# chmod 755 ${BOOTSTRAP_DIR}/MulleScion.example/bin/post-update.sh
 # to make it work
 # echo "1848"
 EOF
-#chmod 755 "${BOOTSTRAP_SUBDIR}/MulleScion.example/bin/post-upgrade.sh"
+#chmod 755 "${BOOTSTRAP_DIR}/MulleScion.example/bin/post-upgrade.sh"
 
    fi
 
-   log_verbose "\"${BOOTSTRAP_SUBDIR}\" folder has been set up."
+   log_verbose "\"${BOOTSTRAP_DIR}\" folder has been set up."
 
    local open
 
@@ -267,6 +267,6 @@ EOF
       local editor
 
       editor="`read_config_setting "editor" "${EDITOR:-vi}"`"
-      exekutor $editor "${BOOTSTRAP_SUBDIR}/repositories"
+      exekutor $editor "${BOOTSTRAP_DIR}/repositories"
    fi
 }

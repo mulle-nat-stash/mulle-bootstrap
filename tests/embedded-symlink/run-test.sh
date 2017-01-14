@@ -25,6 +25,7 @@ create_demo_repo()
    set +e
 }
 
+
 fail()
 {
    echo "$@" >&2
@@ -68,7 +69,7 @@ create_demo_repo c
 echo "--| 1 |--------------------------------"
 (
    cd c ;
-   mulle-bootstrap -y fetch  ;  # use symlink
+   mulle-bootstrap "$@" -y fetch  ;  # use symlink
 
    [ ! -L .repos/b ]     && fail "failed to symlink b" ;
    [ -d .repos/b/src/a ] && fail "superzealously embedded a" ;
@@ -81,7 +82,7 @@ echo "--| 1 |--------------------------------"
 echo "--| 2 |--------------------------------"
 (
    cd b ;
-   mulle-bootstrap -y fetch  ;  # can't use symlink here
+   mulle-bootstrap "$@" -y fetch  ;  # can't use symlink here
 
    [ ! -d src/a ] && fail "failed to embed a" ;
    [ -L src/a ]   && fail "mistakenly embedded a as a symlink" ;
@@ -100,7 +101,7 @@ echo "--| 3 |--------------------------------"
 
 (
    cd c ;
-   mulle-bootstrap -y fetch  ;  # use symlink
+   mulle-bootstrap "$@" -y fetch  ;  # use symlink
 
    [ ! -L .repos/b ]     && fail "failed to symlink b" ;
    [ ! -d .repos/b/src/a ] && fail "superzealously removed a" ;

@@ -72,7 +72,7 @@ EOF
    You can optionally specify the names of the repositories to build.
    Currently available names are:
 EOF
-   (cd "${CLONES_SUBDIR}" ; ls -1 ) 2> /dev/null
+   (cd "${REPOS_DIR}" ; ls -1 ) 2> /dev/null
 
    exit 1
 }
@@ -103,7 +103,7 @@ dispense_headers()
       then
          headerpath="`read_build_setting "${name}" "dispense_headers_path" "/${HEADER_DIR_NAME}"`"
 
-         dst="${REFERENCE_DEPENDENCY_SUBDIR}${headerpath}"
+         dst="${REFERENCE_DEPENDENCIES_DIR}${headerpath}"
          mkdir_if_missing "${dst}"
 
          # this fails with more nested header set ups, need to fix!
@@ -151,7 +151,7 @@ dispense_binaries()
    then
       if dir_has_files "${src}"
       then
-         dst="${REFERENCE_DEPENDENCY_SUBDIR}${depend_subdir}${subpath}"
+         dst="${REFERENCE_DEPENDENCIES_DIR}${depend_subdir}${subpath}"
 
          log_fluff "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
@@ -201,53 +201,53 @@ collect_and_dispense_product()
 
       # cmake
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/include"
+      src="${BUILD_DEPENDENCIES_DIR}/usr/local/include"
       dispense_headers "${name}" "${src}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/usr/local/lib"
+      src="${BUILD_DEPENDENCIES_DIR}/usr/local/lib"
       dispense_binaries "${name}" "${src}" "f" "${depend_subdir}" "/${LIBRARY_DIR_NAME}"
 
       # pretty much xcodetool specific
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/usr/include"
+      src="${BUILD_DEPENDENCIES_DIR}/usr/include"
       dispense_headers "${name}" "${src}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/include"
+      src="${BUILD_DEPENDENCIES_DIR}/include"
       dispense_headers "${name}" "${src}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/lib"
+      src="${BUILD_DEPENDENCIES_DIR}${build_subdir}/lib"
       dispense_binaries "${name}" "${src}" "f" "${depend_subdir}" "/${LIBRARY_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/Library/Frameworks"
+      src="${BUILD_DEPENDENCIES_DIR}${build_subdir}/Library/Frameworks"
       dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/Frameworks"
+      src="${BUILD_DEPENDENCIES_DIR}${build_subdir}/Frameworks"
       dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/Library/Frameworks"
+      src="${BUILD_DEPENDENCIES_DIR}${build_subdir}/Library/Frameworks"
       dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}${build_subdir}/Frameworks"
+      src="${BUILD_DEPENDENCIES_DIR}${build_subdir}/Frameworks"
       dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/Library/Frameworks"
+      src="${BUILD_DEPENDENCIES_DIR}/Library/Frameworks"
       dispense_binaries "${name}" "${src}" "d"  "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}/Frameworks"
+      src="${BUILD_DEPENDENCIES_DIR}/Frameworks"
       dispense_binaries "${name}" "${src}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
    fi
 
    #
    # Delete empty dirs if so
    #
-   src="${BUILD_DEPENDENCY_SUBDIR}/usr/local"
+   src="${BUILD_DEPENDENCIES_DIR}/usr/local"
    dir_has_files "${src}"
    if [ $? -ne 0 ]
    then
       rmdir_safer "${src}"
    fi
 
-   src="${BUILD_DEPENDENCY_SUBDIR}/usr"
+   src="${BUILD_DEPENDENCIES_DIR}/usr"
    dir_has_files "${src}"
    if [ $? -ne 0 ]
    then
@@ -264,9 +264,9 @@ collect_and_dispense_product()
 
       usrlocal="`read_build_setting "${name}" "dispense_other_path" "/usr/local"`"
 
-      log_fluff "Considering copying ${BUILD_DEPENDENCY_SUBDIR}/*"
+      log_fluff "Considering copying ${BUILD_DEPENDENCIES_DIR}/*"
 
-      src="${BUILD_DEPENDENCY_SUBDIR}"
+      src="${BUILD_DEPENDENCIES_DIR}"
       if [ "${wasxcode}" = "YES" ]
       then
          src="${src}${build_subdir}"
@@ -274,7 +274,7 @@ collect_and_dispense_product()
 
       if dir_has_files "${src}"
       then
-         dst="${REFERENCE_DEPENDENCY_SUBDIR}${usrlocal}"
+         dst="${REFERENCE_DEPENDENCIES_DIR}${usrlocal}"
 
          log_fluff "Copying everything from \"${src}\" to \"${dst}\""
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -print0 | \
@@ -284,17 +284,17 @@ collect_and_dispense_product()
 
       if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
       then
-         if dir_has_files "${BUILD_DEPENDENCY_SUBDIR}"
+         if dir_has_files "${BUILD_DEPENDENCIES_DIR}"
          then
             log_fluff "Directory \"${dst}\" contained files after collect and dispense"
             log_fluff "--------------------"
-            ( cd "${BUILD_DEPENDENCY_SUBDIR}" ; ls -lR >&2 )
+            ( cd "${BUILD_DEPENDENCIES_DIR}" ; ls -lR >&2 )
             log_fluff "--------------------"
          fi
       fi
    fi
 
-   rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
+   rmdir_safer "${BUILD_DEPENDENCIES_DIR}"
 
    log_fluff "Done collecting and dispensing product"
    log_fluff
@@ -308,9 +308,9 @@ enforce_build_sanity()
    builddir="$1"
 
    # these must not exist
-   if [ -d "${BUILD_DEPENDENCY_SUBDIR}" ]
+   if [ -d "${BUILD_DEPENDENCIES_DIR}" ]
    then
-      fail "A previous build left \"${BUILD_DEPENDENCY_SUBDIR}\", can't continue"
+      fail "A previous build left \"${BUILD_DEPENDENCIES_DIR}\", can't continue"
    fi
 }
 
@@ -397,16 +397,16 @@ create_dummy_dirs_against_warnings()
    owd="${PWD}"
 
    # to avoid warnings, make sure directories are all there
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"
 
-   mkdir_if_missing "${owd}/${REFERENCE_ADDICTION_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
-   mkdir_if_missing "${owd}/${REFERENCE_ADDICTION_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_ADDICTIONS_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_ADDICTIONS_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
 
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
 
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
+   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
 }
 
 
@@ -556,7 +556,7 @@ find_compiler()
    compiler="`read_build_setting "${name}" "${compiler_name}"`"
    if [ -z "${compiler}" ]
    then
-      file="${CLONESFETCH_SUBDIR}/${name}/.${compiler_name}"
+      file="${REPOS_DIR}/${name}/.${compiler_name}"
       compiler="`cat "${file}" 2>/dev/null`"
       if [  ! -z "${compiler}" ]
       then
@@ -793,30 +793,30 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="`add_cmake_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"`"
-      includelines="`add_cmake_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_cmake_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_cmake_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}"`"
-      librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}"`"
 
-      frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
-      frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
 
       if [ "${ADD_USR_LOCAL}" = "YES" ]
       then
@@ -832,9 +832,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
 
-      prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
-      dependenciesdir="`add_cmake_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
-      addictionsdir="`add_cmake_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}"`"
+      prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+      dependenciesdir="`add_cmake_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
+      addictionsdir="`add_cmake_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
 
 #      cmakemodulepath="\${CMAKE_MODULE_PATH}"
 #      if [ ! -z "${CMAKE_MODULE_PATH}" ]
@@ -1083,30 +1083,30 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"`"
-      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}"`"
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}"`"
 
-      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
-      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
 
       if [ "${ADD_USR_LOCAL}" = "YES" ]
       then
@@ -1119,9 +1119,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local addictionsdir
       #local linker
 
-      pathrefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCY_SUBDIR}"`"
-      dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCY_SUBDIR}"`"
-      addictionsdir="`add_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTION_SUBDIR}"`"
+      pathrefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+      dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
+      addictionsdir="`add_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
 
       case "${UNAME}" in
          darwin)
@@ -1423,7 +1423,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          schemename="${targetname}"
          targetname=
       else
-         echo "Please specify a scheme to compile in ${BOOTSTRAP_SUBDIR}/${name}/SCHEME for xctool" >& 2
+         echo "Please specify a scheme to compile in ${BOOTSTRAP_DIR}/${name}/SCHEME for xctool" >& 2
          echo "and be sure that this scheme exists and is shared." >& 2
          echo "Or just delete ${HOME}/.mulle-bootstrap/xcodebuild and use xcodebuild (preferred)" >& 2
          exit 1
@@ -1559,8 +1559,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       #
       inherited="`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}" \
-"${owd}/${REFERENCE_ADDICTION_SUBDIR}/${HEADER_DIR_NAME}"`
+"${owd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}" \
+"${owd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`
       if [ -z "${inherited}" ]
       then
          dependencies_header_search_path="${path}"
@@ -1570,13 +1570,13 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
       inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}" \
-"${owd}/${REFERENCE_ADDICTION_SUBDIR}/${LIBRARY_DIR_NAME}"`
+"${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}" \
+"${owd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}" \
+"${owd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}" \
+"${owd}/${REFERENCE_ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}"`
       if [ ! -z "$sdk" ]
       then
-         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
+         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
          path="${escaped} ${path}" # prepend
       fi
       if [ -z "${inherited}" ]
@@ -1594,13 +1594,13 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
       inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`" || exit 1
       path=`combined_escaped_search_path \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}" \
-"${owd}/${REFERENCE_DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}" \
-"${owd}/${REFERENCE_ADDICTION_SUBDIR}/${FRAMEWORK_DIR_NAME}"`
+"${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}" \
+"${owd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}" \
+"${owd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}" \
+"${owd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`
       if [ ! -z "$sdk" ]
       then
-         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCY_SUBDIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
+         escaped="`escaped_spaces "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"'-$(EFFECTIVE_PLATFORM_NAME)'`"
          path="${escaped} ${path}" # prepend
       fi
       if [ -z "${inherited}" ]
@@ -1627,11 +1627,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${XCODEBUILD}\" \"${command}\" ${arguments} \
 ARCHS='${ARCHS:-\${ARCHS_STANDARD_32_64_BIT}}' \
-DSTROOT='${owd}/${BUILD_DEPENDENCY_SUBDIR}' \
+DSTROOT='${owd}/${BUILD_DEPENDENCIES_DIR}' \
 SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
-DEPENDENCIES_DIR='${owd}/${REFERENCE_DEPENDENCY_SUBDIR}' \
-ADDICTIONS_DIR='${owd}/${REFERENCE_ADDICTION_SUBDIR}' \
+DEPENDENCIES_DIR='${owd}/${REFERENCE_DEPENDENCIES_DIR}' \
+ADDICTIONS_DIR='${owd}/${REFERENCE_ADDICTIONS_DIR}' \
 ONLY_ACTIVE_ARCH=${ONLY_ACTIVE_ARCH:-NO} \
 ${skip_install} \
 ${other_cflags} \
@@ -1800,7 +1800,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          "${configuration}" \
          "${owd}/${srcdir}" \
          "${owd}/${builddir}" \
-         "${owd}/${BUILD_DEPENDENCY_SUBDIR}" \
+         "${owd}/${BUILD_DEPENDENCIES_DIR}" \
          "${name}" \
          "${sdk}" > "${logfile}"
       rval=$?
@@ -1946,7 +1946,7 @@ build()
    name="$1"
    srcdir="$2"
 
-   [ "${name}" != "${CLONES_SUBDIR}" ] || internal_fail "missing repo argument (${srcdir})"
+   [ "${name}" != "${REPOS_DIR}" ] || internal_fail "missing repo argument (${srcdir})"
 
    log_verbose "Building ${name} ..."
 
@@ -2013,12 +2013,12 @@ configure"`"
 
 
 #
-# ${DEPENDENCY_SUBDIR} is split into
+# ${DEPENDENCIES_DIR} is split into
 #
-#  REFERENCE_DEPENDENCY_SUBDIR and
-#  BUILD_DEPENDENCY_SUBDIR
+#  REFERENCE_DEPENDENCIES_DIR and
+#  BUILD_DEPENDENCIES_DIR
 #
-# above this function, noone should access ${DEPENDENCY_SUBDIR}
+# above this function, noone should access ${DEPENDENCIES_DIR}
 #
 build_wrapper()
 {
@@ -2028,19 +2028,19 @@ build_wrapper()
    name="$1"
    srcdir="$2"
 
-   REFERENCE_ADDICTION_SUBDIR="${ADDICTION_SUBDIR}"
-   REFERENCE_DEPENDENCY_SUBDIR="${DEPENDENCY_SUBDIR}"
-   BUILD_DEPENDENCY_SUBDIR="${DEPENDENCY_SUBDIR}/tmp"
+   REFERENCE_ADDICTIONS_DIR="${ADDICTIONS_DIR}"
+   REFERENCE_DEPENDENCIES_DIR="${DEPENDENCIES_DIR}"
+   BUILD_DEPENDENCIES_DIR="${DEPENDENCIES_DIR}/tmp"
 
-   DEPENDENCY_SUBDIR="WRONG_DONT_USE_DEPENDENCY_SUBDIR_DURING_BUILD"
-   ADDICTION_SUBDIR="WRONG_DONT_USE_ADDICTION_SUBDIR_DURING_BUILD"
+   DEPENDENCIES_DIR="WRONG_DONT_USE_DEPENDENCIES_DIR_DURING_BUILD"
+   ADDICTIONS_DIR="WRONG_DONT_USE_ADDICTIONS_DIR_DURING_BUILD"
 
-   log_fluff "Setting up BUILD_DEPENDENCY_SUBDIR as \"${BUILD_DEPENDENCY_SUBDIR}\""
+   log_fluff "Setting up BUILD_DEPENDENCIES_DIR as \"${BUILD_DEPENDENCIES_DIR}\""
 
-   if [ "${COMMAND}" != "ibuild" -a -d "${BUILD_DEPENDENCY_SUBDIR}" ]
+   if [ "${COMMAND}" != "ibuild" -a -d "${BUILD_DEPENDENCIES_DIR}" ]
    then
-      log_fluff "Cleaning up orphaned \"${BUILD_DEPENDENCY_SUBDIR}\""
-      rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
+      log_fluff "Cleaning up orphaned \"${BUILD_DEPENDENCIES_DIR}\""
+      rmdir_safer "${BUILD_DEPENDENCIES_DIR}"
    fi
 
 
@@ -2057,16 +2057,16 @@ build_wrapper()
 
    if [ "${COMMAND}" != "ibuild"  ]
    then
-      log_fluff "Remove \"${BUILD_DEPENDENCY_SUBDIR}\""
-      rmdir_safer "${BUILD_DEPENDENCY_SUBDIR}"
+      log_fluff "Remove \"${BUILD_DEPENDENCIES_DIR}\""
+      rmdir_safer "${BUILD_DEPENDENCIES_DIR}"
    fi
 
-   DEPENDENCY_SUBDIR="${REFERENCE_DEPENDENCY_SUBDIR}"
-   ADDICTION_SUBDIR="${REFERENCE_ADDICTION_SUBDIR}"
+   DEPENDENCIES_DIR="${REFERENCE_DEPENDENCIES_DIR}"
+   ADDICTIONS_DIR="${REFERENCE_ADDICTIONS_DIR}"
 
    # for mulle-bootstrap developers
-   REFERENCE_DEPENDENCY_SUBDIR="WRONG_DONT_USE_REFERENCE_DEPENDENCY_SUBDIR_AFTER_BUILD"
-   BUILD_DEPENDENCY_SUBDIR="WRONG_DONT_USE_BUILD_DEPENDENCY_SUBDIR_AFTER_BUILD"
+   REFERENCE_DEPENDENCIES_DIR="WRONG_DONT_USE_REFERENCE_DEPENDENCIES_DIR_AFTER_BUILD"
+   BUILD_DEPENDENCIES_DIR="WRONG_DONT_USE_BUILD_DEPENDENCIES_DIR_AFTER_BUILD"
 }
 
 
@@ -2108,7 +2108,7 @@ get_source_dir()
    local srcdir
    local srcsubdir
 
-   srcdir="${CLONES_SUBDIR}/${name}"
+   srcdir="${REPOS_DIR}/${name}"
    srcsubdir="`read_build_setting "${name}" "source_dir"`"
    if [ ! -z "${srcsubdir}" ]
    then
@@ -2124,7 +2124,7 @@ build_clones()
 
    IFS="
 "
-   for clone in `ls -1d ${CLONES_SUBDIR}/*.failed 2> /dev/null`
+   for clone in `ls -1d ${REPOS_DIR}/*.failed 2> /dev/null`
    do
       IFS="${DEFAULT_IFS}"
       if [ -d "${clone}" ]
@@ -2234,9 +2234,9 @@ install_tars()
       then
          fail "tarball \"$tar\" not found"
       else
-         mkdir_if_missing "${DEPENDENCY_SUBDIR}"
+         mkdir_if_missing "${DEPENDENCIES_DIR}"
          log_info "Installing tarball \"${tar}\""
-         exekutor tar -xz -C "${DEPENDENCY_SUBDIR}" -f "${tar}" || fail "failed to extract ${tar}"
+         exekutor tar -xz -C "${DEPENDENCIES_DIR}" -f "${tar}" || fail "failed to extract ${tar}"
       fi
    done
    IFS="${DEFAULT_IFS}"
@@ -2338,9 +2338,9 @@ build_main()
    #
    # START
    #
-   if [ ! -d "${CLONES_SUBDIR}" ]
+   if [ ! -d "${REPOS_DIR}" ]
    then
-      log_info "No repositories in \"${CLONES_SUBDIR}\", so nothing to build."
+      log_info "No repositories in \"${REPOS_DIR}\", so nothing to build."
       return 0
    fi
 
@@ -2352,42 +2352,42 @@ build_main()
 
    CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
-   remove_file_if_present "${CLONESFETCH_SUBDIR}/.build_done"
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_build_done"
 
    if [ $# -eq 0 ]
    then
-      log_fluff "Setting up dependencies directory as \"${DEPENDENCY_SUBDIR}\""
+      log_fluff "Setting up dependencies directory as \"${DEPENDENCIES_DIR}\""
       clean="`read_config_setting "clean_dependencies_before_build" "YES"`"
       if [ "${clean}" = "YES" ]
       then
-         rmdir_safer "${DEPENDENCY_SUBDIR}"
+         rmdir_safer "${DEPENDENCIES_DIR}"
       fi
    else
-      log_fluff "Unprotecting \"${DEPENDENCY_SUBDIR}\" (as this is a partial build)."
-      exekutor chmod -R u+w "${DEPENDENCY_SUBDIR}"
+      log_fluff "Unprotecting \"${DEPENDENCIES_DIR}\" (as this is a partial build)."
+      exekutor chmod -R u+w "${DEPENDENCIES_DIR}"
    fi
 
    # if present then we didnt't want to clean and we do nothing special
-   if [ ! -d "${DEPENDENCY_SUBDIR}" ]
+   if [ ! -d "${DEPENDENCIES_DIR}" ]
    then
       install_tars "$@"
    else
       if have_tars
       then
-         log_warning "Tars have not been installed, as \"${DEPENDENCY_SUBDIR}\" already exists."
+         log_warning "Tars have not been installed, as \"${DEPENDENCIES_DIR}\" already exists."
       fi
    fi
 
    build_clones "$@"
 
-   if [ -d "${DEPENDENCY_SUBDIR}" ]
+   if [ -d "${DEPENDENCIES_DIR}" ]
    then
-      write_protect_directory "${DEPENDENCY_SUBDIR}"
+      write_protect_directory "${DEPENDENCIES_DIR}"
    else
       log_fluff "No dependencies have been generated"
    fi
 
-   create_file_if_missing "${CLONESFETCH_SUBDIR}/.build_done"
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_build_done"
 
    log_fluff "::: build end :::"
 }

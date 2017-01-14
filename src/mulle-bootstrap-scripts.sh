@@ -156,9 +156,9 @@ run_fake_environment_script()
    shift
 
    ( owd="`pwd -P`"; cd "${srcdir}" ;
-   CLONES_SUBDIR="${owd}/${CLONES_SUBDIR}" \
+   REPOS_DIR="${owd}/${REPOS_DIR}" \
    CLONESBUILD_SUBDIR="${owd}/${CLONESBUILD_SUBDIR}" \
-   DEPENDENCY_SUBDIR="${owd}/${DEPENDENCY_SUBDIR}" \
+   DEPENDENCIES_DIR="${owd}/${DEPENDENCIES_DIR}" \
    run_script "${owd}/${script}" "$@" ) || exit 1
 }
 

@@ -177,7 +177,7 @@ _read_bootstrap_setting()
       suffix=".auto"
    fi
 
-   value="`_read_setting "${BOOTSTRAP_SUBDIR}${suffix}/${name}"`"
+   value="`_read_setting "${BOOTSTRAP_DIR}${suffix}/${name}"`"
    if [ $? -ne 0 ]
    then
       return 2
@@ -622,17 +622,17 @@ all_build_flag_keys()
 
    [ ! -z "$package" ] || internal_fail "script error"
 
-   keys1=`(cd "${BOOTSTRAP_SUBDIR}.local/settings/${package}" 2> /dev/null || exit 1; \
+   keys1=`(cd "${BOOTSTRAP_DIR}.local/settings/${package}" 2> /dev/null || exit 1; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys2=`(cd "${BOOTSTRAP_SUBDIR}/settings/${package}" 2> /dev/null || exit 1 ; \
+   keys2=`(cd "${BOOTSTRAP_DIR}/settings/${package}" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys3=`(cd "${BOOTSTRAP_SUBDIR}.auto/settings/${package}" 2> /dev/null || exit 1 ; \
+   keys3=`(cd "${BOOTSTRAP_DIR}.auto/settings/${package}" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys4=`(cd "${BOOTSTRAP_SUBDIR}.local" 2> /dev/null || exit 1 ; \
+   keys4=`(cd "${BOOTSTRAP_DIR}.local" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys5=`(cd "${BOOTSTRAP_SUBDIR}"  2> /dev/null || exit 1 ; \
+   keys5=`(cd "${BOOTSTRAP_DIR}"  2> /dev/null || exit 1 ; \
            ls -1  | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys6=`(cd "${BOOTSTRAP_SUBDIR}.auto"  2> /dev/null || exit 1 ; \
+   keys6=`(cd "${BOOTSTRAP_DIR}.auto"  2> /dev/null || exit 1 ; \
            ls -1  | egrep '\b[A-Z][A-Z_0-9]+\b')`
 
    echo "${keys1}
@@ -656,16 +656,16 @@ config_read()
 
 config_write()
 {
-   mkdir_if_missing "${BOOTSTRAP_SUBDIR}.local/config"
-   exekutor echo "$2" > "${BOOTSTRAP_SUBDIR}.local/config/$1"
+   mkdir_if_missing "${BOOTSTRAP_DIR}.local/config"
+   exekutor echo "$2" > "${BOOTSTRAP_DIR}.local/config/$1"
 }
 
 
 config_delete()
 {
-   if [ -f "${BOOTSTRAP_SUBDIR}.local/config/$1" ]
+   if [ -f "${BOOTSTRAP_DIR}.local/config/$1" ]
    then
-      exekutor rm "${BOOTSTRAP_SUBDIR}.local/config/$1"
+      exekutor rm "${BOOTSTRAP_DIR}.local/config/$1"
    fi
 }
 
@@ -733,7 +733,15 @@ config_main()
 
    case "${command}" in
       read)
-         config_read "${name}"
+         value="`config_read "${name}"`"
+         if [ -z "${value}" ]
+         then
+            value="`eval echo "$"${name}`"
+         fi
+         if [ ! -z "${value}" ]
+         then
+            echo "${value}"
+         fi
       ;;
 
       delete)

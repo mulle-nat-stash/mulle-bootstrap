@@ -1,7 +1,26 @@
+# 3.0
+
+* config now returns the default value, if nothing is configured
+* various changes in variables
+
+Now               | Before              | Description
+------------------|---------------------|--------------------------
+DEPENDENCIES_DIR  | DEPENDENCIES_DIR    |
+ADDICTIONS_DIR    | ADDICTIONS_DIR      |
+BOOTSTRAP_DIR     | BOOTSTRAP_SUBDIR    |
+REPOS_DIR         | CLONES_SUBDIR       |
+                  | CLONESFETCH_SUBDIR  | Does not exist anymore
+
+
+* libexec is now found relative to $0 so the install script does not need to
+patch anymore. It's also convenient for the test scripts
+* various status files are now prefixed with .bootstrap_
+* **tag** as a setting does not exist anymore. Now its part of the repositories line
+* renamed -u fetch option to -us and exposed it on refresh too
+
 ### 2.6.1
 
 * fix bug with absolute paths
-
 
 ## 2.6.0
 
@@ -375,7 +394,7 @@ eliminated.
 
 ## 0.20
 
-*  Replace `CLONES_FETCH_SUBDIR` with `CLONESFETCH_SUBDIR`.
+*  Replace `CLONES_FETCH_SUBDIR` with `REPOS_DIR`.
 *  mulle-bootstrap now uses the zombie repository detection to actually bury
    unused repositories. Check out "tests/refresh/refresh.sh" how this
    actually works. The upshot is, all changes in the repositories settings

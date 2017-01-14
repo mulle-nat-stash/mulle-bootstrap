@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-#   Copyright (c) 2015 Nat! - Mulle kybernetiK
+#   Copyright (c) 2015-2017 Nat! - Mulle kybernetiK
 #   All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or without
@@ -28,9 +28,9 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
-MULLE_BOOTSTRAP_VERSION_MAJOR=2
-MULLE_BOOTSTRAP_VERSION_MINOR=6
-MULLE_BOOTSTRAP_VERSION_PATCH=1
+MULLE_BOOTSTRAP_VERSION_MAJOR=3
+MULLE_BOOTSTRAP_VERSION_MINOR=0
+MULLE_BOOTSTRAP_VERSION_PATCH=2
 
 MULLE_BOOTSTRAP_VERSION="${MULLE_BOOTSTRAP_VERSION_MAJOR}.${MULLE_BOOTSTRAP_VERSION_MINOR}.${MULLE_BOOTSTRAP_VERSION_PATCH}"
 MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap"
@@ -65,7 +65,7 @@ EOF
    -l        : be more optimistic and faster
    -ig       : ignore .repos/.graveyard
    -te       : trace execution
-   -tm       : trace merge and dependency
+   -tm       : trace merge and dependencies
    -ts       : trace scripts
    -tit      : don't trace settings
    -tip      : don't trace path functionality
@@ -113,7 +113,7 @@ ensure_consistency()
 
    owd="`pwd -P`"
 
-   if [ -f "${CLONESFETCH_SUBDIR}/.fetch_update_started" ]
+   if [ -f "${REPOS_DIR}/.bootstrap_fetch_started" ]
    then
       log_error "A previous fetch or update was incomplete.
 Suggested resolution (in $owd):
@@ -157,7 +157,7 @@ define_local_keyvalue()
 
    local path
 
-   path="${BOOTSTRAP_SUBDIR}.local/${key}"
+   path="${BOOTSTRAP_DIR}.local/${key}"
    mkdir_if_missing "`dirname -- "${path}"`"
    redirect_exekutor "${path}" echo "# commandline argument -D${keyvalue}
 ${value}"
@@ -187,7 +187,7 @@ bootstrap_nomagic_main()
    # used for option handling only
    MULLE_BOOTSTRAP_WILL_BUILD="YES"
 
-   warn_scripts_main "${BOOTSTRAP_SUBDIR}" || exit 1
+   warn_scripts_main "${BOOTSTRAP_DIR}" || exit 1
 
    if fetch_needed
    then
@@ -212,14 +212,69 @@ bootstrap_nomagic_main()
 }
 
 
+bootstrap_execute_in_master()
+{
+   local masterpath
+
+   masterpath="$1"
+   shift
+
+   local master
+
+   master="`head -1 "${masterpath}" 2>/dev/null`"
+   [ -d "${master}" ] || fail "master \"${master}\" is gone ($masterpath)"
+
+   (
+      cd "${master}" && mulle-bootstrap "$@"
+   ) || fail "master failed"
+}
+
+
+bootstrap_libexec_path()
+{
+   local exedir
+   local exedirpath
+   local prefix
+   local libexecpath
+
+   exedir="`dirname "$1"`"
+   exedirpath="`( cd "${exedir}" ; pwd -P )`"
+   prefix="`dirname "${exedirpath}"`"
+   libexecpath="${prefix}/libexec/mulle-bootstrap"
+
+   if [ ! -x "${libexecpath}/mulle-bootstrap-functions.sh" ]
+   then
+      libexecpath="${exedirpath}/src"
+   fi
+
+   if [ -x "${libexecpath}/mulle-bootstrap-functions.sh" ]
+   then
+      echo "${libexecpath}"
+   fi
+}
+
+
 bootstrap_main()
 {
    local command
+   local libexecpath
 
-   BOOTSTRAP_SUBDIR=.bootstrap
+   BOOTSTRAP_DIR=.bootstrap
 
-   PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
+   libexecpath="`bootstrap_libexec_path "$0"`"
+   if [ -z "${libexecpath}" ]
+   then
+      echo "could not find libexec for mulle-bootstrap" >&2
+      exit 1
+   fi
+
+   PATH="${libexecpath}:$PATH"
    export PATH
+
+   if [ ! -z "${MULLE_BOOTSTRAP_LIBEXEC_TRACE}" ]
+   then
+      echo "PATH=$PATH" >&2
+   fi
 
    #
    # shell export commands with minimal
@@ -227,7 +282,7 @@ bootstrap_main()
    #
    case "${1}" in
       library-path)
-         echo "$PATH" | tr ':' '\012' | head -1
+         echo "$libexecpath}"
          exit 0
       ;;
 
@@ -411,10 +466,6 @@ bootstrap_main()
 
    local_environment_main
 
-   PATH="`make_executable_search_path "$PATH"`"
-   export PATH
-
-   log_fluff "PATH set to: $PATH"
 
    #
    # some commands only run when we have a .bootstrap folder
@@ -422,11 +473,44 @@ bootstrap_main()
    command=${1:-"bootstrap"}
    [ $# -eq 0 ] || shift
 
-   if [ ! -d "${BOOTSTRAP_SUBDIR}" ]
+   if [ ! -d "${BOOTSTRAP_DIR}" ]
    then
       case "${command}" in
-         bootstrap|nomagic|build|ibuild|refresh|dist|clean|dist-clean|fetch|update|setup-xcode|xcode|tag)
-            fail "There is no ${BOOTSTRAP_SUBDIR} folder here, can't continue"
+         bootstrap|nomagic|build|refresh|dist|clean|dist-clean|fetch|update|setup-xcode|xcode|tag)
+            fail "There is no ${BOOTSTRAP_DIR} folder here, can't continue"
+      esac
+   fi
+
+   #
+   # if we have a.bootstrap.local/minion file then
+   # some commands can't run, and some commands are re-executed in master
+   # and some commands (like fetch and clean) are executed locally AND in the
+   # master
+   #
+   local masterpath
+
+   masterpath="${BOOTSTRAP_DIR}.local/master"
+   if [ -e "${masterpath}" ]
+   then
+      case "${command}" in
+         build)
+            log_info "Minion .bootstrap: defer to master for execution"
+            exec bootstrap_execute_in_master "${masterpath}" "$@"
+         ;;
+
+         fetch|update|refresh|clean|dist-clean)
+            log_info "Minion .bootstrap: execute parly in master"
+            bootstrap_execute_in_master "${masterpath}" "$@"
+            EMBEDDED_ONLY=YES
+         ;;
+
+         git|setup-xcode|xcode|tag|version)
+            log_verbose "Minion .bootstrap: execute locally"
+         ;;
+
+         *)
+            fail "This is a minion bootstrap project (${minionpath}), can't continue"
+         ;;
       esac
    fi
 
@@ -495,6 +579,7 @@ bootstrap_main()
 
       config)
          . mulle-bootstrap-settings.sh
+         . mulle-bootstrap-build-environment.sh
 
          MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap config"
          config_main "$@" || exit 1

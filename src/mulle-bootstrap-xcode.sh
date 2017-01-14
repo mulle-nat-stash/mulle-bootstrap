@@ -180,7 +180,6 @@ patch_xcode_project()
    local xcode_configurations
    local terse
 
-
    read_yes_no_config_setting "terse" "NO"
    terse=$?
 
@@ -191,7 +190,7 @@ patch_xcode_project()
       [ -d "${PROJECT}" ] || fail "xcodeproj ${PROJECT} not found"
       project="${PROJECT}"
    else
-   project=`find_xcodeproj "${name}"`
+      project=`find_xcodeproj "${name}"`
       if [ "${project}" = "" ]
       then
          fail "no xcodeproj found"
@@ -257,14 +256,14 @@ Release"
    absolute="`realpath "${project}"`"
    absolute="`dirname -- "${absolute}"`"
 
-   absolute2="`pwd -P`/${DEPENDENCY_SUBDIR}"
+   absolute2="`pwd -P`/${DEPENDENCIES_DIR}"
    relative_subdir="`relative_path_between "${absolute2}" "${absolute}" `"
-   dependencies_dir='$(PROJECT_DIR)'/"${DEPENDENCY_SUBDIR}"
+   dependencies_dir='$(PROJECT_DIR)'/"${DEPENDENCIES_DIR}"
 #   dependencies_dir='$(PROJECT_DIR)'/"${relative_subdir}'"
 
-   absolute2="`pwd -P`/${ADDICTION_SUBDIR}"
+   absolute2="`pwd -P`/${ADDICTIONS_DIR}"
    relative_subdir="`relative_path_between "${absolute2}" "${absolute}" `"
-   addictions_dir='$(PROJECT_DIR)'/"${ADDICTION_SUBDIR}"
+   addictions_dir='$(PROJECT_DIR)'/"${ADDICTIONS_DIR}"
 #   addictions_dir='$(PROJECT_DIR)/'"${relative_subdir}"
 
    header_search_paths="\$(DEPENDENCIES_DIR)/${HEADER_DIR_NAME}"
@@ -331,9 +330,9 @@ Release"
          IFS="${DEFAULT_IFS}"
       fi
 
-      query="Add ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Add ${C_CYAN}${DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    else
-      query="Remove ${C_CYAN}${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Remove ${C_CYAN}${DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    fi
 
    user_say_yes "$query"

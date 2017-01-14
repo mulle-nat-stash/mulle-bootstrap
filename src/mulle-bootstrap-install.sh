@@ -55,7 +55,7 @@ install_libraries_with_action()
 
    action="$1"
    dstdir="${PREFIX}/${LIBRARY_DIR_NAME}"
-   srcdir="${DEPENDENCY_SUBDIR}/${LIBRARY_DIR_NAME}"
+   srcdir="${DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}"
 
    local name
    local owd
@@ -113,7 +113,7 @@ install_headers_with_action()
 
    action="$1"
    dstdir="${PREFIX}/${HEADER_DIR_NAME}"
-   srcdir="${DEPENDENCY_SUBDIR}/${HEADER_DIR_NAME}"
+   srcdir="${DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"
 
    local name
    local owd
@@ -225,7 +225,7 @@ install_frameworks_with_action()
 
    action="$1"
    dstdir="${PREFIX}/${FRAMEWORK_DIR_NAME}"
-   srcdir="${DEPENDENCY_SUBDIR}/${FRAMEWORK_DIR_NAME}"
+   srcdir="${DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"
 
    local owd
    local framework
@@ -337,7 +337,7 @@ install_main()
          ;;
    esac
 
-   if [ ! -d "${DEPENDENCY_SUBDIR}" ]
+   if [ ! -d "${DEPENDENCIES_DIR}" ]
    then
      fail "No dependencies have been created yet.
 Suggested fix:
