@@ -1,0 +1,54 @@
+digraph pic  {
+   compound=true;
+   node [shape= record];
+
+   "1_Project" [ label="Project", color="red" ]
+   "2_Foo"     [ label="Foobie", color="gray" ]
+   "3_Bar"     [ label="Noobie", color="gray" ]
+
+   node [shape= folder];
+
+   "1_Project" -> ".bootstrap.auto"     [lhead=cluster_0];
+
+
+   subgraph cluster_0 {
+      color="red"
+      node [shape= folder];
+      "stashes"               -> "stashes#Foo"
+      "stashes#Foo"         -> "stashes#foo:.bootstrap"
+
+      ".bootstrap.auto"     -> "repositories.auto"  [ penwidth="3" ]
+      ".bootstrap.auto"     -> ".auto:Foo"
+      ".bootstrap.repos"    -> "symlink.Foo"
+      ".auto:Foo"           -> ".auto:build_preferences"
+
+      ".bootstrap.auto"      [ label=".bootstrap.auto", shape="folder", penwidth="3" ]
+      ".auto:Foo"            [ label="Foobie.build", shape="folder" ]
+      ".auto:build_preferences" [ label="build_preferences", shape="note" ]
+      "repositories.auto"   [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f0">https://github.com/mulle-nat/Noobie</TD></TR>
+<TR><TD PORT="f0">https://github.com/mulle-nat/Foobie</TD></TR>
+</TABLE>>];
+
+      "symlink.Foo"      [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">Foobie</TD></TR>
+<TR><TD PORT="f2">../stashes/Foobie</TD></TR>
+</TABLE>>];
+
+      "stashes"
+      ".bootstrap.repos"
+      "stashes#Foo"                   [ label="Foobie" ]
+      "stashes#foo:.bootstrap"        -> "stashes#foo:repositories"
+      "stashes#foo:.bootstrap"        -> "stashes#foo:Noobie.build"
+      "stashes#foo:Noobie.build"      -> "stashes#foo:dispense_other_product"
+      "stashes#foo:dispense_other_product" [ label="dispense_other_product", shape="note" ]
+      "stashes#foo:.bootstrap"             [ label=".bootstrap" ]
+      "stashes#foo:Noobie.build"           [ label="Noobie.build" ]
+
+      "stashes#foo:repositories"      [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f0">https://github.com/mulle-nat/Noobie</TD></TR>
+</TABLE>>];
+   }
+}

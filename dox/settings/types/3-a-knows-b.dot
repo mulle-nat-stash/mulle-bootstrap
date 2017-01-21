@@ -1,0 +1,36 @@
+digraph pic {
+     node [shape= folder];
+
+	subgraph cluster_0 {
+		"a" -> "a.bootstrap"
+		"a.bootstrap"    [ label=".bootstrap" ]
+		"a.bootstrap" -> "a.repositories"
+		"a.repositories"  [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f0">b</TD></TR>
+</TABLE>>];
+		"a.bootstrap" -> "a.b"
+		"a.b"                  [ label="b.info" ]
+		"a.b"         -> "a.build_preferences"
+		"a.build_preferences"  [ label="build_preferences", shape="note" ]
+	}
+
+	subgraph cluster_1 {
+		"b" -> "b.bootstrap"
+		"b.bootstrap"     [ label=".bootstrap" ]
+		"b.bootstrap" -> "b.repositories"
+		"b.repositories"  [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f0">c</TD></TR>
+</TABLE>>];
+		"b.bootstrap" -> "b.c"
+		"b.c"                  [ label="c.info" ]
+		"b.c"         -> "b.build_preferences"
+		"b.build_preferences"  [ label="build_preferences", shape="note" ]
+	}
+
+	subgraph cluster_2 {
+		"c" -> "c.bootstrap"
+		"c.bootstrap" [ label=".bootstrap" ]
+	}
+}

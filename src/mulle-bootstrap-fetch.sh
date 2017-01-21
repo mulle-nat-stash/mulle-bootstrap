@@ -57,10 +57,14 @@ usage:
 
    You can specify the names of the repositories to update.
 EOF
-   if [ -d "${REPOS_DIR}" ]
+
+   local  repositories
+
+   repositories="`repository_directories_from_repos`"
+   if [ -z "${repositories}" ]
    then
       echo "Currently available repositories are:"
-      (cd "${REPOS_DIR}" ; ls -1 */.bootstrap | sed 's/^\(.*\)/.bootstrap/   \1/')
+      echo "${repositories}" | sed 's/^/   /'
    fi
    exit 1
 }
@@ -572,7 +576,7 @@ checkout()
 
       local options
 
-      options="`read_repo_setting "${name}" "checkout" "${scmflagsdefault}"`"
+      options="`read_fetch_setting "${name}.scmflags" "${scmflagsdefault}"`"
       "${operation}" "${src}" "${dstdir}" "${branch}" "${tag}" "${options}"
 
       warn_scripts_main "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
@@ -1004,6 +1008,7 @@ update_repository()
    scm="$5"
    tag="$6"
 
+
    localdir dstdir
 
    dstdir="${reposdir}/${name}"
@@ -1141,7 +1146,7 @@ update_repositories()
          do
             IFS="${DEFAULT_IFS}"
 
-            __parse_clone "${clone}"
+            __parse_embedded_clone "${clone}"
 
             #
             # avoid superflous updates
@@ -1155,7 +1160,7 @@ update_repositories()
             updated="${updated}
 ${name}"
 
-            dstdir="${reposdir}/${name}"
+            dstdir="${CLONEROOT_DIR}/${name}"
 
             create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
 
@@ -1251,46 +1256,60 @@ append_dir_to_gitignore_if_needed()
    fi
 }
 
-
 #
-# memorize how we embedded the repository, need URL to identify
+# memorize where we placed a repository, need URL to identify
 # and the subdir, where it was stored
 #
 # store it inside the possibly recursed dstprefix dependency
 #
-remember_embedded_repository()
+
+remember_repository()
 {
    local reposdir
    local dstprefix
    local name
    local url
    local subdir
+   local repotype
 
    reposdir="$1"
    dstprefix="$2"
    name="$3"
    url="$4"
    subdir="$5"
+   repotype="$6"
 
    local content
-   local embeddeddir
+   local memodir
    local content
 
-   embeddeddir="${dstprefix}${reposdir}/.bootstrap_embedded"
-   mkdir_if_missing "${embeddeddir}"
+   memodir="${dstprefix}${reposdir}/.bootstrap_${repotype}"
+   mkdir_if_missing "${memodir}"
    content="${subdir}
 ${url}"
 
    # dont't use symlinks anymore
-   log_fluff "Remember embedded repository \"${name}\" via \"${embeddeddir}/${name}\""
+   log_fluff "Remember ${repotype} repository \"${name}\" via \"${memodir}/${name}\""
 
    # useful for old symlinks from previous version
-   if [ -L "${embeddeddir}/${name}" ]
+   if [ -L "${memodir}/${name}" ]
    then
-      exekutor rm "${embeddeddir}/${name}"
+      exekutor rm "${memodir}/${name}"
    fi
-   remove_file_if_present "${embeddeddir}/${name}"
-   redirect_exekutor "${embeddeddir}/${name}" echo "${content}"
+   remove_file_if_present "${memodir}/${name}"
+   redirect_exekutor "${memodir}/${name}" echo "${content}"
+}
+
+
+remember_normal_repository()
+{
+   remember_repository "$@" "normal"
+}
+
+
+remember_embedded_repository()
+{
+   remember_repository "$@" "embedded"
 }
 
 
@@ -1652,6 +1671,7 @@ _common_main()
          append_dir_to_gitignore_if_needed "${DEPENDENCIES_SUBDIR}"
          append_dir_to_gitignore_if_needed "${ADDICTIONS_DIR}"
          append_dir_to_gitignore_if_needed "${REPOS_DIR}"
+         append_dir_to_gitignore_if_needed "${STASHES_DIR}"
       fi
    fi
 

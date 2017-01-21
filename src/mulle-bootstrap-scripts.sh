@@ -90,20 +90,7 @@ find_repo_setting_file()
    local flag
 
 
-   value="`READ_SETTING_RETURNS_PATH="YES" read_repo_setting "$@"`"
-   flag=$?
-
-   echo "$value"
-   return $flag
-}
-
-
-find_build_root_setting_file()
-{
-   local value
-   local flag
-
-   value="`READ_SETTING_RETURNS_PATH="YES" read_build_root_setting "$@"`"
+   value="`READ_SETTING_RETURNS_PATH="YES" read_build_setting "$@"`"
    flag=$?
 
    echo "$value"
@@ -116,7 +103,6 @@ find_build_setting_file()
    local value
    local flag
 
-
    value="`READ_SETTING_RETURNS_PATH="YES" read_build_setting "$@"`"
    flag=$?
 
@@ -124,24 +110,6 @@ find_build_setting_file()
    return $flag
 }
 
-
-run_build_root_settings_script()
-{
-   local  name
-
-   scriptname="$1"
-   shift
-
-   [ -z "$scriptname" ] && internal_fail "scriptname is empty"
-
-   local script
-
-   script="`find_build_root_setting_file "bin/${scriptname}.sh"`"
-   if [ ! -z "${script}" ]
-   then
-      run_script "${script}" "$@"
-   fi
-}
 
 
 # run in subshell
@@ -159,6 +127,7 @@ run_fake_environment_script()
    REPOS_DIR="${owd}/${REPOS_DIR}" \
    CLONESBUILD_SUBDIR="${owd}/${CLONESBUILD_SUBDIR}" \
    DEPENDENCIES_DIR="${owd}/${DEPENDENCIES_DIR}" \
+   ADDICTIONS_DIR="${owd}/${ADDICTIONS_DIR}" \
    run_script "${owd}/${script}" "$@" ) || exit 1
 }
 

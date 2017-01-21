@@ -1,0 +1,10 @@
+digraph pic  {
+   compound=true;
+   rankdir=LR;
+   node [shape= record];
+
+   "1_Fetch" [ label="Fetch", color="brown" ]
+   "2_Build" [ label="Build", color="magenta" ]
+
+   "1_Fetch" ->  "2_Build"
+}

@@ -1,0 +1,22 @@
+digraph config
+{
+   compound=true;
+   node [ shape=folder ]
+
+   {
+      rank="same";
+      "project"
+   }
+
+  "project" [ color=red,penwidth=2]
+  "project" -> ".bootstrap.auto" [ lhead=cluster_1]
+
+   subgraph cluster_1 {
+      color="red"
+      ".bootstrap.auto" -> "Foo"
+      "Foo"  [ shape=note label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+<TR><TD>Foo</TD></TR>
+<TR><TD bgcolor="#DDDDDD">1848</TD></TR>
+</TABLE>>];
+   }
+}

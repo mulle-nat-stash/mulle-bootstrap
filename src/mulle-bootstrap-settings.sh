@@ -43,24 +43,26 @@ EOF
 
 warn_user_setting()
 {
-   local file
+   local path
 
-   file="$1"
+   path="$1"
+
    if [ "$MULLE_BOOTSTRAP_NO_WARN_USER_SETTINGS" != "YES" ]
    then
-      log_warning "Using `dirname -- "${file}"` for `basename -- "${file}"`"
+      log_warning "Using `dirname -- "${path}"` for `basename -- "${path}"`"
    fi
 }
 
 
 warn_local_setting()
 {
-   local file
+   local path
 
-   file="$1"
+   path="$1"
+
    if [ "$MULLE_BOOTSTRAP_NO_WARN_LOCAL_SETTINGS" != "YES" ]
    then
-      log_warning "Using `dirname -- "${file}"` for `basename -- "${file}"`"
+      log_warning "Using `dirname -- "${path}"` for `basename -- "${path}"`"
    fi
 }
 
@@ -88,12 +90,18 @@ warn_environment_setting()
 #
 _read_setting()
 {
-   local file
+   local path
+   local name
+
+   path="$1"
+   name="$2"
+
+   [ ! -z "${path}" ] || fail "no path given to read_setting"
+   [ ! -z "${name}" ] || fail "no name given to read_setting"
+
    local value
    local flag
 
-   file="$1"
-   [ ! -z "${file}" ] || fail "no path given to read_setting"
 
    # file not found = 2 (same as grep)
 
@@ -101,35 +109,32 @@ _read_setting()
    then
       local  yesno
 
-      if [ ! -r "${file}" ]
+      if [ ! -r "${path}" ]
       then
          yesno="not "
       fi
 
-      log_trace2 "Looking for setting: ${file} (pwd=$PWD) : ${yesno}found"
+      log_trace2 "Looking for setting: ${path} (pwd=$PWD) : ${yesno}found"
    fi
 
 
    if [ "${READ_SETTING_RETURNS_PATH}" = "YES" ]
    then
-      value="${file}"
-      if [ ! -r "${file}" ]
+      value="${path}"
+      if [ ! -r "${path}" ]
       then
          return 2
       fi
 
       if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
       then
-         local name
-
-         name="`basename -- "${file}" ".${UNAME}"`"
-         log_fluff "${C_MAGENTA}${C_BOLD}`basename -- "${file}" ".${os}"`${C_FLUFF} found as \"${file}\""
+         log_fluff "${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found as \"${path}\""
       fi
       echo "${value}"
       return 0
    fi
 
-   value="`egrep -s -v '^#|^[ ]*$' "${file}"`"
+   value="`egrep -s -v '^#|^[ ]*$' "${path}"`"
    if [ $? -eq 2 ]
    then
       return 2   # it's grep :)
@@ -137,20 +142,18 @@ _read_setting()
 
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
    then
-      local name
-
-      name="`basename -- "${file}" ".${UNAME}"`"
-      if [ "${name}" = "repositories" -o "${name}" = "repositories.tmp" -o "${name}" = "embedded_repositories" ]
+      if [ "${name}" = "repositories" -o \
+           "${name}" = "repositories.tmp" -o \
+           "${name}" = "embedded_repositories" ]
       then
-         log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found in \"${file}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
+         log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found in \"${path}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
       else
-         log_verbose "Setting ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} found in \"${file}\" as ${C_MAGENTA}${C_BOLD}${value}${C_VERBOSE}"
+         log_verbose "Setting ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} found in \"${path}\" as ${C_MAGENTA}${C_BOLD}${value}${C_VERBOSE}"
       fi
    fi
 
    echo "${value}"
 }
-
 
 #
 # this has to be flexible, because fetch and build settings read differently
@@ -158,14 +161,14 @@ _read_setting()
 _read_bootstrap_setting()
 {
    local name
-   local value
-   local suffix
 
    name="$1"
-   shift
 
-   [ $# -ne 0 ]     && internal_fail "parameterization error"
+   [ $# -ne 1 ]     && internal_fail "parameterization error"
    [ -z "${name}" ] && internal_fail "empty name in _read_bootstrap_setting"
+
+   local value
+   local suffix
 
    #
    # to access unmerged data (needed for embedded repos)
@@ -177,7 +180,7 @@ _read_bootstrap_setting()
       suffix=".auto"
    fi
 
-   value="`_read_setting "${BOOTSTRAP_DIR}${suffix}/${name}"`"
+   value="`_read_setting "${BOOTSTRAP_DIR}${suffix}/${name}" "${name}"`"
    if [ $? -ne 0 ]
    then
       return 2
@@ -186,6 +189,20 @@ _read_bootstrap_setting()
    echo "${value}"
 }
 
+
+_read_bootstrap_setting_uname()
+{
+   local name
+
+   name="$1"
+
+   if [ "${READ_SETTING_RETURNS_PATH}" = "YES" ]
+   then
+      return 1
+   fi
+
+   _read_bootstrap_setting_uname "${name}.${UNAME}"
+}
 
 #
 # this knows intentionally no default, you cant have an empty
@@ -245,7 +262,7 @@ _read_home_setting()
       log_trace2 "Looking for setting \"${name}\" in \"~/.mulle-bootstrap\""
    fi
 
-   value="`_read_setting "${HOME}/.mulle-bootstrap/${name}"`"
+   value="`_read_setting "${HOME}/.mulle-bootstrap/${name}" "${name}"`"
    if [ $? -ne 0 ]
    then
       return 2
@@ -259,7 +276,6 @@ _read_home_setting()
 
    echo "$value"
 }
-
 
 
 ####
@@ -283,12 +299,17 @@ read_config_setting()
 
    [ -z "$name" ] && internal_fail "empty name in read_config_setting"
 
+   #
+   # always lowercase config names
+   #
+   name=`echo "${name}" | tr '[:lower:]' '[:upper:]'`
+
    local value
 
    value="`_read_environment_setting "${name}"`"
    if [ $? -ne 0 ]
    then
-      value="`_read_bootstrap_setting "config/${name}"`"
+      value="`_read_setting "${BOOTSTRAP_DIR}.local/config/${name}" "${name}"`"
       if [ $? -ne 0 ]
       then
          value="`_read_home_setting "${name}"`"
@@ -312,107 +333,8 @@ read_config_setting()
 
 
 #
-# read specific value only for this repository
-#
-read_repo_setting()
-{
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
-   then
-      set +x
-   fi
-
-   local name
-   local default
-   local package
-
-   [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
-
-   package="$1"
-   name="$2"
-   default="$3"
-
-   [ -z "$name" -o -z "${package}" ] && internal_fail "empty parameter in read_config_setting"
-
-   local value
-
-   if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
-   then
-      value="`_read_bootstrap_setting "${package}/${name}.${UNAME}"`"
-   fi
-
-   if [ $? -ne 0 ]
-   then
-      value="`_read_bootstrap_setting "${package}/${name}"`"
-      if [ $? -ne 0 ]
-      then
-         value="${default}"
-      fi
-   fi
-
-   echo "$value"
-
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
-   then
-      set -x
-   fi
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-
-#
-# only pick up setting values from .bootstrap.auto, NOT .bootstrap.auto/settings/<package>
-#
-read_build_root_setting()
-{
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
-   then
-      set +x
-   fi
-
-   local name
-   local default
-
-   [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
-
-   name="$1"
-   default="$2"
-
-   [ -z "$name" ] && internal_fail "empty name in read_build_root_setting"
-
-   local value
-   local rval
-
-   rval=1
-   if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
-   then
-      value="`_read_bootstrap_setting "settings/${name}.${UNAME}"`"
-      rval=$?
-   fi
-
-   if [ $rval -ne 0 ]
-   then
-      value="`_read_bootstrap_setting "settings/${name}"`"
-      if [ $? -ne 0 ]
-      then
-         value="${default}"
-      fi
-   fi
-   echo "$value"
-
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
-   then
-      set -x
-   fi
-
-   [ "${value}" = "${default}" ]
-   return $?
-}
-
-#
-# combines read_repo_setting and read_build_root_setting
-# pretty slow...
+# values in "overrides" override those inherited by repositories
+# values in "settings" are overriden by those inherited by repositories
 #
 read_build_setting()
 {
@@ -431,34 +353,37 @@ read_build_setting()
    name="$2"
    default="$3"
 
-   [ -z "$name" -o -z "${package}" ] && internal_fail "empty parameter in read_config_setting"
+   [ -z "$name" ] && internal_fail "empty parameter in read_config_setting"
 
    local value
-   local rval
+   local value
 
-   rval=1
-   if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
+   value="`_read_bootstrap_setting_uname "overrides/${name}"`"
+   if [ $? -ne 0 ]
    then
-      value="`_read_bootstrap_setting "${package}/${name}.${UNAME}"`"
+      value="`_read_bootstrap_setting "overrides/${name}"`"
       if [ $? -ne 0 ]
       then
-         value="`_read_bootstrap_setting "settings/${name}.${UNAME}"`"
-         rval=$?
-      fi
-   fi
-
-   if [ $rval -ne 0 ]
-   then
-      value="`_read_bootstrap_setting "${package}/${name}"`"
-      if [ $? -ne 0 ]
-      then
-         value="`_read_bootstrap_setting "settings/${name}"`"
+         value="`_read_bootstrap_setting_uname "${package}.info/${name}"`"
          if [ $? -ne 0 ]
          then
-            value="${default}"
+            value="`_read_bootstrap_setting "${package}.info/${name}"`"
+            if [ $? -ne 0 ]
+            then
+               value="`_read_bootstrap_setting_uname "settings/${name}"`"
+               if [ $? -ne 0 ]
+               then
+                  value="`_read_bootstrap_setting "settings/${name}"`"
+                  if [ $? -ne 0 ]
+                  then
+                     value="${default}"
+                  fi
+               fi
+            fi
          fi
       fi
    fi
+
    echo "$value"
 
    if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
@@ -490,13 +415,7 @@ read_fetch_setting()
    local value
    local rval
 
-   rval=1
-   if [ "${READ_SETTING_RETURNS_PATH}" != "YES" ]
-   then
-      value="`_read_bootstrap_setting "${name}.${UNAME}"`"
-      rval=$?
-   fi
-
+   value="`_read_bootstrap_setting_uname "${name}"`"
    if [ $rval -ne 0 ]
    then
       value="`_read_bootstrap_setting "${name}"`"
@@ -571,9 +490,11 @@ merge_settings_in_front()
    local settings1
    local settings2
    local result
+   local name
 
-   settings1="`_read_setting "$1"`"
-   settings2="`_read_setting "$2"`"
+   name="`basename -- "$1"`"
+   settings1="`_read_setting "$1" "${name}"`"
+   settings2="`_read_setting "$2" "${name}"`"
 
    result="${settings2}"
 
@@ -610,37 +531,24 @@ ${result}"
 
 all_build_flag_keys()
 {
-   local keys1
-   local keys2
-   local keys3
-   local keys4
-   local keys5
-   local keys6
    local package
 
    package="$1"
 
-   [ ! -z "$package" ] || internal_fail "script error"
+   local keys1
+   local keys2
 
-   keys1=`(cd "${BOOTSTRAP_DIR}.local/settings/${package}" 2> /dev/null || exit 1; \
+   keys1=`(cd "${BOOTSTRAP_DIR}.auto/overrides" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys2=`(cd "${BOOTSTRAP_DIR}/settings/${package}" 2> /dev/null || exit 1 ; \
+   keys2=`(cd "${BOOTSTRAP_DIR}.auto/${package}.info" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys3=`(cd "${BOOTSTRAP_DIR}.auto/settings/${package}" 2> /dev/null || exit 1 ; \
+   keys3=`(cd "${BOOTSTRAP_DIR}.auto/settings" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys4=`(cd "${BOOTSTRAP_DIR}.local" 2> /dev/null || exit 1 ; \
-           ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys5=`(cd "${BOOTSTRAP_DIR}"  2> /dev/null || exit 1 ; \
-           ls -1  | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys6=`(cd "${BOOTSTRAP_DIR}.auto"  2> /dev/null || exit 1 ; \
-           ls -1  | egrep '\b[A-Z][A-Z_0-9]+\b')`
 
    echo "${keys1}
 ${keys2}
 ${keys3}
-${keys4}
-${keys5}
-${keys6}" | sort | sort -u | egrep -v '^[ ]*$'
+" | sort | sort -u | egrep -v '^[ ]*$'
    return 0
 }
 

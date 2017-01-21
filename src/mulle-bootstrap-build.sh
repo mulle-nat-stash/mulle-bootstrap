@@ -70,9 +70,16 @@ EOF
 
    cat << EOF >&2
    You can optionally specify the names of the repositories to build.
-   Currently available names are:
 EOF
-   (cd "${REPOS_DIR}" ; ls -1 ) 2> /dev/null
+
+   local  repositories
+
+   repositories="`repository_directories_from_repos`"
+   if [ -z "${repositories}" ]
+   then
+      echo "Currently available repositories are:"
+      echo "${repositories}" | sed 's/^/   /'
+   fi
 
    exit 1
 }
@@ -545,19 +552,21 @@ find_make()
 find_compiler()
 {
    local compiler_name
+   local srcdir
    local name
-   local file
 
    name="$1"
-   compiler_name="$2"
+   srcdir="$2"
+   compiler_name="$3"
 
    local compiler
+   local filename
 
    compiler="`read_build_setting "${name}" "${compiler_name}"`"
    if [ -z "${compiler}" ]
    then
-      file="${REPOS_DIR}/${name}/.${compiler_name}"
-      compiler="`cat "${file}" 2>/dev/null`"
+      filename="${srcdir}/.${compiler_name}"
+      compiler="`cat "${filename}" 2>/dev/null`"
       if [  ! -z "${compiler}" ]
       then
          log_verbose "Compiler ${C_RESET_BOLD}${compiler_name}${C_VERBOSE} set to ${C_MAGENTA}${C_BOLD}${compiler}${C_VERBOSE} found in \"${file}\""
@@ -597,12 +606,14 @@ find_xcodebuild()
 tools_environment()
 {
    local name
+   local srcdir
 
    name="$1"
+   srcdir="$2"
 
    # no problem if those are empty
-   C_COMPILER="`find_compiler "${name}" CC`"
-   CXX_COMPILER="`find_compiler "${name}" CXX`"
+   C_COMPILER="`find_compiler "${name}" "${srcdir}" CC`"
+   CXX_COMPILER="`find_compiler "${name}" "${srcdir}" CXX`"
 
    local defaultgenerator
    local defaultmake
@@ -699,7 +710,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    fallback="`echo "${CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
    mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
-   localcmakeflags="`read_build_root_setting "cmakeflags"`"
+   localcmakeflags="`read_build_setting "${name}" "cmakeflags"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    sdkparameter="`cmake_sdk_parameter "${sdk}"`"
 
@@ -1294,7 +1305,7 @@ fixup_header_path()
    default="$1"
    shift
 
-   headers="`read_repo_setting "${name}" "${setting_key}"`"
+   headers="`read_build_setting "${name}" "${setting_key}"`"
    if [ "$headers" = "" ]
    then
       read_yes_no_build_setting "${name}" "xcode_mangle_header_paths"
@@ -1365,7 +1376,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local projectname
 
     # always pass project directly
-   projectname=`read_repo_setting "${name}" "xcode_project" "${project}"`
+   projectname=`read_build_setting "${name}" "xcode_project" "${project}"`
 
    local mapped
    local fallback
@@ -1503,7 +1514,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 # an empty xcconfig is nice, because it acts as a reset for
    local xcconfig
 
-   xcconfig=`read_repo_setting "${name}" "xcconfig"`
+   xcconfig=`read_build_setting "${name}" "xcconfig"`
    if [ ! -z "${xcconfig}" ]
    then
       arguments="${arguments} -xcconfig \"${xcconfig}\""
@@ -1671,7 +1682,7 @@ build_xcodebuild_schemes_or_target()
    local scheme
    local schemes
 
-   schemes=`read_repo_setting "${name}" "xcode_schemes"`
+   schemes=`read_build_setting "${name}" "xcode_schemes"`
 
    IFS="
 "
@@ -1686,7 +1697,7 @@ build_xcodebuild_schemes_or_target()
    local target
    local targets
 
-   targets=`read_repo_setting "${name}" "xcode_targets"`
+   targets=`read_build_setting "${name}" "xcode_targets"`
 
    IFS="
 "
@@ -1952,7 +1963,7 @@ build()
 
    # find make, cmake compilers for this repo
 
-   tools_environment "${name}"
+   tools_environment "${name}" "${srcdir}"
 
    local preferences
 
@@ -1986,11 +1997,11 @@ configure"`"
    local sdk
 
    # need uniform SDK for our builds
-   sdks=`read_build_root_setting "sdks" "Default"`
+   sdks=`read_build_setting "${name}" "sdks" "Default"`
    [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
    # settings can override the commandline default
-   configurations="`read_repo_setting "${name}" "configurations" "${CONFIGURATIONS}"`"
+   configurations="`read_build_setting "${name}" "configurations" "${CONFIGURATIONS}"`"
 
    for sdk in ${sdks}
    do
@@ -2108,7 +2119,12 @@ get_source_dir()
    local srcdir
    local srcsubdir
 
-   srcdir="${REPOS_DIR}/${name}"
+   srcdir="`cat "${REPOS_DIR}/${name}"`"
+   if [ -z "${srcdir}" ]
+   then
+      fail "${REPOS_DIR}/${name} missing or empty"
+   fi
+
    srcsubdir="`read_build_setting "${name}" "source_dir"`"
    if [ ! -z "${srcsubdir}" ]
    then
@@ -2118,51 +2134,42 @@ get_source_dir()
 }
 
 
-build_clones()
+build_stashes()
 {
-   local clone
+   local name
 
    IFS="
 "
-   for clone in `ls -1d ${REPOS_DIR}/*.failed 2> /dev/null`
+   for name in `ls -1d "${STASHES_DIR}"/*.failed 2> /dev/null`
    do
       IFS="${DEFAULT_IFS}"
-      if [ -d "${clone}" ]
+      if [ -d "${name}" ]
       then
-         fail "failed checkout $clone detected, can't continue"
+         fail "failed checkout \"${name}\" detected, can't continue"
       fi
    done
    IFS="${DEFAULT_IFS}"
 
-   run_build_root_settings_script "pre-build" "$@"
-
-   # _parse_clone
-   local name
-   local url
-   local branch
-   local scm
-   local tag
+   run_build_settings_script "" "pre-build" "$@"
 
    #
-   # build order is there, because we want to have gits
-   # and maybe later hgs
+   # build_order is created by refresh
    #
-   BUILT="`read_build_root_setting "build_ignore"`"
-
    local srcdir
+   local stashnames
+
+   BUILT=""
 
    if [ "$#" -eq 0 ]
    then
-      clones="`read_fetch_setting "repositories"`"
+      stashnames="`read_fetch_setting "build_order"`"
       if [ "${clones}" != "" ]
       then
          IFS="
 "
-         for clone in ${clones}
+         for name in ${stashnames}
          do
             IFS="${DEFAULT_IFS}"
-
-            __parse_clone "${clone}"
 
             srcdir="`get_source_dir "${name}"`"
 
@@ -2175,7 +2182,7 @@ build_clones()
                   log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                   :
                else
-                  fail "build failed for repository \"${name}\": not found in (\"${srcdir}\") ($PWD)"
+                  fail "Build failed for repository \"${name}\": not found in (\"${srcdir}\") ($PWD)"
                fi
             fi
          done
@@ -2202,7 +2209,7 @@ build_clones()
 
    IFS="${DEFAULT_IFS}"
 
-   run_build_root_settings_script "post-build" "$@"
+   run_build_settings_script "" "post-build" "$@"
 }
 
 
@@ -2340,7 +2347,7 @@ build_main()
    #
    if [ ! -d "${REPOS_DIR}" ]
    then
-      log_info "No repositories in \"${REPOS_DIR}\", so nothing to build."
+      log_info "No repositories fetched, so nothing to build."
       return 0
    fi
 
@@ -2378,7 +2385,7 @@ build_main()
       fi
    fi
 
-   build_clones "$@"
+   build_stashes "$@"
 
    if [ -d "${DEPENDENCIES_DIR}" ]
    then

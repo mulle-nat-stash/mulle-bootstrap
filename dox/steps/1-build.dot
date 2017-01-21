@@ -1,0 +1,41 @@
+digraph pic  {
+  compound=true;
+   node [shape= record];
+
+   "1_Project" [ label="Project", color="red" ]
+
+   node [shape= folder];
+
+   "1_Project" -> "stashes"     [lhead=cluster_0];
+
+
+   subgraph cluster_0 {
+      color="red"
+      node [shape= folder];
+      "stashes"               -> "stashes#Foo"
+      "stashes"               -> "stashes#Bar"
+
+      ".bootstrap.auto"     -> "build_order"
+      "build_order"        [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">build_order</TD></TR>
+<TR><TD PORT="f0">Noobie</TD></TR>
+<TR><TD PORT="f1">Foobie</TD></TR>
+</TABLE>>];
+
+      ".bootstrap.repos"
+      ".bootstrap.repos"    -> "symlink.Foo"
+      ".bootstrap.repos"    -> "symlink.Bar"
+
+      "symlink.Foo"      [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">Foobie</TD></TR>
+<TR><TD PORT="f3">../stashes/Foobie</TD></TR>
+</TABLE>>];
+      "symlink.Bar"      [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">Noobie</TD></TR>
+<TR><TD PORT="f4">../stashes/Noobie</TD></TR>
+</TABLE>>];
+
+      "stashes"
+      "stashes#Foo"                   [ label="Foobie" ]
+      "stashes#Bar"                   [ label="Noobie"]
+   }}

@@ -1,0 +1,64 @@
+digraph inherit {
+   node [shape="folder"]
+
+   compound=true;
+   node [shape= record];
+
+   "Before" [ label="Before", color="red" ]
+   "After"  [ label="After", color="blue" ]
+
+   node [shape= folder];
+
+   "Before" -> "dst"     [lhead=cluster_0];
+   "After"  -> "result:dst" [lhead=cluster_1];
+
+  subgraph cluster_0 {
+      color="red"
+
+      "dst"
+
+      "src" -> "foo"
+      "src" -> "foo.darwin"
+      "src" -> "foo.linux"
+      "foo"           [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">foo</TD></TR>
+<TR><TD PORT="f0">1848</TD></TR>
+</TABLE>>];
+      "foo.darwin"           [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">foo.darwin</TD></TR>
+<TR><TD PORT="f0">1849</TD></TR>
+</TABLE>>];
+      "foo.linux"           [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">foo.linux</TD></TR>
+<TR><TD PORT="f0">1850</TD></TR>
+</TABLE>>];
+   }
+
+  subgraph cluster_1 {
+      color="blue"
+
+      "result:dst"         [ label="dst"]
+      "result:dst"         ->  "result:dst/foo"
+      "result:dst/foo"     [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">foo</TD></TR>
+<TR><TD PORT="f0">1849</TD></TR>
+</TABLE>>];
+
+      "result:src"         [ label="src"]
+      "result:src"         -> "result:src/foo"
+      "result:src"         -> "result:src/foo.darwin"
+      "result:src"         -> "result:src/foo.linux"
+      "result:src/foo"     [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">foo</TD></TR>
+<TR><TD PORT="f0">1848</TD></TR>
+</TABLE>>];
+      "result:src/foo.darwin"     [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">foo.darwin</TD></TR>
+<TR><TD PORT="f0">1849</TD></TR>
+</TABLE>>];
+      "result:src/foo.linux"     [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">foo.linux</TD></TR>
+<TR><TD PORT="f0">1850</TD></TR>
+</TABLE>>];
+   }
+}

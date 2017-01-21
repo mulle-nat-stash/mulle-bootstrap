@@ -230,7 +230,7 @@ assert_mulle_bootstrap_version()
    local version
 
    # has to be read before .auto is setup
-   version="`_read_setting "${BOOTSTRAP_DIR}/version"`"
+   version="`_read_setting "${BOOTSTRAP_DIR}/version" "version"`"
    if check_version "$version" "${MULLE_BOOTSTRAP_VERSION_MAJOR}" "${MULLE_BOOTSTRAP_VERSION_MINOR}"
    then
       return
@@ -396,13 +396,14 @@ local_environment_initialize()
    # read local environment
    # source this file
    #
-   BOOTSTRAP_DIR=.bootstrap
+   BOOTSTRAP_DIR=".bootstrap"
 
-   # can't repositions this because of embedded reposiories
-   REPOS_DIR=.repos
+   # can't reposition this because of embedded reposiories
+   REPOS_DIR="${BOOTSTRAP_DIR}.repos"
 
-   # this can be variable though...
-   REPOS_DIR="${REPOS_DIR}"
+   # where regular repos are cloned to by (default)
+   STASHES_DIR="stashes"
+
 
    log_fluff "${UNAME} detected"
    case "${UNAME}" in

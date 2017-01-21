@@ -77,6 +77,7 @@ _bootstrap_auto_update_merge()
 
       if [ -d "${srcfile}" ]
       then
+         log_fluff "Directory \"${srcfile}\" not copied"
          continue
       fi
 
@@ -84,14 +85,21 @@ _bootstrap_auto_update_merge()
 
       if [ -e "${localfile}" ]
       then
-         log_verbose "Setting \"${settingname}\" is locally specified, so not merged"
+         log_info "Setting \"${settingname}\" is locally specified, so not merged"
          continue
       fi
 
       match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
       if [ ! -z "${match}" ]
       then
-         log_fluff "Setting \"${settingname}\" is not mergable"
+         log_fluff "Setting \"${settingname}\" is not mergable, so ignored"
+         continue
+      fi
+
+      match="`echo "${MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
+      if [ -z "${match}" ]
+      then
+         log_fluff "Setting \"${settingname}\" is unknown"
          continue
       fi
 
@@ -116,29 +124,6 @@ _bootstrap_auto_update_merge()
 }
 
 
-_bootstrap_auto_copy_public_settings()
-{
-   local name
-   local directory
-
-   name="$1"
-   directory="$2"
-
-   [ -z "${name}" -o -z "${directory}" ] && internal_fail "wrong"
-
-   local srcdir
-   local dstdir
-
-   srcdir="${directory}/.bootstrap/public_settings"
-   dstdir="${BOOTSTRAP_DIR}.auto/${name}"
-
-   if dir_has_files "${srcdir}"
-   then
-      exekutor cp -Ra "${srcdir}/" "${dstdir}/"
-   fi
-}
-
-
 _bootstrap_auto_update_repo_settings()
 {
    local directory
@@ -152,7 +137,7 @@ _bootstrap_auto_update_repo_settings()
    srcdir="${directory}/.bootstrap"
    dstdir="${BOOTSTRAP_DIR}.auto"
 
-   mkdir_if_missing "${dstdir}"
+   [ -d "${dstdir}" ] || internal_fail "missing ${dstdir}"
 
    #
    # copy repo settings flat if not present already
@@ -162,18 +147,20 @@ _bootstrap_auto_update_repo_settings()
       reponame="`basename -- "${i}"`"
 
       case "${reponame}" in
-         bin|config|settings)
-            continue
+         .*)
+            # skip hidden stuff
+         ;;
+
+         *.info)
+            if [ -d "${dstdir}/${reponame}" ]
+            then
+               log_verbose "Settings for \"${reponame}\" are already present, so skipped"
+               continue
+            fi
+
+            exekutor cp -Ra "${i}" "${dstdir}/${reponame}"
          ;;
       esac
-
-      if [ -d "${dstdir}/${reponame}" ]
-      then
-         log_verbose "Settings for \"${reponame}\" are already present, so skipped"
-         continue
-      fi
-
-      exekutor cp -Ra "${i}" ${dstdir}/${reponame}""
    done
 
    rmdir_if_empty "${dstdir}"
@@ -219,9 +206,6 @@ bootstrap_auto_update()
    log_fluff "Acquiring \"${name}\" merge settings"
    _bootstrap_auto_update_merge "${directory}"
 
-   log_fluff "Acquiring \"${name}\" public settings"
-   _bootstrap_auto_copy_public_settings "${name}" "${directory}"
-
    log_fluff "Acquiring \"${name}\" repo settings"
    _bootstrap_auto_update_repo_settings "${directory}"
 
@@ -260,26 +244,21 @@ bootstrap_auto_create()
    #
    # add stuff from bootstrap folder
    # don't copy config if exists (it could be malicious)
-   # don't copy settings (must be duplicated by inheritor)
    #
-   local file
+   local path
    local name
 
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
    IFS="
 "
-   for file in `ls -1 "${BOOTSTRAP_DIR}"`
+   for path in `ls -1 "${BOOTSTRAP_DIR}"`
    do
       IFS="${DEFAULT_IFS}"
-      name="`basename -- "${file}"`"
+      name="`basename -- "${path}"`"
 
-      case "$name" in
-         config|settings)
+      case "${name}" in
+         config)
             continue
-         ;;
-
-         public_settings)
-            exekutor cp -Ran "${BOOTSTRAP_DIR}/public_settings/" "${BOOTSTRAP_DIR}.auto/settings"
          ;;
 
          *)
@@ -292,9 +271,61 @@ bootstrap_auto_create()
 }
 
 
+bootstrap_auto_final()
+{
+   [ -d "${BOOTSTRAP_DIR}.auto" ] || internal_fail "${BOOTSTRAP_DIR}.auto does not exists"
+
+   log_verbose "Creating build_order from repositories"
+
+   #
+   # Copy over .local verbatim
+   #
+   if [ -f "${BOOTSTRAP_DIR}.auto/build_order" ]
+   then
+      log_fluff "build_order already exists"
+      return
+   fi
+
+   #
+   # add stuff from bootstrap folder
+   # don't copy config if exists (it could be malicious)
+   #
+   # __parse_expanded_clone
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+   local clone
+   local order
+
+   order=""
+
+   IFS="
+"
+   for clone in `read_fetch_setting "repositories"`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      __parse_embedded_clone "${clone}"
+      order="`add_line "${order}" "${name}"`"
+   done
+
+   echo "${order}"  > "${BOOTSTRAP_DIR}.auto/build_order"
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
 auto_update_initialize()
 {
    log_fluff ":auto_update_initialize:"
+
+   MERGABLE_SETTINGS='brews
+taps
+tarballs
+repositories
+'
 
    NON_MERGABLE_SETTINGS='embedded_repositories
 version

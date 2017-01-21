@@ -1,0 +1,51 @@
+digraph config
+{
+   compound=true;
+   node [ shape=folder ]
+
+   {
+      rank="same";
+      environment
+      "project"
+      "home"
+   }
+
+   {
+      rank="same"
+      environment -> "project" [ ltail=cluster_0,lhead=cluster_1,penwidth=3]
+      "project" -> "home"      [ ltail=cluster_1,lhead=cluster_2,penwidth=3]
+   }
+
+   subgraph cluster_0 {
+        environment            [ shape=record ,penwidth=3]
+        environment -> environ [ lhead=cluster_0]
+        environ [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD>env</TD></TR>
+<TR><TD bgcolor="#DDDDDD">MULLE_BOOTSTRAP_TWEAK=1848</TD></TR>
+</TABLE>>];
+   }
+
+   subgraph cluster_1 {
+      color="red"
+      "project"   [ color=red,penwidth=2]
+      "project"         -> ".bootstrap.local" [ lhead=cluster_1]
+      ".bootstrap.local" -> "config"
+      "config"          -> "1.tweak"
+      "1.tweak"  [ shape=note label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+<TR><TD>tweak</TD></TR>
+<TR><TD bgcolor="#DDDDDD">1849</TD></TR>
+</TABLE>>];
+   }
+
+
+   subgraph cluster_2 {
+      color="blue"
+      "home" [ label="${HOME}", color=blue, penwidth=2 ]
+      "home" -> ".mulle-bootstrap"  [ lhead=cluster_2]
+      ".mulle-bootstrap" -> "2.tweak"
+      "2.tweak"  [ shape=note label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+<TR><TD>tweak</TD></TR>
+<TR><TD bgcolor="#DDDDDD">1850</TD></TR>
+</TABLE>>];
+   }
+}

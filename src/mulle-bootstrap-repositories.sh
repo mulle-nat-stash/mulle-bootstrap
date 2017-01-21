@@ -51,6 +51,10 @@ canonical_clone_name()
    url="$1"
    # cut off scheme part
    case "$url" in
+      .*)
+         fail "clone name can't start with a '.'"
+      ;;
+
       *:*)
          url="`echo "$@" | sed 's/^\(.*\):\(.*\)/\2/'`"
          ;;
@@ -217,8 +221,6 @@ find_embedded_repository_subdir_in_repos()
 
    reposdir="$1"
    url="$2"
-
-   local filename
 
    IFS="
 "

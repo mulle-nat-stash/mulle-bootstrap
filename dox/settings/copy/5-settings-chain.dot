@@ -1,0 +1,43 @@
+digraph inherit {
+   node [shape= record]  ;
+
+   {
+
+      "settings"                [ color="red" ]
+      "stashes.Noobie.build"    [ label="stashes/Foobie/.bootstrap/Noobie.build", color="blue" ]
+      "Noobie.build"            [ label="Noobie.build", color="green" ]
+      "overrides"               [ color="goldenrod" ]
+   }
+
+
+   node [shape= folder];
+
+   "Noobie.build"          -> "settings"              [ label=" 1. inherit", dir=back]
+   "settings"              -> "stashes.Noobie.build"  [ label=" 2. inherit", dir=back]
+   "stashes.Noobie.build"  -> "overrides"             [ label=" 3. override", dir=back]
+
+   {
+
+      subgraph cluster_0 {
+         color="gray"
+
+
+         "FS:.bootstrap.auto"                [ label=".bootstrap.auto",fontcolor="gray"]
+         "FS:.bootstrap.auto/settings"       [ label="settings",fontcolor="red"]
+         "FS:.bootstrap.auto/overrides"      [ label="overrides",fontcolor="goldenrod"]
+         "FS:.bootstrap.auto/Noobie.build"   [ label="Noobie.build",fontcolor="green"]
+         "FS:stashes"                        [ label="stashes",fontcolor="gray"]
+         "FS:stashes/Foobie"                 [ label="Foobie",fontcolor="gray"]
+         "FS:stashes/Foobie/.bootstrap"      [ label=".bootstrap",fontcolor="gray"]
+         "FS:stashes/Foobie/.bootstrap/Noobie.build" [ label="Noobie.build",fontcolor="blue"]
+
+         "FS:.bootstrap.auto" -> "FS:.bootstrap.auto/settings"       [color="gray"]
+         "FS:.bootstrap.auto" -> "FS:.bootstrap.auto/overrides"      [color="gray"]
+         "FS:.bootstrap.auto" -> "FS:.bootstrap.auto/Noobie.build"   [color="gray"]
+
+         "FS:stashes"        -> "FS:stashes/Foobie"       [color="gray"]
+         "FS:stashes/Foobie" -> "FS:stashes/Foobie/.bootstrap"  [color="gray"]
+         "FS:stashes/Foobie/.bootstrap" -> "FS:stashes/Foobie/.bootstrap/Noobie.build"   [color="gray"]
+      }
+   }
+}

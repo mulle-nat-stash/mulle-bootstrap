@@ -138,7 +138,7 @@ ${unexpanded}"
 
             if [ -f "${filename}" ]
             then
-               sub_repos="`_read_setting "${filename}"`"
+               sub_repos="`_read_setting "${filename}" "repositories"`"
                if [ ! -z "${sub_repos}" ]
                then
 #                  unexpanded_url="`url_from_clone "${unexpanded}"`"
@@ -762,6 +762,8 @@ refresh_main()
          refresh_deeply_embedded_repositories "${REPOS_DIR}"
       fi
    fi
+
+   bootstrap_auto_final
 
    create_file_if_missing "${REPOS_DIR}/.bootstrap_refresh_done"
 

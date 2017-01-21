@@ -1,0 +1,36 @@
+digraph pic  {
+   compound=true;
+   node [shape= record];
+
+   "1_Project" [ label="Project", color="red" ]
+   "2_Foo"     [ label="Foobie", color="gray" ]
+   "3_Bar"     [ label="Noobie", color="gray" ]
+
+   node [shape= folder];
+
+   "1_Project" -> ".bootstrap"     [lhead=cluster_0];
+
+
+subgraph cluster_0 {
+      color="red"
+      node [shape= folder];
+      ".bootstrap"             -> "repositories"
+      ".bootstrap.auto"        -> "repositories.auto"  [penwidth="3"]
+      ".bootstrap.auto"        -> ".auto:Foobie.build" [penwidth="3"]
+      ".auto:Foobie.build"     -> ".auto:build_preferences" [penwidth="3"]
+      ".bootstrap"             -> "Foobie.build"
+      "Foobie.build"           -> "build_preferences"
+      ".bootstrap.auto"         [ label=".bootstrap.auto", shape="folder", penwidth="3" ]
+      ".auto:Foobie.build"      [ label="Foobie.build", shape="folder", penwidth="3" ]
+      "build_preferences"       [ label="build_preferences", shape="note" ]
+      ".auto:build_preferences" [ label="build_preferences", shape="note", penwidth="3" ]
+      "repositories"            [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f0">https://github.com/mulle-nat/Foobie</TD></TR>
+</TABLE>>];
+      "repositories.auto"   [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f0">https://github.com/mulle-nat/Foobie</TD></TR>
+</TABLE>>];
+   }
+}

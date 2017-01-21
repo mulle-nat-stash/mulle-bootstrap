@@ -141,11 +141,13 @@ build_environment_initialize()
    BUILDLOG_SUBDIR="`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`"
    DEPENDENCIES_DIR="`read_sane_config_path_setting "dependency_dir" "dependencies"`"
    ADDICTIONS_DIR="`read_sane_config_path_setting "addictions_dir" "addictions"`"
+   STASHES_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
 
    [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "variable CLONESBUILD_SUBDIR is empty"
    [ -z "${BUILDLOG_SUBDIR}" ]    && internal_fail "variable BUILDLOG_SUBDIR is empty"
-   [ -z "${DEPENDENCIES_DIR}" ]     && internal_fail "variable DEPENDENCIES_DIR is empty"
-   [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "variable ADDICTIONS_DIR is empty"
+   [ -z "${DEPENDENCIES_DIR}" ]   && internal_fail "variable DEPENDENCIES_DIR is empty"
+   [ -z "${ADDICTIONS_DIR}" ]     && internal_fail "variable ADDICTIONS_DIR is empty"
+   [ -z "${STASHES_DIR}" ]        && internal_fail "variable STASHES_DIR is empty"
 
    PATH="`make_executable_search_path "$PATH" "${DEPENDENCIES_DIR}" "${ADDICTIONS_DIR}"`"
    export PATH

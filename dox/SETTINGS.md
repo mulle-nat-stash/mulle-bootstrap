@@ -1,35 +1,10 @@
+# Settings
 
-> None of these settings are required, they are used to tweak **mulle_bootstrap**
->
 > <font color="green">**Important: Setting values are delimited by LF.**</font>
 
-
-Assume you have **a** that depends on **b**.  The following
-rules are with respect to **a**.
-
-
-# What ends up in the .bootstrap.auto folder
-
-1. **a**'s `.bootstrap.local` folder is copied first
-2. **a**'s `.bootstrap` folder contents are added (except `.bootstrap/config`),
-
-3. **b**'s `.bootstrap.local` folder is ignored
-4. any **file** in **b**'s `.bootstrap` folder except the file
-`embedded_repositories` is merged in. If it would overwrite a file copied
-from  **a**'s' `.bootstrap.local` the merge is not done.
-5. **b**'s `.bootstrap/settings` and `.bootstrap/config` folders are ignored
-6. any other **folder** from **b**'s' `./bootstrap`folder is copied, if it
-doesn't overwrite an existing folder.
-
-
-Mergable Settings
+Root Settings
 ===================
 
-1. `.bootstrap.local`
-2. `.bootstrap`       (Merge)
-
-
-##### Fetch Settings
 
 Setting Name            |  Description
 ------------------------|----------------------------------------
@@ -38,36 +13,18 @@ Setting Name            |  Description
 `embedded_repositories` | Repositories to embed, specify the URLs
 `taps`                  | Homebrew taps to install
 `tarballs`              | Tarballs to install (currently filesystem only)
-                        |
+`build_ignore`          | Repositories not to build
 
-##### Build Settings
 
-All build settings are searched OS specific first and then globally.
-Example: on OS X, "build_ignore.darwin" will be searched first followed
-by a search for "build_ignore".
 
-Setting Name            |  Description
-------------------------|----------------------------------------
-`build_ignore`          | repositories not to build
-
+> None of these settings are required, they are used to control the
+> **mulle_bootstrap** build processs
+>
 
 
 Build Settings
 ===================
 
-These settings are usually repository specific, but can be set globally also.
-
-#### Search Paths
-
-1. `.bootstrap.local/${reponame}`
-2. `.bootstrap/${reponame}`          (Inheritable)
-
-3. `.bootstrap.local/settings`
-4. `.bootstrap/settings`
-5. `.bootstrap/public_settings`       (Inheritable)
-
-
-#### Settings
 
 Setting Name                     |  Description                               | Default
 ---------------------------------|--------------------------------------------|---------------
@@ -98,65 +55,29 @@ Setting Name                     |  Description                               | 
                                  | controlled by the following settings       | NO
 `xcode_mangle_include_prefix`    | remove /usr/local from Xcode header paths  | NO
 `xcode_mangle_header_dash`       | convert '-' to '_' in Xcode header paths   | NO
+`xcode_project`                  | The Xcode project file to use              |
+`xcode_schemes`                  | The Xcode schemes to build                 |
+`xcode_targets`                  | The Xcode targets to build                 |
 
 
-
-Repository Specific Settings
-===================
-
-Some settings are not supplied by root build settings.
-
-#### Search Paths
-
-1. `.bootstrap.local/${reponame}`
-2. `.bootstrap/${reponame}`       (Inheritable)
-
-
-#### Settings
-
-Setting Name     | Used by       | Description
------------------|---------------|---------------------------
-`tag`            | fetch         | What to checkout after fetching a
-                 |               | repository. (Preferably don't use)
-`xcode_project`  | build,xcode   | The Xcode project file to use
-`xcode_schemes`  | build         | The Xcode schemes to build
-`xcode_targets`  | build         | The Xcode targets to build
-
-
-Scripts
+Root Scripts
 ==========================
 
-Scripts are run at various times during the fetch, build and tag process.
-Root scripts must be aware, that they will be called for every repository.
+`bin/pre-fetch.sh`
+`bin/post-fetch.sh`
+`bin/pre-update.sh`
+`bin/post-update.sh`
+`bin/pre-tag.sh`
+`bin/post-tag.sh`
 
-1. `.bootstrap.local/${reponame}/bin`
-2. `.bootstrap/${reponame}/bin`     (Inheritable)
 
-3. `.bootstrap.local/settings/bin`
-4. `.bootstrap/settings/bin`
-5. `.bootstrap/public_settings/bin` (Inheritable)
-
-`pre-fetch.sh`
-`post-fetch.sh`
-`pre-update.sh`
-`post-update.sh`
-`pre-tag.sh`
-`post-tag.sh`
-
+> None of these settings are required, they are used to tweak **mulle_bootstrap**
+>
+> <font color="green">**Important: Setting values are delimited by LF.**</font>
 
 
 Config Settings
 ===================
-
-Environment variables use the setting name, transformed to upper case and
-prepended with "MULLE_BOOTSTRAP_". So "preferences" is `MULLE_BOOTSTRAP_PREFERENCES`
-in the environment. These can only be specified locally. They are not inherited.
-
-#### Search Paths
-
-1. ENVIRONMENT
-2. `.bootstrap.local/config`
-3. `~/.mulle-bootstrap`
 
 
 ##### General Settings

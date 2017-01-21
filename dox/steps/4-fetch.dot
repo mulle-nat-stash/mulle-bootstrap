@@ -1,0 +1,72 @@
+digraph pic  {
+   compound=true;
+   node [shape= record];
+
+   "1_Project" [ label="Project", color="red" ]
+   "2_Foo"     [ label="Foobie", color="blue" ]
+   "3_Bar"     [ label="Noobie", color="gray" ]
+
+   node [shape= folder];
+
+   "1_Project" -> ".bootstrap.auto"     [lhead=cluster_0];
+   "2_Foo"     -> "foo:.bootstrap"     [lhead=cluster_1];
+
+
+   subgraph cluster_0 {
+      color="red"
+      node [shape= folder];
+      "stashes"               -> "stashes#Foo" [ penwidth="3" ]
+      ".bootstrap.auto"     -> "repositories.auto"
+      ".bootstrap.auto"     -> ".auto:Foo"
+      ".bootstrap.repos"    -> "symlink.Foo" [ penwidth="3"]
+      "stashes#Foo"           -> "stashes#foo:.bootstrap" [ penwidth="3"]
+      ".auto:Foo"           -> ".auto:build_preferences"
+      ".bootstrap.auto"      [ label=".bootstrap.auto", shape="folder" ]
+      ".auto:Foo"            [ label="Foobie.build", shape="folder" ]
+      ".auto:build_preferences" [ label="build_preferences", shape="note" ]
+      "repositories.auto"   [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f0">https://github.com/mulle-nat/Foobie</TD></TR>
+</TABLE>>];
+
+      "symlink.Foo"      [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">Foobie</TD></TR>
+<TR><TD PORT="f1">../stashes/Foo</TD></TR>
+</TABLE>>];
+
+      "stashes"                       [ penwidth="3" ]
+      ".bootstrap.repos"            [ penwidth="3" ]
+      "stashes#Foo"                   [ label="Foobie", penwidth="3" ]
+      "stashes#foo:.bootstrap"        -> "stashes#foo:repositories" [ penwidth="3"]
+      "stashes#foo:.bootstrap"        -> "stashes#foo:Noobie.build" [ penwidth="3"]
+      "stashes#foo:Noobie.build"      -> "stashes#foo:dispense_other_product" [ penwidth="3"]
+      "stashes#foo:dispense_other_product" [ label="dispense_other_product", penwidth="3", shape="note" ]
+      "stashes#foo:.bootstrap"        [ label=".bootstrap", penwidth="3" ]
+      "stashes#foo:Noobie.build"      [ label="Noobie.build", penwidth="3" ]
+
+      "stashes#foo:repositories"      [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f0">https://github.com/mulle-nat/Noobie</TD></TR>
+</TABLE>>];
+   }
+
+
+
+  subgraph cluster_1 {
+      color="blue"
+      node [shape= folder];
+      "foo:.bootstrap"        -> "foo:repositories"
+      "foo:.bootstrap"        -> "foo:Noobie.build"
+
+      "foo:Noobie.build"      -> "foo:dispense_other_product"
+      "foo:dispense_other_product" [ label="dispense_other_product", shape="note" ]
+      "foo:.bootstrap"        [ label=".bootstrap" ]
+      "foo:Noobie.build"      [ label="Noobie.build" ]
+
+      "foo:repositories"      [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f11">https://github.com/mulle-nat/Noobie</TD></TR>
+</TABLE>>];
+
+   }
+}

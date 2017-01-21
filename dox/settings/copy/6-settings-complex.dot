@@ -1,0 +1,61 @@
+digraph inherit {
+   node [shape= record]  ;
+
+   {
+
+      "settings"                       [ color="red" ]
+      "Noobie.build"                   [ label="Noobie.build", color="green" ]
+      "stashes.Foobie/Noobie.build"    [ label="stashes/Foobie/.bootstrap/Noobie.build", color="blue" ]
+      "stashes.Noobie/Noobie.build"    [ label="stashes/Noobie/.bootstrap/Noobie.build", color="purple" ]
+      "stashes.Toobie/Noobie.build"    [ label="stashes/Toobie/.bootstrap/Noobie.build", color="gray", fontcolor="gray" ]
+      "overrides"                      [ color="goldenrod" ]
+   }
+
+
+   node [shape= folder];
+
+   "Noobie.build"                -> "settings"                    [ label=" 1. inherit", dir=back]
+   "settings"                    -> "stashes.Foobie/Noobie.build" [ label=" 2. inherit", dir=back]
+   "stashes.Foobie/Noobie.build" -> "stashes.Noobie/Noobie.build" [ label=" 3. inherit", dir=back]
+   "stashes.Noobie/Noobie.build" -> "stashes.Toobie/Noobie.build" [ label=" 4. skipped", dir=back, color="gray", fontcolor="gray" ]
+   "stashes.Toobie/Noobie.build" -> "overrides"                   [ label=" 5. override", dir=back]
+
+   {
+
+      subgraph cluster_0 {
+         color="gray"
+
+
+         "FS:.bootstrap.auto"                [ label=".bootstrap.auto",fontcolor="gray"]
+         "FS:.bootstrap.auto/settings"       [ label="settings",fontcolor="red"]
+         "FS:.bootstrap.auto/overrides"      [ label="overrides",fontcolor="goldenrod"]
+         "FS:.bootstrap.auto/Noobie.build"   [ label="Noobie.build",fontcolor="green"]
+         "FS:stashes"                        [ label="stashes",fontcolor="gray"]
+
+         "FS:.bootstrap.auto" -> "FS:.bootstrap.auto/settings"       [color="gray"]
+         "FS:.bootstrap.auto" -> "FS:.bootstrap.auto/overrides"      [color="gray"]
+         "FS:.bootstrap.auto" -> "FS:.bootstrap.auto/Noobie.build"   [color="gray"]
+
+         "FS:stashes/Foobie"                 [ label="Foobie",fontcolor="gray"]
+         "FS:stashes/Foobie/.bootstrap"      [ label=".bootstrap",fontcolor="gray"]
+         "FS:stashes/Foobie/.bootstrap/Noobie.build" [ label="Noobie.build",fontcolor="blue"]
+         "FS:stashes"        -> "FS:stashes/Foobie"             [color="gray"]
+         "FS:stashes/Foobie" -> "FS:stashes/Foobie/.bootstrap"  [color="gray"]
+         "FS:stashes/Foobie/.bootstrap" -> "FS:stashes/Foobie/.bootstrap/Noobie.build"   [color="gray"]
+
+         "FS:stashes/Noobie"                 [ label="Noobie",fontcolor="gray"]
+         "FS:stashes/Noobie/.bootstrap"      [ label=".bootstrap",fontcolor="gray"]
+         "FS:stashes/Noobie/.bootstrap/Noobie.build" [ label="Noobie.build",fontcolor="purple"]
+         "FS:stashes"        -> "FS:stashes/Noobie"             [color="gray"]
+         "FS:stashes/Noobie" -> "FS:stashes/Noobie/.bootstrap"  [color="gray"]
+         "FS:stashes/Noobie/.bootstrap" -> "FS:stashes/Noobie/.bootstrap/Noobie.build"   [color="gray"]
+
+         "FS:stashes/Toobie"                 [ label="Toobie",fontcolor="gray"]
+         "FS:stashes/Toobie/.bootstrap"      [ label=".bootstrap",fontcolor="gray"]
+         "FS:stashes/Toobie/.bootstrap/Noobie.build" [ label="Toobie.build",fontcolor="gray"]
+         "FS:stashes"        -> "FS:stashes/Toobie"             [color="gray"]
+         "FS:stashes/Toobie" -> "FS:stashes/Toobie/.bootstrap"  [color="gray"]
+         "FS:stashes/Toobie/.bootstrap" -> "FS:stashes/Toobie/.bootstrap/Noobie.build"   [color="gray"]
+      }
+   }
+}
