@@ -32,15 +32,180 @@ MULLE_BOOTSTRAP_AUTO_UPDATE_SH="included"
 
 
 #
-# What auto_update does:
+# This function is called initially to setup .bootstrap.auto before
+# doing anything else. It is clear that .bootstrap.auto does not exist
 #
-# 1. bootstrap_auto_create:
-#    1.a. run once to copy roots .bootstrap.local to .bootstrap.auto
-#    1.b) augment .bootstrap.local with stuff from .bootstrap
+# copy contents of .bootstrap.local to .bootstrap.auto
+# them add contents of .bootstrap to .bootstrap.auto, if not present
 #
-# 2. bootstrap_auto_update:
-#    2.a) augment .bootstrap.local with stuff from .repos/<name>/.bootstrap
-#
+bootstrap_auto_create()
+{
+   [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "empty bootstrap"
+
+   log_fluff "Creating ${BOOTSTRAP_DIR}.auto from ${BOOTSTRAP_DIR} (`pwd`)"
+
+   assert_mulle_bootstrap_version
+
+   rmdir_safer "${BOOTSTRAP_DIR}.auto"
+   mkdir_if_missing "${BOOTSTRAP_DIR}.auto"
+
+   #
+   # Copy over .local verbatim
+   #
+   if dir_has_files "${BOOTSTRAP_DIR}.local"
+   then
+      exekutor cp -Ra "${BOOTSTRAP_DIR}.local/" "${BOOTSTRAP_DIR}.auto/"
+   fi
+
+   #
+   # add stuff from bootstrap folder
+   # don't copy config if exists (it could be malicious)
+   #
+   local path
+   local name
+
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+   IFS="
+"
+   for path in `ls -1 "${BOOTSTRAP_DIR}"`
+   do
+      IFS="${DEFAULT_IFS}"
+      name="`basename -- "${path}"`"
+
+      case "${name}" in
+         config)
+            continue
+         ;;
+
+         *.build|settings|overrides)
+            if [ -d "${BOOTSTRAP_DIR}/${name}" ]
+            then
+               inherit_files "${BOOTSTRAP_DIR}.auto/${name}" "${BOOTSTRAP_DIR}/${name}"
+            fi
+         ;;
+
+         *)
+            exekutor cp -Ran "${BOOTSTRAP_DIR}/${name}" "${BOOTSTRAP_DIR}.auto/"
+         ;;
+      esac
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+
+_bootstrap_auto_refresh_repository_file()
+{
+   local clones
+   local stop
+   local refreshed
+   local match
+   local dependency_map
+   local unexpanded
+
+   [ -z "${MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
+
+   refreshed=""
+   dependency_map=""
+
+   clones="`read_root_setting "repositories"`"
+   if [ -z "${clones}" ]
+   then
+      return
+   fi
+
+   IFS="
+"
+   for unexpanded in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      # cat for -e
+      match="`echo "${refreshed}" | fgrep -s -x "${unexpanded}"`"
+      if [ ! -z "${match}" ]
+      then
+         continue
+      fi
+
+      refreshed="${refreshed}
+${unexpanded}"
+
+      if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+      then
+         log_trace2 "Dealing with ${unexpanded}"
+      fi
+
+      # avoid superflous updates
+
+      local branch
+      local stashdir
+      local name
+      local scm
+      local tag
+      local url
+      local clone
+      local dstdir
+
+      clone="`expanded_variables "${unexpanded}"`"
+      parse_clone "${clone}"
+
+      dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${unexpanded}"`"
+
+      #
+      # dependency management, it could be nicer, but isn't.
+      # Currently matches only URLs
+      #
+
+      if [ ! -d "${stashdir}" ]
+      then
+         if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+         then
+            log_trace2 "${stashdir} not fetched yet"
+         fi
+         continue
+      fi
+
+      local sub_repos
+      local filename
+
+      filename="${stashdir}/.bootstrap/repositories"
+      sub_repos="`read_setting "${filename}" "repositories"`"
+      if [ ! -z "${sub_repos}" ]
+      then
+#                  unexpanded_url="`url_from_clone "${unexpanded}"`"
+         dependency_map="`dependency_add_array "${dependency_map}" "${unexpanded}" "${sub_repos}"`"
+         if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+         then
+            log_trace2 "add \"${unexpanded}\" to __ROOT__ as dependencies"
+            log_trace2 "add [ ${sub_repos} ] to ${unexpanded} as dependencies"
+         fi
+      else
+         log_fluff "${name} has no repositories"
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   #
+   # output true repository dependencies
+   #
+   local repositories
+
+   repositories="`dependency_resolve "${dependency_map}" "__ROOT__" | fgrep -v -x "__ROOT__"`"
+   if [ ! -z "${repositories}" ]
+   then
+      if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+      then
+         log_trace2 "----------------------"
+         log_trace2 "resolved dependencies:"
+         log_trace2 "----------------------"
+         log_trace2 "${repositories}"
+         log_trace2 "----------------------"
+      fi
+      echo "${repositories}" > "${BOOTSTRAP_DIR}.auto/repositories"
+   fi
+}
 
 #
 # prepend new contents to old contents
@@ -48,10 +213,8 @@ MULLE_BOOTSTRAP_AUTO_UPDATE_SH="included"
 # `BOOTSTRAP_DIR` is the "root" bootstrap to update
 # `directory` can be the inferior bootstrap of a fetched repository
 #
-_bootstrap_auto_update_merge()
+_bootstrap_auto_merge_root_settings()
 {
-   local directory
-
    directory="$1"
 
    [ -z "${directory}" ] && internal_fail "wrong"
@@ -89,6 +252,7 @@ _bootstrap_auto_update_merge()
          continue
       fi
 
+      # cat is for -e
       match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
       if [ ! -z "${match}" ]
       then
@@ -96,6 +260,7 @@ _bootstrap_auto_update_merge()
          continue
       fi
 
+      # cat is for -e
       match="`echo "${MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
       if [ -z "${match}" ]
       then
@@ -124,147 +289,116 @@ _bootstrap_auto_update_merge()
 }
 
 
-_bootstrap_auto_update_repo_settings()
-{
-   local directory
-
-   directory="$1"
-
-   local srcdir
-   local dstdir
-   local reponame
-
-   srcdir="${directory}/.bootstrap"
-   dstdir="${BOOTSTRAP_DIR}.auto"
-
-   [ -d "${dstdir}" ] || internal_fail "missing ${dstdir}"
-
-   #
-   # copy repo settings flat if not present already
-   #
-   for i in `find "${srcdir}" -mindepth 1 -maxdepth 1 -type d -print 2> /dev/null`
-   do
-      reponame="`basename -- "${i}"`"
-
-      case "${reponame}" in
-         .*)
-            # skip hidden stuff
-         ;;
-
-         *.info)
-            if [ -d "${dstdir}/${reponame}" ]
-            then
-               log_verbose "Settings for \"${reponame}\" are already present, so skipped"
-               continue
-            fi
-
-            exekutor cp -Ra "${i}" "${dstdir}/${reponame}"
-         ;;
-      esac
-   done
-
-   rmdir_if_empty "${dstdir}"
-}
-
-
-#
-# This function is called periodocally to update .bootstrap.auto with the
-# contents of fetched repository .bootstraps
-#
-# `BOOTSTRAP_DIR` is the "root" bootstrap to update
-# `directory` the fetched repository
-# return 0, if something changed
-#
 bootstrap_auto_update()
 {
-   local name
    local directory
 
-   name="$1"
-   directory="$2"
+   log_fluff ":bootstrap_auto_update: begin"
+   directory="$1"
 
-   [ -z "${BOOTSTRAP_DIR}" ]     && internal_fail "BOOTSTRAP_DIR was empty"
-   [ -z "${directory}" ]         && internal_fail "directory was empty"
-   [ "${PWD}" = "${directory}" ] && internal_fail "configuration error"
-
-   if [ "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES" ]
+   if [ -d "${directory}/${BOOTSTRAP_DIR}" ]
    then
-      log_trace2 "bootstrap.auto: ${name} from ${directory}"
+      _bootstrap_auto_merge_root_settings "${directory}"
+      _bootstrap_auto_refresh_repository_file "${directory}"
    fi
-
-   log_verbose "Auto update \"${name}\" settings ($directory)"
-
-   # contains own bootstrap ? and not a symlink
-   if [ ! -d "${directory}/.bootstrap" ] # -a ! -L "${dst}" ]
-   then
-      log_fluff "No .bootstrap folder in \"${directory}\" found"
-      return 1
-   fi
-
-   log_verbose "Updating .bootstrap.auto with ${directory}/.bootstrap ($PWD)"
-
-   log_fluff "Acquiring \"${name}\" merge settings"
-   _bootstrap_auto_update_merge "${directory}"
-
-   log_fluff "Acquiring \"${name}\" repo settings"
-   _bootstrap_auto_update_repo_settings "${directory}"
-
-   log_fluff "Acquisiton of \"${name}\" settings complete"
-
-   return 0
+   log_fluff ":bootstrap_auto_update: end"
 }
 
 
-#
-# This function is called initially to setup .bootstrap.auto before
-# doing anything else. It is clear that .bootstrap.auto does not exist
-#
-# copy contents of .bootstrap.local to .bootstrap.auto
-# them add contents of .bootstrap to .bootstrap.auto, if not present
-#
-bootstrap_auto_create()
+bootstrap_create_build_folders()
 {
-   [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "empty bootstrap"
-   [ -d "${BOOTSTRAP_DIR}.auto" ] && internal_fail "${BOOTSTRAP_DIR}.auto already exists"
-
-   log_verbose "Creating .bootstrap.auto from ${BOOTSTRAP_DIR} (`pwd -P`)"
-
-   assert_mulle_bootstrap_version
-
-   mkdir_if_missing "${BOOTSTRAP_DIR}.auto"
-
    #
-   # Copy over .local verbatim
+   # now pick up on build order and produce .build folders
+   # but build order could be "hand coded", lets use it
    #
-   if dir_has_files "${BOOTSTRAP_DIR}.local"
-   then
-      exekutor cp -Ra "${BOOTSTRAP_DIR}.local/" "${BOOTSTRAP_DIR}.auto/"
-   fi
+   local revclonenames
+   local clonenames
+   local srcdir
+   local dstdir
 
-   #
-   # add stuff from bootstrap folder
-   # don't copy config if exists (it could be malicious)
-   #
-   local path
+   local has_settings
+   local has_overrides
+
+   [ -d "${BOOTSTRAP_DIR}.auto/settings" ]
+   has_settings=$?
+
+   [ -d "${BOOTSTRAP_DIR}.auto/overrides" ]
+   has_overrides=$?
+
+   clonenames="`read_root_setting "build_order"`"
+   revclonenames="`echo "${clonenames}" | sed '1!G;h;$!d'`"  # reverse lines
+
+   local tmp
+   local apath
    local name
+   local revname
 
-   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+   #
+   # small optimization,
+   # throw out revclones  that have no .bootstrap folder
+   #
+
+   tmp="${revclonenames}"
+   revclonenames=""
+
    IFS="
 "
-   for path in `ls -1 "${BOOTSTRAP_DIR}"`
+   for revname in ${tmp}
    do
       IFS="${DEFAULT_IFS}"
-      name="`basename -- "${path}"`"
 
-      case "${name}" in
-         config)
-            continue
-         ;;
+      apath="`stash_of_repository "${REPOS_DIR}" "${revname}"`/.bootstrap"
+      if [ -d "${apath}" ]
+      then
+         revclonenames="`add_line "${revclonenames}" "${revname}"`"
+      fi
+   done
 
-         *)
-            exekutor cp -Ran "${BOOTSTRAP_DIR}/${name}" "${BOOTSTRAP_DIR}.auto/"
-         ;;
-      esac
+   IFS="
+"
+   for name in ${clonenames}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      dstdir="${BOOTSTRAP_DIR}.auto/.${name}.build"
+      if [ ${has_settings} -eq 0 ]
+      then
+         inherit_files "${dstdir}" "${BOOTSTRAP_DIR}.auto/settings"
+      fi
+
+      if [ "`read_build_setting "${name}" "final" "NO"`" = "YES" ]
+      then
+         break
+      fi
+
+      IFS="
+"
+      for revname in ${revclonenames}
+      do
+         IFS="${DEFAULT_IFS}"
+
+         srcdir="`stash_of_repository "${REPOS_DIR}" "${revname}"`/.bootstrap/${name}.build"
+
+         if [ -d "${srcdir}" ]
+         then
+            inherit_files "${dstdir}" "${srcdir}"
+            if [ "`read_build_setting "${name}" "final" "NO"`" = "YES" ]
+            then
+               break
+            fi
+         fi
+
+         if [ "${revname}" = "${name}" ]
+         then
+            break
+         fi
+
+      done
+
+      if [ ${has_overrides} -eq 0 ]
+      then
+         override_files "${dstdir}" "${BOOTSTRAP_DIR}.auto/overrides"
+      fi
    done
 
    IFS="${DEFAULT_IFS}"
@@ -275,11 +409,8 @@ bootstrap_auto_final()
 {
    [ -d "${BOOTSTRAP_DIR}.auto" ] || internal_fail "${BOOTSTRAP_DIR}.auto does not exists"
 
-   log_verbose "Creating build_order from repositories"
+   log_fluff "Creating ${C_MAGENTA}${C_BOLD}build_order${C_VERBOSE} from repositories"
 
-   #
-   # Copy over .local verbatim
-   #
    if [ -f "${BOOTSTRAP_DIR}.auto/build_order" ]
    then
       log_fluff "build_order already exists"
@@ -303,17 +434,19 @@ bootstrap_auto_final()
 
    IFS="
 "
-   for clone in `read_fetch_setting "repositories"`
+   for clone in `read_root_setting "repositories"`
    do
       IFS="${DEFAULT_IFS}"
 
-      __parse_embedded_clone "${clone}"
+      parse_clone "${clone}"
       order="`add_line "${order}" "${name}"`"
    done
 
-   echo "${order}"  > "${BOOTSTRAP_DIR}.auto/build_order"
-
    IFS="${DEFAULT_IFS}"
+
+   echo "${order}" > "${BOOTSTRAP_DIR}.auto/build_order"
+
+   bootstrap_create_build_folders
 }
 
 
@@ -322,7 +455,6 @@ auto_update_initialize()
    log_fluff ":auto_update_initialize:"
 
    MERGABLE_SETTINGS='brews
-taps
 tarballs
 repositories
 '
@@ -331,6 +463,7 @@ repositories
 version
 '
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   :
 }
 
 auto_update_initialize

@@ -39,44 +39,412 @@ MULLE_BOOTSTRAP_REPOSITORIES_SH="included"
 # ####################################################################
 #
 
+#
+# deal with contents of files in .bootstrap.repos
+#
+#
+# memorize where we placed a repository, need URL to identify
+# and the subdir, where it was stored
+#
+# store it inside the possibly recursed dstprefix dependency
+#
+remember_stash_of_repository()
+{
+   local clone="$1" ; shift
+
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   [ -z "${clone}" ]    && internal_fail "clone is missing"
+   [ -z "${reposdir}" ] && internal_fail "reposdir is missing"
+   [ -z "${name}" ]     && internal_fail "name is missing"
+   [ -z "${stashdir}" ] && internal_fail "stashdir is missing"
+   [ $# -ne 7  ]        && internal_fail "parameter error"
+
+   local content
+   local filepath
+
+   mkdir_if_missing "${reposdir}"
+   filepath="${reposdir}/${name}"
+
+   content="${stashdir}
+${clone}"  ## a clone line
+
+   log_fluff "Remember repository \"${name}\" via \"${filepath}\""
+
+   redirect_exekutor "${filepath}" echo "${content}"
+}
+
+
+_clone_of_reposdir_file()
+{
+   tail -1 "${1}"
+}
+
+
+clone_of_repository()
+{
+   local reposdir
+   local name
+
+   reposdir="$1"
+   name="$2"
+
+   [ -z "${name}" ] && internal_fail "Empty parameter"
+
+   local relpath
+
+   relpath="${reposdir}/${name}"
+   if [ -f "${relpath}" ]
+   then
+      _clone_of_reposdir_file "${relpath}"
+   fi
+}
+
+
+clone_of_embedded_repository()
+{
+   local reposdir
+   local name
+
+   reposdir="$1"
+   name="$2"
+
+   clone_of_repository "${reposdir}/.embedded" "${name}"
+}
+
+
+_stash_of_reposdir_file()
+{
+   head -1 "$1"
+}
+
+
+stash_of_repository()
+{
+   local reposdir
+   local name
+
+   reposdir="$1"
+   name="$2"
+
+   [ -z "${reposdir}" ] && internal_fail "Empty reposdir"
+   [ -z "${name}" ]     && internal_fail "Empty name"
+
+   local reposfilepath
+
+   reposfilepath="${reposdir}/${name}"
+   if [ -f "${reposfilepath}" ]
+   then
+      _stash_of_reposdir_file "${reposfilepath}"
+   else
+      log_fluff "No stash found for ${name} in ${reposdir} (`pwd -P`)"
+   fi
+}
+
+
+all_repository_names()
+{
+   ls -1 "${REPOS_DIR}/" 2> /dev/null
+}
+
+
+#
+# Collect all stashes for embedded, normal and deep_embedded
+#
+_all_repository_stashes()
+{
+   local reposdir
+
+   reposdir="$1"
+
+   [ -z "${reposdir}" ] && internal_fail "repos is empty"
+
+   local name
+   local stash
+
+   IFS="
+"
+   for name in `ls -1 "${reposdir}/" 2> /dev/null`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      stash="`stash_of_repository "${reposdir}" "${name}"`"
+      if [ ! -z "${stash}" ]
+      then
+         if [ -d "${stash}" ]
+         then
+            echo "${stash}"
+         fi
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+all_repository_stashes()
+{
+   _all_repository_stashes "${REPOS_DIR}"
+}
+
+
+all_embedded_repository_stashes()
+{
+   _all_repository_stashes "${REPOS_DIR}/.embedded"
+}
+
+
+all_deep_embedded_repository_stashes()
+{
+   local reposdir
+   local stashes
+   local stash
+
+   IFS="
+"
+   stashes="`all_repository_stashes "${reposdir}"`"
+   for stash in ${stashes}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      reposdir="stash/${REPOS_DIR}"
+      all_embedded_repository_stashes "${reposdir}"
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+#
+# but not deep embedded...
+#
+all_stashes()
+{
+   local reposdir
+   local dstprefix
+
+   reposdir="$1"
+   dstprefix="$2"
+
+   all_repository_stashes "${reposdir}"
+   all_embedded_repository_stashes "${reposdir}" "${dstprefix}"
+}
+
+#
+# Walkers
+#
+
+walk_repositories()
+{
+   local settingname
+   local permissions
+   local callback
+   local reposdir
+
+   settingname="$1"
+   shift
+   callback="$1"
+   shift
+   permissions="$1"
+   shift
+   reposdir="$1"
+   shift
+
+   # rest are repository names or empty if all
+
+   local match
+   local called
+
+   # parse_clone
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+   local stashdir
+
+   called=""
+
+   clones="`read_root_setting "${settingname}"`"
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      parse_clone "${clone}"
+
+      if [ $# -ne 0 ]
+      then
+         # cat is for -e
+         match="`echo "$@" | fgrep -s -x "${name}"`"
+         if [ "${match}" = "${name}" ]
+         then
+            continue
+         fi
+      fi
+
+      if [ -L "${stashdir}" ]
+      then
+        # cat is for -e
+         match="`echo "${permissions}" | fgrep -s -x "symlink"`"
+         if [ -z "${match}" ]
+         then
+            log_verbose "${stashdir} of ${url} is a symlink, skipped"
+            continue
+         fi
+      else
+         if [ ! -d "${stashdir}" ]
+         then
+            # cat is for -e
+            match="`echo "${permissions}" | fgrep -s -x "missing"`"
+            if [ -z "${match}" ]
+            then
+               log_verbose "${stashdir} of ${url} is missing (or not a directory), skipped"
+               continue
+            fi
+         fi
+      fi
+
+      ${callback} "${reposdir}" \
+                  "${name}" \
+                  "${url}" \
+                  "${branch}" \
+                  "${scm}" \
+                  "${tag}" \
+                  "${stashdir}"
+
+      called="`add_line "${called}" "${name}"`"
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   if [ ! -z "${called}" ]
+   then
+      echo "${called}"
+   fi
+}
+
+
+walk_deep_embedded_repositories()
+{
+   local settingname
+   local permissions
+
+   callback="$1"
+   shift
+   permissions="$1"
+   shift
+
+   # rest are repository names or empty if all
+   local match
+
+   # parse_clone
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+   local stashdir
+
+   clones="`read_root_setting "repositories"`"
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      parse_clone "${clone}"
+
+      if [ $# -ne 0 ]
+      then
+         # cat is for -e
+         match="`echo "$@" | fgrep -s -x "${name}"`"
+         if [ "${match}" = "${name}" ]
+         then
+            continue
+         fi
+      fi
+
+      if [ -L "${stashdir}" ]
+      then
+         # cat is for -e
+         match="`echo "${permissions}" | fgrep -s -x "symlink"`"
+         if [ -z "${match}" ]
+         then
+            log_verbose "${stashdir} is a symlink, skipped"
+            continue
+         fi
+      else
+         if [ ! -d "${stashdir}" ]
+         then
+            # cat is for -e
+            match="`echo "${permissions}" | fgrep -s -x "missing"`"
+            if [ -z "${match}" ]
+            then
+               log_verbose "${stashdir} is missing (or not a directory), skipped"
+               continue
+            fi
+         fi
+      fi
+
+      # now grab embedded of that
+      (
+         cd "${stashdir}" ;
+         STASHES_DIR="" ;
+         walk_repositories "embedded_repositories" "${callback}" "${permissions}" "${REPOS_DIR}.embedded"
+      ) || exit 1
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
 # deal with stuff like
 # foo
 # https://www./foo.git
 # host:foo
 #
-canonical_clone_name()
+_canonical_clone_name()
 {
    local  url
+   local name
 
    url="$1"
    # cut off scheme part
    case "$url" in
+      *:*)
+         url="`echo "$@" | sed 's/^\(.*\):\(.*\)/\2/'`"
+      ;;
+   esac
+
+   name="`extension_less_basename "$url"`"
+
+   case "${name}" in
       .*)
          fail "clone name can't start with a '.'"
       ;;
-
-      *:*)
-         url="`echo "$@" | sed 's/^\(.*\):\(.*\)/\2/'`"
-         ;;
    esac
 
-   extension_less_basename "$url"
+   echo "${name}"
 }
 
 
-count_clone_components()
-{
-   echo "$@" | tr ';' '\012' | wc -l | awk '{ print $1 }'
-}
-
-
-url_from_clone()
+_url_part_from_clone()
 {
    echo "$@" | cut '-d;' -f 1
 }
 
 
-_name_part_from_clone()
+_stashdir_part_from_clone()
 {
    echo "$@" | cut -s '-d;' -f 2
 }
@@ -96,310 +464,155 @@ _scm_part_from_clone()
 
 _tag_part_from_clone()
 {
-   echo "$@" | cut -s '-d;' -f 4
+   echo "$@" | cut -s '-d;' -f 5
 }
 
 
-
-canonical_name_from_clone()
+#
+# Always use URL name, even if stashdir renames it
+#
+_canonical_name_from_clone()
 {
    local url
-   local name
-   local branch
 
-   url="`url_from_clone "$@"`"
-   name="`_name_part_from_clone "$@"`"
-
-   if [ ! -z "${name}" -a "${name}" != "${url}" ]
-   then
-      canonical_clone_name "${name}"
-      return
-   fi
-
-   canonical_clone_name "${url}"
+   url="`_url_part_from_clone "$@"`"
+   _canonical_clone_name "${url}"
 }
 
-
-branch_from_clone()
+path_relative_to_root_dir()
 {
-   local count
+   local relpath="$1"
 
-   count="`count_clone_components "$@"`"
-   if [ "$count" -ge 3 ]
-   then
-      _branch_part_from_clone "$@"
-   fi
-}
+   local apath
 
+   [ -z "${ROOT_DIR}" ] && internal_fail "ROOT_DIR not set"
+   [ -z "${relpath}" ]  && internal_fail "relpath not set"
 
-scm_from_clone()
-{
-   local count
+   apath="${ROOT_DIR}/${relpath}"
 
-   count="`count_clone_components "$@"`"
-   if [ "$count" -ge 4 ]
-   then
-      _scm_part_from_clone "$@"
-   fi
-}
-
-
-tag_from_clone()
-{
-   local count
-
-   count="`count_clone_components "$@"`"
-   if [ "$count" -ge 5 ]
-   then
-      _tag_part_from_clone "$@"
-   fi
-}
-
-
-
-embedded_repository_subdir_from_file()
-{
-   local path
-
-   path="$1"
-
-   [ -z "${path}" ] && internal_fail "Empty parameter"
-
-   head -1 "${path}"
-}
-
-
-embedded_repository_subdir_in_repos()
-{
-   local reposdir
-   local filename
-
-   reposdir="$1"
-   filename="$2"
-
-   [ -z "${filename}" ] && internal_fail "Empty parameter"
-
-   local relpath
-
-   relpath="${reposdir}/.bootstrap_embedded/${filename}"
-   if [ -f "${relpath}" ]
-   then
-      embedded_repository_subdir_from_file "${relpath}"
-   fi
-}
-
-
-embedded_repository_url_in_repos()
-{
-   local reposdir
-   local filename
-
-   reposdir="$1"
-   filename="$2"
-
-   local url
-   local relpath
-
-   relpath="${reposdir}/.bootstrap_embedded/${filename}"
-   if [ -f "${relpath}" ]
-   then
-      #
-      # if only one line present, will retrieve that
-      #
-      tail -1 "${relpath}"
-   fi
-}
-
-#
-# search by url, may actually not exist though
-# reposdir must have the proper dstprefix set
-#
-find_embedded_repository_subdir_in_repos()
-{
-   local reposdir
-   local url
-
-   reposdir="$1"
-   url="$2"
-
-   IFS="
-"
-   for i in `fgrep -l -x "${url}" "${reposdir}/.bootstrap_embedded/"* 2> /dev/null`
-   do
-      IFS="${DEFAULT_IFS}"
-
-      #
-      # ensure that it's the URL that matched
-      #
-      match_url="`tail -1 "${i}"`"
-      if [ "${match_url}" = "${url}" ]
-      then
-         embedded_repository_subdir_from_file "${i}"
-         return
-      fi
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
-
-#
-# look through embedded repositories
-# reposdir must have the proper dstprefix set
-# used by clean, don't need deeply embedded repos
-#
-embedded_repository_directories_from_repos()
-{
-   local reposdir
-   local dstprefix
-
-   reposdir="$1"
-   dstprefix="$2"
-
-   [ -z "${reposdir}" ] && internal_fail "repos is empty"
-
-   local filename
-   local embedded
-
-   IFS="
-"
-   for filename in `ls -1 "${reposdir}/.bootstrap_embedded/" 2> /dev/null`
-   do
-      IFS="${DEFAULT_IFS}"
-
-      embedded="`embedded_repository_subdir_in_repos "${reposdir}" "${filename}"`"
-      if [ ! -z "${embedded}" ]
-      then
-         embedded="${dstprefix}${embedded}"
-         if [ -d "${embedded}" ]
-         then
-            echo "${embedded}"
-         fi
-      fi
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
-
-repository_directories_from_repos()
-{
-   local reposdir
-
-   reposdir="$1"
-
-   local filename
-
-   IFS="
-"
-   for filename in `ls -1 "${reposdir}" 2> /dev/null`
-   do
-      echo "${reposdir}/$filename"
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
-
-# dstprefix
-all_repository_directories_from_repos()
-{
-   local reposdir
-   local dstprefix
-
-   reposdir="$1"
-   dstprefix="$2"
-
-   repository_directories_from_repos "${reposdir}"
-   embedded_repository_directories_from_repos "${reposdir}" "${dstprefix}"
-}
-
-
-# this sets valuse to variables that should be declared
-# in the caller!
-#
-#   # __parse_expanded_clone()
-#   local name
-#   local url
-#   local branch
-#   local scm
-#   local tag
-#
-__parse_expanded_clone()
-{
-   local clone
-
-   clone="${1}"
-
-   name="`canonical_name_from_clone "${clone}"`"
-   url="`url_from_clone "${clone}"`"
-   branch="`branch_from_clone "${clone}"`"
-   scm="`scm_from_clone "${clone}"`"
-   tag="`tag_from_clone "${clone}"`"
-
-   case "${name}" in
-      /*|~*|..*|.*)
-         fail "Destination \"${name}\" of ${1} looks fishy"
-      ;;
-   esac
-}
-
-
-# this sets valuse to variables that should be declared
-# in the caller!
-#
-#   # __parse_clone()
-#   local name
-#   local url
-#   local branch
-#   local scm
-#   local tag
-#
-__parse_clone()
-{
-   local clone
-
-   clone="`expanded_variables "${1}"`"
-
-   __parse_expanded_clone "${clone}"
+   # make sure destination doesn't stray outside of project
+   _relative_path_between "${apath}" "${ROOT_DIR}"
 }
 
 
 # this sets values to variables that should be declared
 # in the caller!
 #
-#   # __parse_embedded_clone
-#   local name
-#   local url
+#   # parse_clone
+#   local name   # name of the clone
+#   local url    # url of clone
 #   local branch
 #   local scm
 #   local tag
-#   local subdir
+#   local stashdir   # dir of repository (usually inside stashes)
 #
-__parse_embedded_clone()
+parse_clone()
 {
-   local clone
+   local clone="$1"
+
+   [ -z "${clone}" ] && internal_fail "parse_clone: clone is empty"
+
+   local dstdir
 
    clone="`expanded_variables "${1}"`"
+   IFS=";" read -r url dstdir branch scm tag <<EOF
+$1
+EOF
+   if [ "${IGNORE_BRANCH}" = "YES" ]
+   then
+      branch=""
+   fi
 
-   __parse_expanded_clone "${clone}"
+   case "${url}" in
+      */\.\./*|\.\./*|*/\.\.|\.\.)
+         fail "Relative urls like \"${url}\" don't work (anymore).\nTry \"-y fetch --no-symlink-creation\" instead"
+      ;;
+   esac
 
-   subdir="`_name_part_from_clone "${clone}"`"
-   subdir="`simplify_path "${subdir}"`"
+   local relpath
 
-   case "${subdir}" in
-      /*|~*|..*|.*)
-         fail "Destination directory \"${subdir}\" of repository ${name} looks fishy"
+   name="`_canonical_clone_name "${url}"`"
+   relpath="${dstdir}"
+   if [ -z "${dstdir}" ]
+   then
+      relpath="`path_concat "${STASHES_DIR}" "${name}"`"
+   fi
+
+   stashdir="`path_relative_to_root_dir "${relpath}"`" || exit 1
+
+   # make sure destination doesn't stray outside of project
+   case "${stashdir}" in
+      ${DEPENDENCIES_DIR}*|${ADDICTIONS_DIR}*|${BOOTSTRAP_DIR}*)
+         fail "${relpath} is a suspicious path in \"${clone}\""
       ;;
 
       "")
-         subdir="${name}"
+         internal_fail "Diffpath is empty for \"${clone}\""
+      ;;
+
+      \.\.*)
+         fail "Repository destination \"${stashdir}\" is outside of project directory ($diffpath) (\"${clone}\")"
       ;;
    esac
+
+   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   then
+      log_trace2 "URL:      \"${url}\""
+      log_trace2 "DSTDIR:   \"${dstdir}\""
+      log_trace2 "NAME:     \"${name}\""
+      log_trace2 "SCM:      \"${scm}\""
+      log_trace2 "BRANCH:   \"${branch}\""
+      log_trace2 "TAG:      \"${tag}\""
+      log_trace2 "STASHDIR: \"${stashdir}\""
+   fi
+
+   [ -z "${url}" ]      && internal_fail "url is empty ($clone)"
+   [ -z "${name}" ]     && internal_fail "name is empty ($clone)"
+   [ -z "${stashdir}" ] && internal_fail "stashdir is empty ($clone)"
+
+   :
 }
 
 
-ensure_clones_directory()
+#
+# walk over clones given as parameters
+# call callback
+#
+walk_clones()
+{
+   local callback=$1; shift
+   local reposdir=$1; shift
+
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+   local stashdir
+   local clone
+
+   IFS="
+"
+   for clone in $*
+   do
+      IFS="${DEFAULT_IFS}"
+
+      parse_clone "${clone}"
+
+      "${callback}" "${reposdir}" \
+                    "${name}" \
+                    "${url}" \
+                    "${branch}" \
+                    "${scm}" \
+                    "${tag}" \
+                    "${stashdir}"
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+ensure_reposdir_directory()
 {
    local reposdir
 
@@ -408,18 +621,20 @@ ensure_clones_directory()
    then
       if [ "${COMMAND}" = "update" ]
       then
-         fail "install first before upgrading"
+         fail "fetch first before updating"
       fi
       mkdir_if_missing "${reposdir}"
    fi
 }
 
 
-mulle_repositories_inititalize()
+mulle_repositories_initialize()
 {
-  [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
+  [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+  [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+  :
 }
 
-mulle_repositories_inititalize
+mulle_repositories_initialize

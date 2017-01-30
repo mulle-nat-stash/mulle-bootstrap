@@ -203,7 +203,7 @@ patch_xcode_project()
 
    check_for_mulle_xcode_settings
 
-   configurations=`read_build_root_setting "configurations" "Debug
+   configurations=`read_root_setting "configurations" "Debug
 Release"`
 
    #
@@ -251,18 +251,15 @@ Release"
    #  figure out a way to make this nicer
    local absolute
    local absolute2
-   local relative_subdir
 
    absolute="`realpath "${project}"`"
    absolute="`dirname -- "${absolute}"`"
 
    absolute2="`pwd -P`/${DEPENDENCIES_DIR}"
-   relative_subdir="`relative_path_between "${absolute2}" "${absolute}" `"
    dependencies_dir='$(PROJECT_DIR)'/"${DEPENDENCIES_DIR}"
 #   dependencies_dir='$(PROJECT_DIR)'/"${relative_subdir}'"
 
    absolute2="`pwd -P`/${ADDICTIONS_DIR}"
-   relative_subdir="`relative_path_between "${absolute2}" "${absolute}" `"
    addictions_dir='$(PROJECT_DIR)'/"${ADDICTIONS_DIR}"
 #   addictions_dir='$(PROJECT_DIR)/'"${relative_subdir}"
 
@@ -370,9 +367,11 @@ xcode_main()
 {
    log_fluff "::: xcode :::"
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+
+   build_complete_environment
 
    if [ "${UNAME}" != 'darwin' ]
    then

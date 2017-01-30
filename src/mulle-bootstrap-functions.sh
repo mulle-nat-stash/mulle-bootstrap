@@ -32,7 +32,7 @@
 [ ! -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && echo "double inclusion of functions" >&2 && exit 1
 MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
 
-MULLE_BOOTSTRAP_FUNCTIONS_VERSION="2.0"
+MULLE_BOOTSTRAP_FUNCTIONS_VERSION="3.0"
 
 #
 # WARNING! THIS FILE IS A LIBRARY USE BY OTHER PROJECTS
@@ -311,8 +311,8 @@ path_depth()
 
       while [ "$name" != "." -a "${name}" != '/' ]
       do
-         name=`dirname -- "$name"`
-         depth=`expr $depth + 1`
+         name="`dirname -- "$name"`"
+         depth="`expr "$depth" + 1`"
       done
    fi
    echo "$depth"
@@ -325,6 +325,42 @@ extension_less_basename()
 
    file="`basename -- "$1"`"
    echo "${file%.*}"
+}
+
+
+path_concat()
+{
+   local i
+   local s
+   local sep
+
+   for i in "$@"
+   do
+      sep="/"
+      case "$i" in
+        ""|"."|"./")
+          continue
+        ;;
+
+        "/*")
+          sep=""
+        ;;
+
+        "*/")
+          i="`echo "${i}" | sed 's|/$||/g'`"
+        ;;
+
+      esac
+
+      if [ -z "${s}" ]
+      then
+        s="$i"
+      else
+        s="${s}/${i}"
+      fi
+   done
+
+   echo "${s}"
 }
 
 
@@ -363,17 +399,23 @@ resolve_symlinks()
 
 _canonicalize_dir_path()
 {
-    (cd "$1" 2>/dev/null && pwd -P)
+   (
+      cd "$1" 2>/dev/null &&
+      pwd -P
+   )  || exit 1
 }
 
 
 _canonicalize_file_path()
 {
-    local dir file
+   local dir file
 
-    dir="`dirname -- "$1"`"
-    file="`basename -- "$1"`"
-    (cd "${dir}" 2>/dev/null && echo "`pwd -P`/${file}")
+   dir="`dirname -- "$1"`"
+   file="`basename -- "$1"`"
+   (
+     cd "${dir}" 2>/dev/null &&
+     echo "`pwd -P`/${file}"
+   ) || exit 1
 }
 
 
@@ -548,14 +590,14 @@ compute_relative()
 
    name="$1"
 
-   depth=`path_depth "${name}"`
+   depth="`path_depth "${name}"`"
    if [ "${depth}" -gt 1 ]
    then
       relative=".."
       while [ "$depth" -gt 2 ]
       do
          relative="${relative}/.."
-         depth=`expr $depth - 1`
+         depth="`expr "${depth}" - 1`"
       done
    fi
 
@@ -585,22 +627,38 @@ remove_absolute_path_prefix_up_to()
 }
 
 
+#
+# this cds into a physical directory, so that .. is relative to it
+# e.g. cd a/b/c might  end up being a/c, so .. is a
+# if you just go a/b/c then .. is b
+#
+cd_physical()
+{
+   cd "$1" || fail "cd: \"$1\" is not reachable from \"`pwd`\""
+   cd "`pwd -P`"
+}
+
+
+#
+# absolute and simplified path
+# but symlinks may still exist
+#
 absolutepath()
 {
-   local path
+   local apath
 
-   path="$1"
-   case "${path}" in
+   apath="$1"
+   case "${apath}" in
       /*)
          :
       ;;
 
       *)
-         path="`pwd -P`/${path}"
+         apath="`pwd`/${apath}"
       ;;
    esac
 
-   simplify_path "${path}"
+   simplify_path "${apath}"
 }
 
 
@@ -708,7 +766,7 @@ _path_from_components()
    components="$1"
 
    local i
-   local composedpath  # renamed this from path, fixes crazy bug on linux
+   local composedpath  # renamed this from path, fixes crazy bug on linux ?
 
    IFS="
 "
@@ -732,14 +790,9 @@ _path_from_components()
 # simplify path works on paths that may or may not exist
 # it makes prettier relative or absolute paths
 #
-simplify_path()
+_simplify_path()
 {
    local path
-
-   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
-   then
-      set +x
-   fi
 
    path="$1"
 
@@ -754,12 +807,23 @@ simplify_path()
       final_path="`_path_from_components "${final_components}"`"
    fi
 
+   echo "${final_path}"
+}
+
+
+simplify_path()
+{
+   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
+   _simplify_path "$@"
+
    if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
-
-   echo "${final_path}"
 }
 
 
@@ -811,6 +875,108 @@ assert_sane_path()
 }
 
 
+prepend_to_search_path_if_missing()
+{
+   local fullpath
+
+   fullpath="$1"
+   shift
+
+   local new_path
+   local tail_path
+   local binpath
+
+   tail_path=""
+   new_path=""
+
+   local oldifs
+   local i
+
+   oldifs="$IFS"
+   IFS=":"
+
+   for i in $fullpath
+   do
+      IFS="${oldifs}"
+
+      # shims stay in front (homebrew)
+      case "$i" in
+         */shims/*)
+            new_path="`add_path "${new_path}" "$i"`"
+         ;;
+      esac
+   done
+
+   #
+   #
+   #
+   while [ $# -gt 0 ]
+   do
+      binpath="$1"
+      shift
+
+      binpath="`absolutepath "${binpath}"`"
+
+      IFS=":"
+      for i in $fullpath
+      do
+         IFS="${oldifs}"
+
+         # don't duplicate if already in there
+         case "$i" in
+           "${binpath}/"|"${binpath}")
+               binpath=""
+               break
+         esac
+      done
+      IFS="${oldifs}"
+
+      if [ -z "${binpath}" ]
+      then
+         continue
+      fi
+
+      tail_path="`add_path "${tail_path}" "${binpath}"`"
+   done
+
+   IFS=":"
+   for i in $fullpath
+   do
+      IFS="${oldifs}"
+
+      # shims stay in front (homebrew)
+      case "$i" in
+         */shims/*)
+            continue;
+         ;;
+
+         *)
+            tail_path="`add_path "${tail_path}" "${i}"`"
+         ;;
+      esac
+   done
+   IFS="${oldifs}"
+
+   add_path "${new_path}" "${tail_path}"
+}
+
+
+make_executable_search_path()
+{
+   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
+   _make_executable_search_path "$@"
+
+   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
+}
+
+
 # ####################################################################
 #                        Files and Directories
 # ####################################################################
@@ -819,7 +985,7 @@ mkdir_if_missing()
 {
    if [ ! -d "$1" ]
    then
-      log_fluff "Creating \"$1\" (`pwd -P`)"
+      log_fluff "Creating \"$1\" (`pwd`)"
       exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
    fi
 }
@@ -871,7 +1037,7 @@ create_file_if_missing()
          mkdir_if_missing "${dir}"
       fi
 
-      log_fluff "Creating \"$1\" (`pwd -P`)"
+      log_fluff "Creating \"$1\" (`pwd`)"
       exekutor touch "$1" || fail "failed to create \"$1\""
    fi
 }
@@ -881,7 +1047,7 @@ remove_file_if_present()
 {
    if [ -e "$1" ]
    then
-      log_fluff "Removing \"$1\" (`pwd -P`)"
+      log_fluff "Removing \"$1\" (`pwd`)"
       exekutor chmod u+w "$1" || fail "Failed to make $1 writable"
       exekutor rm -f "$1" || fail "failed to remove \"$1\""
    fi
@@ -917,10 +1083,11 @@ lso()
 dir_has_files()
 {
    local dirpath
-   local flag
 
    dirpath="$1"
    shift
+
+   local flags
 
    case "$1" in
       f)
@@ -938,16 +1105,7 @@ dir_has_files()
    local result
 
    empty="`find "${dirpath}" -xdev -mindepth 1 -maxdepth 1 -name "[a-zA-Z0-9_-]*" ${flags} "$@" -print 2> /dev/null`"
-   [ "$empty" != "" ]
-   result=$?
-
-   if [ "$result" -eq 1 ]
-   then
-      log_fluff "Directory \"$dirpath\" has no files"
-   else
-      log_fluff "Directory \"$dirpath\" has files"
-   fi
-   return "$result"
+   [ ! -z "$empty" ]
 }
 
 
@@ -1063,6 +1221,8 @@ functions_initialize()
    [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 
    log_fluff ":functions_initialize:"
+
+   :
 }
 
 

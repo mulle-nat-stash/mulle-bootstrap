@@ -66,10 +66,10 @@ EOF
    -ig       : ignore .repos/.graveyard
    -te       : trace execution
    -tm       : trace merge and dependencies
-   -ts       : trace scripts
-   -tit      : don't trace settings
-   -tip      : don't trace path functionality
-   -t        : trace executrion
+   -tss      : also trace scripts
+   -tst      : also trace settings
+   -tsp      : also trace path functionality
+   -t        : trace execution
    -vv       : very verbose
    -vvv      : extremely vebose
    -s        : be silent
@@ -80,16 +80,17 @@ EOF
    cat <<EOF
 
  Commands:
-   bootstrap : does fetch and build recursively [default]
-   build     : builds fetched repositories
-   clean     : cleans mulle-bootstrap produced files.
-   fetch     : fetches required repositories recursively. Use it after updating
-               the repositories and embedded_repositories files.
-   init      : initializes a bootstrap project
-   install   : install dependencies as system headers
-   git       : run git commands on fetched repositories
-   tag       : tag fetched repositories
-   update    : updates repositories (pull).
+   bootstrap     : does install and build recursively [default]
+   build         : builds fetched repositories
+   clean         : cleans mulle-bootstrap produced files.
+   install       : fetches required repositories recursively. Use it after
+                   updating the repositories and embedded_repositories files.
+   init          : initializes a bootstrap project
+   systeminstall : install dependencies as system headers
+   git           : run git commands on fetched repositories
+   tag           : tag fetched repositories
+   update        : updates repositories (fetch).
+   upgrade       : updates and checks out repositories (pull).
 
  Options are command specific. Use mulle-bootstrap <command> -h for help.
 EOF
@@ -109,10 +110,6 @@ EOF
 
 ensure_consistency()
 {
-   local owd
-
-   owd="`pwd -P`"
-
    if [ -f "${REPOS_DIR}/.bootstrap_fetch_started" ]
    then
       log_error "A previous fetch or update was incomplete.
@@ -182,8 +179,6 @@ bootstrap_nomagic_main()
    . mulle-bootstrap-build.sh
    . mulle-bootstrap-warn-scripts.sh
 
-   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
-
    # used for option handling only
    MULLE_BOOTSTRAP_WILL_BUILD="YES"
 
@@ -238,9 +233,9 @@ bootstrap_libexec_path()
    local libexecpath
 
    exedir="`dirname "$1"`"
-   exedirpath="`( cd "${exedir}" ; pwd -P )`"
+   exedirpath="`( cd "${exedir}" ; pwd -P )`" || fail "failed to get pwd"
    prefix="`dirname "${exedirpath}"`"
-   libexecpath="${prefix}/libexec/mulle-bootstrap"
+   libexecpath="${prefix}/libexec/mulle-bootstrap-3"
 
    if [ ! -x "${libexecpath}/mulle-bootstrap-functions.sh" ]
    then
@@ -282,7 +277,7 @@ bootstrap_main()
    #
    case "${1}" in
       library-path)
-         echo "$libexecpath}"
+         echo "${libexecpath}"
          exit 0
       ;;
 
@@ -292,8 +287,12 @@ bootstrap_main()
       ;;
    esac
 
+   MULLE_BOOTSTRAP_ARGUMENTS="$@"
    MULLE_BOOTSTRAP_PID="$$"
    export MULLE_BOOTSTRAP_PID
+
+   #  set -e # more pain then gain in the end
+   #  set -u # doesn't work with my style
 
    # now include this first to get
    # logging and UNAME
@@ -304,7 +303,6 @@ bootstrap_main()
    trap trap_fail INT
 
    source_environment
-
    #
    # simple option handling
    #
@@ -340,25 +338,38 @@ bootstrap_main()
          ;;
 
          -tm|--trace-settings-merge)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
             MULLE_BOOTSTRAP_TRACE_MERGE="YES"
          ;;
 
-         -ts|--trace-scripts)
+         -tsc|--trace-show-scripts)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
             MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="YES"
          ;;
 
-         -tit|--trace-ignores-settings)
-            MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
+         -tsr|--trace-show-resolver)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+            MULLE_BOOTSTRAP_RESOLVER_FLIP_X="NO"
          ;;
 
-         -tip|--trace-ignores-paths)
-            MULLE_BOOTSTRAP_PATHS_FLIP_X="YES"
+         -tss|--trace-show-settings)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+            MULLE_BOOTSTRAP_SETTINGS_FLIP_X="NO"
+         ;;
+
+         -tsp|--trace-show-paths)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+            MULLE_BOOTSTRAP_PATHS_FLIP_X="NO"
          ;;
 
          -t|--trace)
             MULLE_BOOTSTRAP_TRACE="1848"
             COPYMOVEFLAGS="-v"
             GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
+            MULLE_BOOTSTRAP_PATHS_FLIP_X="YES"
+            MULLE_BOOTSTRAP_RESOLVER_FLIP_X="YES"
+            MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
+            MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="NO"
          ;;
 
          -v|--verbose)
@@ -441,13 +452,17 @@ bootstrap_main()
             MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
          fi
          log_trace "FULL trace started"
+         log_trace "ARGS:${C_TRACE2} ${MULLE_BOOTSTRAP_ARGUMENTS}"
+         log_trace "PWD :${C_TRACE2} `pwd -P`"
+         log_trace "ENV :${C_TRACE2} `env | sort`"
+         log_trace "LS  :${C_TRACE2} `ls -a1F`"
       ;;
 
       1848)
-         MULLE_BOOTSTRAP_TRACE_SETTINGS="NO"
+         MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
          MULLE_EXECUTOR_TRACE="NO"
-         MULLE_BOOTSTRAP_FLUFF="NO"
-         MULLE_BOOTSTRAP_VERBOSE="NO"
+         MULLE_BOOTSTRAP_FLUFF="YES"
+         MULLE_BOOTSTRAP_VERBOSE="YES"
          if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
          then
             MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
@@ -466,7 +481,6 @@ bootstrap_main()
 
    local_environment_main
 
-
    #
    # some commands only run when we have a .bootstrap folder
    #
@@ -475,88 +489,66 @@ bootstrap_main()
 
    if [ ! -d "${BOOTSTRAP_DIR}" ]
    then
-      case "${command}" in
-         bootstrap|nomagic|build|refresh|dist|clean|dist-clean|fetch|update|setup-xcode|xcode|tag)
-            fail "There is no ${BOOTSTRAP_DIR} folder here, can't continue"
-      esac
-   fi
-
-   #
-   # if we have a.bootstrap.local/minion file then
-   # some commands can't run, and some commands are re-executed in master
-   # and some commands (like fetch and clean) are executed locally AND in the
-   # master
-   #
-   local masterpath
-
-   masterpath="${BOOTSTRAP_DIR}.local/master"
-   if [ -e "${masterpath}" ]
-   then
-      case "${command}" in
-         build)
-            log_info "Minion .bootstrap: defer to master for execution"
-            exec bootstrap_execute_in_master "${masterpath}" "$@"
-         ;;
-
-         fetch|update|refresh|clean|dist-clean)
-            log_info "Minion .bootstrap: execute parly in master"
-            bootstrap_execute_in_master "${masterpath}" "$@"
-            EMBEDDED_ONLY=YES
-         ;;
-
-         git|setup-xcode|xcode|tag|version)
-            log_verbose "Minion .bootstrap: execute locally"
+      case "$1" in
+         -h|--help)
          ;;
 
          *)
-            fail "This is a minion bootstrap project (${minionpath}), can't continue"
+            case "${command}" in
+            bootstrap|nomagic|build|dist|clean|dist-clean|fetch|install|syteminstall|upgrade|update|setup-xcode|xcode|tag)
+               fail "There is no ${BOOTSTRAP_DIR} folder here, can't continue"
+            esac
          ;;
       esac
+   else
+      #
+      # if we have a.bootstrap.local/minion file then
+      # some commands can't run, and some commands are re-executed in master
+      # and some commands (like fetch and clean) are executed locally AND in the
+      # master
+      #
+      local masterpath
+
+      masterpath="${BOOTSTRAP_DIR}.local/master"
+      if [ -e "${masterpath}" ]
+      then
+         case "${command}" in
+            build)
+               log_info "Minion .bootstrap: defer to master for execution"
+               exec bootstrap_execute_in_master "${masterpath}" "$@"
+            ;;
+
+            fetch|install|upgrade|update|clean|dist-clean)
+               log_info "Minion .bootstrap: execute partly in master"
+               bootstrap_execute_in_master "${masterpath}" "$@"
+               EMBEDDED_ONLY=YES
+            ;;
+
+            git|setup-xcode|xcode|tag|version)
+               log_verbose "Minion .bootstrap: execute locally"
+            ;;
+
+            *)
+               fail "This is a minion bootstrap project (${masterpath}), can't continue"
+            ;;
+         esac
+      fi
+
+      if [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ]
+      then
+         case "${command}" in
+            clean|dist-clean|init)
+               :
+            ;;
+
+            *)
+               ensure_consistency
+            ;;
+         esac
+      fi
    fi
 
-   if [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" != "NO" ]
-   then
-      case "${command}" in
-         clean|dist-clean|init)
-            :
-         ;;
-         *)
-            ensure_consistency
-         ;;
-      esac
-   fi
-
-   #
-   # some commands should refresh before execution
-   # try to avoid pulling in the header if not needed
-   #
-   if refresh_needed
-   then
-      case "${command}" in
-         bootstrap|nomagic|fetch|update)
-            MULLE_BOOTSTRAP_WILL_FETCH="YES"
-            . mulle-bootstrap-refresh.sh
-            refresh_main || exit 1
-         ;;
-
-         setup-xcode|xcode|tag)
-           . mulle-bootstrap-refresh.sh
-            refresh_main || exit 1
-         ;;
-
-         build)
-           . mulle-bootstrap-refresh.sh
-
-            refresh_main refresh_if_bare || exit 1
-         ;;
-
-         refresh)
-           . mulle-bootstrap-refresh.sh
-
-           # 4 laters
-         ;;
-      esac
-   fi
+   MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap ${command}"
 
    case "${command}" in
       bootstrap|nomagic)
@@ -566,51 +558,49 @@ bootstrap_main()
       build)
          . mulle-bootstrap-build.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap build"
          build_main "$@" || exit 1
       ;;
 
       clean)
          . mulle-bootstrap-clean.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap clean"
          clean_main "$@" || exit 1
       ;;
 
       config)
          . mulle-bootstrap-settings.sh
-         . mulle-bootstrap-build-environment.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap config"
          config_main "$@" || exit 1
+      ;;
+
+      setting)
+         . mulle-bootstrap-settings.sh
+
+         setting_main "$@" || exit 1
       ;;
 
       dist)
          . mulle-bootstrap-clean.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap clean"
          clean_main "dist" || exit 1
       ;;
 
-      fetch)
-         . mulle-bootstrap-fetch.sh
+      git)
+         . mulle-bootstrap-scm.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap fetch"
-         DONT_ASK_AFTER_WARNING=YES fetch_main "$@" || exit 1
+         git_main "$@" || exit 1
       ;;
 
       init)
          . mulle-bootstrap-init.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap init"
          init_main "$@" || exit 1
       ;;
 
-      install)
-         . mulle-bootstrap-install.sh
+      install|fetch)
+         . mulle-bootstrap-fetch.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap install"
-         install_main "$@" || exit 1
+         DONT_ASK_AFTER_WARNING=YES fetch_main "$@" || exit 1
       ;;
 
       library-path)
@@ -618,22 +608,16 @@ bootstrap_main()
          return 0
       ;;
 
-      refresh)
-         [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
-
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap refresh"
-         refresh_main "$@" || exit 1
-      ;;
-
-      update|pull)
+      update)
          . mulle-bootstrap-fetch.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap update"
          update_main "$@" || exit 1
+      ;;
 
-         [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap refresh"
-         refresh_main || exit 1
+      upgrade)
+         . mulle-bootstrap-fetch.sh
+
+         upgrade_main "$@" || exit 1
       ;;
 
       setup-xcode|xcode)
@@ -643,6 +627,12 @@ bootstrap_main()
          xcode_main "$@" || exit 1
       ;;
 
+      systeminstall)
+         . mulle-bootstrap-install.sh
+
+         install_main "$@" || exit 1
+      ;;
+
       tag)
          . mulle-bootstrap-tag.sh
 
@@ -650,11 +640,9 @@ bootstrap_main()
          tag_main "$@" || exit 1
       ;;
 
-      git)
-         . mulle-bootstrap-scm.sh
-
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap git"
-         git_main "$@" || exit 1
+      uname)
+         echo "${UNAME}"
+         exit 0
       ;;
 
       version)

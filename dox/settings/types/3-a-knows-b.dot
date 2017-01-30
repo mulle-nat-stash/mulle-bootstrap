@@ -10,7 +10,7 @@ digraph pic {
 <TR><TD PORT="f0">b</TD></TR>
 </TABLE>>];
 		"a.bootstrap" -> "a.b"
-		"a.b"                  [ label="b.info" ]
+		"a.b"                  [ label="b.build" ]
 		"a.b"         -> "a.build_preferences"
 		"a.build_preferences"  [ label="build_preferences", shape="note" ]
 	}
@@ -24,7 +24,7 @@ digraph pic {
 <TR><TD PORT="f0">c</TD></TR>
 </TABLE>>];
 		"b.bootstrap" -> "b.c"
-		"b.c"                  [ label="c.info" ]
+		"b.c"                  [ label="c.build" ]
 		"b.c"         -> "b.build_preferences"
 		"b.build_preferences"  [ label="build_preferences", shape="note" ]
 	}

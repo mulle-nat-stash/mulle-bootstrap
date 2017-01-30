@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh -e
 
 . mulle-bootstrap-functions.sh
 . mulle-bootstrap-local-environment.sh
@@ -12,6 +12,7 @@ run_test()
   result="`eval "$@"`"
 
   [ "${result}" != "${expect}" ] && fail "test:" "$@" "failed with \"${result}\", expected \"${expect}\""
+  :
 }
 
 
@@ -33,3 +34,5 @@ test_expand()
 
 
 test_expand
+
+echo "test finished" >&2

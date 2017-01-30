@@ -1,5 +1,40 @@
 #! /bin/sh -x
 
+clear_test_dirs()
+{
+   local i
+
+   for i in "$@"
+   do
+      if [ -d "$i" ]
+      then
+         rm -rf "$i"
+      fi
+   done
+}
+
+
+fail()
+{
+   echo "failed" "$@" >&2
+   exit 1
+}
+
+
+run_mulle_bootstrap()
+{
+   echo "####################################" >&2
+   echo mulle-bootstrap "$@"  >&2
+   echo "####################################" >&2
+
+   mulle-bootstrap "$@" || fail "mulle-bootstrap failed"
+}
+
+
+#
+#
+#
+
 
 create_settings()
 {
@@ -10,7 +45,7 @@ create_settings()
    mkdir -p ".bootstrap/settings/${name}"
    mkdir -p ".bootstrap/config/${name}"
    mkdir -p ".bootstrap/public_settings/${name}"
-   mkdir -p ".bootstrap/${name}.info"
+   mkdir -p ".bootstrap/${name}.build"
    mkdir -p ".bootstrap/${name}"
 
    echo ".bootstrap/settings/${name}.txt"        > ".bootstrap/settings/${name}.txt"
@@ -21,7 +56,7 @@ create_settings()
    echo ".bootstrap/config/${name}/${name}.txt"          > ".bootstrap/config/${name}/${name}.txt"
    echo ".bootstrap/public_settings/${name}/${name}.txt" > ".bootstrap/public_settings/${name}/${name}.txt"
 
-   echo ".bootstrap/${name}.info/${name}.txt" > ".bootstrap/${name}.info/${name}.txt"
+   echo ".bootstrap/${name}.build/${name}.txt" > ".bootstrap/${name}.build/${name}.txt"
    echo ".bootstrap/${name}/${name}.txt"      > ".bootstrap/${name}/${name}.txt"
    echo ".bootstrap/${name}.txt"              > ".bootstrap/${name}.txt"
 }
@@ -88,12 +123,12 @@ cat <<EOF > "${expect}"
 a/.bootstrap:
 repositories
 a/.bootstrap.auto:
-b.info
-c.info
+b.build
+c.build
 repositories
-a/.bootstrap.auto/b.info:
+a/.bootstrap.auto/b.build:
 b.txt
-a/.bootstrap.auto/c.info:
+a/.bootstrap.auto/c.build:
 c.txt
 a/.bootstrap.repos:
 .bootstrap_fetch_done
@@ -104,6 +139,8 @@ EOF
 
 diff "${expect}" "${result}"
 [ $? -ne 0 ] && fail "unexpected result"
+
+rm -rf a b c
 
 echo ""
 echo ""

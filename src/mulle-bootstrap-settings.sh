@@ -41,6 +41,16 @@ EOF
 }
 
 
+setting_usage()
+{
+    cat <<EOF >&2
+usage:
+   mulle-bootstrap setting [-r <repository>] <name>
+EOF
+  exit 1
+}
+
+
 warn_user_setting()
 {
    local path
@@ -100,8 +110,6 @@ _read_setting()
    [ ! -z "${name}" ] || fail "no name given to read_setting"
 
    local value
-   local flag
-
 
    # file not found = 2 (same as grep)
 
@@ -130,12 +138,20 @@ _read_setting()
       then
          log_fluff "${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found as \"${path}\""
       fi
+
       echo "${value}"
       return 0
    fi
 
+   local rval
+
+   #
+   # remove empty lines, remove comment lines
+   #
    value="`egrep -s -v '^#|^[ ]*$' "${path}"`"
-   if [ $? -eq 2 ]
+   rval=$?
+
+   if [ $rval -eq 2 ]
    then
       return 2   # it's grep :)
    fi
@@ -144,6 +160,8 @@ _read_setting()
    then
       if [ "${name}" = "repositories" -o \
            "${name}" = "repositories.tmp" -o \
+           "${name}" = "build_order" -o \
+           "${name}" = "versions" -o \
            "${name}" = "embedded_repositories" ]
       then
          log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found in \"${path}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
@@ -154,6 +172,13 @@ _read_setting()
 
    echo "${value}"
 }
+
+
+read_setting()
+{
+   _read_setting "$@"
+}
+
 
 #
 # this has to be flexible, because fetch and build settings read differently
@@ -189,20 +214,6 @@ _read_bootstrap_setting()
    echo "${value}"
 }
 
-
-_read_bootstrap_setting_uname()
-{
-   local name
-
-   name="$1"
-
-   if [ "${READ_SETTING_RETURNS_PATH}" = "YES" ]
-   then
-      return 1
-   fi
-
-   _read_bootstrap_setting_uname "${name}.${UNAME}"
-}
 
 #
 # this knows intentionally no default, you cant have an empty
@@ -315,6 +326,10 @@ read_config_setting()
          value="`_read_home_setting "${name}"`"
          if [ $? -ne 0 ]
          then
+            if [ ! -z "${default}" ]
+            then
+               log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} set to default ${C_MAGENTA}${C_BOLD}${default}${C_VERBOSE}"
+            fi
             value="${default}"
          fi
       fi
@@ -326,9 +341,6 @@ read_config_setting()
    then
       set -x
    fi
-
-   [ "${value}" = "${default}" ]
-   return $?
 }
 
 
@@ -356,32 +368,15 @@ read_build_setting()
    [ -z "$name" ] && internal_fail "empty parameter in read_config_setting"
 
    local value
-   local value
 
-   value="`_read_bootstrap_setting_uname "overrides/${name}"`"
+   value="`_read_bootstrap_setting "${package}.build/${name}"`"
    if [ $? -ne 0 ]
    then
-      value="`_read_bootstrap_setting "overrides/${name}"`"
-      if [ $? -ne 0 ]
+      if [ ! -z "${default}" ]
       then
-         value="`_read_bootstrap_setting_uname "${package}.info/${name}"`"
-         if [ $? -ne 0 ]
-         then
-            value="`_read_bootstrap_setting "${package}.info/${name}"`"
-            if [ $? -ne 0 ]
-            then
-               value="`_read_bootstrap_setting_uname "settings/${name}"`"
-               if [ $? -ne 0 ]
-               then
-                  value="`_read_bootstrap_setting "settings/${name}"`"
-                  if [ $? -ne 0 ]
-                  then
-                     value="${default}"
-                  fi
-               fi
-            fi
-         fi
+         log_fluff "Build Setting ${C_MAGENTA}${C_BOLD}${package}${C_VERBOSE} for ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} set to default ${C_MAGENTA}${C_BOLD}${default}${C_VERBOSE}"
       fi
+      value="${default}"
    fi
 
    echo "$value"
@@ -390,14 +385,13 @@ read_build_setting()
    then
       set -x
    fi
-
-   [ "${value}" = "${default}" ]
-
-   return $?
+#   [ "${value}" = "${default}" ]
+#
+#   return $?
 }
 
 
-read_fetch_setting()
+read_root_setting()
 {
    if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
    then
@@ -410,19 +404,19 @@ read_fetch_setting()
    name="$1"
    default="$2"
 
-   [ -z "$name" ] && internal_fail "empty name in read_fetch_setting"
+   [ -z "$name" ] && internal_fail "empty name in read_root_setting"
 
    local value
    local rval
 
-   value="`_read_bootstrap_setting_uname "${name}"`"
-   if [ $rval -ne 0 ]
+   value="`_read_bootstrap_setting "${name}"`"
+   if [ $? -ne 0 ]
    then
-      value="`_read_bootstrap_setting "${name}"`"
-      if [ $? -ne 0 ]
+      if [ ! -z "${default}" ]
       then
-         value="${default}"
+         log_fluff "Root setting for ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} set to default ${C_MAGENTA}${C_BOLD}${default}${C_VERBOSE}"
       fi
+      value="${default}"
    fi
 
    echo "$value"
@@ -431,9 +425,25 @@ read_fetch_setting()
    then
       set -x
    fi
+#   [ "${value}" = "${default}" ]
+#
+#   return $?
+}
 
-   [ "${value}" = "${default}" ]
-   return $?
+
+
+####
+# Used for finding script files
+#
+find_root_setting_file()
+{
+   READ_SETTING_RETURNS_PATH="YES" read_root_setting "$@"
+}
+
+
+find_build_setting_file()
+{
+   READ_SETTING_RETURNS_PATH="YES" read_build_setting "$@"
 }
 
 
@@ -467,21 +477,12 @@ read_sane_config_path_setting()
    name="$1"
    default="$2"
 
-   value="`read_config_setting "${name}"`"
-   if [ $? -ne 0 ]
+   value="`read_config_setting "${name}" "${default}"`"
+   if [ $? -eq 0 ]
    then
       assert_sane_subdir_path "${value}"
-   else
-      if [ "$value" = "" ]
-      then
-         value="${default}"
-      fi
+      echo "$value"
    fi
-
-   echo "$value"
-
-   [ "${value}" = "${default}" ]
-   return $?
 }
 
 
@@ -498,7 +499,7 @@ merge_settings_in_front()
 
    result="${settings2}"
 
-   local line1
+   local line
 
    # https://stackoverflow.com/questions/742466/how-can-i-reverse-the-order-of-lines-in-a-file/744093#744093
 
@@ -540,7 +541,7 @@ all_build_flag_keys()
 
    keys1=`(cd "${BOOTSTRAP_DIR}.auto/overrides" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
-   keys2=`(cd "${BOOTSTRAP_DIR}.auto/${package}.info" 2> /dev/null || exit 1 ; \
+   keys2=`(cd "${BOOTSTRAP_DIR}.auto/${package}.build" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
    keys3=`(cd "${BOOTSTRAP_DIR}.auto/settings" 2> /dev/null || exit 1 ; \
            ls -1 | egrep '\b[A-Z][A-Z_0-9]+\b')`
@@ -637,8 +638,6 @@ config_main()
       shift
    fi
 
-   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ] && . mulle-bootstrap-refresh.sh
-
    case "${command}" in
       read)
          value="`config_read "${name}"`"
@@ -654,13 +653,79 @@ config_main()
 
       delete)
          config_delete "${name}"
-         refresh_main || exit 1
+         create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_needed"
       ;;
 
       write)
          config_write "${name}" "${value}"
-         refresh_main || exit 1
+         create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_needed"
+      ;;
+   esac
+}
 
+
+
+setting_main()
+{
+   local name
+   local value
+   local command
+   local repository
+
+   command="read"
+
+   while [ $# -ne 0 ]
+   do
+      case "$1" in
+         -h|-help|--help)
+            config_usage
+         ;;
+
+         -r|--repository)
+            shift
+            [ $# -ne 0 ] || fail "repository name missing"
+            repository="$1"
+         ;;
+
+         -*)
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown config option $1"
+            config_usage
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+   name="$1"
+   [ $# -ne 0 ] && shift
+
+   if [ -z "${name}" -o $# -ne 0 ]
+   then
+      setting_usage
+   fi
+
+   case "${command}" in
+      read)
+         if [ -z "${repository}" ]
+         then
+            value="`read_root_setting "$name"`"
+         else
+            value="`read_build_setting "${repository}" "$name"`"
+         fi
+
+         if [ -z "${value}" ]
+         then
+            value="`eval echo "$"${name}`"
+         fi
+
+         if [ ! -z "${value}" ]
+         then
+            echo "${value}"
+         fi
       ;;
    esac
 }

@@ -64,135 +64,66 @@ run_script()
 }
 
 
-run_log_script()
-{
-   echo "$@"
-   run_script "$@"
-}
-
-
-find_fetch_setting_file()
-{
-   local value
-   local flag
-
-   value="`READ_SETTING_RETURNS_PATH="YES" read_fetch_setting "$@"`"
-   flag=$?
-
-   echo "$value"
-   return $flag
-}
-
-
-find_repo_setting_file()
-{
-   local value
-   local flag
-
-
-   value="`READ_SETTING_RETURNS_PATH="YES" read_build_setting "$@"`"
-   flag=$?
-
-   echo "$value"
-   return $flag
-}
-
-
-find_build_setting_file()
-{
-   local value
-   local flag
-
-   value="`READ_SETTING_RETURNS_PATH="YES" read_build_setting "$@"`"
-   flag=$?
-
-   echo "$value"
-   return $flag
-}
-
-
-
 # run in subshell
 run_fake_environment_script()
 {
-   local srcdir
-   local script
-
-   srcdir="$1"
-   shift
-   script="$1"
-   shift
-
-   ( owd="`pwd -P`"; cd "${srcdir}" ;
-   REPOS_DIR="${owd}/${REPOS_DIR}" \
-   CLONESBUILD_SUBDIR="${owd}/${CLONESBUILD_SUBDIR}" \
-   DEPENDENCIES_DIR="${owd}/${DEPENDENCIES_DIR}" \
-   ADDICTIONS_DIR="${owd}/${ADDICTIONS_DIR}" \
-   run_script "${owd}/${script}" "$@" ) || exit 1
-}
-
-
-# repo setting scripts are treated as if inherrited
-run_repo_settings_script()
-{
-   local name
    local scriptname
-   local srcdir
 
-   name="$1"
-   shift
-   srcdir="$1"
-   shift
    scriptname="$1"
    shift
 
-   exekutor [ -e "$srcdir" ] || internal_fail "directory srcdir \"${srcdir}\" is wrong ($PWD)"
-   [ ! -z "$name" ]          || internal_fail "name is empty"
-   [ ! -z "$scriptname" ]    || internal_fail "scriptname is empty"
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   local script
 
-   script="`find_repo_setting_file "${name}" "bin/${scriptname}.sh"`"
-   if [ ! -z "${script}" ]
-   then
-      run_fake_environment_script "${srcdir}" "${script}" "$@" || exit 1
-   fi
+   (
+      local owd="`pwd -P`";
+      cd "${stashdir}" ;
+      REPOS_DIR="${owd}/${REPOS_DIR}" \
+      CLONESBUILD_SUBDIR="${owd}/${CLONESBUILD_SUBDIR}" \
+      DEPENDENCIES_DIR="${owd}/${DEPENDENCIES_DIR}" \
+      ADDICTIONS_DIR="${owd}/${ADDICTIONS_DIR}" \
+      STASHES_DIR="${owd}/${STASHES_DIR}" \
+      run_script "${owd}/${script}" "$@"
+   ) || exit 1
 }
+
 
 
 run_build_settings_script()
 {
-   local srcdir
-   local name
    local scriptname
-   local url
 
-   name="$1"
-   shift
-   url="$1"
-   shift
-   srcdir="$1"
-   shift
    scriptname="$1"
    shift
 
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+
    # can happen, if system libs override
-   if [ ! -e "$srcdir" ]
+   if [ ! -e "$stashdir" ]
    then
-      log_verbose "script \"${scriptname}\" not executed, because ${srcdir} does not exist"
+      log_verbose "script \"${scriptname}\" not executed, because ${stashdir} does not exist"
       return 0
    fi
-
-   [ ! -z "$name" ]           || internal_fail "name is empty"
-   [ ! -z "$url" ]            || internal_fail "url is empty"
-   [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"
 
    local script
 
    script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      run_script "${script}" "${name}" "${url}" "${srcdir}" "$@" || exit 1
+      run_script "${script}" "${name}" "${url}" "${stashdir}" "$@" || exit 1
    fi
 }
 
@@ -203,14 +134,16 @@ run_build_settings_script()
 #
 fetch__run_script()
 {
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
    build_complete_environment
 
    run_script "$@"
 }
 
 
-fetch__run_fetch_settings_script()
+#
+#
+#
+fetch__run_root_settings_script()
 {
    local  scriptname
 
@@ -221,87 +154,56 @@ fetch__run_fetch_settings_script()
 
    local script
 
-   script="`find_fetch_setting_file "bin/${scriptname}.sh"`"
+   script="`find_root_setting_file "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
       fetch__run_script "${script}" "$@"
-      return $?
    fi
-   return 0
 }
+
 
 
 fetch__run_build_settings_script()
 {
-   local srcdir
-   local name
    local scriptname
-   local url
 
-   name="$1"
-   shift
-   url="$1"
-   shift
-   srcdir="$1"
-   shift
    scriptname="$1"
    shift
 
-   # can happen, if system libs override
-   if [ ! -e "$srcdir" ]
-   then
-      log_verbose "script \"${scriptname}\" not executed, because ${srcdir} does not exist"
-      return 0
-   fi
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   [ ! -z "$name" ]           || internal_fail "name is empty"
-   [ ! -z "$url" ]            || internal_fail "url is empty"
-   [ ! -z "$scriptname" ]     || internal_fail "scriptname is empty"
+   [ ! -z "$scriptname" ] || internal_fail "scriptname is empty"
 
    local script
 
    script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      fetch__run_script "${script}" "${name}" "${url}" "${srcdir}" "$@" || exit 1
+      # can happen, if system libs override
+      if [ ! -e "${stashdir}" ]
+      then
+         log_verbose "script \"${scriptname}\" not executed, because ${stashdir} does not exist"
+         return 0
+      fi
+
+      fetch__run_script "${script}" "$@" || exit 1
    fi
 }
 
-
-fetch__run_repo_settings_script()
-{
-   local name
-   local scriptname
-   local srcdir
-
-   name="$1"
-   shift
-   srcdir="$1"
-   shift
-   scriptname="$1"
-   shift
-
-   exekutor [ -e "$srcdir" ] || internal_fail "directory srcdir \"${srcdir}\" is wrong ($PWD)"
-   [ ! -z "$name" ]          || internal_fail "name is empty"
-   [ ! -z "$scriptname" ]    || internal_fail "scriptname is empty"
-
-   local script
-
-   script="`find_repo_setting_file "${name}" "bin/${scriptname}.sh"`"
-   if [ ! -z "${script}" ]
-   then
-      [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
-      build_complete_environment
-
-      run_fake_environment_script "${srcdir}" "${script}" "$@" || exit 1
-   fi
-}
 
 
 scripts_initialize()
 {
    log_fluff ":scripts_initialize:"
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   :
 }
 
 scripts_initialize

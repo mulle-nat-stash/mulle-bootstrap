@@ -33,7 +33,7 @@
 MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH="included"
 
 
-dependency_add()
+_dependency_add()
 {
    local map
    local name
@@ -65,7 +65,25 @@ dependency_add()
 }
 
 
-dependency_add_array()
+dependency_add()
+{
+   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   then
+   #     set +x
+   :
+   fi
+
+   _dependency_add "$@"
+
+   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   then
+   #   set -x
+   :
+   fi
+}
+
+
+_dependency_add_array()
 {
    local map
    local name
@@ -83,12 +101,28 @@ dependency_add_array()
    do
       IFS="${DEFAULT_IFS}"
 
-      map="`dependency_add "${map}" "${name}" "${sub_name}"`"
+      map="`_dependency_add "${map}" "${name}" "${sub_name}"`"
    done
 
    IFS="${DEFAULT_IFS}"
 
    echo "${map}"
+}
+
+
+dependency_add_array()
+{
+   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
+   _dependency_add_array "$@"
+
+   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
 }
 
 
@@ -141,6 +175,8 @@ _dependency_resolve()
 
    UNRESOLVED_DEPENDENCIES="`array_remove "${UNRESOLVED_DEPENDENCIES}" "${name}"`"
    RESOLVED_DEPENDENCIES="`array_add "${RESOLVED_DEPENDENCIES}" "${name}"`"
+
+   :
 }
 
 
@@ -155,10 +191,20 @@ dependency_resolve()
    RESOLVED_DEPENDENCIES=
    UNRESOLVED_DEPENDENCIES=
 
+   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   then
+      set +x
+   fi
+
    #
    # _dependency resolve tries to preserve order, but its sorted in reverse
    #
    _dependency_resolve "${map}" "${name}"
+
+   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   then
+      set -x
+   fi
 
    if [ ! -z "${UNRESOLVED_DEPENDENCIES}" ]
    then
@@ -167,12 +213,15 @@ dependency_resolve()
    else
       echo "${RESOLVED_DEPENDENCIES}" # | sed -n '1!G;h;$p'
    fi
+
+   :
 }
 
 
 dependency_resolve_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
+   :
 }
 
 dependency_resolve_initialize

@@ -569,7 +569,7 @@ find_compiler()
       compiler="`cat "${filename}" 2>/dev/null`"
       if [  ! -z "${compiler}" ]
       then
-         log_verbose "Compiler ${C_RESET_BOLD}${compiler_name}${C_VERBOSE} set to ${C_MAGENTA}${C_BOLD}${compiler}${C_VERBOSE} found in \"${file}\""
+         log_verbose "Compiler ${C_RESET_BOLD}${compiler_name}${C_VERBOSE} set to ${C_MAGENTA}${C_BOLD}${compiler}${C_VERBOSE} found in \"${filename}\""
       fi
    fi
 
@@ -577,7 +577,7 @@ find_compiler()
       mingw)
          if [ "`read_config_setting "mangle_minwg_compiler" "YES"`" = "YES" ]
          then
-            compile="`mingw_mangle_compiler "${compiler}"`"
+            compiler="`mingw_mangle_compiler "${compiler}"`"
          fi
       ;;
    esac
@@ -839,7 +839,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local prefixbuild
       local dependenciesdir
       local addictionsdir
-      local cmakemodulepath
+#      local cmakemodulepath
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
 
@@ -920,7 +920,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       done
 
       IFS=";"
-      if [ MULLE_BOOTSTRAP_VERBOSE_BUILD = "YES" ]
+      if [ "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" = "YES" ]
       then
          IFS="${DEFAULT_IFS}"
          local_make_flags="${local_make_flags} VERBOSE=1"
@@ -1130,7 +1130,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local addictionsdir
       #local linker
 
-      pathrefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
       dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
       addictionsdir="`add_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
 
@@ -1250,7 +1250,7 @@ create_mangled_header_path()
    default="$3"
 
    local headers
-   local prefix
+#   local prefix
 
    headers=`xcode_get_setting "${key}" $*` || exit 1
    log_fluff "${key} read as \"${headers}\""
@@ -1272,12 +1272,12 @@ create_mangled_header_path()
       ;;
    esac
 
-   prefix=""
+   # prefix=""
    read_yes_no_build_setting "${name}" "xcode_mangle_include_prefix"
    if [ $? -ne 0 ]
    then
       headers="`remove_absolute_path_prefix_up_to "${headers}" "include"`"
-      prefix="${HEADER_DIR_NAME}"
+      # prefix="${HEADER_DIR_NAME}"
    fi
 
    if read_yes_no_build_setting "${name}" "xcode_mangle_header_dash"
@@ -2110,30 +2110,6 @@ ${BUILT}"
 }
 
 
-get_source_dir()
-{
-   local name
-
-   name="$1"
-
-   local srcdir
-   local srcsubdir
-
-   srcdir="`cat "${REPOS_DIR}/${name}"`"
-   if [ -z "${srcdir}" ]
-   then
-      fail "${REPOS_DIR}/${name} missing or empty"
-   fi
-
-   srcsubdir="`read_build_setting "${name}" "source_dir"`"
-   if [ ! -z "${srcsubdir}" ]
-   then
-      srcdir="${srcdir}/${srcsubdir}"
-   fi
-   echo "${srcdir}"
-}
-
-
 build_stashes()
 {
    local name
@@ -2155,15 +2131,15 @@ build_stashes()
    #
    # build_order is created by refresh
    #
-   local srcdir
+   local stashdir
    local stashnames
 
    BUILT=""
 
    if [ "$#" -eq 0 ]
    then
-      stashnames="`read_fetch_setting "build_order"`"
-      if [ "${clones}" != "" ]
+      stashnames="`read_root_setting "build_order"`"
+      if [ ! -z "${stashnames}" ]
       then
          IFS="
 "
@@ -2171,18 +2147,18 @@ build_stashes()
          do
             IFS="${DEFAULT_IFS}"
 
-            srcdir="`get_source_dir "${name}"`"
+            stashdir="`stash_of_repository "${REPOS_DIR}" "${name}"`"
 
-            if [ -d "${srcdir}" ]
+            if [ -d "${stashdir}" ]
             then
-               build_if_alive "${name}" "${srcdir}" || exit  1
+               build_if_alive "${name}" "${stashdir}" || exit  1
             else
                if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
                then
                   log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                   :
                else
-                  fail "Build failed for repository \"${name}\": not found in (\"${srcdir}\") ($PWD)"
+                  fail "Build failed for repository \"${name}\": not found in (\"${stashdir}\") ($PWD)"
                fi
             fi
          done
@@ -2190,7 +2166,7 @@ build_stashes()
    else
       for name in "$@"
       do
-         srcdir="`get_source_dir "${name}"`"
+         srcdir="`stash_of_repository "${REPOS_DIR}" "${name}"`"
 
          if [ -d "${srcdir}" ]
          then
@@ -2215,7 +2191,7 @@ build_stashes()
 
 have_tars()
 {
-   tarballs=`read_fetch_setting "tarballs"`
+   tarballs=`read_root_setting "tarballs"`
    [ "${tarballs}" != "" ]
 }
 
@@ -2225,7 +2201,7 @@ install_tars()
    local tarballs
    local tar
 
-   tarballs=`read_fetch_setting "tarballs" | sort | sort -u`
+   tarballs=`read_root_setting "tarballs" | sort | sort -u`
    if [ "${tarballs}" = "" ]
    then
       return 0
@@ -2256,9 +2232,11 @@ build_main()
 
    log_fluff "::: build begin :::"
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
-
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+
+   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    #
    # it is useful, that fetch understands build options and
@@ -2314,8 +2292,7 @@ build_main()
 
          -cs|--check-usr-local-include)
             # set environment to be picked up by config
-            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
-            export MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE
+            CHECK_USR_LOCAL_INCLUDE="YES"
          ;;
 
          --use-prefix-libraries)
@@ -2351,13 +2328,18 @@ build_main()
       return 0
    fi
 
+   if [ ! -f "${BOOTSTRAP_DIR}.auto/build_order" ]
+   then
+      log_error "No build_order found. You need to install first."
+      return 1
+   fi
+
    build_complete_environment
 
    [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
-   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    remove_file_if_present "${REPOS_DIR}/.bootstrap_build_done"
 

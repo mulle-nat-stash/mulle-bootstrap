@@ -37,6 +37,20 @@ MULLE_BOOTSTRAP_FETCH_SH="included"
 # You can also specify a list of "brew" dependencies. That
 # will be third party libraries, you don't tag or debug
 #
+#
+# ## NOTE ##
+#
+# There is a canonical argument passing scheme, which gets passed to and
+# forwarded by most function
+#
+# reposdir="$1"   # ususally .bootstrap.repos
+# name="$2"       # name of the clone
+# url="$3"        # URL of the clone
+# branch="$4"     # branch of the clone
+# scm="$5"        # scm to use for this clone
+# tag="$6"        # tag to checkout of the clone
+# stashdir="$7"     # stashdir of this clone (absolute or relative to $PWD)
+#
 
 fetch_usage()
 {
@@ -53,14 +67,15 @@ usage:
       -es   :  allow embedded symlinks (very experimental)
 
    install  :  clone or symlink non-exisiting repositories and other resources
-   update   :  execute a "pull" in fetched repositories
+   update   :  execute a "fetch" in already fetched repositories
+   upgrade  :  execute a "pull" in fetched repositories
 
    You can specify the names of the repositories to update.
 EOF
 
    local  repositories
 
-   repositories="`repository_directories_from_repos`"
+   repositories="`all_repository_names`"
    if [ -z "${repositories}" ]
    then
       echo "Currently available repositories are:"
@@ -70,36 +85,19 @@ EOF
 }
 
 
-#
-# Use brews for stuff we don't tag
-#
-install_taps()
+assert_sane_parameters()
 {
-   local tap
-   local taps
+   local  empty_reposdir_is_ok="$1"
 
-   log_fluff "Looking for taps"
+   [ ! -z "${empty_reposdir_is_ok}" -a -z "${reposdir}" ] && internal_fail "parameter: reposdir is empty"
+   [ -z "${empty_reposdir_is_ok}" -a ! -d "${reposdir}" ] && internal_fail "parameter: reposdir does not exist ($reposdir)"
 
-   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+   [ -z "${url}" ]      && internal_fail "parameter: url is empty"
+   [ -z "${name}" ]     && internal_fail "parameter: name is empty"
+   [ -z "${stashdir}" ] && internal_fail "parameter: stashdir is empty"
 
-   taps=`read_fetch_setting "taps" | sort | sort -u`
-   if [ "${taps}" != "" ]
-   then
-      fetch_brew_if_needed
-
-      IFS="
-"
-      for tap in ${taps}
-      do
-         IFS="${DEFAULT_IFS}"
-         exekutor "${BREW}" tap "${tap}" > /dev/null || exit 1
-      done
-      IFS="${DEFAULT_IFS}"
-   else
-      log_fluff "No taps found"
-   fi
+   :
 }
-
 
 
 write_protect_directory()
@@ -118,104 +116,6 @@ write_protect_directory()
    fi
 }
 
-#
-# brews are now installed using a local brew
-# if we are on linx
-#
-install_brews()
-{
-   local flag
-
-   flag="$1"
-
-   local brew
-   local brews
-   local brewcmd
-
-   install_taps
-
-   log_fluff "Looking for brews"
-
-   case "${COMMAND}" in
-      fetch)
-         brewcmd="install"
-      ;;
-      update)
-         brewcmd="upgrade"
-      ;;
-      *)
-         fail "COMMAND not set"
-      ;;
-   esac
-
-   brews=`read_fetch_setting "brews" | sort | sort -u`
-   if [ -z "${brews}" ]
-   then
-      log_fluff "No brews found"
-      return
-   fi
-
-   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
-
-   if [ "${flag}" = "NO" -a -d "${ADDICTIONS_DIR}" ]
-   then
-      log_fluff "Unprotecting \"${ADDICTIONS_DIR}\" for ${command}."
-      exekutor chmod -R u+w "${ADDICTIONS_DIR}"
-   fi
-
-   local flag
-
-   IFS="
-"
-   for formula in ${brews}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      if [ ! -x "${BREW}" ]
-      then
-         brew_update_if_needed "${formula}"
-         flag=$?
-
-         if [ $flag -eq 2 ]
-         then
-            log_info "No brewing being done."
-            write_protect_directory "${ADDICTIONS_DIR}"
-            return 1
-         fi
-      fi
-
-      local versions
-
-      versions=""
-      if [ "${brewcmd}" = "install" ]
-      then
-         versions="`${BREW} ls --versions "${formula}" 2> /dev/null`"
-      fi
-
-      if [ -z "${versions}" ]
-      then
-         log_fluff "brew ${brewcmd} \"${formula}\""
-         exekutor "${BREW}" "${brewcmd}" "${formula}" || exit 1
-
-         log_info "Force linking it, in case it was keg-only"
-         exekutor "${BREW}" link --force "${formula}" || exit 1
-      else
-         if [ "${flag}" = "NO" ]
-         then
-            log_info "\"${formula}\" is already installed."
-         else
-            log_fluff "\"${formula}\" is already installed."
-         fi
-      fi
-   done
-   IFS="${DEFAULT_IFS}"
-
-   if [ "${flag}" = "YES" ]
-   then
-      write_protect_directory "${ADDICTIONS_DIR}"
-   fi
-}
-
 
 #
 # future, download tarballs...
@@ -228,7 +128,7 @@ check_tars()
 
    log_fluff "Looking for tarballs"
 
-   tarballs="`read_fetch_setting "tarballs" | sort | sort -u`"
+   tarballs="`read_root_setting "tarballs" | sort | sort -u`"
    if [ "${tarballs}" != "" ]
    then
       [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
@@ -252,20 +152,46 @@ check_tars()
 }
 
 
+log_action()
+{
+   local action="$1" ; shift
+
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   assert_sane_parameters "empty reposdir is ok"
+
+   local info
+
+   if [ -L "${url}" ]
+   then
+      info=" symlinked "
+   else
+      info=" "
+   fi
+
+   log_fluff "Perform ${action}${info}${url} into ${stashdir} ..."
+}
+
 #
 ###
 #
 link_command()
 {
-   local src
-   local dst
-   local branch
-   local tag
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   src="$1"
-   dst="$2"
-   branch="$3"
-   tag="$4"
+   assert_sane_parameters "empty reposdir is ok"
 
    local branchlabel
 
@@ -276,54 +202,48 @@ link_command()
       branch="${tag}"
    fi
 
-   local dstdir
-   local linkname
    local srcname
+   local linkname
+   local directory
 
-   srcname="`basename -- ${src}`"
-   linkname="`basename -- ${dst}`"
-   dstdir="`dirname -- "${dst}"`"
-
+   srcname="`basename -- ${url}`"
+   linkname="`basename -- ${stashdir}`"
+   directory="`dirname -- "${stashdir}"`"
 
    if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
    then
-      local owd
-
-      owd="`pwd -P`"
-      cd "${dstdir}"
-      if [ ! -e "${src}" ]
-      then
-         fail "${C_RESET}${C_BOLD}${src}${C_ERROR} does not exist ($PWD)"
-      fi
-      cd "${owd}"
+      (
+         cd "${directory}" ;
+         if [ ! -e "${url}" ]
+         then
+            fail "${C_RESET}${C_BOLD}${url}${C_ERROR} does not exist ($PWD)"
+         fi
+      ) || exit 1
    fi
 
-   if [ "${COMMAND}" = "fetch" ]
+   #
+   # relative paths look nicer, but could fail in more complicated
+   # settings, when you symlink something, and that repo has symlinks
+   # itself
+   #
+   if read_yes_no_config_setting "absolute_symlinks" "NO"
    then
-      #
-      # relative paths look nicer, but could fail in more complicated
-      # settings, when you symlink something, and that repo has symlinks
-      # itself
-      #
-      if read_yes_no_config_setting "absolute_symlinks" "NO"
-      then
-         local real
+      local real
 
-         real="`( cd "${dstdir}" ; realpath "${src}")`"
-         log_fluff "Converted symlink \"${src}\" to \"${real}\""
-         src="${real}"
-      fi
+      real="`( cd "${directory}" ; realpath "${url}")`" || fail "failed to get realpath of $url"
+      log_fluff "Converted symlink \"${url}\" to \"${real}\""
+      url="${real}"
+   fi
 
-      log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} ..."
-      exekutor ln -s -f "${src}" "${dst}" || fail "failed to setup symlink \"${dst}\" (to \"${src}\")"
+   log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} ..."
+   exekutor ln -s -f "${url}" "${stashdir}" || fail "failed to setup symlink \"${stashdir}\" (to \"${url}\")"
 
-      if [ ! -z "${branch}" ]
-      then
-         log_warning "The intended ${branchlabel} ${C_RESET_BOLD}${branch}${C_WARNING} will be ignored, because"
-         log_warning "the repository is symlinked."
-         log_warning "If you want to checkout this ${branchlabel} do:"
-         log_warning "${C_RESET_BOLD}(cd .repos/${linkname}; git checkout ${GITOPTIONS} \"${branch}\" )${C_WARNING}"
-      fi
+   if [ ! -z "${branch}" ]
+   then
+      log_warning "The intended ${branchlabel} ${C_RESET_BOLD}${branch}${C_WARNING} will be ignored, because"
+      log_warning "the repository is symlinked."
+      log_warning "If you want to checkout this ${branchlabel} do:"
+      log_warning "${C_RESET_BOLD}(cd ${stashdir}; git checkout ${GITOPTIONS} \"${branch}\" )${C_WARNING}"
    fi
 }
 
@@ -353,7 +273,7 @@ ask_symlink_it()
       fi
 
       flag=1  # means clone it
-      if [ "${SYMLINK_FORBIDDEN}" != "YES" ]
+      if [ "${ALLOW_CREATING_SYMLINKS}" = "YES" ]
       then
          local prompt
 
@@ -369,15 +289,18 @@ NO is safe, but you often say YES here."
          flag=$?
       fi
 
-      [ $flag -eq 0 ]
-      return $?
+      if [ $flag -ne 0 ]
+      then
+         return $flag
+      fi
    fi
 
    # can only symlink because not a .git repo yet
-   if [ "${SYMLINK_FORBIDDEN}" != "YES" ]
+   if [ "${ALLOW_CREATING_SYMLINKS}" = "YES" ]
    then
       log_info "${clone} is not a git repository (yet ?)"
       log_info "So symlinking is the only way to go."
+
       return 0
    fi
 
@@ -387,400 +310,231 @@ NO is safe, but you often say YES here."
       ;;
 
       *)
-         fail "Can't symlink embeded repositories by default. \
+         fail "Can't symlink embedded repositories by default. \
 Use --embedded-symlinks option to allow it"
       ;;
    esac
 }
 
 
-log_fetch_action()
+
+_search_git_repo_in_directory()
 {
-   local url
-   local dstdir
-
-   url="$1"
-   dstdir="$2"
-
-   local info
-
-   if [ -L "${url}" ]
-   then
-      info=" symlinked "
-   else
-      info=" "
-   fi
-
-   log_fluff "Perform ${COMMAND}${info}${url} in ${dstdir} ..."
-}
-
-
-search_git_repo_in_parent_directory()
-{
+   local directory
    local name
    local branch
 
-   [ $# -ne 2 ] && internal_fail "fail"
+   [ $# -ne 3 ] && internal_fail "fail"
 
-   name="$1"
-   branch="$2"
+   directory="$1"
+   name="$2"
+   branch="$3"
 
    local found
 
    if [ ! -z "${branch}" ]
    then
-      found="../${name}.${branch}"
+      found="${directory}/${name}.${branch}"
+      log_fluff "Looking for \"${found}\""
+
       if [ -d "${found}" ]
       then
+         log_fluff "Found \"${name}.${branch}\" in \"${directory}\""
+
          echo "${found}"
          return
       fi
    fi
 
-   found="../${name}"
+   found="${directory}/${name}"
+   log_fluff "Looking for \"${found}\""
    if [ -d "${found}" ]
    then
+      log_fluff "Found \"${name}\" in \"${directory}\""
+
       echo "${found}"
       return
    fi
 
-   found="../${name}.git"
+   found="${directory}/${name}.git"
+   log_fluff "Looking for \"${found}\""
    if [ -d "${found}" ]
    then
+      log_fluff "Found \"${name}.git\" in \"${directory}\""
+
       echo "${found}"
       return
    fi
 }
 
 
-checkout()
+search_git_repo_in_parent_of_root()
 {
-   local url
-   local name
-   local dstdir
-   local branch
-   local tag
-   local scm
+   local found
+   local directory
 
-   name="$1"
-   url="$2"
-   dstdir="$3"
-   branch="$4"
-   tag="$5"
-   scm="$6"
-
-   [ ! -z "$name" ]   || internal_fail "name is empty"
-   [ ! -z "$url" ]    || internal_fail "url is empty"
-   [ ! -z "$dstdir" ] || internal_fail "dstdir is empty"
-   [ $# -le 6 ] || internal_fail "too many parameters"
-
-   local relative
-   local name2
-
-   relative="`dirname -- "${dstdir}"`"
-   relative="`compute_relative "${relative}"`"
-   if [ ! -z "${relative}" ]
+   directory="`dirname -- "${ROOT_DIR}"`"
+   found="`_search_git_repo_in_directory "${directory}" "$@"`" || exit 1
+   if [ ! -z "${found}" ]
    then
-      relative="${relative}/"
+      _relative_path_between "${found}" "`pwd -P`"
    fi
-   name2="`basename -- "${url}"`"  # only works for git really
+}
+
+
+mkdir_stashparent_if_missing()
+{
+   local stashdir="$1"
+
+   local stashparent
+
+   stashparent="`dirname -- "${stashdir}"`"
+   case "${stashparent}" in
+      ""|"\.")
+      ;;
+
+      *)
+         mkdir_if_missing "${stashparent}"
+         echo "${stashparent}"
+      ;;
+   esac
+
+}
+
+clone_or_symlink()
+{
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   assert_sane_parameters "empty reposdir is ok"
+
+   [ $# -le 7 ] || internal_fail "too many parameters"
 
    local operation
-   local map
    local scmflagsdefault
 
    case "${scm}" in
       git|"" )
          operation="git_clone"
          scmflagsdefault="--recursive"
-         ;;
+      ;;
+
       svn)
          operation="svn_checkout"
-         ;;
+      ;;
 
       *)
          fail "Unknown scm system ${scm}"
-         ;;
+      ;;
    esac
 
+   local stashparent
+
+   stashparent="`mkdir_stashparent_if_missing "${stashdir}"`"
+
+
    local found
-   local src
    local script
 
-   src="${url}"
-   script="`find_repo_setting_file "${name}" "bin/${COMMAND}.sh"`"
+   script="`find_root_setting_file "bin/clone.sh"`"
 
    if [ ! -z "${script}" ]
    then
       fetch__run_script "${script}" "$@"
-   else
-      case "${url}" in
-         /*)
-            if git_is_bare_repository "${url}"
-            then
-               :
-            else
-               ask_symlink_it "${src}"
-               if [ $? -eq 0 ]
-               then
-                  operation=link_command
-               fi
-            fi
-         ;;
+      return $?
+   fi
 
-         ../*|./*)
-            if git_is_bare_repository "${url}"
-            then
-               :
-            else
-               ask_symlink_it "${src}"
-               if [ $? -eq 0 ]
-               then
-                  operation=link_command
-                  src="${relative}${url}"
-               fi
-            fi
-         ;;
+   local relative
+   local name2
 
-         *)
-            found="`search_git_repo_in_parent_directory "${name}" "${branch}"`"
+   relative="`compute_relative "${stashparent}"`"
+   [ ! -z "${relative}" ] && relative="${relative}/"
+
+   name2="`basename -- "${url}"`"  # only works for git really
+
+   case "${url}" in
+      /*)
+         if ask_symlink_it "${url}"
+         then
+            operation=link_command
+         fi
+      ;;
+
+      #
+      # don't move up using url
+      #
+      */\.\./*|\.\./*|*/\.\.|\.\.)
+         internal_fail "Faulty url \"${url}\" should have been caught before"
+      ;;
+
+      *)
+         if [ "${ALLOW_SEARCH_PARENT}" = "YES" ]
+         then
+            found="`search_git_repo_in_parent_of_root "${name}" "${branch}"`"
             if [ -z "${found}" ]
             then
-               found="`search_git_repo_in_parent_directory "${name2}" "${branch}"`"
+               found="`search_git_repo_in_parent_of_root "${name2}" "${branch}"`"
             fi
 
             if [ ! -z "${found}" ]
             then
-               user_say_yes "There is a \"${found}\" folder in the parent directory of this project.
+               [ "${ALLOW_AUTOCLONE_PARENT}" = "YES" ] || user_say_yes "There is a \"${found}\" folder in the parent directory of this project.
 (\"${PWD}\"). Use it ?"
                if [ $? -eq 0 ]
                then
-                  src="${found}"
+                  url="${found}"
 
-                  if git_is_bare_repository "${src}"
+                  ask_symlink_it "${url}"
+                  if [ $? -eq 0 ]
                   then
-                     :
-                  else
-                     ask_symlink_it "${src}"
-                     if [ $? -eq 0 ]
-                     then
-                        operation=link_command
-                        src="${relative}${found}"
-                     fi
+                     operation=link_command
+                     url="${relative}${found}"
                   fi
+
+                  log_info "Using ${C_MAGENTA}${C_BOLD}${found}${C_INFO} as URL"
                fi
             fi
-
-         ;;
-      esac
-
-      local options
-
-      options="`read_fetch_setting "${name}.scmflags" "${scmflagsdefault}"`"
-      "${operation}" "${src}" "${dstdir}" "${branch}" "${tag}" "${options}"
-
-      warn_scripts_main "${dstdir}/.bootstrap" "${dstdir}" || fail "Ok, aborted"  #sic
-   fi
-}
-
-
-ensure_clone_url_is_correct()
-{
-   local dstdir
-   local url
-
-   dstdir="$1"
-   url="$2"
-
-   local remote
-   local actual
-
-   if git_is_repository "${dstdir}"
-   then
-      remote="`git_get_default_remote "${dstdir}"`"
-      if [ -z "${remote}" ]
-      then
-         fail "Could not figure out a remote for \"$PWD/${dstdir}\""
-      fi
-
-      actual="`git_get_url "${dstdir}" "${remote}"`"
-      if [ "${actual}" != "${url}" ]
-      then
-         log_verbose "URL change for $remote in \"$PWD/${dstdir}\" from $actual to $url"
-         git_set_url "${dstdir}" "${remote}" "${url}"
-      fi
-      return 0
-   fi
-
-   return 1
-}
-
-
-ensure_clone_branch_is_correct()
-{
-   local dstdir
-   local branch
-
-   dstdir="$1"
-   branch="$2"
-
-   local actual
-
-   if [ ! -z "${branch}" -a -z "${IGNORE_BRANCH}" ]
-   then
-      actual="`git_get_branch "${dstdir}"`"
-      if [ "${actual}" != "${branch}" ]
-      then
-         if [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" = "NO" ] # abuse force flag
-         then
-            git_checkout_tag "${dstdir}" "${branch}"
-            actual="`git_get_branch "${dstdir}"`"
          fi
+      ;;
+   esac
 
-         if [ "${actual}" != "${branch}" ]
-         then
-            fail "Repository \"${dstdir}\" checked-out branch is \"${actual}\".
-But \"${branch}\" is specified.
-Suggested fix:
-   mulle-bootstrap clean dist
-   mulle-bootstrap"
-         fi
-      fi
-   fi
+   local options
+
+   options="`read_root_setting "${name}.scmflags" "${scmflagsdefault}"`"
+
+   "${operation}" "${reposdir}" \
+                  "${name}" \
+                  "${url}" \
+                  "${branch}" \
+                  "${scm}" \
+                  "${tag}" \
+                  "${stashdir}" \
+                  "${options}"
+
+   warn_scripts_main "${stashdir}/.bootstrap" "${stashdir}" || fail "Ok, aborted"  #sic
 }
 
-
-did_clone_repository()
+##
+## CLONE
+##
+_clone()
 {
-   local reposdir
-   local name
-   local url
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   reposdir="$1"
-   name="$2"
-   url="$3"
+   [ $# -eq 7 ] || internal_fail "fail"
 
-   local dstdir
-
-   dstdir="${reposdir}/${name}"
-   fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "did-install" "${dstdir}" "${name}"
-}
-
-
-#
-# Use git clones for stuff that gets tagged
-# if you specify ../ it will assume you have
-# checked it out yourself, If there is something
-# checked out already it will use it, or ask
-# convention: .git suffix == repo to clone
-#          no .git suffix, try to symlink
-# return value 0 means: reread repositories, as it may have changed
-#
-checkout_repository()
-{
-   local reposdir
-   local name
-   local url
-   local dstdir
-   local branch
-
-   reposdir="$1"
-   name="$2"
-   url="$3"
-   dstdir="$4"
-   branch="$5"
-
-   local flag
-   local run_script
-
-   run_script=-1
-
-   stop=1
-
-   if [ -e "${dstdir}" ]
-   then
-      if ensure_clone_url_is_correct "${dstdir}" "${url}"
-      then
-         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-      fi
-      log_fluff "Repository \"${dstdir}\" already exists"
-   else
-      if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${reposdir}/.bootstrap_graveyard/${name}" ]
-      then
-         log_info "Restoring ${name} from graveyard"
-         exekutor mv "${reposdir}/.bootstrap_graveyard/${name}" "${reposdir}" || fail "move failed"
-
-         ensure_clone_url_is_correct "${dstdir}" "${url}"
-         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-      else
-         checkout "$name" "${url}" "${dstdir}" "${branch}"
-         run_script=0  # yes, run it
-
-         if [ -z "${DONT_RECURSE}" ]
-         then
-            #
-            # we always update the "root" repository
-            #
-            if bootstrap_auto_update "${name}" "${dstdir}"
-            then
-               stop=0
-            fi
-         fi
-      fi
-   fi
-
-   if [ "${COMMAND}" = "fetch" -a -z "${DONT_RECURSE_EMBEDDED}" ]
-   then
-      #
-      # If we symlinked the repository, we don't embed
-      # repos into it, unless the user is really crazy
-      #
-      if [ ! -L "${dstdir}" -o "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" = "YES" ]
-      then
-         local previous
-
-         previous="${BOOTSTRAP_DIR}"
-         BOOTSTRAP_DIR="${dstdir}/.bootstrap"
-
-         clone_embedded_repositories "${REPOS_DIR}" "${dstdir}/"
-
-         BOOTSTRAP_DIR="${previous}"
-      fi
-   fi
-
-   if [ $run_script -eq 0 ]
-   then
-      fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
-   fi
-
-   return $stop
-}
-
-
-clone_repository()
-{
-   local reposdir
-   local name
-   local url
-   local branch
-   local scm
-   local tag
-
-   reposdir="$1"
-   name="$2"
-   url="$3"
-   branch="$4"
-   scm="$5"
-   tag="$6"
-
-   [ $# -eq 6 ] || internal_fail "fail"
-
-   local tag
-   local dstdir
-
-   log_verbose "Clone ${name} if needed ..."
-
-   dstdir="${reposdir}/${name}"
+   assert_sane_parameters "empty is ok"
 
    if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
    then
@@ -788,719 +542,904 @@ clone_repository()
       return 1
    fi
 
-   local stop
+   [ -e "${stashdir}" ] && fail "${stashdir} already exists"
 
-   stop=1
-
-   log_fetch_action "${url}" "${dstdir}"
-
-   # mark the checkout progress, so that we don't do incomplete fetches and
-   # later on happily build
-
-   create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
-
-   if checkout_repository "${reposdir}" \
-                          "${name}" \
-                          "${url}" \
-                          "${dstdir}" \
-                          "${branch}" \
-                          "${tag}" \
-                          "${scm}"
+   if ! clone_or_symlink "$@"
    then
-      stop=0
+      fail "failed to fetch $url"
+   fi
+}
+
+
+clone_repository()
+{
+   log_action "clone" "$@"
+
+   _clone "$@"
+}
+
+
+##
+## CHECKOUT
+##
+_checkout()
+{
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   local operation
+
+   case "${scm}" in
+      git|"" )
+         operation="git_checkout"
+      ;;
+      svn)
+         operation="svn_checkout"
+      ;;
+      *)
+         fail "Unknown scm system ${scm}"
+      ;;
+   esac
+
+   script="`find_build_setting_file "${name}" "bin/checkout.sh"`"
+   if [ ! -z "${script}" ]
+   then
+      fetch__run_script "${script}" "$@"
+   else
+      "${operation}" "$@"
+   fi
+}
+
+
+checkout_repository()
+{
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   if [ -L "${stashdir}" -a "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" != "YES" ]
+   then
+      echo "Ignoring ${stashdir} because it's a symlink"
+      return
    fi
 
-   remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
+   log_action "checkout" "$@"
 
-   return $stop
+   _checkout "$@"
 }
 
 
-clone_repositories()
+##
+## PULL
+##
+_pull()
 {
-   local reposdir
-
-   reposdir="$1"
-
-   local clone
-   local clones
-   local fetched
-   local match
-   local rval
-   local stop
-
-   fetched=""
-
-   # __parse_expanded_clone variables
-   local name
-   local url
-   local branch
-   local scm
-   local tag
-
-   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
-
-   stop=0
-   while [ $stop -eq 0 ]
-   do
-      stop=1
-
-      clones="`read_fetch_setting "repositories"`"
-      if [ "${clones}" != "" ]
-      then
-         ensure_clones_directory "${reposdir}"
-
-         IFS="
-"
-         for clone in ${clones}
-         do
-            IFS="${DEFAULT_IFS}"
-
-            clone="`expanded_variables "${clone}"`"
-            __parse_expanded_clone "${clone}"
-
-            #
-            # avoid superflous updates, match by "canonical name"
-            # this has the advantage, that https://foo/a.git and
-            # git:foo.git match
-            #
-            match="`echo "${fetched}" | fgrep -s -x "${name}"`"
-            # could remove prefixes here https:// http://
-
-            if [ "${match}" != "${name}" ]
-            then
-               fetched="${fetched}
-${name}"
-
-               if clone_repository "${reposdir}" \
-                                   "${name}" \
-                                   "${url}" \
-                                   "${branch}" \
-                                   "${scm}" \
-                                   "${tag}"
-               then
-                  stop=0
-                  break
-               fi
-            fi
-         done
-
-         IFS="${DEFAULT_IFS}"
-
-      fi
-   done
-
-   IFS="
-"
-   for clone in ${fetched}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      __parse_clone "${clone}"
-
-      did_clone_repository "${reposdir}" \
-                           "${name}" \
-                           "${url}"
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
-
-#
-# return 0, all cool
-# return 1, is symlinked
-# return 2, .bootstrap/repositories changed
-# return 3, is symlinked and .bootstrap/repositories changed
-#
-update()
-{
-   local name
-   local url
-   local branch
-   local tag
-   local dstdir
-   local scm
-
-   name="$1"
-   url="$2"
-   dstdir="$3"
-   branch="$4"
-   tag="$5"
-   scm="$6"
-
-   [ ! -z "$url" ]           || internal_fail "url is empty"
-   exekutor [ -d "$dstdir" ] || internal_fail "dstdir \"${dstdir}\" is wrong ($PWD)"
-   [ ! -z "$name" ]          || internal_fail "name is empty"
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
    local operation
 
    case "${scm}" in
       git|"" )
          operation="git_pull"
-         ;;
+      ;;
       svn)
          operation="svn_update"
-         ;;
+      ;;
       *)
          fail "Unknown scm system ${scm}"
-         ;;
+      ;;
    esac
 
-   local script
-   local before_r
-   local before_e
-   local after_r
-   local after_e
-   local rval
-
-   before_r=`modification_timestamp "${dstdir}/.bootstrap/repositories" 2> /dev/null`
-   before_e=`modification_timestamp "${dstdir}/.bootstrap/embedded_repositories" 2> /dev/null`
-
-   rval=0
-   if [ ! -L "${dstdir}" -o "${MULLE_BOOTSTRAP_UPDATE_SYMLINKS}" = "YES" ]
+   script="`find_build_setting_file "${name}" "bin/pull.sh"`"
+   if [ ! -z "${script}" ]
    then
-      fetch__run_repo_settings_script "${name}" "${dstdir}" "pre-update" "$@"
-
-      script="`find_repo_setting_file "${name}" "bin/update.sh"`"
-      if [ ! -z "${script}" ]
-      then
-         fetch__run_script "${script}" "$@"
-      else
-         "${operation}" "${dstdir}" "${branch}" "${tag}"
-      fi
-
-      fetch__run_repo_settings_script "${name}" "${dstdir}" "post-update" "$@"
+      fetch__run_script "${script}" "$@"
    else
-      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-
-      log_info "Repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} exists and is symlinked, so not updated."
-
-      rval=1
+      "${operation}" "$@"
    fi
-
-   after_r=`modification_timestamp "${dstdir}/.bootstrap/repositories" 2> /dev/null`
-   after_e=`modification_timestamp "${dstdir}/.bootstrap/embedded_repositories" 2> /dev/null`
-
-   if [ "${before_r}" != "${after_r}" -o "${before_e}" != "${after_e}" ]
-   then
-      rval="`expr "$rval" + 2`"
-   fi
-
-   return "$rval"
 }
 
 
 update_repository()
 {
-   local reposdir
-   local name
-   local url
-   local branch
-   local dstdir
-   local scm
-   local tag
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   reposdir="$1"
-   name="$2"
-   url="$3"
-   branch="$4"
-   scm="$5"
-   tag="$6"
-
-
-   localdir dstdir
-
-   dstdir="${reposdir}/${name}"
-
-   local name
-   local tag
-   local rval
-
-   exekutor [ -x "${dstdir}" ] || fail "\"${name}\" is not a known repository, check \".boostrap.auto/repositories\""
-
-   log_fetch_action "${url}" "${dstdir}"
-
-   update "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
-   rval=$?
-   #update will return 1 if repo is symlinked
-
-   if [ -z "${DONT_RECURSE_EMBEDDED}" ]
+   if [ -L "${stashdir}" -a "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" != "YES" ]
    then
-      if [ $rval -eq 0 -o $rval -eq 2 ]
-      then
-         update_embedded_repositories "${dstdir}/.bootstrap" "${reposdir}" "${dstdir}/"
-      fi
-   fi
-
-   if ensure_clone_url_is_correct "${dstdir}" "${url}"
-   then
-      ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-   fi
-
-   [ $rval -eq 0 -o $rval -eq 2 ]
-   return $?
-}
-
-
-did_update_repository()
-{
-   local reposdir
-   local name
-   local url
-
-   reposdir="$1"
-   name="$2"
-   url="$3"
-
-   local dstdir
-
-   dstdir="${reposdir}/${name}"
-
-   fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "did-update" "${dstdir}" "${name}"
-}
-
-
-#
-# Use git clones for stuff that gets tagged
-# if you specify ../ it will assume you have
-# checked it out yourself, If there is something
-# checked out already it will use it, or ask
-# convention: .git suffix == repo to clone
-#          no .git suffix, try to symlink
-#
-update_repositories()
-{
-   local reposdir
-
-   reposdir="$1"
-   shift
-
-   local clones
-   local clone
-   local name
-   local i
-
-   if [ $# -ne 0 ]
-   then
-      [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
-      IFS="
-"
-      for name in "$@"
-      do
-         IFS="${DEFAULT_IFS}"
-
-         create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
-            update_repository "${reposdir}" \
-                              "${name}" \
-                              "${reposdir}/${name}"
-
-         remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
-      done
-
-      IFS="
-"
-      for name in "$@"
-      do
-         IFS="${DEFAULT_IFS}"
-
-         create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
-            did_update_repository "${reposdir}" \
-                                  "${name}" \
-                                  "${reposdir}/${name}"
-         remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
-      done
-
-      IFS="${DEFAULT_IFS}"
+      echo "Ignoring ${stashdir} because it's a symlink"
       return
    fi
 
-   # __parse_expanded_clone
-   local name
-   local url
-   local branch
-   local scm
-   local tag
+   log_action "pull" "$@"
 
-   local dstdir
-   local match
-   local stop
-   local updated
-
-   updated=""
-   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
-
-   stop=0
-   while [ $stop -eq 0 ]
-   do
-      stop=1
-
-      clones="`read_fetch_setting "repositories"`"
-      clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
-
-      if [ "${clones}" != "" ]
-      then
-         IFS="
-"
-         for clone in ${clones}
-         do
-            IFS="${DEFAULT_IFS}"
-
-            __parse_embedded_clone "${clone}"
-
-            #
-            # avoid superflous updates
-            # match by name
-            #
-            match="`echo "${updated}" | fgrep -s -x "${name}"`"
-            if [ "${match}" = "${name}" ]
-            then
-               continue
-            fi
-            updated="${updated}
-${name}"
-
-            dstdir="${CLONEROOT_DIR}/${name}"
-
-            create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
-
-               if [ -e "${dstdir}" ]
-               then
-                  update_repository "${reposdir}" \
-                                    "${name}" \
-                                    "${url}" \
-                                    "${branch}" \
-                                    "${scm}" \
-                                    "${tag}"
-                  rval=$?
-               else
-                  scm="`scm_from_clone "${clone}"`"
-                  clone_repository "${reposdir}" \
-                                   "${name}" \
-                                   "${url}" \
-                                   "${branch}" \
-                                   "${scm}" \
-                                   "${tag}"
-                  rval=1
-               fi
-
-            remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
-
-            if [ $rval -eq 1 ]
-            then
-               stop=0
-               break
-            fi
-         done
-         IFS="${DEFAULT_IFS}"
-      fi
-   done
+   _update "$@"
 }
 
 
-append_dir_to_gitignore_if_needed()
+##
+## UPDATE
+##
+
+_update()
 {
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   case "${1}" in
-      "${REPOS_DIR}/"*)
-         return 0
+   local operation
+
+   case "${scm}" in
+      git|"" )
+         operation="git_fetch"
       ;;
-   esac
-
-   local directory
-
-   # make it absolute dir for git -> '/' <subdir> '/'
-   # emit w/o trailing '/' for symlinks
-
-   case "$1" in
-      /*/)
-         directory="`echo "$1" | sed 's/.$//'`"
+      svn)
+         return
       ;;
-
-      /*)
-         directory="$1"
-      ;;
-
-      */)
-         directory="`echo "/$1" | sed 's/.$//'`"
-      ;;
-
       *)
-         directory="/$1"
+         fail "Unknown scm system ${scm}"
       ;;
    esac
 
-   local pattern1
-   local pattern2
-   local pattern3
-
-   # also match with trailing slash
-   pattern1="${directory}/"
-
-   # also match without leading slash
-   pattern2="`echo "${directory}" | sed 's|^/\(.*\)|\1|'`"
-
-   # also match without leading but with trailing slash
-   pattern3="${pattern2}/"
-
-   fgrep -s -x -e "${directory}" -e "${pattern1}" -e "${pattern2}" -e "${pattern3}" .gitignore > /dev/null 2>&1
-
-   #
-   # prepend \n because it is safer, in case .gitignore has no trailing
-   # LF which it often seems to not have
-   #
-   if [ $? -ne 0 ]
+   script="`find_build_setting_file "${name}" "bin/update.sh"`"
+   if [ ! -z "${script}" ]
    then
-      redirect_append_exekutor .gitignore echo "\n${directory}" || fail "Couldn\'t append to .gitignore"
-      log_info "Added \"${directory}\" to \".gitignore\""
-   fi
-}
-
-#
-# memorize where we placed a repository, need URL to identify
-# and the subdir, where it was stored
-#
-# store it inside the possibly recursed dstprefix dependency
-#
-
-remember_repository()
-{
-   local reposdir
-   local dstprefix
-   local name
-   local url
-   local subdir
-   local repotype
-
-   reposdir="$1"
-   dstprefix="$2"
-   name="$3"
-   url="$4"
-   subdir="$5"
-   repotype="$6"
-
-   local content
-   local memodir
-   local content
-
-   memodir="${dstprefix}${reposdir}/.bootstrap_${repotype}"
-   mkdir_if_missing "${memodir}"
-   content="${subdir}
-${url}"
-
-   # dont't use symlinks anymore
-   log_fluff "Remember ${repotype} repository \"${name}\" via \"${memodir}/${name}\""
-
-   # useful for old symlinks from previous version
-   if [ -L "${memodir}/${name}" ]
-   then
-      exekutor rm "${memodir}/${name}"
-   fi
-   remove_file_if_present "${memodir}/${name}"
-   redirect_exekutor "${memodir}/${name}" echo "${content}"
-}
-
-
-remember_normal_repository()
-{
-   remember_repository "$@" "normal"
-}
-
-
-remember_embedded_repository()
-{
-   remember_repository "$@" "embedded"
-}
-
-
-clone_embedded_repository()
-{
-   local reposdir
-   local dstprefix
-   local clone
-
-   reposdir="$1"
-   dstprefix="$2"
-   clone="$3"
-
-   local name
-   local url
-   local dstdir
-   local subdir
-   local branch
-   local tag
-   local scm
-
-   __parse_embedded_clone "${clone}"
-
-   dstdir="${dstprefix}${subdir}"
-
-   log_fetch_action "${url}" "${dstdir}"
-
-   if [ ! -d "${dstdir}" ]
-   then
-      create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
-
-      if [ "${MULLE_BOOTSTRAP_IGNORE_GRAVEYARD}" != "YES" -a -d "${reposdir}/.bootstrap_embedded/.bootstrap_graveyard/${name}" ]
-      then
-         local parent
-
-         log_info "Restoring ${name} from embedded graveyard"
-         parent="`dirname "${dstdir}"`"
-         case "${parent}" in
-            .)
-            ;;
-
-            *)
-               mkdir_if_missing "${parent}"
-            ;;
-         esac
-
-         exekutor mv "${reposdir}/.bootstrap_embedded/.bootstrap_graveyard/${name}" "${dstdir}" || fail "move failed"
-
-         ensure_clone_url_is_correct "${dstdir}" "${url}"
-         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-      else
-         if [ -z "${EMBEDDED_SYMLINKS}" ]
-         then
-            #
-            # embedded_repositories should be cloned, no symlinks,
-            #
-            local old_forbidden
-
-            old_forbidden="${SYMLINK_FORBIDDEN}"
-            SYMLINK_FORBIDDEN="YES"
-            checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
-            SYMLINK_FORBIDDEN="${old_forbidden}"
-         else
-            checkout "${name}" "${url}" "${dstdir}" "${branch}" "${tag}" "${scm}"
-         fi
-
-         if read_yes_no_config_setting "update_gitignore" "YES"
-         then
-            if [ -d .git ]
-            then
-               append_dir_to_gitignore_if_needed "${dstdir}"
-            fi
-         fi
-
-         fetch__run_build_settings_script "${name}" "${url}" "${dstdir}" "post-${COMMAND}" "$@"
-      fi
-
+      fetch__run_script "${script}" "$@"
    else
-      if ensure_clone_url_is_correct "${dstdir}" "${url}"
-      then
-         ensure_clone_branch_is_correct "${dstdir}" "${branch}"
-      fi
-      log_fluff "Repository \"${dstdir}\" already exists"
+      "${operation}" "$@"
    fi
-
-   #
-   # always memorize, even if existed, which could be a clean gone wrong
-   #
-   remember_embedded_repository "${reposdir}" "${dstprefix}" "${name}" "${url}" "${subdir}"
-
-   remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
 }
 
 
-clone_embedded_repositories()
+update_repository()
 {
-   local reposdir
-   local dstprefix
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   reposdir="$1"
-   dstprefix="$2"
-
-   [ $# -le 2 ] || internal_fail "wrong number of parameters"
-
-   local clones
-   local clone
-
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
-   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
-
-   clones="`read_fetch_setting "embedded_repositories"`"
-   if [ ! -z "${clones}" ]
+   if [ -L "${stashdir}" -a "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" != "YES" ]
    then
-      IFS="
-"
-      for clone in ${clones}
-      do
-         IFS="${DEFAULT_IFS}"
-
-         clone_embedded_repository "${reposdir}" "${dstprefix}" "${clone}"
-      done
-      IFS="${DEFAULT_IFS}"
-
-      remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
+      echo "Ignoring ${stashdir} because it's a symlink"
+      return
    fi
 
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
+   log_action "update" "$@"
+
+   _update "$@"
+}
+
+
+##
+## UPDATE
+##
+
+_upgrade()
+{
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   local operation
+
+   case "${scm}" in
+      git|"" )
+         operation="git_pull"
+      ;;
+      svn)
+         return
+      ;;
+      *)
+         fail "Unknown scm system ${scm}"
+      ;;
+   esac
+
+   script="`find_build_setting_file "${name}" "bin/upgrade.sh"`"
+   if [ ! -z "${script}" ]
+   then
+      fetch__run_script "${script}" "$@"
+   else
+      "${operation}" "$@"
+   fi
+}
+
+
+upgrade_repository()
+{
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   if [ -L "${stashdir}" -a "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" != "YES" ]
+   then
+      echo "Ignoring ${stashdir} because it's a symlink"
+      return
+   fi
+
+   log_action "upgrade" "$@"
+
+   _upgrade "$@"
+}
+
+
+#
+# Walk repositories with a callback function
+#
+_operation_walk_repositories()
+{
+   local operation="$1" ; shift
+
+   local permissions
+
+   permissions=""
+   if [ -z "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" ]
+   then
+      permissions="`add_line "${permissions}" "symlink"`"
+   fi
+
+   walk_repositories "repositories"  \
+                     "${operation}" \
+                     "${permissions}" \
+                     "${REPOS_DIR}"
+}
+
+
+_operation_walk_embedded_repositories()
+{
+   local operation="$1" ; shift
+
+   local permissions
+
+   permissions=""
+   if [ -z "${ALLOW_FOLLOWING_SYMLINKS}" ]
+   then
+      permissions="`add_line "${permissions}" "symlink"`"
+   fi
+
+   #
+   # embedded repositories can't be symlinked by default
+   # embedded repositories are by default not put into
+   # stashes (for backwards compatibility)
+   #
+   (
+      STASHES_DIR="" ;
+      ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+
+      walk_repositories "embedded_repositories"  \
+                        "${operation}" \
+                        "${permissions}" \
+                        "${REPOS_DIR}.embedded"
+   ) || exit 1
+}
+
+
+_operation_walk_deep_embedded_repositories()
+{
+   local operation="$1" ; shift
+
+   local permissions
+
+   permissions=""
+   if [ -z "${ALLOW_FOLLOWING_SYMLINKS}" ]
+   then
+      permissions="`add_line "${permissions}" "symlink"`"
+   fi
+
+   (
+      ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+
+      walk_deep_embedded_repositories "${operation}" \
+                                      "${permissions}"
+   ) || exit 1
+}
+
+
+##
+## FETCH
+##
+# fetch_repositories()
+# {
+#    _operation_walk_repositories "fetch_repository"
+# }
+
+
+# fetch_embedded_repositories()
+# {
+#    _operation_walk_embedded_repositories "fetch_embedded_repository"
+# }
+
+
+# fetch_deep_embedded_repositories()
+# {
+#    _operation_walk_deep_embedded_repositories "fetch_embedded_repository"
+# }
+
+
+did_fetch_repository()
+{
+   fetch__run_build_settings_script "did-install" "$@"
+}
+
+
+did_fetch_repositories()
+{
+   walk_clones "did_fetch_repository" "${REPOS_DIR}" "$@"
+}
+
+
+##
+## UPDATE
+##
+update_repositories()
+{
+   _operation_walk_repositories "update_repository" > /dev/null
 }
 
 
 update_embedded_repositories()
 {
-   local reposdir
-   local dstprefix
+   _operation_walk_embedded_repositories "update_repository" > /dev/null
+}
 
-   reposdir="$1"
-   dstprefix="$2"
 
-   local clones
+update_deep_embedded_repositories()
+{
+   _operation_walk_deep_embedded_repositories "update_repository" > /dev/null
+}
+
+
+##
+## UPGRADE
+##
+upgrade_repositories()
+{
+   _operation_walk_repositories "upgrade_repository" > /dev/null
+}
+
+
+upgrade_embedded_repositories()
+{
+   _operation_walk_embedded_repositories "upgrade_repository" > /dev/null
+}
+
+
+upgrade_deep_embedded_repositories()
+{
+   _operation_walk_deep_embedded_repositories "upgrade_repository" > /dev/null
+}
+
+
+did_upgrade_repository()
+{
+   fetch__run_build_settings_script "did-upgrade" "$@"
+}
+
+
+did_upgrade_repositories()
+{
+   walk_clones "did_upgrade_repository" "${REPOS_DIR}" "$@"
+}
+
+
+##
+##
+##
+
+required_action_for_clone()
+{
+   local newclone="$1" ; shift
+
+   local newreposdir="$1"  # ususally .bootstrap.repos
+   local newname="$2"      # name of the clone
+   local newurl="$3"       # URL of the clone
+   local newbranch="$4"    # branch of the clone
+   local newscm="$5"       # scm to use for this clone
+   local newtag="$6"       # tag to checkout of the clone
+   local newstashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
    local clone
 
-   # __parse_embedded_clone
+   clone="`clone_of_repository "${reposdir}" "${name}"`"
+   if [ -z "${clone}" ]
+   then
+      log_fluff "${url} is new"
+      echo "clone"
+      return
+   fi
+
+   if [ "${clone}" = "${newclone}" ]
+   then
+      log_fluff "URL ${url} repository line is unchanged"
+      return
+   fi
+
+   local reposdir
    local name
    local url
    local branch
    local scm
    local tag
-   local subdir
+   local stashdir
 
-   local dstdir
+   parse_clone "${clone}"
 
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
-   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
-
-   clones="`read_fetch_setting "embedded_repositories"`"
-   clones="`echo "${clones}" | sed '1!G;h;$!d'`"  # reverse lines
-
-   if [ ! -z "${clones}" ]
+   if [ "${scm}" != "${newscm}" ]
    then
-      IFS="
-"
-      for clone in ${clones}
-      do
-         IFS="${DEFAULT_IFS}"
-
-         __parse_embedded_clone "${clone}"
-
-         dstdir="${dstprefix}${subdir}"
-         log_fetch_action "${url}" "${dstdir}"
-
-         create_file_if_missing "${reposdir}/.bootstrap_fetch_started"
-
-         if [ -e "${dstdir}" ]
-         then
-            update "${reposdir}" "${name}" "${url}" "${dstdir}" "${branch}" "${tag}"
-         else
-            clone_embedded_repository "${reposdir}" "${dstprefix}" "${clone}"
-         fi
-
-         remove_file_if_present "${reposdir}/.bootstrap_fetch_started"
-      done
-
-      IFS="${DEFAULT_IFS}"
+      log_fluff "SCM has changed from ${scm} to ${newscm}, need to refetch"
+      echo "remove
+clone"
+      return
    fi
 
-   MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=
+   if [ "${stashdir}" != "${newstashdir}" ]
+   then
+      log_fluff "Destination has changed from ${stashdir} to ${newstashdir}, need to move"
+      echo "move"
+   fi
+
+   #
+   # if scm is not git, don't try to be clever
+   if [ ! -z "${scm}" -a "${scm}" != "git" ]
+   then
+      echo "remove
+clone"
+      return
+   fi
+
+   if [ "${branch}" != "${newbranch}" ]
+   then
+      log_fluff "Branch has changed from ${branch} to ${newbranch}, need to fetch"
+      echo "pull"
+   fi
+
+   if [ "${tag}" != "${newtag}" ]
+   then
+      log_fluff "Tag has changed from ${tag} to ${newtag}, need to check-out"
+      echo "checkout"
+   fi
+
+   if [ "${url}" != "${newurl}" ]
+   then
+      log_fluff "URL has changed from ${url} to ${newurl}, need to set remote url and fetch"
+      echo "set-remote"
+      echo "pull"
+   fi
+}
+
+
+work_clones()
+{
+   local reposdir="$1"
+   local clones="$2"
+   local autoupdate="$3"
+
+   local clone
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+   local stashdir
+
+   local actionitems
+   local fetched
+   local go_deep
+   local repotype
+
+   case "${reposdir}" in
+      *embedded)
+        repotype="embedded "
+      ;;
+
+      *)
+        repotype=""
+      ;;
+   esac
+
+   if [ "${DONT_RECURSE}" = YES ]
+   then
+      autoupdate="NO"
+   fi
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if [ -z "${clone}" ]
+      then
+         continue
+      fi
+
+      parse_clone "${clone}" "${stashrootdir}" || exit 1
+
+      actionitems="`required_action_for_clone "${clone}" \
+                                              "${reposdir}" \
+                                              "${name}" \
+                                              "${url}" \
+                                              "${branch}" \
+                                              "${scm}" \
+                                              "${tag}" \
+                                              "${stashdir}"`" || exit 1
+      if [ -z "${actionitems}" ]
+      then
+         if [ "${autoupdate}" = "YES" ]
+         then
+            bootstrap_auto_update "${stashdir}"
+         fi
+
+         log_fluff "Nothing to do for \"${url}\""
+         continue
+      fi
+
+      IFS="
+"
+      for item in ${actionitems}
+      do
+         IFS="${DEFAULT_IFS}"
+         go_deep="${autoupdate}"
+
+         case "${item}" in
+            "checkout")
+               log_verbose "Checking out \"${tag}\" in ${repotype}\"`absolutepath ${stashdir}`\""
+
+               checkout_repository "${reposdir}" \
+                                   "${name}" \
+                                   "${url}" \
+                                   "${branch}" \
+                                   "${scm}" \
+                                   "${tag}" \
+                                   "${stashdir}"
+            ;;
+
+            "clone")
+               log_verbose "Cloning \"${url}\" into ${repotype}\"`absolutepath ${stashdir}`\""
+
+               clone_repository "${reposdir}" \
+                                "${name}" \
+                                "${url}" \
+                                "${branch}" \
+                                "${scm}" \
+                                "${tag}" \
+                                "${stashdir}"
+
+               fetched="`add_line "${fetched}" "${name}"`"
+            ;;
+
+            "move")
+               log_verbose "Moving ${repotype}stash \"${name}\" to \"`absolutepath ${stashdir}`\""
+
+               oldstashdir="`stash_of_repository "${reposdir}" "${name}"`"
+               rmdir_safer "${oldstashdir}"
+               go_deep="NO"
+            ;;
+
+            "pull")
+               log_verbose "Pulling from \"${url}\" into ${repotype}\"`absolutepath ${stashdir}`\""
+
+               pull_repository "${reposdir}" \
+                               "${name}" \
+                               "${url}" \
+                               "${branch}" \
+                               "${scm}" \
+                               "${tag}" \
+                               "${stashdir}"
+            ;;
+
+            "remove")
+               log_verbose "Removing old ${repotype}stash \"`absolutepath ${oldstashdir}`\""
+
+               oldstashdir="`stash_of_repository "${reposdir}" "${name}"`"
+               rmdir_safer "${oldstashdir}"
+
+               go_deep="NO"
+            ;;
+
+            "set-remote")
+               log_verbose "Changing ${repotype}remote to \"${url}\""
+
+               local remote
+
+               remote="`git_get_default_remote "${stashdir}"`"
+               if [ -z "${remote}" ]
+               then
+                  fail "Could not figure out a remote for \"$PWD/${stashdir}\""
+               fi
+               git_set_url "${stashdir}" "${remote}" "${url}"
+
+               go_deep="NO"
+            ;;
+
+            *)
+               internal_fail "Unknown action item \"${item}\""
+            ;;
+         esac
+
+         if [ "${autoupdate}" = "YES" ]
+         then
+            bootstrap_auto_update "${stashdir}"
+         fi
+
+         if [ "${go_deep}" = "YES" ]
+         then
+            if [ ! -L "${stashdir}" -o "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
+            then
+               (
+                  local embedded_clones;
+
+                  ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+                  MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES" ;
+                  STASHES_DIR=""
+
+                  cd_physical "${stashdir}" &&
+                  embedded_clones="`read_root_setting "embedded_repositories"`" &&
+                  work_clones "${REPOS_DIR}.embedded" "${embedded_clones}" "NO"  > /dev/null
+               ) || exit 1
+            fi
+         fi
+
+         #
+         # always remember, what we have now
+         #
+         remember_stash_of_repository "${clone}" \
+                                      "${reposdir}" \
+                                      "${name}"  \
+                                      "${url}" \
+                                      "${branch}" \
+                                      "${scm}" \
+                                      "${tag}" \
+                                      "${stashdir}"
+      done
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   if [ ! -z "${fetched}" ]
+   then
+      echo "${fetched}"
+   fi
+}
+
+
+#
+#
+#
+work_all_repositories()
+{
+   local fetched
+   local all_fetched
+   local loops
+
+   local before
+   local after
+
+   (
+      STASHES_DIR="" ;
+      ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+
+      before="`read_root_setting "embedded_repositories"`" ;
+      work_clones "${REPOS_DIR}/.embedded" "${before}" "NO"
+   ) || exit 1
+
+   [  -z "${STASHES_DIR}" ] && internal_fail "hein"
+
+   if [ -z "${EMBEDDED_ONLY}" ]
+   then
+      loops=""
+      before=""
+
+      while :
+      do
+         loops="${loops}X"
+         case "${loops}" in
+            XXXXX) #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)
+               internal_fail "Loop overflow in worker loop"
+            ;;
+         esac
+
+         after="${before}"
+         before="`read_root_setting "repositories" | sed 's/[ \t]*$//' | sort`"
+         if [ "${after}" = "${before}" ]
+         then
+            log_fluff "Repositories file is unchanged, so done"
+            break
+         fi
+
+         fetched="`work_clones "${REPOS_DIR}" "${before}" "YES"`" || exit 1
+         all_fetched="`add_line "${all_fetched}" "${fetched}"`"
+
+         log_fluff "Get back in the ring to take another swing"
+      done
+
+      if [ ! -z "${fetched}" ]
+      then
+         echo "${fetched}"
+      fi
+   fi
+}
+
+                      #----#
+### Main fetch loop   #    #    #----#
+                      #----#    #----#    #----#
+
+mark_stashes_as_zombies()
+{
+   mark_embedded_repository_stashes
+   if [ -z "${EMBEDDED_ONLY}" ]
+   then
+      mark_repository_stashes
+      mark_deep_embedded_repository_stashes
+   fi
+}
+
+
+unmark_alive_stashes()
+{
+   unmark_embedded_repository_stashes
+   if [ -z "${EMBEDDED_ONLY}" ]
+   then
+      unmark_repository_stashes
+      unmark_deep_embedded_repository_stashes
+   fi
+}
+
+
+bury_zombies_in_graveyard()
+{
+   bury_embedded_repository_zombies
+   if [ -z "${EMBEDDED_ONLY}" ]
+   then
+      bury_repository_zombies
+      bury_deep_embedded_repository_zombies
+   fi
+}
+
+
+run_post_fetch_scripts()
+{
+   if [ -z "${EMBEDDED_ONLY}" ]
+   then
+      did_fetch_repositories "$@"
+      fetch__run_root_settings_script "post-fetch" "$@"
+   fi
+}
+
+
+run_post_update_scripts()
+{
+   # makes no sense to me to run scripts here
+   :
+}
+
+
+run_post_upgrade_scripts()
+{
+   if [ -z "${EMBEDDED_ONLY}" ]
+   then
+      did_upgrade_repositories "$@"
+      fetch__run_root_settings_script "post-upgrade" "$@"
+   fi
+}
+
+
+#
+# the main fetch loop as documented somewhere with graphviz
+#
+fetch_loop()
+{
+   local fetched
+
+   mark_stashes_as_zombies
+
+   bootstrap_auto_create
+
+   fetched="`work_all_repositories`" || exit 1
+
+   bootstrap_auto_final
+
+   unmark_alive_stashes
+   bury_zombies_in_graveyard
+
+   echo "${fetched}"
+}
+
+#
+# the three commands
+#
+_common_fetch()
+{
+   case "${BREW_PERMISSIONS}" in
+      fetch|update|upgrade)
+         brew_install_brews
+      ;;
+   esac
+
+   check_tars
+
+   local fetched
+
+   fetched="`fetch_loop "${REPOS_DIR}"`" || exit 1
+   run_post_fetch_scripts "${fetched}"
+}
+
+
+_common_update()
+{
+   case "${BREW_PERMISSIONS}" in
+      update|upgrade)
+         brew_update_main
+      ;;
+   esac
+
+   update_embedded_repositories
+   if [ ! -z "${EMBEDDED_ONLY}" ]
+   then
+      return
+   fi
+
+   update_repositories "$@"
+   update_deep_embedded_repositories
+}
+
+
+_common_upgrade()
+{
+   case "${BREW_PERMISSIONS}" in
+      upgrade)
+         brew_upgrade_main
+      ;;
+   esac
+
+   upgrade_embedded_repositories
+   if [ ! -z "${EMBEDDED_ONLY}" ]
+   then
+      return
+   fi
+
+   local upgraded=""
+
+   upgraded="`upgrade_repositories "$@"`"
+   upgrade_deep_embedded_repositories
+
+   _common_fetch  # update what needs to be update
+
+   run_post_upgrade_scripts "${upgraded}"
 }
 
 
 _common_main()
 {
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ]      && . mulle-bootstrap-repositories.sh
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
+
+   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+
+   case "${UNAME}" in
+      mingw)
+         ALLOW_CREATING_SYMLINKS="NO"
+      ;;
+
+      *)
+         ALLOW_CREATING_SYMLINKS="`read_config_setting "symlink_allowed" "${MULLE_BOOTSTRAP_ANSWER}"`"
+      ;;
+   esac
+
+   ALLOW_SEARCH_PARENT="${MULLE_BOOTSTRAP_ANSWER}"
+   ALLOW_AUTOCLONE_PARENT="${MULLE_BOOTSTRAP_ANSWER}"
+
    #
    # it is useful, that fetch understands build options and
    # ignores them
@@ -1512,34 +1451,52 @@ _common_main()
             ${USAGE}
          ;;
 
-         -nr|--no-recursion)
-            DONT_RECURSE="YES"
+         -aa|--allow-autoclone-parent)
+            ALLOW_SEARCH_PARENT="YES"
+            ALLOW_AUTOCLONE_PARENT="YES"
          ;;
 
-         -ne|--ne-embedded)
-            DONT_RECURSE_EMBEDDED="YES"
+         -ap|--allow-parent-search)
+            ALLOW_SEARCH_PARENT="YES"
+         ;;
+
+         -as|--allow-symlink-creation)
+            ALLOW_CREATING_SYMLINKS="YES"
+         ;;
+
+         -aes|--allow-embedded-symlink-creation|--embedded-symlinks)
+            ALLOW_CREATING_EMBEDDED_SYMLINKS="YES"
          ;;
 
          -cs|--check-usr-local-include)
-            MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE="YES"
-            export MULLE_BOOTSTRAP_CHECK_USR_LOCAL_INCLUDE
+            CHECK_USR_LOCAL_INCLUDE="YES"
             ;;
 
          -e|--embedded-only)
             EMBEDDED_ONLY="YES"
          ;;
 
-         -es|--embedded-symlinks)
-            EMBEDDED_SYMLINKS="YES"
+         -fs|--follow-symlinks)
+            ALLOW_FOLLOWING_SYMLINKS="YES"
          ;;
 
-         -i|--ignore-branch)
+         -in|--ignore-branch)
             IGNORE_BRANCH="YES"
          ;;
 
-         -us|--update-symlinks)
-            MULLE_BOOTSTRAP_UPDATE_SYMLINKS="YES"
+         -np|--no-parent-search)
+            ALLOW_SEARCH_PARENT="NO"
          ;;
+
+         -nr|--no-recursion)
+            DONT_RECURSE="YES"
+         ;;
+
+         -ns|--no-symlink-creation)
+            ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
+            ALLOW_CREATING_SYMLINKS="NO"
+         ;;
+
 
          # build options with no parameters
          -K|--clean|-k|--no-clean|--use-prefix-libraries|--debug|--release)
@@ -1579,31 +1536,18 @@ _common_main()
       shift
    done
 
-   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
-   case "${UNAME}" in
-      mingw)
-         SYMLINK_FORBIDDEN="YES"
-      ;;
-
-      *)
-         SYMLINK_FORBIDDEN="`read_config_setting "symlink_forbidden"`"
-      ;;
-   esac
-
-   [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]          && . mulle-bootstrap-scm.sh
-   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]      && . mulle-bootstrap-scripts.sh
-   [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh
-   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ]  && . mulle-bootstrap-auto-update.sh
-   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
-   [ -z "${MULLE_BOOTSTRAP_REFRESH_SH}" ]      && . mulle-bootstrap-refresh.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]             && . mulle-bootstrap-scm.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]         && . mulle-bootstrap-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ]    && . mulle-bootstrap-warn-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ]     && . mulle-bootstrap-auto-update.sh
+   [ -z "${MULLE_BOOTSTRAP_ZOMBIFY_SH}" ]         && . mulle-bootstrap-zombify.sh
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if
    # present (somewhat dangerous, because we do not check versions)
    #
-   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    if [ "${COMMAND}" = "fetch" ]
    then
@@ -1614,74 +1558,103 @@ _common_main()
       fi
    fi
 
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
-
    #
    # Run prepare scripts if present
    #
-   if [ "${COMMAND}" = "fetch" ]
+   case "${COMMAND}" in
+      update|upgrade)
+         if dir_is_empty "${REPOS_DIR}"
+         then
+            log_info "Nothing to update, fetch first"
+
+            return 0
+         fi
+      ;;
+   esac
+
+   local default_permissions
+   local fetched
+   local upgraded
+
+   #
+   # possible values none|fetch|update|upgrade
+   # the local scheme with addictions really works
+   # best on darwin, linux can't use bottles locally
+   #
+   default_permissions="none"
+   case "${UNAME}" in
+      darwin|linux)
+         default_permissions="upgrade"
+      ;;
+   esac
+
+   BREW_PERMISSIONS="`read_config_setting "brew_permissions" "${default_permissions}"`"
+   case "${BREW_PERMISSIONS}" in
+      none|fetch|update|upgrade)
+      ;;
+
+      *)
+        fail "brew_permissions must be either: none|fetch|update|upgrade)"
+      ;;
+   esac
+
+   if [ "${BREW_PERMISSIONS}" != "none" ]
    then
-       install_brews NO
-#
-# remove these, as they aren't installing locally
-#
-#      install_gems
-#      install_pips
-
-      if [ -z "${EMBEDDED_ONLY}" ]
-      then
-         clone_repositories "${REPOS_DIR}"
-      fi
-      clone_embedded_repositories "${REPOS_DIR}"
-
-      # install brews again, in case we inherited some in the meantime
-      install_brews YES
-
-      check_tars
-   else
-      if dir_is_empty "${REPOS_DIR}"
-      then
-         log_info "Nothing to update, fetch first"
-
-         return 0
-      fi
-
-      if [ -z "${EMBEDDED_ONLY}" ]
-      then
-         update_repositories "${REPOS_DIR}" "$@"
-      fi
-      update_embedded_repositories "${REPOS_DIR}"
+      [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
    fi
 
-   #
-   # Run prepare scripts if present
-   #
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
    create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_started"
 
-   fetch__run_fetch_settings_script "post-${COMMAND}" "$@"
+   case "${COMMAND}" in
+      fetch)
+         _common_fetch "$@"
+      ;;
+
+      update)
+         _common_update "$@"
+      ;;
+
+      upgrade)
+         _common_upgrade "$@"
+      ;;
+   esac
 
    remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_started"
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_done"
 
-   if read_yes_no_config_setting "update_gitignore" "YES"
+   if read_yes_no_config_setting "upgrade_gitignore" "YES"
    then
       if [ -d .git ]
       then
          append_dir_to_gitignore_if_needed "${BOOTSTRAP_DIR}.auto"
          append_dir_to_gitignore_if_needed "${BOOTSTRAP_DIR}.local"
          append_dir_to_gitignore_if_needed "${DEPENDENCIES_SUBDIR}"
-         append_dir_to_gitignore_if_needed "${ADDICTIONS_DIR}"
+         if [ "${brew_permissions}" != "none" ]
+         then
+            append_dir_to_gitignore_if_needed "${ADDICTIONS_DIR}"
+         fi
          append_dir_to_gitignore_if_needed "${REPOS_DIR}"
-         append_dir_to_gitignore_if_needed "${STASHES_DIR}"
+         if [ "${STASHES_DIR}" = "stashes" ]
+         then
+            append_dir_to_gitignore_if_needed "${STASHES_DIR}"
+         fi
       fi
    fi
+}
 
-   refresh_main || exit 1
 
-   #
-   # if fetch_done is older than refresh_done, we know we should
-   # fetch again
-   #
-   create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_done"
+fetch_main()
+{
+   log_fluff "::: fetch begin :::"
+
+   USAGE="fetch_usage"
+   COMMAND="fetch"
+   _common_main "$@"
+
+   log_fluff "::: fetch end :::"
 }
 
 
@@ -1697,13 +1670,13 @@ update_main()
 }
 
 
-fetch_main()
+upgrade_main()
 {
-   log_fluff "::: fetch begin :::"
+   log_fluff "::: upgrade begin :::"
 
    USAGE="fetch_usage"
-   COMMAND="fetch"
+   COMMAND="upgrade"
    _common_main "$@"
 
-   log_fluff "::: fetch end :::"
+   log_fluff "::: upgrade end :::"
 }

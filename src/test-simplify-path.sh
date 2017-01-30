@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh -e
 
 . mulle-bootstrap-functions.sh
 
@@ -10,6 +10,8 @@ run_test()
   result="`eval "$@"`"
 
   [ "${result}" != "${expect}" ] && fail "test:" "$@" "failed with \"${result}\", expected \"${expect}\""
+
+  :
 }
 
 
@@ -52,3 +54,6 @@ test_simplify_path()
 
 
 test_simplify_path
+
+echo "test finished" >&2
+

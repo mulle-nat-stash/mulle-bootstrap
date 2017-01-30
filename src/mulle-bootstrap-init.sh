@@ -267,6 +267,6 @@ EOF
       local editor
 
       editor="`read_config_setting "editor" "${EDITOR:-vi}"`"
-      exekutor $editor "${BOOTSTRAP_DIR}/repositories"
+      exekutor "${editor}" "${BOOTSTRAP_DIR}/repositories"
    fi
 }

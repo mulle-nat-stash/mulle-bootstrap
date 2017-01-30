@@ -1,0 +1,30 @@
+digraph reposdir {
+   node [ shape="folder"]
+
+   ".bootstrap.auto"           -> ".bootstrap.auto/repositories"
+
+   ".bootstrap.auto/repositories"  [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLPADDING="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD>https://github.com/mulle-nat/Noobie</TD></TR>
+</TABLE>>];
+
+   ".bootstrap.repos"           -> ".bootstrap.repos/.embedded"
+   ".bootstrap.repos"           -> ".bootstrap.repos/.zombies"
+   ".bootstrap.repos/.embedded" -> ".bootstrap.repos/.embedded/.zombies"
+   ".bootstrap.repos"           -> ".bootstrap.repos/.graveyard"
+   ".bootstrap.repos/.embedded" -> ".bootstrap.repos/.embedded/.graveyard"
+
+   ".bootstrap.repos/.embedded"             [ label=".embedded" ]
+   ".bootstrap.repos/.zombies"              [ label=".zombies" ]
+   ".bootstrap.repos/.graveyard"            [ label=".graveyard" ]
+   ".bootstrap.repos/.embedded/.zombies"    [ label=".zombies" ]
+   ".bootstrap.repos/.embedded/.graveyard"  [ label=".graveyard" ]
+
+
+   ".bootstrap.repos" -> "Noobie"
+   "Noobie"  [ shape="none", label=< <TABLE BGCOLOR="#0000FF" BORDER="0" CELLBORDER="0" CELLPADDING="0" CELLSPACING="0">
+<TR><TD><FONT COLOR="#FFFFFF">Noobie</FONT></TD></TR>
+<TR><TD bgcolor="#FFFFFF" PORT="f0">../stashes/Noobie</TD></TR>
+<TR><TD bgcolor="#FFFFFF">https://github.com/mulle-nat/Noobie</TD></TR>
+</TABLE>>];
+}

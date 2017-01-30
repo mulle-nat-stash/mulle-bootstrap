@@ -26,8 +26,6 @@ git_must_be_clean()
 }
 
 
-set -e
-
 git_must_be_clean
 
 branch="`git rev-parse --abbrev-ref HEAD`"

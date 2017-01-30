@@ -46,8 +46,8 @@ user_say_yes()
            "$x" != "" ]
    do
       printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
-      read x
-      x=`echo "${x}" | tr '[a-z]' '[A-Z]'`
+      read -x
+      x=`echo "${x}" | tr 'a-z' 'A-Z'`
    done
 
    if [ "${x}" = "ALL" ]
@@ -230,7 +230,8 @@ assert_mulle_bootstrap_version()
    local version
 
    # has to be read before .auto is setup
-   version="`_read_setting "${BOOTSTRAP_DIR}/version" "version"`"
+   version="`read_setting "${BOOTSTRAP_DIR}/version" "version"`"
+
    if check_version "$version" "${MULLE_BOOTSTRAP_VERSION_MAJOR}" "${MULLE_BOOTSTRAP_VERSION_MINOR}"
    then
       return
@@ -275,7 +276,7 @@ _expanded_variables()
       key="${tmp}"
    fi
 
-   value="`read_fetch_setting "${key}" "${default}"`"
+   value="`read_root_setting "${key}" "${default}"`"
    next="${prefix}${value}${suffix}"
    if [ "${next}" = "${string}" ]
    then
@@ -388,14 +389,16 @@ source_environment()
 }
 
 
-local_environment_initialize()
-{
-   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
-
    #
    # read local environment
    # source this file
    #
+local_environment_initialize()
+{
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
+   # name of the bootstrap folder, maybe changes this to .bootstrap9 for
+   # some version ?
    BOOTSTRAP_DIR=".bootstrap"
 
    # can't reposition this because of embedded reposiories
@@ -404,6 +407,9 @@ local_environment_initialize()
    # where regular repos are cloned to by (default)
    STASHES_DIR="stashes"
 
+
+   # our "sandbox" root, probably not changeable
+   ROOT_DIR="`pwd -P`"
 
    log_fluff "${UNAME} detected"
    case "${UNAME}" in

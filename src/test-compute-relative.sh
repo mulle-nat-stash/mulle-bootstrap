@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh -e
 
 . mulle-bootstrap-functions.sh
 
@@ -10,6 +10,7 @@ run_test()
   result="`eval "$@"`"
 
   [ "${result}" != "${expect}" ] && fail "test:" "$@" "failed with \"${result}\", expected \"${expect}\""
+  :
 }
 
 
@@ -62,9 +63,12 @@ test_relative_path_between()
   run_test ".."     relative_path_between a/b a/b/c
   run_test "../../a/b"     relative_path_between a/b c/d
 
-  run_test "../../.repos/.bootstrap_embedded" relative_path_between .repos/c/.repos/.bootstrap_embedded .repos/c/src/b_1
+  run_test "../../.repos/.embedded" relative_path_between .repos/c/.repos/.embedded .repos/c/src/b_1
 
 }
 
 test_compute_relative
 test_relative_path_between
+
+echo "test finished" >&2
+

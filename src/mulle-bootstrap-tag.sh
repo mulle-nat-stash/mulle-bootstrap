@@ -271,9 +271,9 @@ tag_main()
       return 0
    fi
 
-   fetch__run_fetch_settings_script "pre-tag"
+   fetch__run_root_settings_script "pre-tag"
 
    tag "${TAG}" "$@"
 
-   fetch__run_fetch_settings_script "pre-tag"
+   fetch__run_root_settings_script "pre-tag"
 }

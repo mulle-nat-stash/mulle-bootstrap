@@ -165,7 +165,7 @@ logging_initialize()
    #
    if [ -z "${UNAME}" ]
    then
-      UNAME="`uname | cut -d_ -f1 | sed 's/64$//' | tr '[A-Z]' '[a-z]'`"
+      UNAME="`uname | cut -d_ -f1 | sed 's/64$//' | tr 'A-Z' 'a-z'`"
    fi
 
    if [ "${MULLE_BOOTSTRAP_NO_COLOR}" != "YES" ]
@@ -201,12 +201,10 @@ logging_initialize()
    if [ ! -z "${MULLE_BOOTSTRAP_LIBEXEC_TRACE}" ]
    then
       local exedir
-      local prefix
       local exedirpath
 
       exedir="`dirname "${BASH_SOURCE}"`"
-      prefix="`dirname "$0"`"
-      exedirpath="`( cd "${exedir}" ; pwd -P )`"
+      exedirpath="`( cd "${exedir}" ; pwd -P )`" || fail "failed to get pwd"
       echo "mulle-bootstrap libexec: ${exedirpath}" >&2
    fi
 }

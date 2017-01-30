@@ -80,7 +80,7 @@ install_libraries_with_action()
 
          log_info "Installing library ${C_MAGENTA}${C_BOLD}${library}${C_INFO} into ${dstdir}..."
          mkdir_if_missing "${dstdir}"
-         exekutor $action "`pwd`/${library}" "${dstdir}/${library}"
+         exekutor "$action" "`pwd`/${library}" "${dstdir}/${library}"
          if [ -x "${dstdir}/${library}" ]
          then
             exekutor chmod 755 "${dstdir}/${library}"
@@ -140,7 +140,7 @@ install_headers_with_action()
          fi
          log_info "Installing header ${C_MAGENTA}${C_BOLD}${header}${C_INFO} into \"${dstdir}\" ..."
          mkdir_if_missing "${dstdir}"
-         exekutor $action "`pwd`/${header}" "${dstdir}/${header}"
+         exekutor "${action}" "`pwd`/${header}" "${dstdir}/${header}"
       fi
    done
 
@@ -157,7 +157,7 @@ install_headers_with_action()
          fi
          log_info "Installing headers ${C_MAGENTA}${C_BOLD}${header}${C_INFO} into \"${dstdir}\" ..."
          mkdir_if_missing "${dstdir}"
-         exekutor $action "`pwd`/${header}" "${dstdir}/${header}"
+         exekutor "${action}" "`pwd`/${header}" "${dstdir}/${header}"
       fi
    done
 
@@ -208,7 +208,7 @@ merge_framework_configurations()
       suffix="`determine_framework_suffix "${configuration}"`"
       if [ ! -z "${suffix}" ]
       then
-         dstpath="${dstdir}/${name}${suffix}"
+         dstexe="${dstdir}/${name}${suffix}"
          exekutor cp "${srcexe}" "${dstexe}"
          exekutor chmod 755 "${dstexe}"
       fi
@@ -249,7 +249,7 @@ install_frameworks_with_action()
 
          mkdir_if_missing "${dstdir}"
          log_info "Installing Framework ${C_MAGENTA}${C_BOLD}${framework}${C_INFO} into \"${dstdir}\" ..."
-         exekutor $action "`pwd`/${framework}" "${dstdir}/${framework}"
+         exekutor "${action}" "`pwd`/${framework}" "${dstdir}/${framework}"
       fi
    done
 
@@ -278,7 +278,7 @@ install_main()
 {
    log_fluff "::: install :::"
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
 
    DEFAULT_PREFIX="/usr/local"
    DEFAULT_FRAMEWORK_PREFIX="/Library"

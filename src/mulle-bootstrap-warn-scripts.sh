@@ -35,10 +35,10 @@ MULLE_BOOTSTRAP_WARN_SCRIPTS_SH="included"
 warn_scripts()
 {
    local bootstrapdir
-   local repodir
+   local stashdir
 
    bootstrapdir="$1"
-   repodir="$2"
+   stashdir="$2"
 
    local scripts
    local phases
@@ -72,14 +72,14 @@ warn_scripts()
 
    case "${UNAME}" in
       darwin)
-         if [ ! -z "${repodir}" ]
+         if [ ! -z "${stashdir}" ]
          then
-             exekutor [ -e "${repodir}" ] || fail "Expected directory \"${repodir}\" is missing.
+             exekutor [ -e "${stashdir}" ] || fail "Expected directory \"${stashdir}\" is missing.
 (hint: use fetch instead of update to track renames)"
 
-            if dir_has_files "${repodir}"
+            if dir_has_files "${stashdir}"
             then
-               phases="`(find "${repodir}"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}' \; -print)`"
+               phases="`(find "${stashdir}"/* -name "project.pbxproj" -exec grep -q 'PBXShellScriptBuildPhase' '{}' \; -print)`"
                if [ ! -z "${phases}" ]
                then
                   log_warning "This repository contains xcode projects with shellscript phases"

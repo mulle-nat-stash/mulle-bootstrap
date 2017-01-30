@@ -41,8 +41,15 @@ git_is_bare_repository()
 {
    local is_bare
 
+   pwd >&2
+   pwd -P >&2
+   ls -ld .. >&2
+
    # if bare repo, we can only clone anyway
-   is_bare=`( cd "$1"; git rev-parse --is-bare-repository 2> /dev/null )`
+   is_bare=`(
+               cd "$1" &&
+               git rev-parse --is-bare-repository 2> /dev/null
+            )` || internal_fail "wrong \"$1\" for \"`pwd`\""
    [ "${is_bare}" = "true" ]
 }
 
@@ -53,7 +60,10 @@ git_get_url()
 
    remote="$2"
 
-   ( cd "$1" ; git remote get-url "${remote}" )
+   (
+      cd "$1" &&
+      git remote get-url "${remote}"
+   ) || internal_fail "wrong \"$1\" or \"${remote}\" for \"`pwd`\""
 }
 
 
@@ -66,10 +76,10 @@ git_set_url()
    url="$3"
 
    (
-      cd "$1" ;
-      git remote set-url "${remote}" "${url}" ;
+      cd "$1" &&
+      git remote set-url "${remote}" "${url}" &&
       git fetch "${remote}" # prefetch to get new branches
-   )
+   ) || exit 1
 }
 
 
@@ -111,26 +121,36 @@ git_get_default_remote()
 
 git_has_branch()
 {
-   ( cd "$1" ; git branch | cut -c3- | fgrep -q -s -x "$2" > /dev/null )
+   (
+      cd "$1" &&
+      git branch | cut -c3- | fgrep -q -s -x "$2" > /dev/null
+   ) || exit 1
 }
 
 
 git_get_branch()
 {
-   ( cd "$1" ; git rev-parse --abbrev-ref HEAD 2> /dev/null )
+   (
+      cd "$1" &&
+      git rev-parse --abbrev-ref HEAD 2> /dev/null
+   ) || exit 1
 }
 
 
-git_checkout_tag()
+git_checkout()
 {
-   local dst
-   local tag
+   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
 
-   dst="$1"
-   tag="$2"
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
 
-   [ -z "${dst}" ] && internal_fail "dst is empty"
-   [ -z "${tag}" ] && internal_fail "tag is empty"
+   [ -z "${stashdir}" ] && internal_fail "stashdir is empty"
+   [ -z "${tag}" ]      && internal_fail "tag is empty"
 
    local options
 
@@ -143,20 +163,23 @@ git_checkout_tag()
 
    local branch
 
-   branch="`git_get_branch "${dst}"`"
+   branch="`git_get_branch "${stashdir}"`"
 
    if [ "${branch}" != "${tag}" ]
    then
-      log_info "Checking out version ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
-      ( exekutor cd "${dst}" ; exekutor git ${GITFLAGS} checkout ${options} "${tag}" )
+      log_info "Checking out version ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
+      (
+         exekutor cd "${stashdir}" ;
+         exekutor git ${GITFLAGS} checkout ${options} "${tag}"
+      ) || exit 1
 
       if [ $? -ne 0 ]
       then
-         log_error "Checkout failed, moving ${C_CYAN}${C_BOLD}${dst}${C_ERROR} to ${C_CYAN}${C_BOLD}${dst}.failed${C_ERROR}"
+         log_error "Checkout failed, moving ${C_CYAN}${C_BOLD}${stashdir}${C_ERROR} to ${C_CYAN}${C_BOLD}${stashdir}.failed${C_ERROR}"
          log_error "You need to fix this manually and then move it back."
 
-         rmdir_safer "${dst}.failed"
-         exekutor mv "${dst}" "${dst}.failed"
+         rmdir_safer "${stashdir}.failed"
+         exekutor mv "${stashdir}" "${stashdir}.failed"
          exit 1
       fi
    else
@@ -167,151 +190,221 @@ git_checkout_tag()
 
 git_clone()
 {
-   local src
-   local dst
-   local branch
-   local tag
+   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
+
+   [ ! -z "${url}" ]      || internal_fail "url is empty"
+   [ ! -z "${stashdir}" ] || internal_fail "stashdir is empty"
+
    local options
 
-   src="$1"
-   dst="$2"
-   branch="$3"
-   tag="$4"
-   options="$5"
-
-   [ ! -z "${src}" ] || internal_fail "src is empty"
-   [ ! -z "${dst}" ] || internal_fail "dst is empty"
-   [ -z "${DEFAULT_IFS}" ] && internal_internal_fail "IFS fail"
-
+   options="$*"
    if [ ! -z "${branch}" ]
    then
-      log_info "Cloning branch ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+      log_info "Cloning branch ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
       options="`concat "${options}" "-b ${branch}"`"
    else
-      log_info "Cloning ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+      log_info "Cloning ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
    fi
 
-   exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${src}" "${dst}" || fail "git clone of \"${src}\" into \"${dst}\" failed"
+#
+# callers responsibility
+#
+#   local parent
+#
+#    parent="`dirname -- "${stashdir}"`"
+#   mkdir_if_missing "${parent}"
+
+   exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${stashdir}" || fail "git clone of \"${url}\" into \"${stashdir}\" failed"
 
    if [ ! -z "${tag}" ]
    then
-      git_checkout_tag "${dst}" "${tag}"
+      git_checkout "$@"
    fi
+}
+
+
+git_fetch()
+{
+   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
+
+   log_info "Fetching ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
+
+   (
+      exekutor cd "${stashdir}" &&
+      exekutor git ${GITFLAGS} fetch $* ${GITOPTIONS}
+   ) || fail "git fetch of \"${stashdir}\" failed"
 }
 
 
 git_pull()
 {
-   local dst
-   local branch
-   local tag
-   local options
+   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
 
-   dst="$1"
-   branch="$2"
-   tag="$3"
-   options="$4"
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
 
-   [ ! -z "$dst" ] || internal_fail "dst is empty"
+   log_info "Pulling ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
 
-   log_info "Updating ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
-
-   ( exekutor cd "${dst}" ; exekutor git ${GITFLAGS} pull ${options} ${GITOPTIONS} ) || fail "git pull of \"${dst}\" failed"
+   (
+      exekutor cd "${stashdir}" &&
+      exekutor git ${GITFLAGS} pull $* ${GITOPTIONS}
+   ) || fail "git pull of \"${stashdir}\" failed"
 
    if [ ! -z "${tag}" ]
    then
-      git_checkout_tag "${dst}" "${tag}"
+      git_checkout "$@"
    fi
 }
 
 
 svn_checkout()
 {
-   local src
-   local dst
-   local tag
-   local branch
+   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
+
    local options
 
-   src="$1"
-   dst="$2"
-   branch="$3"
-   tag="$4"
-   options="$5"
-
-   [ ! -z "$src" ] || internal_fail "src is empty"
-   [ ! -z "$dst" ] || internal_fail "dst is empty"
-
+   options="$*"
    if [ ! -z "${branch}" ]
    then
-      log_info "SVN checkout ${C_RESET_BOLD}${branch}${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
-      options="${options} -r ${branch}"
+      log_info "SVN checkout ${C_RESET_BOLD}${branch}${C_INFO} of ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
+      options="`concat "${options}" "-r ${branch}"`"
    else
       if [ ! -z "${tag}" ]
       then
-         log_info "SVN checkout ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
-         options="${options} -r ${tag}"
+         log_info "SVN checkout ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
+         options="`concat "${options}" "-r ${tag}"`"
       else
-         log_info "SVN checkout ${C_MAGENTA}${C_BOLD}${src}${C_INFO} ..."
+         log_info "SVN checkout ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
       fi
    fi
 
-   exekutor svn checkout ${options} ${SVNOPTIONS} "${src}" "${dst}" || fail "svn clone of \"${src}\" into \"${dst}\" failed"
+   exekutor svn checkout ${options} ${SVNOPTIONS} "${url}" "${stashdir}" || fail "svn clone of \"${url}\" into \"${stashdir}\" failed"
 }
 
 
 svn_update()
 {
-   local dst
-   local branch
-   local tag
+   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
+
    local options
 
-   dst="$1"
-   branch="$2"
-   tag="$3"
-   options="$4"
+   options="$*"
 
-   [ ! -z "$dst" ] || internal_fail "dst is empty"
+   [ ! -z "${stashdir}" ] || internal_fail "stashdir is empty"
 
-   log_info "SVN updating ${C_MAGENTA}${C_BOLD}${dst}${C_INFO} ..."
-
+   log_info "SVN updating ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
 
    if [ ! -z "$branch" ]
    then
-      options="-r ${branch} ${options}"
+      options="`concat "-r ${branch}" "${options}"`"
    else
       if [ ! -z "$tag" ]
       then
-         options="-r ${tag} ${options}"
+         options="`concat "-r ${tag}" "${options}"`"
       fi
    fi
 
-   ( exekutor cd "${dst}" ; exekutor svn update ${options} ${SVNOPTIONS} ) || fail "svn update of \"${dst}\" failed"
+   (
+      exekutor cd "${stashdir}" ;
+      exekutor svn update ${options} ${SVNOPTIONS}
+   ) || fail "svn update of \"${stashdir}\" failed"
 }
 
 
-run_git()
+
+
+append_dir_to_gitignore_if_needed()
 {
-   local i
-   local name
+   case "${1}" in
+      "${REPOS_DIR}/"*)
+         return 0
+      ;;
+   esac
 
-   IFS="
-"
-   for i in `all_repository_directories_from_repos`
-   do
-      IFS="${DEFAULT_IFS}"
+   local directory
 
-      if [ -d "${i}/.git" -o -d "${i}/refs" ]
-      then
-         log_info "### $i:"
-         (cd "$i" ; exekutor git ${GITFLAGS} "$@" ${GITOPTIONS} ) || fail "git failed"
-         log_info
-      fi
-   done
+   # make it absolute dir for git -> '/' <subdir> '/'
+   # emit w/o trailing '/' for symlinks
 
-   IFS="${DEFAULT_IFS}"
+   case "$1" in
+      /*/)
+         directory="`echo "$1" | sed 's/.$//'`"
+      ;;
+
+      /*)
+         directory="$1"
+      ;;
+
+      */)
+         directory="`echo "/$1" | sed 's/.$//'`"
+      ;;
+
+      *)
+         directory="/$1"
+      ;;
+   esac
+
+   local pattern1
+   local pattern2
+   local pattern3
+
+   # also match with trailing slash
+   pattern1="${directory}/"
+
+   # also match without leading slash
+   pattern2="`echo "${directory}" | sed 's|^/\(.*\)|\1|'`"
+
+   # also match without leading but with trailing slash
+   pattern3="${pattern2}/"
+
+   #
+   # prepend \n because it is safer, in case .gitignore has no trailing
+   # LF which it often seems to not have
+   #
+   if ! fgrep -s -x -e "${directory}" -e "${pattern1}" -e "${pattern2}" -e "${pattern3}" .gitignore > /dev/null 2>&1
+   then
+      redirect_append_exekutor .gitignore echo "\n${directory}" || fail "Couldn\'t append to .gitignore"
+      log_info "Added \"${directory}\" to \".gitignore\""
+   fi
 }
+
 
 
 git_main()
@@ -344,11 +437,37 @@ git_main()
 }
 
 
+run_git()
+{
+   local i
+
+   IFS="
+"
+   for i in `all_repository_directories_from_repos`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if [ -d "${i}/.git" -o -d "${i}/refs" ]
+      then
+         log_info "### $i:"
+         (
+            cd "$i" ;
+            exekutor git ${GITFLAGS} "$@" ${GITOPTIONS}
+         ) || fail "git failed"
+         log_info
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
 scm_initialize()
 {
    log_fluff ":scm_initialize:"
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+   :
 }
 
 scm_initialize

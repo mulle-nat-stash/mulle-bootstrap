@@ -31,6 +31,21 @@
 MULLE_BOOTSTRAP_BREW_SH="included"
 
 
+
+brew_usage()
+{
+   cat <<EOF >&2
+usage:
+   mulle-brew ${COMMAND} [options] [repositories]
+
+   Options
+      -cs   :  check /usr/local for duplicates
+
+   You can specify the names of the formulae to ${COMMAND}.
+EOF
+   exit 1
+}
+
 #
 # Install brew into "addictions" via git clone
 # this has the following advantages:
@@ -44,16 +59,6 @@ MULLE_BOOTSTRAP_BREW_SH="included"
 BREW="${ADDICTIONS_DIR}/bin/brew"
 
 
-touch_last_update()
-{
-   local last_update
-
-   last_update="${ADDICTIONS_DIR}/.last_update"
-   log_fluff "Touching ${last_update}"
-   exekutor touch "${last_update}"
-}
-
-
 fetch_brew_if_needed()
 {
    if [ -x "${BREW}" ]
@@ -65,59 +70,249 @@ fetch_brew_if_needed()
       darwin)
          log_info "Installing OS X brew"
          exekutor git clone https://github.com/Homebrew/brew.git "${ADDICTIONS_DIR}"
-         ;;
+      ;;
 
       linux)
          log_info "Installing Linux brew"
          exekutor git clone https://github.com/Linuxbrew/brew.git "${ADDICTIONS_DIR}"
-         ;;
+       ;;
 
       *)
          fail "Missing brew support for ${UNAME}"
-         ;;
+      ;;
    esac
 
-   touch_last_update
+   if [ ! -x "${BREW}" ]
+   then
+      fail "brew was not successfully installed"
+   fi
+
    return 1
 }
 
 
-brew_update_if_needed()
+#
+# brews are now installed using a local brew
+# if we are on linx
+#
+brew_install_brews()
 {
-   local what
+   local brewcmd
 
-   what="$1"
+   brewcmd="$1" ; shift
 
-   local flag
-   local stale
+   local brews
+
+   log_fluff "Looking for brews"
+
+   brews=`read_root_setting "brews" | sort | sort -u`
+   if [ -z "${brews}" ]
+   then
+      log_fluff "No brews found"
+      return
+   fi
 
    fetch_brew_if_needed
-   flag=$?
-   if [ ! -z $flag ]
+
+   if [ -d "${ADDICTIONS_DIR}" ]
    then
-      return $flag  ## just fetched it or not there
+      log_fluff "Unprotecting \"${ADDICTIONS_DIR}\" for ${command}."
+      exekutor chmod -R u+w "${ADDICTIONS_DIR}"
    fi
 
-   if [ -f "${last_update}" ]
+   if [ "${brewcmd}" = "update" ]
    then
-      stale="`find "${last_update}" -mtime +1 -type f -exec echo '{}' \;`"
-      if [ -f "${last_update}" -a "$stale" = "" ]
+      "${BREW}" update
+      return $?
+   fi
+
+   local flag
+
+   IFS="
+"
+   for formula in ${brews}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${formula}"
       then
-         log_verbose "brew seems to be up to date"
-         return 0
+         log_info "${C_MAGENTA}${C_BOLD}${formula}${C_INFO} is a system library, so not installing it"
+         continue
+      fi
+
+      local versions
+
+      versions=""
+      if [ "${brewcmd}" = "install" ]
+      then
+         versions="`${BREW} ls --versions "${formula}" 2> /dev/null`"
+      fi
+
+      if [ -z "${versions}" ]
+      then
+         log_fluff "brew ${brewcmd} \"${formula}\""
+         exekutor "${BREW}" "${brewcmd}" "${formula}" || exit 1
+
+         log_info "Force linking it, in case it was keg-only"
+         exekutor "${BREW}" link --force "${formula}" || exit 1
+      else
+         if [ "${flag}" = "NO" ]
+         then
+            log_info "\"${formula}\" is already installed."
+         else
+            log_fluff "\"${formula}\" is already installed."
+         fi
+      fi
+   done
+   IFS="${DEFAULT_IFS}"
+
+   write_protect_directory "${ADDICTIONS_DIR}"
+}
+
+
+
+_brew_common_install()
+{
+   if [ $# -ne 0 ]
+   then
+      log_error "Additional parameters not allowed for fetch (" "$@" ")"
+      ${USAGE}
+   fi
+
+   brew_install_brews "install" "$@"
+
+   if read_yes_no_config_setting "update_gitignore" "YES"
+   then
+      if [ -d .git ]
+      then
+         append_dir_to_gitignore_if_needed "${ADDICTIONS_DIR}"
       fi
    fi
-
-   user_say_yes "Should brew be updated before installing ${what} ?"
-
-   if [ $? -eq 0 ]
-   then
-      log_fluff "Updating brew, this can take some time..."
-      exekutor "${BREW}" update
-
-      touch_last_update
-   fi
 }
+
+
+_brew_common_update()
+{
+   if [ $# -ne 0 ]
+   then
+      log_error "Additional parameters not allowed for update (" "$@" ")"
+      ${USAGE}
+   fi
+
+   brew_install_brews "update" "$@"
+}
+
+
+_brew_common_upgrade()
+{
+   brew_install_brews "upgrade" "$@"
+}
+
+
+_brew_common_main()
+{
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
+
+   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+
+   while [ $# -ne 0 ]
+   do
+      case "$1" in
+         -h|-help|--help)
+            ${USAGE}
+         ;;
+
+         -nr|--no-recursion)
+            DONT_RECURSE="YES"
+         ;;
+
+         -cs|--check-usr-local-include)
+            CHECK_USR_LOCAL_INCLUDE="YES"
+            ;;
+
+         -*)
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown ${COMMAND} option $1"
+            ${USAGE}
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]           && . mulle-bootstrap-scripts.sh
+
+   #
+   # should we check for '/usr/local/include/<name>' and don't fetch if
+   # present (somewhat dangerous, because we do not check versions)
+   #
+
+
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_brew_done"
+
+   #
+   # Run prepare scripts if present
+   #
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_brew_started"
+
+   case "${COMMAND}" in
+      install)
+         _brew_common_install "$@"
+      ;;
+
+      update)
+         _brew_common_update "$@"
+      ;;
+
+      upgrade)
+         _brew_common_upgrade "$@"
+      ;;
+   esac
+
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_brew_started"
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_brew_done"
+}
+
+
+brew_upgrade_main()
+{
+   log_fluff "::: brew upgrade begin :::"
+
+   USAGE="brew_usage"
+   COMMAND="upgrade"
+   _brew_common_main "$@"
+
+   log_fluff "::: brew upgrade end :::"
+}
+
+
+brew_update_main()
+{
+   log_fluff "::: brew update begin :::"
+
+   USAGE="brew_usage"
+   COMMAND="update"
+   _brew_common_main "$@"
+
+   log_fluff "::: brew update end :::"
+}
+
+
+brew_fetch_main()
+{
+   log_fluff "::: brew fetch begin :::"
+
+   USAGE="brew_usage"
+   COMMAND="fetch"
+   _brew_common_main "$@"
+
+   log_fluff "::: brew fetch end :::"
+}
+
 
 
 brew_initialize()
@@ -125,6 +320,7 @@ brew_initialize()
    log_fluff ":brew_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   :
 }
 
 brew_initialize

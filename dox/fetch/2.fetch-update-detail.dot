@@ -1,0 +1,48 @@
+digraph refresh {
+   compound=true
+   node [shape="none"]
+
+   "fetch"  [ fillcolor="red", style="filled", fontcolor="white"]
+   "update" [ fillcolor="blue", style="filled", fontcolor="white"]
+
+   node [shape="record"]
+
+   fetch  -> "mark_all_repositories_as_zombies" [ lhead=cluster_0]
+   update -> "update_embedded_repositories"     [ lhead=cluster_1]
+   "run_update_scripts"            -> "fetch" [ lhead=cluster_0]
+
+
+   subgraph cluster_0 {
+      node [shape="record"]
+      color="red"
+
+      "bootstrap_auto_update"
+      "inviso" [ style="invisible"]
+      "mark_all_repositories_as_zombies"    -> "bootstrap_auto_create"
+
+      "bootstrap_auto_create"               -> "fetch_missing_embedded_repositories"
+
+      "fetch_missing_embedded_repositories" -> "fetch_missing_repositories" [color="red"]
+      "fetch_missing_repositories"          -> "bootstrap_auto_update" [color="red"]
+      "bootstrap_auto_update"               -> "fetch_missing_repositories"   [color="red"]
+
+      "bootstrap_auto_update"               -> "fetch_missing_deep_embedded_repositories" [color="red"]
+      "fetch_missing_deep_embedded_repositories" -> "bootstrap_auto_final"
+      "bootstrap_auto_final"                -> "unmark_alive_stashes"
+
+      "unmark_alive_stashes"                -> "bury_zombies_in_graveyard"
+      "bury_zombies_in_graveyard"           -> "run_fetch_scripts"
+
+      "fetch_missing_embedded_repositories"        [ fontcolor="red"]
+      "fetch_missing_repositories"                 [ fontcolor="red"]
+      "fetch_missing_deep_embedded_repositories"   [ fontcolor="red"]
+   }
+   subgraph cluster_1 {
+      node [shape="record"]
+      color="blue"
+
+      "update_embedded_repositories"  -> "update_repositories"
+      "update_repositories"           -> "update_deep_embedded_repositories"
+      "update_deep_embedded_repositories"  -> "run_update_scripts"
+   }
+}

@@ -8,6 +8,40 @@ case "`uname`" in
 esac
 
 
+clear_test_dirs()
+{
+   local i
+
+   for i in "$@"
+   do
+      if [ -d "$i" ]
+      then
+         rm -rf "$i"
+      fi
+   done
+}
+
+
+fail()
+{
+   echo "failed" "$@" >&2
+   exit 1
+}
+
+
+run_mulle_bootstrap()
+{
+   echo "####################################" >&2
+   echo mulle-bootstrap "$@"  >&2
+   echo "####################################" >&2
+
+   mulle-bootstrap "$@" || fail "mulle-bootstrap failed"
+}
+
+
+#
+#
+#
 create_demo_repo()
 {
    local name
@@ -48,7 +82,7 @@ create_demo_repo c
 (
    cd b;
    mkdir .bootstrap ;
-   echo "../a;src/a" > .bootstrap/embedded_repositories ;
+   echo "a;src/a" > .bootstrap/embedded_repositories ;
    git add .bootstrap/embedded_repositories ;
    git commit -m "embedded added"
 )
@@ -57,7 +91,7 @@ create_demo_repo c
 (
    cd c ;
    mkdir .bootstrap ;
-   echo "../b" > .bootstrap/repositories ;
+   echo "b" > .bootstrap/repositories ;
    git add .bootstrap/repositories ;
    git commit -m "repository added"
 )
@@ -69,10 +103,10 @@ create_demo_repo c
 echo "--| 1 |--------------------------------"
 (
    cd c ;
-   mulle-bootstrap "$@" -y fetch  ;  # use symlink
+   run_mulle_bootstrap "$@" -y fetch  ;  # use symlink
 
-   [ ! -L .repos/b ]     && fail "failed to symlink b" ;
-   [ -d .repos/b/src/a ] && fail "superzealously embedded a" ;
+   [ ! -L stashes/b ]     && fail "failed to symlink b" ;
+   [ -d stashes/b/src/a ] && fail "superzealously embedded a" ;
    :
 ) || exit 1
 
@@ -82,7 +116,7 @@ echo "--| 1 |--------------------------------"
 echo "--| 2 |--------------------------------"
 (
    cd b ;
-   mulle-bootstrap "$@" -y fetch  ;  # can't use symlink here
+   run_mulle_bootstrap "$@" -y fetch  ;  # can't use symlink here
 
    [ ! -d src/a ] && fail "failed to embed a" ;
    [ -L src/a ]   && fail "mistakenly embedded a as a symlink" ;
@@ -96,16 +130,16 @@ echo "--| 2 |--------------------------------"
 echo "--| 3 |--------------------------------"
 (
    cd b ;
-   echo "../a;a" > .bootstrap/embedded_repositories
+   echo "a;a" > .bootstrap/embedded_repositories
 )
 
 (
    cd c ;
-   mulle-bootstrap "$@" -y fetch  ;  # use symlink
+   run_mulle_bootstrap "$@" -y fetch  ;  # use symlink
 
-   [ ! -L .repos/b ]     && fail "failed to symlink b" ;
-   [ ! -d .repos/b/src/a ] && fail "superzealously removed a" ;
-   [ -d .repos/b/a ]     && fail "superzealously added a" ;
+   [ ! -L stashes/b ]       && fail "failed to symlink b" ;
+   [ ! -d stashes/b/src/a ] && fail "superzealously removed a" ;
+   [ -d stashes/b/a ]       && fail "superzealously added a" ;
    :
 ) || exit 1
 

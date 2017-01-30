@@ -33,14 +33,13 @@ MULLE_BOOTSTRAP_ARRAY_SH="included"
 
 # declare "fail" outside
 # array contents can contain any characters except newline
-
 array_value_check()
 {
    local n
 
    n=`echo "$1" | wc -l  | awk '{ print $1}'`
-   [ $n -eq 0 ] && internal_fail "empty value"
-   [ $n -ne 1 ] && internal_fail "value \"$1\" has linebreaks"
+   [ "$n" -eq 0 ] && internal_fail "empty value"
+   [ "$n" -ne 1 ] && internal_fail "value \"$1\" has linebreaks"
 
    echo "$1"
 }
@@ -54,12 +53,12 @@ array_index_check()
    array="$1"
    i="$2"
 
-   [ -z "${i}" ] && internal_fail "empty index"
+   [ -z "$i" ] && internal_fail "empty index"
 
    local n
    n=`array_count "${array}"`
 
-   [ ${i} -ge ${n} ] && internal_fail "index ${i} out of bounds ${n}"
+   [ "$i" -ge "$n" ] && internal_fail "index ${i} out of bounds ${n}"
 
    echo "${i}"
 }
@@ -97,8 +96,8 @@ array_count()
 
    local n
 
-   n=`echo "${array}" | wc -l | awk '{ print $1}'`
-   echo ${n}
+   n=`echo "${array}" | wc -l | awk '{ print $1 }'`
+   echo "$n"
 }
 
 
@@ -109,9 +108,9 @@ array_get()
 
    array="$1"
    i="`array_index_check "${array}" "$2"`"
-   i=`expr $i + 1`
+   i="`expr "$i" + 1`"
 
-   echo "${array}" | head -${i} | tail -1
+   echo "${array}" | head "-$i" | tail -1
 }
 
 
@@ -139,24 +138,24 @@ array_insert()
    local tail_count
    local n
 
-   [ "${i}" = "" ] && internal_fail "empty index"
+   [ -z "${i}" ] && internal_fail "empty index"
 
-   n=`array_count "${array}"`
-   [ ${i} -gt ${n} ] && internal_fail "index ${i} out of bounds ${n}"
+   n="`array_count "${array}"`"
+   [ "$i" -gt "$n" ] && internal_fail "index ${i} out of bounds ${n}"
 
-   head_count=$i
-   tail_count=`expr $n - $i`
+   head_count="$i"
+   tail_count="`expr "$n" - "$i"`"
 
-   if [ ${head_count} -ne 0 ]
+   if [ "${head_count}" -ne 0 ]
    then
-      echo "${array}" | head -${head_count}
+      echo "${array}" | head "-${head_count}"
    fi
 
    echo "${value}"
 
-   if [ ${tail_count} -ne 0 ]
+   if [ "${tail_count}" -ne 0 ]
    then
-      echo "${array}" | tail -${tail_count}
+      echo "${array}" | tail "-${tail_count}"
    fi
 }
 
@@ -195,11 +194,11 @@ array_remove_last()
       ;;
 
       *)
-         n="`expr $n - 1`"
+         n="`expr "$n" - 1`"
       ;;
    esac
 
-   echo "${array}" | head -$n
+   echo "${array}" | head "-$n"
 }
 
 
@@ -234,8 +233,8 @@ _assoc_array_key_check()
    local n
 
    n=`echo "$1" | wc -w`
-   [ $n -eq 0 ] && internal_fail "empty value"
-   [ $n -ne 1 ] && internal_fail "key \"$1\" has spaces"
+   [ "$n" -eq 0 ] && internal_fail "empty value"
+   [ "$n" -ne 1 ] && internal_fail "key \"$1\" has spaces"
 
    #
    # escape charactes

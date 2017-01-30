@@ -1,5 +1,19 @@
 # 3.0
 
+#### mulle-bootstrap command syntax was related to git, but now it's related
+to homebrew and apt-get. This has been done, because I wan't to have mulle-brew
+as a separate shell command, and the git syntax doesn't fit.
+
+That means, mulle-bootstrap fetch is now just a deprecated synonym for
+mulle-bootstrap install
+
+mulle-bootstrap update is now mulle-bootstrap upgrade.
+
+mulle-bootstrap install is now mulle-bootstrap systeminstall
+
+
+#### The way settings work as drastically changed too much to list here
+
 * config now returns the default value, if nothing is configured
 * various changes in variables
 
@@ -16,7 +30,8 @@ REPOS_DIR         | CLONES_SUBDIR       |
 patch anymore. It's also convenient for the test scripts
 * various status files are now prefixed with .bootstrap_
 * **tag** as a setting does not exist anymore. Now its part of the repositories line
-* renamed -u fetch option to -us and exposed it on refresh too
+* A lot of options have changed. Sorry about this, but progres...
+
 
 ### 2.6.1
 

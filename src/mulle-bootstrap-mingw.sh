@@ -131,8 +131,6 @@ mingw_buildpath()
 {
    local i
    local fetchpath
-   local match
-
 
    IFS=":"
    for i in $PATH

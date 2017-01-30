@@ -29,22 +29,24 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 #
-MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH="included"
+MULLE_BOOTSTRAP_COMMON_SETTINGS_SH="included"
 
 # only needed for true builds
 
 build_complete_environment()
 {
-   if [ ! -z "${CLEAN_BEFORE_BUILD}" ]
-   then
-      return
-   fi
+   #
+   # Global Settings
+   #
+   HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
+   LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
+   FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 
    CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
    if [ -z "${CONFIGURATIONS}" ]
    then
       CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
-      CONFIGURATIONS="`read_build_root_setting "configurations" "${CONFIGURATIONS}"`"
+      CONFIGURATIONS="`read_root_setting "configurations" "${CONFIGURATIONS}"`"
    fi
    N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
@@ -78,68 +80,16 @@ build_complete_environment()
 }
 
 
-make_executable_search_path()
+common_settings_initialize()
 {
-   local path
-   local dependencies
-   local addictions
-
-   path="$1"
-   dependencies="$2"
-   addictions="$3"
-
-   #
-   #
-   #
-   local new_path
-   local tail_path
-
-   tail_path=""
-   new_path=""
-   addictions="`realpath "${addictions}"`"
-   dependencies="`realpath "${dependencies}"`"
-
-   tail_path="`add_path "${tail_path}" "${dependencies}/bin"`"
-   tail_path="`add_path "${tail_path}" "${addictions}/bin"`"
-
-   local i
-   local oldifs
-
-   oldifs="$IFS"
-   IFS=":"
-
-   for i in $path
-   do
-      IFS="${oldifs}"
-
-      # shims stay in front (homebrew)
-      case "$i" in
-         */shims/*)
-            new_path="`add_path "${new_path}" "$i"`"
-         ;;
-
-         *)
-            tail_path="`add_path "${tail_path}" "$i"`"
-         ;;
-      esac
-   done
-
-   IFS="${oldifs}"
-
-   add_path "${new_path}" "${tail_path}"
-}
-
-
-build_environment_initialize()
-{
-   log_fluff ":build_environment_initialize:"
+   log_fluff ":common_settings_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
-   CLONESBUILD_SUBDIR="`read_sane_config_path_setting "build_foldername" "build/.repos"`"
-   BUILDLOG_SUBDIR="`read_sane_config_path_setting "build_log_foldername" "${CLONESBUILD_SUBDIR}/.logs"`"
-   DEPENDENCIES_DIR="`read_sane_config_path_setting "dependency_dir" "dependencies"`"
+   CLONESBUILD_SUBDIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
+   BUILDLOG_SUBDIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_SUBDIR}/.logs"`"
+   DEPENDENCIES_DIR="`read_sane_config_path_setting "dependencies_dir" "dependencies"`"
    ADDICTIONS_DIR="`read_sane_config_path_setting "addictions_dir" "addictions"`"
    STASHES_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
 
@@ -149,17 +99,10 @@ build_environment_initialize()
    [ -z "${ADDICTIONS_DIR}" ]     && internal_fail "variable ADDICTIONS_DIR is empty"
    [ -z "${STASHES_DIR}" ]        && internal_fail "variable STASHES_DIR is empty"
 
-   PATH="`make_executable_search_path "$PATH" "${DEPENDENCIES_DIR}" "${ADDICTIONS_DIR}"`"
+   PATH="`prepend_to_search_path_if_missing "$PATH" "${DEPENDENCIES_DIR}/bin" "${ADDICTIONS_DIR}/bin"`"
    export PATH
 
    log_fluff "PATH set to: $PATH"
-
-   #
-   # Global Settings
-   #
-   HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
-   LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
-   FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 }
 
-build_environment_initialize
+common_settings_initialize

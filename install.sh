@@ -68,7 +68,10 @@ resolve_symlinks()
 
 _canonicalize_dir_path()
 {
-    (cd "$1" 2>/dev/null && pwd -P)
+   (
+      cd "$1" 2>/dev/null &&
+      pwd -P
+   ) || exit 1
 }
 
 
@@ -78,7 +81,10 @@ _canonicalize_file_path()
 
     dir="` dirname "$1"`"
     file="`basename -- "$1"`"
-    (cd "${dir}" 2>/dev/null && echo "`pwd -P`/${file}")
+    (
+      cd "${dir}" 2>/dev/null &&
+      echo "`pwd -P`/${file}"
+    ) || exit 1
 }
 
 
@@ -109,7 +115,7 @@ get_windows_path()
       return 1
    fi
 
-   ( cd "$directory" ; pwd -PW )
+   ( cd "$directory" ; pwd -PW ) || fail "failed to get pwd"
    return 0
 }
 
@@ -144,7 +150,7 @@ mode=${1:-755}
 [ $# -eq 0 ] || shift
 
 bin="${prefix}/bin"
-libexec="${prefix}/libexec/mulle-bootstrap"
+libexec="${prefix}/libexec/mulle-bootstrap-3"
 
 if [ "$prefix" = "" ] || [ "$bin" = "" ] || [ "$libexec" = "" ] || [ "$mode" = "" ]
 then
@@ -162,7 +168,7 @@ then
 fi
 
 
-for i in mulle*bootstrap
+for i in mulle*bootstrap-3
 do
    install -m "${mode}" "${i}" "${bin}/$i" || exit 1
    printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2

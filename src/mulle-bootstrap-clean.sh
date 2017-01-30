@@ -28,6 +28,7 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+#
 MULLE_BOOTSTRAP_CLEAN_SH="included"
 
 
@@ -52,7 +53,7 @@ ${STASHES_DIR}
 ${ADDICTIONS_DIR}
 ${STASHES_DIR}
 .bootstrap.auto"`"
-   EMBEDDED="`embedded_repository_directories_from_repos "${REPOS_DIR}"`"
+   EMBEDDED="`stashes_of_embedded_repositories "${REPOS_DIR}"`"
 
    DIST_CLEANABLE_SUBDIRS="`add_line "${EMBEDDED}" "${DIST_CLEANABLE_SUBDIRS}"`"
 }
@@ -281,7 +282,7 @@ ${DEPENDENCIES_DIR}/tmp"`"
 ${ADDICTIONS_DIR}
 ${STASHES_DIR}
 .bootstrap.auto"`"
-         EMBEDDED="`embedded_repository_directories_from_repos "${REPOS_DIR}"`"
+         EMBEDDED="`stashes_of_embedded_repositories "${REPOS_DIR}"`"
 
          if [ ! -z "$EMBEDDED" ]
          then
@@ -316,12 +317,14 @@ clean_main()
 {
    log_fluff "::: clean :::"
 
-   [ -z "${MULLE_BOOTSTRAP_BUILD_ENVIRONMENT_SH}" ] && . mulle-bootstrap-build-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 
+   build_complete_environment
+   
    COMMAND=
 
    while [ $# -ne 0 ]
