@@ -87,13 +87,9 @@ check_for_mulle_xcode_settings()
    Install mulle-xcode-settings now ?"
       [ $? -eq 0 ] || exit 1
 
-      brew_update_if_needed "mulle-xcode-settings"
+      [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
 
-      log_info "Tapping \"mulle-kybernetik/software\""
-      brew tap "mulle-kybernetik/software"
-
-      log_info "Installing mulle-xcode-settings"
-      brew install "mulle-xcode-settings" || fail "failed to install \"mulle-xcode-settings\""
+      brew_install_brews install "mulle-kybernetik/software/mulle-xcode-settings"
    fi
 }
 
@@ -222,12 +218,12 @@ Release"
    then
       flag="add"
 
-      if [ $terse -ne 0 ]
+      if [ $terse -ne 0 -a "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
       then
          #         012345678901234567890123456789012345678901234567890123456789
          log_info "Settings will be added to ${C_MAGENTA}${projectname}${C_RESET}."
-         log_info "In the long term it may be more useful to copy/paste the "
-         log_info "following lines into a set of local .xcconfig file, that is "
+         log_info "In the long term it may be more useful to copy/paste the"
+         log_info "following lines into a set of local .xcconfig files, that are"
          log_info "inherited by all configurations."
       fi
    else
@@ -263,34 +259,45 @@ Release"
    addictions_dir='$(PROJECT_DIR)'/"${ADDICTIONS_DIR}"
 #   addictions_dir='$(PROJECT_DIR)/'"${relative_subdir}"
 
-   header_search_paths="\$(DEPENDENCIES_DIR)/${HEADER_DIR_NAME}"
-   header_search_paths="${header_search_paths} \$(ADDICTIONS_DIR)/include"
-   header_search_paths="${header_search_paths} \$(inherited)"
+   header_search_paths=""
+   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   then
+      header_search_paths="`concat "${header_search_paths}" '$(DEPENDENCIES_DIR)/'"${HEADER_DIR_NAME}"`"
+   fi
+   header_search_paths="`concat "${header_search_paths}" '$(ADDICTIONS_DIR)/include'`"
+   header_search_paths="`concat "${header_search_paths}" '$(inherited)'`"
 
    local default
 
    default=`echo "${configurations}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//'`
 
-   library_search_paths="\$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)/${LIBRARY_DIR_NAME}"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)/${LIBRARY_DIR_NAME}"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/\$(EFFECTIVE_PLATFORM_NAME)/${LIBRARY_DIR_NAME}"
-   library_search_paths="${library_search_paths} \$(DEPENDENCIES_DIR)/${LIBRARY_DIR_NAME}"
-   library_search_paths="${library_search_paths} \$(ADDICTIONS_DIR)/lib"
-   library_search_paths="${library_search_paths} \$(inherited)"
+   library_search_paths=""
+   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   then
+      library_search_paths="`concat "${library_search_paths}" '$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/'"${LIBRARY_DIR_NAME}"`"
+      library_search_paths="`concat "${library_search_paths}" '$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)/'"${LIBRARY_DIR_NAME}"`"
+      library_search_paths="`concat "${library_search_paths}" '$(DEPENDENCIES_DIR)/$(EFFECTIVE_PLATFORM_NAME)/'"${LIBRARY_DIR_NAME}"`"
+      library_search_paths="`concat "${library_search_paths}" '$(DEPENDENCIES_DIR)/'"${LIBRARY_DIR_NAME}"`"
+   fi
+   library_search_paths="`concat "${library_search_paths}" '$(ADDICTIONS_DIR)/lib'`"
+   library_search_paths="`concat "${library_search_paths}" '$(inherited)'`"
 
-
-   framework_search_paths="\$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)\$(EFFECTIVE_PLATFORM_NAME)/${FRAMEWORK_DIR_NAME}"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/\$(LIBRARY_CONFIGURATION)/${FRAMEWORK_DIR_NAME}"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/\$(EFFECTIVE_PLATFORM_NAME)/${FRAMEWORK_DIR_NAME}"
-   framework_search_paths="${framework_search_paths} \$(DEPENDENCIES_DIR)/${FRAMEWORK_DIR_NAME}"
-   framework_search_paths="${framework_search_paths} \$(ADDICTIONS_DIR)/${FRAMEWORK_DIR_NAME}"
-   framework_search_paths="${framework_search_paths} \$(inherited)"
+   framework_search_paths=""
+   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   then
+      framework_search_paths="`concat "${framework_search_paths}" '$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/'"${FRAMEWORK_DIR_NAME}"`"
+      framework_search_paths="`concat "${framework_search_paths}" '$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)/'"${FRAMEWORK_DIR_NAME}"`"
+      framework_search_paths="`concat "${framework_search_paths}" '$(DEPENDENCIES_DIR)/$(EFFECTIVE_PLATFORM_NAME)/'"${FRAMEWORK_DIR_NAME}"`"
+      framework_search_paths="`concat "${framework_search_paths}" '$(DEPENDENCIES_DIR)/'"${FRAMEWORK_DIR_NAME}"`"
+   fi
+   framework_search_paths="`concat "${framework_search_paths}" '$(ADDICTIONS_DIR)/'"${FRAMEWORK_DIR_NAME}"`"
+   framework_search_paths="`concat "${framework_search_paths}" '$(inherited)'`"
 
    local query
 
    if [ "$COMMAND" = "add" ]
    then
-      if [ $terse -ne 0 ]
+      if [ $terse -ne 0 -a "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
       then
          local mapped
          local i
@@ -302,7 +309,10 @@ Release"
          printf "${C_RESET_BOLD}Common.xcconfig:${C_RESET}\n"
          printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
          echo "ADDICTIONS_DIR=${addictions_dir}"
-         echo "DEPENDENCIES_DIR=${dependencies_dir}"
+         if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+         then
+            echo "DEPENDENCIES_DIR=${dependencies_dir}"
+         fi
          echo "HEADER_SEARCH_PATHS=${header_search_paths}"
          echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
          echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
@@ -327,9 +337,9 @@ Release"
          IFS="${DEFAULT_IFS}"
       fi
 
-      query="Add ${C_CYAN}${DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Add ${C_CYAN}${ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    else
-      query="Remove ${C_CYAN}${DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      query="Remove ${C_CYAN}${ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
    fi
 
    user_say_yes "$query"
@@ -347,7 +357,7 @@ Release"
 
    if [ "$COMMAND" = "add" ]
    then
-      if [ $terse -ne 0 ]
+      if [ $terse -ne 0 -a "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
       then
          #     012345678901234567890123456789012345678901234567890123456789
          printf "${C_RESET_BOLD}${C_CYAN}\n" >&2

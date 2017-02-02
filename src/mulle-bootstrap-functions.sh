@@ -435,7 +435,7 @@ canonicalize_path()
 #
 realpath()
 {
-   [ -e "$1" ] && fail "only use realpath on existing files"
+   [ -e "$1" ] || fail "only use realpath on existing files"
 
    canonicalize_path "`resolve_symlinks "$1"`"
 }

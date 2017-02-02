@@ -92,46 +92,41 @@ fetch_brew_if_needed()
 # brews are now installed using a local brew
 # if we are on linx
 #
-brew_install_brews()
+_brew_install_brews()
 {
    local brewcmd
 
    brewcmd="$1" ; shift
 
-   local brews
+   local brews="$@"
 
-   log_fluff "Looking for brews"
-
-   brews="`read_root_setting "brews" | sort | sort -u`"
    if [ -z "${brews}" ]
    then
-      brews="`(
-         MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=YES
-         read_root_setting "brews" | sort | sort -u
-         )`"
+      log_fluff "Looking for brews"
 
+      brews="`read_root_setting "brews" | sort | sort -u`"
       if [ -z "${brews}" ]
       then
-         log_fluff "No brews found"
-         return
+         brews="`(
+            MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=YES
+            read_root_setting "brews" | sort | sort -u
+            )`"
+
+         if [ -z "${brews}" ]
+         then
+            log_fluff "No brews found"
+            return
+         fi
+      else
+         log_info "Setting read from .bootstrap.auto folder. \
+   You might want to use mulle-bootstrap instead of mulle-brew."
       fi
-   else
-      log_info "Setting read from .bootstrap.auto folder. \
-You might want to use mulle-bootstrap instead of mulle-brew."
-   fi
-
-   fetch_brew_if_needed
-
-   if [ -d "${ADDICTIONS_DIR}" ]
-   then
-      log_fluff "Unprotecting \"${ADDICTIONS_DIR}\" for ${command}."
-      exekutor chmod -R u+w "${ADDICTIONS_DIR}"
    fi
 
    if [ "${brewcmd}" = "update" ]
    then
-      "${BREW}" update
-      return $?
+      exekutor "${BREW}" update
+      return
    fi
 
    local flag
@@ -150,31 +145,53 @@ You might want to use mulle-bootstrap instead of mulle-brew."
 
       local versions
 
-      versions=""
-      if [ "${brewcmd}" = "install" ]
-      then
-         versions="`${BREW} ls --versions "${formula}" 2> /dev/null`"
-      fi
+      case "${brewcmd}" in
+         install)
+            versions="`exekutor ${BREW} ls --versions "${formula}" 2> /dev/null`"
 
-      if [ -z "${versions}" ]
-      then
-         log_fluff "brew ${brewcmd} \"${formula}\""
-         exekutor "${BREW}" "${brewcmd}" "${formula}" || exit 1
+            if [ -z "${versions}" ]
+            then
+               log_fluff "brew install \"${formula}\""
+               exekutor "${BREW}" install "${formula}" || exit 1
 
-         log_info "Force linking it, in case it was keg-only"
-         exekutor "${BREW}" link --force "${formula}" || exit 1
-      else
-         if [ "${flag}" = "NO" ]
-         then
-            log_info "\"${formula}\" is already installed."
-         else
-            log_fluff "\"${formula}\" is already installed."
-         fi
-      fi
+               log_info "Force linking it, in case it was keg-only"
+               exekutor "${BREW}" link --force "${formula}" || exit 1
+            else
+               log_info "\"${formula}\" is already installed."
+            fi
+         ;;
+
+         upgrade)
+            log_fluff "brew upgrade \"${formula}\""
+            exekutor "${BREW}" upgrade "${formula}"
+         ;;
+      esac
    done
-   IFS="${DEFAULT_IFS}"
 
-   write_protect_directory "${ADDICTIONS_DIR}"
+   IFS="${DEFAULT_IFS}"
+}
+
+
+brew_install_brews()
+{
+   local unprotect
+
+   fetch_brew_if_needed
+
+   unprotect="NO"
+   if [ -d "${ADDICTIONS_DIR}" ]
+   then
+      log_fluff "Unprotecting \"${ADDICTIONS_DIR}\" for ${command}."
+      exekutor chmod -R u+w "${ADDICTIONS_DIR}"
+      unprotect="YES"
+   fi
+
+   _brew_install_brews "$@"
+
+   if [ "${unprotect}" = "YES" ]
+   then
+      write_protect_directory "${ADDICTIONS_DIR}"
+   fi
 }
 
 
@@ -206,7 +223,7 @@ _brew_common_update()
       ${USAGE}
    fi
 
-   brew_install_brews "update" "$@"
+   brew_install_brews "update"
 }
 
 

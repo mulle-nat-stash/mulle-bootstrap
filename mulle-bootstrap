@@ -169,7 +169,7 @@ define_local_keyvalue()
    if [ -z "${keyvalue}" ]
    then
       fail "Missing key, directly after -D"
-      usage
+      mulle_bootstrap_usage
    fi
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
@@ -444,10 +444,10 @@ bootstrap_technical_options()
          [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
          case "${UNAME}" in
             linux)
-               ps4string='$(date "\+ +%s.%N (${BASH_SOURCE[1]##*/}:$LINENO)")'
+               ps4string='$(date "\+ +%s.%N (${BASH_SOURCE[1]##*/}:${LINENO})")'
             ;;
             *)
-               ps4string='$(date "\+ +%s (${BASH_SOURCE[1]##*/}:$LINENO)")'
+               ps4string='$(date "\+ +%s (${BASH_SOURCE[1]##*/}:${LINENO})")'
             ;;
          esac
       ;;
@@ -459,13 +459,12 @@ bootstrap_technical_options()
 
       -tfpwd|--trace-full-pwd)
          [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         ps4string='${BASH_SOURCE[1]##*/}:$LINENO \"\w\"'
+         ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \"\w\"'
       ;;
-
 
       -tpwd|--trace-pwd)
          [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         ps4string='${BASH_SOURCE[1]##*/}:$LINENO \".../\W\"'
+         ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \".../\W\"'
       ;;
 
       -t|--trace)
@@ -476,7 +475,7 @@ bootstrap_technical_options()
          MULLE_BOOTSTRAP_RESOLVER_FLIP_X="YES"
          MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
          MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="NO"
-         ps4string='${BASH_SOURCE[1]##*/}:$LINENO'
+         ps4string='${BASH_SOURCE[1]##*/}:${LINENO}'
       ;;
 
       -v|--verbose)
@@ -790,9 +789,10 @@ brew_main()
          -h|--help)
             mulle_brew_usage
          ;;
+
          -*)
             log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown flag \"$1\""
-            usage
+            mulle_brew_usage
          ;;
 
          *)
@@ -918,7 +918,7 @@ brew_main()
 
       *)
          log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown command \"${command}\""
-         usage
+         mulle_bootstrap_usage
       ;;
    esac
 }
