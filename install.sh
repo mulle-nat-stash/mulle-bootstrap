@@ -150,7 +150,7 @@ mode=${1:-755}
 [ $# -eq 0 ] || shift
 
 bin="${prefix}/bin"
-libexec="${prefix}/libexec/mulle-bootstrap-3"
+libexec="${prefix}/libexec/mulle-bootstrap"
 
 if [ "$prefix" = "" ] || [ "$bin" = "" ] || [ "$libexec" = "" ] || [ "$mode" = "" ]
 then
@@ -168,7 +168,7 @@ then
 fi
 
 
-for i in mulle*bootstrap-3
+for i in mulle*bootstrap
 do
    install -m "${mode}" "${i}" "${bin}/$i" || exit 1
    printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2

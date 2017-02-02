@@ -1063,6 +1063,16 @@ work_clones()
          continue
       fi
 
+      #
+      # optimization, try to no redo fetches
+      #
+      echo "${__IGNORE__}" | fgrep -s -q -x "${clone}" > /dev/null
+      if [ $? -eq 0 ]
+      then
+         continue
+      fi
+      __REFRESHED__="`add_line "${__REFRESHED__}" "${clone}"`"
+
       parse_clone "${clone}" "${stashrootdir}" || exit 1
 
       actionitems="`required_action_for_clone "${clone}" \
@@ -1230,6 +1240,8 @@ work_all_repositories()
       loops=""
       before=""
 
+      __IGNORE__=""
+
       while :
       do
          loops="${loops}X"
@@ -1247,8 +1259,12 @@ work_all_repositories()
             break
          fi
 
+         __REFRESHED__=""
+
          fetched="`work_clones "${REPOS_DIR}" "${before}" "YES"`" || exit 1
          all_fetched="`add_line "${all_fetched}" "${fetched}"`"
+
+         __IGNORE__="`add_line "${__IGNORE__}" "${__REFRESHED__}"`"
 
          log_fluff "Get back in the ring to take another swing"
       done
