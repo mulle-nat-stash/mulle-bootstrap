@@ -46,15 +46,65 @@ EOF
 }
 
 
+init_add_brews()
+{
+   redirect_exekutor "${BOOTSTRAP_DIR}/brews" cat <<EOF
+#
+# Add homebrew packages to this file (https://brew.sh/)
+#
+# mulle-bootstrap [fetch] will install those into "${ADDICTIONS_DIR}"
+#
+# e.g.
+# byacc
+#
+EOF
+}
+
+
+_init_add_repositories()
+{
+   redirect_exekutor "${BOOTSTRAP_DIR}/$1" cat <<EOF
+#
+# Add repository URLs to this file.
+#
+# mulle-bootstrap [fetch] will download these into your project root
+# mulle-bootstrap [build] will NOT build them
+#
+# Each line consists of four fields, only the URL is necessary.
+# Possible URL forms for repositories:
+#
+# https://www.mulle-kybernetik.com/repositories/MulleScion
+# git@github.com:mulle-nat/MulleScion.git
+# ../MulleScion
+# /Volumes/Source/srcM/MulleScion
+#
+# With SUBDIR you can place the embedded repository somewhere in your
+# project directory structure. By default it will be placed into \"stashes\"
+# BRANCH is the specific branch to fetch.
+# TAG can be a git branch or a tag to checkout. SCM can be \"git\" or \"svn\".
+#
+# URL;SUBDIR;TAG;SCM
+# ================
+# ex. foo.com/bla.git;src/mybla;release;git
+# ex. foo.com/bla.svn;;;svn
+#
+#
+EOF
+}
+
+
+
 #
 # this script creates a .bootstrap folder with some
 # demo files.
 #
 init_main()
 {
+   local mainfile
+
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]         && . mulle-bootstrap-functions.sh
 
    CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
    CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
@@ -98,20 +148,6 @@ init_main()
       exit 1
    fi
 
-   project=""
-   for i in *.xcodeproj/project.pbxproj
-   do
-      if [ -f "$i" ]
-      then
-        if [ "$project" != "" ]
-        then
-           fail "more than one xcodeproj found, cant' deal with it"
-        fi
-        project="$i"
-      fi
-   done
-
-
    log_fluff "Create \"${BOOTSTRAP_DIR}\""
    mkdir_if_missing "${BOOTSTRAP_DIR}"
 
@@ -131,131 +167,26 @@ EOF
 # mod-pbxproj
 #EOF
 
-      redirect_exekutor "${BOOTSTRAP_DIR}/repositories" cat <<EOF
-#
-# Add repository URLs to this file.
-#
-# mulle-bootstrap [fetch] will download these into "${REPOS_DIR}"
-# mulle-bootstrap [build] will then build them into "${DEPENDENCIES_DIR}"
-#
-# Each line consists of four fields, only the URL is necessary.
-# Possible URL forms for repositories:
-#
-# https://www.mulle-kybernetik.com/repositories/MulleScion
-# git@github.com:mulle-nat/MulleScion.git
-# ../MulleScion
-# /Volumes/Source/srcM/MulleScion
-#
-# The NAME should only be used, if you have an actual name conflict
-# in your dependencies. BRANCH can be a git branch. SCM can
-# be git or svn. TAG can be specific tag on this branch
-#
-# URL;NAME;BRANCH;SCM;TAG
-# ================
-# ex. foo.com/bla.git;bla2;release;git;bla-tag
-# ex. foo.com/bla.svn;;;svn;
-#
-EOF
+      init_add_brews
 
-      redirect_exekutor "${BOOTSTRAP_DIR}/embedded_repositories" cat <<EOF
-#
-# Add repository URLs to this file.
-#
-# mulle-bootstrap [fetch] will download these into your project root
-# mulle-bootstrap [build] will NOT build them
-#
-# Each line consists of four fields, only the URL is necessary.
-# Possible URL forms for repositories:
-#
-# https://www.mulle-kybernetik.com/repositories/MulleScion
-# git@github.com:mulle-nat/MulleScion.git
-# ../MulleScion
-# /Volumes/Source/srcM/MulleScion
-#
-# With SUBDIR you can place the embedded repository somewhere in your
-# project directory structure. TAG can be a git branch or a tag. SCM can
-# be git or svn.
-#
-# URL;SUBDIR;TAG;SCM
-# ================
-# ex. foo.com/bla.git;src/mybla;release;git
-# ex. foo.com/bla.svn;;;svn
-#
-#
-EOF
-      redirect_exekutor "${BOOTSTRAP_DIR}/brews" cat <<EOF
-#
-# Add homebrew packages to this file (https://brew.sh/)
-#
-# mulle-bootstrap [fetch] will install those into "${ADDICTIONS_DIR}"
-#
-# e.g.
-# zlib
-#
-EOF
-   fi
-
-   if [ "${CREATE_EXAMPLE_FILES}" = "YES" ]
-   then
-      log_verbose "Create example repository settings"
-
-      mkdir_if_missing "${BOOTSTRAP_DIR}/MulleScion.example/bin"
-
-      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/Release.map" cat <<EOF
-# map configuration Release in project MulleScion to DebugRelease
-# leave commented out or delete file for no mapping
-# DebugRelease
-EOF
-
-      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/project" cat <<EOF
-# Specify a xcodeproj to compile in project MulleScion instead of the default
-# leave commented out or delete file for default project
-# mulle-scion
-EOF
-
-      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/scheme" cat <<EOF
-# Specify a scheme to compile in project MulleScion instead of the default
-# Might bite itself with TARGET, so only specify one.
-# leave commented out or delete file for default scheme
-# mulle-scion
-EOF
-
-      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/target" cat <<EOF
-# Specify a target to compile in project MulleScion instead of the default.
-# Might bite itself with SCHEME, so only specify one.
-# leave commented out or delete file for default scheme
-# mulle-scion
-EOF
-
-      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/bin/post-install.sh" cat <<EOF
-# Run some commands after installing project MulleScion
-# leave commented out or delete file for no action
-# chmod 755 ${BOOTSTRAP_DIR}/MulleScion.example/bin/post-install.sh
-# to make it work
-# echo "1848"
-EOF
-#chmod 755 "${BOOTSTRAP_DIR}/MulleScion.example/bin/post-install.sh"
-
-      redirect_exekutor "${BOOTSTRAP_DIR}/MulleScion.example/bin/post-update.sh" cat <<EOF
-# Run some commands after upgrading project MulleScion
-# leave commented out or delete file for no action
-# chmod 755 ${BOOTSTRAP_DIR}/MulleScion.example/bin/post-update.sh
-# to make it work
-# echo "1848"
-EOF
-#chmod 755 "${BOOTSTRAP_DIR}/MulleScion.example/bin/post-upgrade.sh"
-
+      if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+      then
+         mainfile="repositories"
+         init_add_repositories "repositories"
+         init_add_repositories "embedded_repositories"
+      else
+         mainfile="brews"
+      fi
    fi
 
    log_verbose "\"${BOOTSTRAP_DIR}\" folder has been set up."
 
    local open
 
-   open="`read_config_setting "open_repositories_file" "ASK"`"
-
+   open="`read_config_setting "open_${mainfile}_file" "ASK"`"
    if [ "${open}" = "ASK" ]
    then
-      user_say_yes "Edit the ${C_MAGENTA}${C_BOLD}repositories${C_WARNING} file now ?"
+      user_say_yes "Edit the ${C_MAGENTA}${C_BOLD}${mainfile}${C_WARNING} file now ?"
       if [ $? -eq 0 ]
       then
           open="YES"
@@ -267,6 +198,6 @@ EOF
       local editor
 
       editor="`read_config_setting "editor" "${EDITOR:-vi}"`"
-      exekutor "${editor}" "${BOOTSTRAP_DIR}/repositories"
+      exekutor "${editor}" "${BOOTSTRAP_DIR}/${mainfile}"
    fi
 }

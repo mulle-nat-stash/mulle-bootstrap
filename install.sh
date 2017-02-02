@@ -168,11 +168,20 @@ then
 fi
 
 
-for i in mulle*bootstrap
-do
-   install -m "${mode}" "${i}" "${bin}/$i" || exit 1
-   printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
-done
+install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-bootstrap" || exit 1
+printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-bootstrap" >&2
+
+case `uname` in
+   MINGW*)
+      install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-brew" || exit 1
+      printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-brew" >&2
+   ;;
+
+   *)
+      ln -f "${bin}/mulle-bootstrap" "${bin}/mulle-brew" || exit 1
+      printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-brew" >&2
+   ;;
+esac
 
 
 case `uname` in

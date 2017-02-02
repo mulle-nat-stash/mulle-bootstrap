@@ -1598,15 +1598,15 @@ _common_main()
       ;;
    esac
 
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_started"
+
    if [ "${BREW_PERMISSIONS}" != "none" ]
    then
       [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
    fi
 
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
-
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
-   create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_started"
 
    case "${COMMAND}" in
       fetch)

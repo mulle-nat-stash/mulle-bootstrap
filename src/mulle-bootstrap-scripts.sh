@@ -64,43 +64,28 @@ run_script()
 }
 
 
-# run in subshell
-run_fake_environment_script()
+run_root_settings_script()
 {
-   local scriptname
+   local  scriptname
 
    scriptname="$1"
    shift
 
-   local reposdir="$1"  # ususally .bootstrap.repos
-   local name="$2"      # name of the clone
-   local url="$3"       # URL of the clone
-   local branch="$4"    # branch of the clone
-   local scm="$5"       # scm to use for this clone
-   local tag="$6"       # tag to checkout of the clone
-   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+   [ -z "$scriptname" ] && internal_fail "scriptname is empty"
 
+   local script
 
-   (
-      local owd="`pwd -P`";
-      cd "${stashdir}" ;
-      REPOS_DIR="${owd}/${REPOS_DIR}" \
-      CLONESBUILD_SUBDIR="${owd}/${CLONESBUILD_SUBDIR}" \
-      DEPENDENCIES_DIR="${owd}/${DEPENDENCIES_DIR}" \
-      ADDICTIONS_DIR="${owd}/${ADDICTIONS_DIR}" \
-      STASHES_DIR="${owd}/${STASHES_DIR}" \
-      run_script "${owd}/${script}" "$@"
-   ) || exit 1
+   script="`find_root_setting_file "bin/${scriptname}.sh"`"
+   if [ ! -z "${script}" ]
+   then
+      run_script "${script}" "$@"
+   fi
 }
-
 
 
 run_build_settings_script()
 {
-   local scriptname
-
-   scriptname="$1"
-   shift
+   local scriptname="$1" ; shift
 
    local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
@@ -123,6 +108,13 @@ run_build_settings_script()
    script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
+      # can happen, if system libs override
+      if [ ! -e "${stashdir}" ]
+      then
+         log_verbose "script \"${scriptname}\" not executed, because ${stashdir} does not exist"
+         return 0
+      fi
+
       run_script "${script}" "${name}" "${url}" "${stashdir}" "$@" || exit 1
    fi
 }
@@ -145,55 +137,18 @@ fetch__run_script()
 #
 fetch__run_root_settings_script()
 {
-   local  scriptname
+   build_complete_environment
 
-   scriptname="$1"
-   shift
-
-   [ -z "$scriptname" ] && internal_fail "scriptname is empty"
-
-   local script
-
-   script="`find_root_setting_file "bin/${scriptname}.sh"`"
-   if [ ! -z "${script}" ]
-   then
-      fetch__run_script "${script}" "$@"
-   fi
+   run_root_settings_script "$@"
 }
 
 
 
 fetch__run_build_settings_script()
 {
-   local scriptname
+   build_complete_environment
 
-   scriptname="$1"
-   shift
-
-   local reposdir="$1"  # ususally .bootstrap.repos
-   local name="$2"      # name of the clone
-   local url="$3"       # URL of the clone
-   local branch="$4"    # branch of the clone
-   local scm="$5"       # scm to use for this clone
-   local tag="$6"       # tag to checkout of the clone
-   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
-
-   [ ! -z "$scriptname" ] || internal_fail "scriptname is empty"
-
-   local script
-
-   script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
-   if [ ! -z "${script}" ]
-   then
-      # can happen, if system libs override
-      if [ ! -e "${stashdir}" ]
-      then
-         log_verbose "script \"${scriptname}\" not executed, because ${stashdir} does not exist"
-         return 0
-      fi
-
-      fetch__run_script "${script}" "$@" || exit 1
-   fi
+   run_build_settings_script "$@"
 }
 
 

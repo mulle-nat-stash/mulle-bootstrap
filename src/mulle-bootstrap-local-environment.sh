@@ -46,7 +46,7 @@ user_say_yes()
            "$x" != "" ]
    do
       printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
-      read -x
+      read x
       x=`echo "${x}" | tr 'a-z' 'A-Z'`
    done
 
@@ -389,10 +389,10 @@ source_environment()
 }
 
 
-   #
-   # read local environment
-   # source this file
-   #
+#
+# read local environment
+# source this file
+#
 local_environment_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
@@ -418,12 +418,6 @@ local_environment_initialize()
          if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
          then
            MULLE_BOOTSTRAP_VERBOSE="YES"
-         fi
-
-         # be optimistic because it's too slow on windows
-         if [ -z "${MULLE_BOOTSTRAP_OPTIMISTIC}" ]
-         then
-           MULLE_BOOTSTRAP_OPTIMISTIC="YES"
          fi
 
          PATH_SEPARATOR=';'

@@ -32,7 +32,7 @@ MULLE_BOOTSTRAP_BREW_SH="included"
 
 
 
-brew_usage()
+_brew_usage()
 {
    cat <<EOF >&2
 usage:
@@ -55,9 +55,6 @@ EOF
 #    and dependencies being wiped occasionally, its better to have a second
 #    directory
 #
-
-BREW="${ADDICTIONS_DIR}/bin/brew"
-
 
 fetch_brew_if_needed()
 {
@@ -105,11 +102,22 @@ brew_install_brews()
 
    log_fluff "Looking for brews"
 
-   brews=`read_root_setting "brews" | sort | sort -u`
+   brews="`read_root_setting "brews" | sort | sort -u`"
    if [ -z "${brews}" ]
    then
-      log_fluff "No brews found"
-      return
+      brews="`(
+         MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=YES
+         read_root_setting "brews" | sort | sort -u
+         )`"
+
+      if [ -z "${brews}" ]
+      then
+         log_fluff "No brews found"
+         return
+      fi
+   else
+      log_info "Setting read from .bootstrap.auto folder. \
+You might want to use mulle-bootstrap instead of mulle-brew."
    fi
 
    fetch_brew_if_needed
@@ -168,7 +176,6 @@ brew_install_brews()
 
    write_protect_directory "${ADDICTIONS_DIR}"
 }
-
 
 
 _brew_common_install()
@@ -244,21 +251,15 @@ _brew_common_main()
       shift
    done
 
-   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]           && . mulle-bootstrap-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+   [ -z "${ADDICTIONS_DIR}" ] && internal_fail "missing ADDICTIONS_DIR"
+
+   BREW="${ADDICTIONS_DIR}/bin/brew"
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if
    # present (somewhat dangerous, because we do not check versions)
    #
-
-
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_brew_done"
-
-   #
-   # Run prepare scripts if present
-   #
-   create_file_if_missing "${REPOS_DIR}/.bootstrap_brew_started"
-
    case "${COMMAND}" in
       install)
          _brew_common_install "$@"
@@ -271,10 +272,10 @@ _brew_common_main()
       upgrade)
          _brew_common_upgrade "$@"
       ;;
-   esac
 
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_brew_started"
-   create_file_if_missing "${REPOS_DIR}/.bootstrap_brew_done"
+      *)
+         internal_fail "Command \"${COMMAND}\" is unknown"
+   esac
 }
 
 
@@ -282,7 +283,7 @@ brew_upgrade_main()
 {
    log_fluff "::: brew upgrade begin :::"
 
-   USAGE="brew_usage"
+   USAGE="_brew_usage"
    COMMAND="upgrade"
    _brew_common_main "$@"
 
@@ -294,7 +295,7 @@ brew_update_main()
 {
    log_fluff "::: brew update begin :::"
 
-   USAGE="brew_usage"
+   USAGE="_brew_usage"
    COMMAND="update"
    _brew_common_main "$@"
 
@@ -302,17 +303,16 @@ brew_update_main()
 }
 
 
-brew_fetch_main()
+brew_install_main()
 {
-   log_fluff "::: brew fetch begin :::"
+   log_fluff "::: brew install begin :::"
 
-   USAGE="brew_usage"
-   COMMAND="fetch"
+   USAGE="_brew_usage"
+   COMMAND="install"
    _brew_common_main "$@"
 
-   log_fluff "::: brew fetch end :::"
+   log_fluff "::: brew install end :::"
 }
-
 
 
 brew_initialize()
