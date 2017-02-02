@@ -186,6 +186,8 @@ run_mulle_bootstrap "$@" -y fetch --no-symlink-creation
 # hack
 rm stashes/a/.bootstrap/embedded_repositories
 
+# ls -a1RF >&2
+
 echo "--| 5 |--------------------------------"
 run_mulle_bootstrap "$@" -y fetch --no-symlink-creation
 

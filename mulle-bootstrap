@@ -249,10 +249,21 @@ bootstrap_libexec_path()
 }
 
 
+bootstrap_dump_env()
+{
+   log_trace "FULL trace started"
+   log_trace "ARGS:${C_TRACE2} ${MULLE_BOOTSTRAP_ARGUMENTS}"
+   log_trace "PWD :${C_TRACE2} `pwd -P`"
+   log_trace "ENV :${C_TRACE2} `env | sort`"
+   log_trace "LS  :${C_TRACE2} `ls -a1F`"
+}
+
+
 bootstrap_main()
 {
    local command
    local libexecpath
+   local ps4string
 
    BOOTSTRAP_DIR=.bootstrap
 
@@ -362,6 +373,34 @@ bootstrap_main()
             MULLE_BOOTSTRAP_PATHS_FLIP_X="NO"
          ;;
 
+         -tp|--trace-profile)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+            case "${UNAME}" in
+               linux)
+                  ps4string='$(date "\+ +%s.%N (${BASH_SOURCE[1]##*/}:$LINENO)")'
+               ;;
+               *)
+                  ps4string='$(date "\+ +%s (${BASH_SOURCE[1]##*/}:$LINENO)")'
+               ;;
+            esac
+         ;;
+
+         -tpo|--trace-postponed)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+            MULLE_BOOTSTRAP_POSTPONE_TRACE=YES
+         ;;
+
+         -tfpwd|--trace-full-pwd)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+            ps4string='${BASH_SOURCE[1]##*/}:$LINENO \"\w\"'
+         ;;
+
+
+         -tpwd|--trace-pwd)
+            [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+            ps4string='${BASH_SOURCE[1]##*/}:$LINENO \".../\W\"'
+         ;;
+
          -t|--trace)
             MULLE_BOOTSTRAP_TRACE="1848"
             COPYMOVEFLAGS="-v"
@@ -370,6 +409,7 @@ bootstrap_main()
             MULLE_BOOTSTRAP_RESOLVER_FLIP_X="YES"
             MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
             MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="NO"
+            ps4string='${BASH_SOURCE[1]##*/}:$LINENO'
          ;;
 
          -v|--verbose)
@@ -451,11 +491,7 @@ bootstrap_main()
          then
             MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
          fi
-         log_trace "FULL trace started"
-         log_trace "ARGS:${C_TRACE2} ${MULLE_BOOTSTRAP_ARGUMENTS}"
-         log_trace "PWD :${C_TRACE2} `pwd -P`"
-         log_trace "ENV :${C_TRACE2} `env | sort`"
-         log_trace "LS  :${C_TRACE2} `ls -a1F`"
+         bootstrap_dump_env
       ;;
 
       1848)
@@ -467,8 +503,15 @@ bootstrap_main()
          then
             MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
          fi
-         log_trace "1848 trace (set -x) started"
-         set -x
+
+         bootstrap_dump_env
+
+         if [ -z "${MULLE_BOOTSTRAP_POSTPONE_TRACE}" ]
+         then
+            log_trace "1848 trace (set -x) started"
+            set -x
+            PS4="+ ${ps4string} + "
+         fi
       ;;
    esac
 

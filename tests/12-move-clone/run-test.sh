@@ -1,4 +1,4 @@
-#! /bin/sh -x
+#! /bin/sh
 
 
 clear_test_dirs()
@@ -17,7 +17,7 @@ clear_test_dirs()
 
 fail()
 {
-   echo "failed" "$@" >&2
+   echo "failed:" "$@" >&2
    exit 1
 }
 
@@ -51,14 +51,14 @@ setup_test_case()
       git commit -m "bla bla"
    ) || exit 1
 
-   echo "../b" > a/.bootstrap/repositories
+   echo "b" > a/.bootstrap/repositories
 }
 
 
 
 move_test_case()
 {
-   echo "../b;b2" > a/.bootstrap/repositories
+   echo "b;b2" > a/.bootstrap/repositories
 }
 
 
@@ -66,34 +66,36 @@ assert_a_1()
 {
    result="`cat stashes/b/README.md`"
    [ "${result}" != "# VfL Bochum 1848" ] && fail "stashes not created ($result)"
+   :
 }
 
 
 assert_a_2()
 {
    result="`cat .bootstrap.auto/repositories`"
-   [ "../b;b2" != "${result}" ] &&  fail ".bootstrap.auto/repositories ($result)"
+   [ "b;b2" != "${result}" ] &&  fail ".bootstrap.auto/repositories ($result)"
 
-   [ ! -e "stashes/b2" ] && fail "stashes not created ($result)"
+   [ ! -e "b2" ] && fail "stashes not created ($result)"
 
-   result="`head -1 .bootstrap.repos/b2`"
-   [ "stashes/b2" != "${result}" ] && fail "($result)"
+   result="`head -1 .bootstrap.repos/b`"
+   [ "b2" != "${result}" ] && fail "($result)"
 
-   result="`cat stashes/b2/README.md`"
+   result="`cat b2/README.md`"
    [ "${result}" != "# VfL Bochum 1848" ] && fail "stashes not created ($result)"
+   :
 }
 
 
 _test_a_1()
 {
-   run_mulle_bootstrap "$@" -a fetch
+   run_mulle_bootstrap "$@" -y fetch  --no-symlink-creation
    assert_a_1
 }
 
 
 _test_a_2()
 {
-   run_mulle_bootstrap "$@" -a fetch
+   run_mulle_bootstrap "$@" -y fetch  --no-symlink-creation
    assert_a_2
 }
 

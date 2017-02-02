@@ -985,7 +985,7 @@ mkdir_if_missing()
 {
    if [ ! -d "$1" ]
    then
-      log_fluff "Creating \"$1\" (`pwd`)"
+      log_fluff "Creating \"$1\""
       exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
    fi
 }
@@ -1037,7 +1037,7 @@ create_file_if_missing()
          mkdir_if_missing "${dir}"
       fi
 
-      log_fluff "Creating \"$1\" (`pwd`)"
+      log_fluff "Creating \"$1\""
       exekutor touch "$1" || fail "failed to create \"$1\""
    fi
 }
@@ -1047,7 +1047,7 @@ remove_file_if_present()
 {
    if [ -e "$1" ]
    then
-      log_fluff "Removing \"$1\" (`pwd`)"
+      log_fluff "Removing \"$1\""
       exekutor chmod u+w "$1" || fail "Failed to make $1 writable"
       exekutor rm -f "$1" || fail "failed to remove \"$1\""
    fi

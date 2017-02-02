@@ -143,7 +143,7 @@ stash_of_repository()
    then
       _stash_of_reposdir_file "${reposfilepath}"
    else
-      log_fluff "No stash found for ${name} in ${reposdir} (`pwd -P`)"
+      log_fluff "No stash found for ${name} in ${reposdir}"
    fi
 }
 
@@ -400,7 +400,7 @@ walk_deep_embedded_repositories()
       (
          cd "${stashdir}" ;
          STASHES_DIR="" ;
-         walk_repositories "embedded_repositories" "${callback}" "${permissions}" "${REPOS_DIR}.embedded"
+         walk_repositories "embedded_repositories" "${callback}" "${permissions}" "${REPOS_DIR}/.embedded"
       ) || exit 1
    done
 
@@ -479,14 +479,15 @@ _canonical_name_from_clone()
    _canonical_clone_name "${url}"
 }
 
+
 path_relative_to_root_dir()
 {
    local relpath="$1"
 
-   local apath
-
    [ -z "${ROOT_DIR}" ] && internal_fail "ROOT_DIR not set"
    [ -z "${relpath}" ]  && internal_fail "relpath not set"
+
+   local apath
 
    apath="${ROOT_DIR}/${relpath}"
 

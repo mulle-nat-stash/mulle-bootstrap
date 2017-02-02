@@ -3,46 +3,52 @@ digraph refresh {
    node [shape="none"]
 
    "fetch"  [ fillcolor="red", style="filled", fontcolor="white"]
-   "update" [ fillcolor="blue", style="filled", fontcolor="white"]
+   "upgrade" [ fillcolor="blue", style="filled", fontcolor="white"]
 
    node [shape="record"]
 
-   fetch  -> "mark_all_repositories_as_zombies" [ lhead=cluster_0]
-   update -> "update_embedded_repositories"     [ lhead=cluster_1]
-   "run_update_scripts"            -> "fetch" [ lhead=cluster_0]
+   fetch  -> "assume_stashes_are_zombies" [ lhead=cluster_0]
+   upgrade -> "upgrade_embedded_repositories"     [ lhead=cluster_1]
 
 
    subgraph cluster_0 {
       node [shape="record"]
       color="red"
 
-      "bootstrap_auto_update"
       "inviso" [ style="invisible"]
-      "mark_all_repositories_as_zombies"    -> "bootstrap_auto_create"
 
-      "bootstrap_auto_create"               -> "fetch_missing_embedded_repositories"
+      "assume_stashes_are_zombies"          -> "bootstrap_auto_create"
 
-      "fetch_missing_embedded_repositories" -> "fetch_missing_repositories" [color="red"]
-      "fetch_missing_repositories"          -> "bootstrap_auto_update" [color="red"]
-      "bootstrap_auto_update"               -> "fetch_missing_repositories"   [color="red"]
+      "bootstrap_auto_create"               -> "work_all_repositories"
 
-      "bootstrap_auto_update"               -> "fetch_missing_deep_embedded_repositories" [color="red"]
-      "fetch_missing_deep_embedded_repositories" -> "bootstrap_auto_final"
-      "bootstrap_auto_final"                -> "unmark_alive_stashes"
+      "work_all_repositories"               -> "work_embedded_clones"     [color="red"]
+      "work_embedded_clones"                -> "work_clones"              [color="red"]
+      "work_clones"                         -> "bootstrap_auto_update"    [color="red"]
+      "bootstrap_auto_update"               -> "mark_stash_as_alive"      [color="red"]
+      "mark_stash_as_alive"                 -> "work_embedded_clones (2)" [color="red"]
+      "work_embedded_clones (2)"            -> "work_clones"              [color="red"]
+      "work_all_repositories"               -> "bootstrap_auto_final"
+      "bootstrap_auto_final"                -> "bury_zombies_in_graveyard"
 
-      "unmark_alive_stashes"                -> "bury_zombies_in_graveyard"
-      "bury_zombies_in_graveyard"           -> "run_fetch_scripts"
+      "bury_zombies_in_graveyard"           -> "run_post_fetch_scripts"
 
-      "fetch_missing_embedded_repositories"        [ fontcolor="red"]
-      "fetch_missing_repositories"                 [ fontcolor="red"]
-      "fetch_missing_deep_embedded_repositories"   [ fontcolor="red"]
+      "work_embedded_clones"                 [ fontcolor="red"]
+      "work_clones"                          [ fontcolor="red"]
+      "work_clones"                          [ fontcolor="red"]
+      "mark_stash_as_alive"                  [ fontcolor="red"]
+      "bootstrap_auto_update"                [ fontcolor="red"]
+      "work_embedded_clones (2)"             [ label="work_embedded_clones", fontcolor="red"]
    }
+
    subgraph cluster_1 {
       node [shape="record"]
       color="blue"
 
-      "update_embedded_repositories"  -> "update_repositories"
-      "update_repositories"           -> "update_deep_embedded_repositories"
-      "update_deep_embedded_repositories"  -> "run_update_scripts"
+      "upgrade_embedded_repositories"       -> "upgrade_repositories"
+      "upgrade_repositories"                -> "upgrade_deep_embedded_repositories"
+      "upgrade_deep_embedded_repositories"  -> "fetch"
+      "run_post_fetch_scripts"              -> "run_post_upgrade_scripts" [ lhead="cluster_0"]
    }
+
+
 }

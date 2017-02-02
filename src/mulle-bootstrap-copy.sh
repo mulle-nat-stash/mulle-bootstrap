@@ -42,11 +42,11 @@ tar_remove_extension()
    then
       case "${UNAME}" in
          darwin|freebsd)
-            echo "-s/\.$1//"
+            echo "-s/\.$1\$//"
          ;;
 
          *)
-            echo "--transform /\.$1//"
+            echo "--transform /\.$1\$//"
          ;;
       esac
    fi
@@ -59,20 +59,13 @@ tar_remove_extension()
 # ext can be empty
 # noclobber can be empty or YES
 #
-copy_files_stripping_extension()
+_copy_files()
 {
-   local srcdir
-   local dstdir
-   local ext
-
-   dstdir="$1"
-   shift
-   srcdir="$1"
-   shift
-   ext="$1"
-   shift
-   noclobber="$1"
-   shift
+   local taroptions="$1" ; shift
+   local dstdir="$1" ; shift
+   local srcdir="$1" ; shift
+   local ext="$1" ; shift
+   local noclobber="$1" ; shift
 
    [ -d "${srcdir}" ] || internal_fail "${srcdir} does not exist"
    [ -d "${dstdir}" ] || internal_fail "${dstdir} does not exist"
@@ -91,23 +84,39 @@ copy_files_stripping_extension()
       cd "${srcdir}" ;
       if [ -z "${ext}" ]
       then
-         find . \( -type f -a ! -name "*.*" \) -print
+         exekutor find . \( -type f -a ! -name "*.*" \) -print
       else
-         find . \( -type f -a -name "*.${ext}" \) -print
+         exekutor find . \( -type f -a -name "*.${ext}" \) -print
       fi |
-         tar -c `tar_remove_extension "${ext}"` -f - -T -
+         exekutor tar -c ${taroptions} -f - -T -
    ) |
    (
       cd "${dstdir}" ;
       if [ -z "${noclobber}" ]
       then
-         tar xf - $*
+         exekutor tar xf - ${COPYMOVEFLAGS} $*
       else
-         tar xf - -k 2> /dev/null
+         exekutor tar xf - ${COPYMOVEFLAGS} -k 2> /dev/null
          :
       fi
-   )
+   ) >&2
 }
+
+
+copy_files_stripping_last_extension()
+{
+   local ext="$3"
+   local lastext="`echo "${ext}" | sed 's/\.[^.]*$//'`"
+
+   _copy_files "`tar_remove_extension "${lastext}"`" "$@"
+}
+
+
+copy_files_keeping_extension()
+{
+   _copy_files "" "$@"
+}
+
 
 
 #
@@ -120,15 +129,17 @@ inherit_files()
 
    dstdir="$1"
 
+   [ $# -eq 2 ] || internal_fail "parameter error"
+
    mkdir_if_missing "${dstdir}"
 
    # prefer to copy os-specific first, "-k" won't overwrite
-   exekutor copy_files_stripping_extension "$@" "${UNAME}" "YES" || fail "copy"
-   exekutor copy_files_stripping_extension "$@" ".sh.${UNAME}" "YES" || fail "copy"
+   copy_files_stripping_last_extension "$@" "${UNAME}" "YES" || fail "copy"
+   copy_files_stripping_last_extension "$@" "sh.${UNAME}" "YES" || fail "copy"
 
    # then to copy generic, again "-k" won't overwrite
-   exekutor copy_files_stripping_extension "$@" "" "YES" || fail "copy"
-   exekutor copy_files_stripping_extension "$@" ".sh" "YES" || fail "copy"
+   copy_files_keeping_extension "$@" "" "YES" || fail "copy"
+   copy_files_keeping_extension "$@" "sh" "YES" || fail "copy"
 }
 
 
@@ -142,15 +153,17 @@ override_files()
 
    dstdir="$1"
 
+   [ $# -eq 2 ] || internal_fail "parameter error"
+
    mkdir_if_missing "${dstdir}"
 
    # first copy generic, clobber what's there
-   exekutor copy_files_stripping_extension "$@"       || fail "copy"
-   exekutor copy_files_stripping_extension "$@" ".sh" || fail "copy"
+   copy_files_keeping_extension "$@"      || fail "copy"
+   copy_files_keeping_extension "$@" "sh" || fail "copy"
 
    # then copy os-specific to clobber generics
-   exekutor copy_files_stripping_extension "$@" "${UNAME}" || fail "copy"
-   exekutor copy_files_stripping_extension "$@" ".sh.${UNAME}" || fail "copy"
+   copy_files_stripping_last_extension "$@" "${UNAME}" || fail "copy"
+   copy_files_stripping_last_extension "$@" "sh.${UNAME}" || fail "copy"
 }
 
 

@@ -42,7 +42,7 @@ bootstrap_auto_create()
 {
    [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "empty bootstrap"
 
-   log_fluff "Creating ${BOOTSTRAP_DIR}.auto from ${BOOTSTRAP_DIR} (`pwd`)"
+   log_fluff "Creating ${BOOTSTRAP_DIR}.auto from ${BOOTSTRAP_DIR}"
 
    assert_mulle_bootstrap_version
 
@@ -54,7 +54,7 @@ bootstrap_auto_create()
    #
    if dir_has_files "${BOOTSTRAP_DIR}.local"
    then
-      exekutor cp -Ra "${BOOTSTRAP_DIR}.local/" "${BOOTSTRAP_DIR}.auto/"
+      exekutor cp -Ra ${COPYMOVEFLAGS} "${BOOTSTRAP_DIR}.local/" "${BOOTSTRAP_DIR}.auto/" >&2
    fi
 
    #
@@ -85,7 +85,7 @@ bootstrap_auto_create()
          ;;
 
          *)
-            exekutor cp -Ran "${BOOTSTRAP_DIR}/${name}" "${BOOTSTRAP_DIR}.auto/"
+            exekutor cp -Ran ${COPYMOVEFLAGS}  "${BOOTSTRAP_DIR}/${name}" "${BOOTSTRAP_DIR}.auto/" >&2
          ;;
       esac
    done
@@ -275,13 +275,13 @@ _bootstrap_auto_merge_root_settings()
 
          log_fluff "Merging \"${settingname}\" from \"${srcfile}\""
 
-         exekutor mv "${dstfile}" "${tmpfile}" || exit 1
+         exekutor mv ${COPYMOVEFLAGS}  "${dstfile}" "${tmpfile}" >&2 || exit 1
          redirect_exekutor "${dstfile}" exekutor merge_settings_in_front "${srcfile}" "${tmpfile}"  || exit 1
-         exekutor rm "${tmpfile}" || exit 1
+         exekutor rm ${COPYMOVEFLAGS}  "${tmpfile}" >&2 || exit 1
       else
          log_fluff "Copying \"${settingname}\" from \"${srcfile}\""
 
-         exekutor cp "${srcfile}" "${dstfile}" || exit 1
+         exekutor cp ${COPYMOVEFLAGS}  "${srcfile}" "${dstfile}" >&2 || exit 1
       fi
    done
 
@@ -360,7 +360,7 @@ bootstrap_create_build_folders()
    do
       IFS="${DEFAULT_IFS}"
 
-      dstdir="${BOOTSTRAP_DIR}.auto/.${name}.build"
+      dstdir="${BOOTSTRAP_DIR}.auto/${name}.build"
       if [ ${has_settings} -eq 0 ]
       then
          inherit_files "${dstdir}" "${BOOTSTRAP_DIR}.auto/settings"
@@ -463,6 +463,7 @@ repositories
 version
 '
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_COPY_SH}" ] && . mulle-bootstrap-copy.sh
    :
 }
 

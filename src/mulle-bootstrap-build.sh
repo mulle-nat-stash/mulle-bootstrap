@@ -116,7 +116,7 @@ dispense_headers()
          # this fails with more nested header set ups, need to fix!
 
          log_fluff "Copying \"${src}\" to \"${dst}\""
-         exekutor cp -Ra ${COPYMOVEFLAGS} "${src}"/* "${dst}" || exit 1
+         exekutor cp -Ra ${COPYMOVEFLAGS} "${src}"/* "${dst}" >&2 || exit 1
 
          rmdir_safer "${src}"
       else
@@ -163,7 +163,7 @@ dispense_binaries()
          log_fluff "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
-            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}"
+            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}" >&2
          [ $? -eq 0 ]  || exit 1
       else
          log_fluff "But there are none"
@@ -285,7 +285,7 @@ collect_and_dispense_product()
 
          log_fluff "Copying everything from \"${src}\" to \"${dst}\""
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -print0 | \
-               exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}"
+               exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}" >&2
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
       fi
 

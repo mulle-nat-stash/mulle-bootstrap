@@ -819,7 +819,7 @@ _operation_walk_embedded_repositories()
       walk_repositories "embedded_repositories"  \
                         "${operation}" \
                         "${permissions}" \
-                        "${REPOS_DIR}.embedded"
+                        "${REPOS_DIR}/.embedded"
    ) || exit 1
 }
 
@@ -1034,8 +1034,8 @@ work_clones()
 
    local actionitems
    local fetched
-   local go_deep
    local repotype
+   local oldstashdir
 
    case "${reposdir}" in
       *embedded)
@@ -1073,23 +1073,12 @@ work_clones()
                                               "${scm}" \
                                               "${tag}" \
                                               "${stashdir}"`" || exit 1
-      if [ -z "${actionitems}" ]
-      then
-         if [ "${autoupdate}" = "YES" ]
-         then
-            bootstrap_auto_update "${stashdir}"
-         fi
-
-         log_fluff "Nothing to do for \"${url}\""
-         continue
-      fi
 
       IFS="
 "
       for item in ${actionitems}
       do
          IFS="${DEFAULT_IFS}"
-         go_deep="${autoupdate}"
 
          case "${item}" in
             "checkout")
@@ -1119,11 +1108,10 @@ work_clones()
             ;;
 
             "move")
-               log_verbose "Moving ${repotype}stash \"${name}\" to \"`absolutepath ${stashdir}`\""
-
                oldstashdir="`stash_of_repository "${reposdir}" "${name}"`"
-               rmdir_safer "${oldstashdir}"
-               go_deep="NO"
+               log_verbose "Moving ${repotype}stash \"${name}\" from \"${oldstashdir}\" to \"`absolutepath ${stashdir}`\""
+
+               exekutor mv ${COPYMOVEFLAGS} "${oldstashdir}" "${stashdir}"
             ;;
 
             "pull")
@@ -1143,8 +1131,6 @@ work_clones()
 
                oldstashdir="`stash_of_repository "${reposdir}" "${name}"`"
                rmdir_safer "${oldstashdir}"
-
-               go_deep="NO"
             ;;
 
             "set-remote")
@@ -1158,50 +1144,54 @@ work_clones()
                   fail "Could not figure out a remote for \"$PWD/${stashdir}\""
                fi
                git_set_url "${stashdir}" "${remote}" "${url}"
-
-               go_deep="NO"
             ;;
 
             *)
                internal_fail "Unknown action item \"${item}\""
             ;;
          esac
-
-         if [ "${autoupdate}" = "YES" ]
-         then
-            bootstrap_auto_update "${stashdir}"
-         fi
-
-         if [ "${go_deep}" = "YES" ]
-         then
-            if [ ! -L "${stashdir}" -o "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
-            then
-               (
-                  local embedded_clones;
-
-                  ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
-                  MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES" ;
-                  STASHES_DIR=""
-
-                  cd_physical "${stashdir}" &&
-                  embedded_clones="`read_root_setting "embedded_repositories"`" &&
-                  work_clones "${REPOS_DIR}.embedded" "${embedded_clones}" "NO"  > /dev/null
-               ) || exit 1
-            fi
-         fi
-
-         #
-         # always remember, what we have now
-         #
-         remember_stash_of_repository "${clone}" \
-                                      "${reposdir}" \
-                                      "${name}"  \
-                                      "${url}" \
-                                      "${branch}" \
-                                      "${scm}" \
-                                      "${tag}" \
-                                      "${stashdir}"
       done
+
+      if [ "${autoupdate}" = "YES" ]
+      then
+         bootstrap_auto_update "${stashdir}"
+      fi
+
+      #
+      # always remember, what we have now
+      #
+      remember_stash_of_repository "${clone}" \
+                                   "${reposdir}" \
+                                   "${name}"  \
+                                   "${url}" \
+                                   "${branch}" \
+                                   "${scm}" \
+                                   "${tag}" \
+                                   "${stashdir}"
+
+      mark_stash_as_alive "${reposdir}" "${name}"
+
+      if [ ! -L "${stashdir}" -o "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
+      then
+         (
+            local embedded_clones;
+
+            ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+            MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES" ;
+            STASHES_DIR=""
+
+            cd_physical "${stashdir}" &&
+            embedded_clones="`read_root_setting "embedded_repositories"`" &&
+            work_clones "${REPOS_DIR}/.embedded" "${embedded_clones}" "NO"  > /dev/null
+         ) || exit 1
+      else
+         log_fluff "Not following \"${stashdir}\" to embedded repositories of \"${name}\" because it's a symlink"
+         # but need to mark them as alive
+         (
+            cd_physical "${stashdir}" &&
+            mark_all_stashes_as_alive "${REPOS_DIR}/.embedded"
+         ) || exit 1
+      fi
    done
 
    IFS="${DEFAULT_IFS}"
@@ -1274,24 +1264,13 @@ work_all_repositories()
 ### Main fetch loop   #    #    #----#
                       #----#    #----#    #----#
 
-mark_stashes_as_zombies()
+assume_stashes_are_zombies()
 {
-   mark_embedded_repository_stashes
+   zombify_embedded_repository_stashes
    if [ -z "${EMBEDDED_ONLY}" ]
    then
-      mark_repository_stashes
-      mark_deep_embedded_repository_stashes
-   fi
-}
-
-
-unmark_alive_stashes()
-{
-   unmark_embedded_repository_stashes
-   if [ -z "${EMBEDDED_ONLY}" ]
-   then
-      unmark_repository_stashes
-      unmark_deep_embedded_repository_stashes
+      zombify_repository_stashes
+      zombify_deep_embedded_repository_stashes
    fi
 }
 
@@ -1341,7 +1320,13 @@ fetch_loop()
 {
    local fetched
 
-   mark_stashes_as_zombies
+   if [ ! -z "${MULLE_BOOTSTRAP_POSTPONE_TRACE}" -a "${MULLE_BOOTSTRAP_TRACE}" = "1848" ]
+   then
+      set -x
+      PS4="+ ${ps4string} + "
+   fi
+
+   assume_stashes_are_zombies
 
    bootstrap_auto_create
 
@@ -1349,7 +1334,6 @@ fetch_loop()
 
    bootstrap_auto_final
 
-   unmark_alive_stashes
    bury_zombies_in_graveyard
 
    echo "${fetched}"

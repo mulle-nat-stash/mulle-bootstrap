@@ -62,7 +62,7 @@ EOF
 #
 # ###
 #
-_mark_stashes_as_zombies()
+_zombify_stashes()
 {
    local reposdir
 
@@ -79,47 +79,47 @@ _mark_stashes_as_zombies()
       zombiepath="${reposdir}/.zombies"
       mkdir_if_missing "${zombiepath}"
 
-      exekutor cp "${reposdir}/"* "${zombiepath}/"
+      exekutor cp ${COPYMOVEFLAGS} "${reposdir}/"* "${zombiepath}/" >&2
    fi
 }
 
 
-_mark_stashes_as_alive()
+mark_stash_as_alive()
+{
+   local reposdir
+
+   reposdir="$1"
+   name="$2"
+
+   [ $# -eq 2 ] || internal_fail "parameter error"
+
+   zombie="${reposdir}/.zombies/${name}"
+   if [ -e "${zombie}" ]
+   then
+      log_fluff "Marking \"${name}\" as alive"
+
+      exekutor rm -f ${COPYMOVEFLAGS} "${zombie}" >&2 || fail "failed to delete zombie ${zombie}"
+   else
+      log_fluff "Marked \"${name}\" is already alive (`absolutepath "${zombie}"` not present)"
+   fi
+}
+
+
+mark_all_stashes_as_alive()
 {
    local reposdir
 
    reposdir="$1"
 
-   [ $# -eq 1 ] || internal_fail "parameter error"
+   local zombiedir
 
-   local i
-   local name
-   local zombie
+   zombiedir="${reposdir}/.zombies"
 
-   if dir_has_files "${reposdir}"
+   if dir_has_files "${zombiedir}"
    then
-
-      IFS="
-"
-      for i in `ls -1d "${reposdir}/"*`
-      do
-         IFS="${DEFAULT_IFS}"
-
-         name="`basename -- "${i}"`"
-         zombie="${reposdir}/.zombies/${name}"
-
-         if [ -e "${zombie}" ]
-         then
-            log_fluff "Mark \"${name}\" as alive"
-
-            exekutor rm -f "${zombie}" || fail "failed to delete zombie ${zombie}"
-         else
-            log_fluff "Marked \"${name}\" is already alive"
-         fi
-      done
+      log_fluff "Marking all stashes of \"${reposdir}\" as alive"
+      exekutor rm -f ${COPYMOVEFLAGS} "${zombiedir}/"* >&2 || fail "failed to delete zombie ${zombie}"
    fi
-
-   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -140,12 +140,11 @@ _bury_zombies()
    local zombiepath
    local gravepath
 
-   # first mark all repos as stale
    zombiepath="${reposdir}/.zombies"
 
    if dir_has_files "${zombiepath}"
    then
-      log_fluff "Burying zombies into graveyard"
+      log_fluff "Moving zombies into graveyard"
 
       gravepath="${reposdir}/.graveyard"
       mkdir_if_missing "${gravepath}"
@@ -159,8 +158,8 @@ _bury_zombies()
 
             if [ -L "${stashdir}"  ]
             then
-               log_info "Removed unused symlink ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO}"
-               exekutor rm "${stashdir}"
+               log_info "Removing unused symlink ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO}"
+               exekutor rm ${COPYMOVEFLAGS}  "${stashdir}" >&2
                continue
             fi
 
@@ -168,15 +167,16 @@ _bury_zombies()
             then
                if [ -e "${gravepath}/${name}" ]
                then
-                  exekutor rm -rf "${gravepath}/${name}"
-                  log_fluff "Repurposed old grave \"${gravepath}/${name}\""
+                  log_fluff "Repurposing old grave \"${gravepath}/${name}\""
+                  exekutor rm -rf ${COPYMOVEFLAGS}  "${gravepath}/${name}" >&2
                fi
 
-               exekutor mv "${stashdir}" "${gravepath}/"
-               exekutor rm "${i}"
-               exekutor rm "${reposdir}/${name}"
+               log_info "Removing unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} (\"${stashdir}\")"
 
-               log_info "Removed unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} (\"${stashdir}\")"
+               exekutor mv ${COPYMOVEFLAGS} "${stashdir}" "${gravepath}/" >&2
+               exekutor rm ${COPYMOVEFLAGS} "${i}" >&2
+               exekutor rm ${COPYMOVEFLAGS} "${reposdir}/${name}" >&2
+
             else
                log_fluff "Zombie \"${stashdir}\" vanished or never existed ($PWD)"
             fi
@@ -186,7 +186,7 @@ _bury_zombies()
 
    if [ -d "${zombiepath}" ]
    then
-      exekutor rm -rf "${zombiepath}"
+      exekutor rm -rf ${COPYMOVEFLAGS} "${zombiepath}" >&2
    fi
 }
 
@@ -194,23 +194,23 @@ _bury_zombies()
 #
 #
 #
-mark_embedded_repository_stashes()
+zombify_embedded_repository_stashes()
 {
    log_fluff "Marking all embedded repositories as zombies for now"
 
-   _mark_stashes_as_zombies "${REPOS_DIR}/.embedded"
+   _zombify_stashes "${REPOS_DIR}/.embedded"
 }
 
 
-mark_repository_stashes()
+zombify_repository_stashes()
 {
    log_fluff "Marking all repositories as zombies for now"
 
-   _mark_stashes_as_zombies "${REPOS_DIR}"
+   _zombify_stashes "${REPOS_DIR}"
 }
 
 
-mark_deep_embedded_repository_stashes()
+zombify_deep_embedded_repository_stashes()
 {
    local stashes
    local stash
@@ -224,47 +224,10 @@ mark_deep_embedded_repository_stashes()
    do
       IFS="${DEFAULT_IFS}"
 
-      _mark_stashes_as_zombies "${stash}/${REPOS_DIR}/.embedded"
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
-
-#
-#
-#
-unmark_embedded_repository_stashes()
-{
-   log_fluff "Unmarking alive embedded repositories"
-
-   _mark_stashes_as_alive "${REPOS_DIR}/.embedded"
-}
-
-
-unmark_repository_stashes()
-{
-   log_fluff "Unmarking alive repositories"
-
-   _mark_stashes_as_alive "${REPOS_DIR}"
-}
-
-
-unmark_deep_embedded_repository_stashes()
-{
-   local stashes
-   local stash
-
-   log_fluff "Unmarking alive deep embedded repositories"
-
-   IFS="
-"
-   stashes="`all_repository_stashes "${REPOS_DIR}"`"
-   for stash in ${stashes}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      _mark_stashes_as_alive "${stash}/${REPOS_DIR}/.embedded"
+      (
+         cd "${stash}" &&
+         _zombify_stashes "${REPOS_DIR}/.embedded"
+      ) || fail "failed to mark stashes"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -304,7 +267,10 @@ bury_deep_embedded_repository_zombies()
    do
       IFS="${DEFAULT_IFS}"
 
-      _bury_zombies "${stash}/${REPOS_DIR}/.embedded"
+      (
+         cd "${stash}" &&
+         _bury_zombies "${REPOS_DIR}/.embedded"
+      ) || fail "failed to bury zombies"
    done
 
    IFS="${DEFAULT_IFS}"
