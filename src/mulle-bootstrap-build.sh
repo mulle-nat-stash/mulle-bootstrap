@@ -1717,34 +1717,11 @@ build_xcodebuild_schemes_or_target()
 }
 
 
-run_build_script()
-{
-   local script
-
-   script="$1"
-   shift
-
-   [ ! -z "$script" ] || internal_fail "script is empty"
-
-   if [ -x "${script}" ]
-   then
-      log_fluff "Executing script \"${script}\" $1"
-      exekutor "${script}" "$@"
-   else
-      if [ ! -e "${script}" ]
-      then
-         fail "script \"${script}\" not found ($PWD)"
-      else
-         fail "script \"${script}\" not executable"
-      fi
-   fi
-}
-
 
 run_log_build_script()
 {
    echo "$@"
-   run_build_script "$@"
+   run_script "$@"
 }
 
 

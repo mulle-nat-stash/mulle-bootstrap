@@ -695,6 +695,12 @@ bootstrap_main()
          clean_main "dist" || exit 1
       ;;
 
+      flags)
+         . mulle-bootstrap-flags.sh
+
+         flags_main "$@" || exit 1
+      ;;
+
       git)
          . mulle-bootstrap-scm.sh
 
@@ -868,6 +874,12 @@ brew_main()
          . mulle-bootstrap-clean.sh
 
          clean_main "dist" || exit 1
+      ;;
+
+      flags)
+         . mulle-bootstrap-flags.sh
+
+         flags_main "$@" || exit 1
       ;;
 
       init)
