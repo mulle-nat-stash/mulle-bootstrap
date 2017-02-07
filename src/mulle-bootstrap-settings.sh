@@ -95,16 +95,42 @@ warn_environment_setting()
 }
 
 
+__read_setting()
+{
+   local path="$1"
+
+   egrep -s -v '^#|^[ ]*$' "${path}"
+}
+
+
+_copy_no_clobber_setting_file()
+{
+   local dst="${1:-.}" ; shift
+   local src="${1:-.}" ; shift
+
+   if [ ! -f "${dst}" ]
+   then
+      exekutor cp ${COPYMOVEFLAGS} "${src}" "${dst}"
+   else
+      value1="`__read_setting "${src}"`"
+      value2="`__read_setting "${dst}"`"
+
+      if [ "${value1}" != "${value2}" ]
+      then
+         fail "\"${src}\" is incompatible with \"${dst}\", which is already present."
+      fi
+      log_fluff "Skipping \"${src}\" as it's already present."
+   fi
+}
+
+
 #
 # Base function, not be called outside of this file
 #
 _read_setting()
 {
-   local path
-   local name
-
-   path="$1"
-   name="$2"
+   local path="$1"
+   local name="$2"
 
    [ ! -z "${path}" ] || fail "no path given to read_setting"
    [ ! -z "${name}" ] || fail "no name given to read_setting"
@@ -136,7 +162,7 @@ _read_setting()
 
       if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
       then
-         log_fluff "${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found as \"${path}\""
+         log_setting "${C_MAGENTA}${name}${C_SETTING} found as \"${path}\""
       fi
 
       echo "${value}"
@@ -148,7 +174,7 @@ _read_setting()
    #
    # remove empty lines, remove comment lines
    #
-   value="`egrep -s -v '^#|^[ ]*$' "${path}"`"
+   value="`__read_setting "${path}"`"
    rval=$?
 
    if [ $rval -eq 2 ]
@@ -158,15 +184,22 @@ _read_setting()
 
    if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
    then
+      local apath
+
+      apath="`absolutepath "${path}"`"
+
+      # make some boring names less prominent
       if [ "${name}" = "repositories" -o \
            "${name}" = "repositories.tmp" -o \
            "${name}" = "build_order" -o \
            "${name}" = "versions" -o \
-           "${name}" = "embedded_repositories" ]
+           "${name}" = "embedded_repositories" -o \
+           "${name}" = "MULLE_REPOSITORIES" -o \
+           "${name}" = "MULLE_NAT_REPOSITORIES"  ]
       then
-         log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_FLUFF} found in \"${path}\" as ${C_MAGENTA}${C_BOLD}${value}${C_FLUFF}"
+         log_setting "Setting ${C_MAGENTA}${name}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${C_BOLD}${value}${C_SETTING}"
       else
-         log_verbose "Setting ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} found in \"${path}\" as ${C_MAGENTA}${C_BOLD}${value}${C_VERBOSE}"
+         log_verbose "${C_SETTING}Setting ${C_MAGENTA}${name}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${value}${C_SETTING}"
       fi
    fi
 
@@ -328,7 +361,7 @@ read_config_setting()
          then
             if [ ! -z "${default}" ]
             then
-               log_fluff "Setting ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} set to default ${C_MAGENTA}${C_BOLD}${default}${C_VERBOSE}"
+               log_setting "Setting ${C_MAGENTA}${name}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
             fi
             value="${default}"
          fi
@@ -374,7 +407,7 @@ read_build_setting()
    then
       if [ ! -z "${default}" ]
       then
-         log_fluff "Build Setting ${C_MAGENTA}${C_BOLD}${package}${C_VERBOSE} for ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} set to default ${C_MAGENTA}${C_BOLD}${default}${C_VERBOSE}"
+         log_setting "Build Setting ${C_MAGENTA}${package}${C_SETTING} for ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} set to default ${C_MAGENTA}${default}${C_SETTING}"
       fi
       value="${default}"
    fi
@@ -414,7 +447,7 @@ read_root_setting()
    then
       if [ ! -z "${default}" ]
       then
-         log_fluff "Root setting for ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} set to default ${C_MAGENTA}${C_BOLD}${default}${C_VERBOSE}"
+         log_setting "Root setting for ${C_MAGENTA}${name}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
       fi
       value="${default}"
    fi
@@ -600,7 +633,7 @@ config_main()
 
          -n|--off|--no|--NO)
             command="write"
-            value="NO"
+            value=
          ;;
 
          -y|--on|--yes|--YES)
@@ -609,7 +642,7 @@ config_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown config option $1"
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown option $1"
             config_usage
          ;;
 
@@ -688,7 +721,7 @@ setting_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown config option $1"
+            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown option $1"
             config_usage
          ;;
 

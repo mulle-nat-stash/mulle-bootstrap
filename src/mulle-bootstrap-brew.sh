@@ -31,7 +31,6 @@
 MULLE_BOOTSTRAP_BREW_SH="included"
 
 
-
 _brew_usage()
 {
    cat <<EOF >&2
@@ -58,6 +57,8 @@ EOF
 
 fetch_brew_if_needed()
 {
+   [ ! -z "${BREW}" ] ||  internal_fail "BREW undefined"
+
    if [ -x "${BREW}" ]
    then
       return
@@ -81,7 +82,7 @@ fetch_brew_if_needed()
 
    if [ ! -x "${BREW}" ]
    then
-      fail "brew was not successfully installed"
+      fail "brew was not successfully installed (PATH=$PATH)"
    fi
 
    return 1
@@ -122,6 +123,8 @@ _brew_install_brews()
    You might want to use mulle-bootstrap instead of mulle-brew."
       fi
    fi
+
+   fetch_brew_if_needed
 
    if [ "${brewcmd}" = "update" ]
    then
@@ -176,9 +179,7 @@ brew_install_brews()
 {
    local unprotect
 
-   fetch_brew_if_needed
-
-   unprotect="NO"
+   unprotect=
    if [ -d "${ADDICTIONS_DIR}" ]
    then
       log_fluff "Unprotecting \"${ADDICTIONS_DIR}\" for ${command}."
@@ -245,10 +246,6 @@ _brew_common_main()
       case "$1" in
          -h|-help|--help)
             ${USAGE}
-         ;;
-
-         -nr|--no-recursion)
-            DONT_RECURSE="YES"
          ;;
 
          -cs|--check-usr-local-include)

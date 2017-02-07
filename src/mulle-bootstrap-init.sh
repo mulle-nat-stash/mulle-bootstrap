@@ -117,11 +117,11 @@ init_main()
          ;;
 
          -n)
-            MULLE_BOOTSTRAP_ANSWER="NO"
+            MULLE_BOOTSTRAP_ANSWER=
          ;;
 
          -d)
-            CREATE_DEFAULT_FILES="NO"
+            CREATE_DEFAULT_FILES=
          ;;
 
          -e)

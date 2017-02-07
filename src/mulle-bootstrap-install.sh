@@ -327,7 +327,7 @@ install_main()
 
    case "${UNAME}" in
       *)
-         INSTALL_FRAMEWORKS="NO"
+         INSTALL_FRAMEWORKS=
          ;;
 
       darwin)
@@ -348,7 +348,7 @@ Suggested fix:
 
    case "${UNAME}" in
       mingw)
-         symlink="NO"
+         symlink=
       ;;
 
       *)

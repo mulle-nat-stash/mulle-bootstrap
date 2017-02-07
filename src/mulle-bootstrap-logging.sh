@@ -91,6 +91,16 @@ log_fluff()
 }
 
 
+# setting is like fluff but different color scheme
+log_setting()
+{
+   if [ "${MULLE_BOOTSTRAP_FLUFF}" = "YES"  ]
+   then
+      log_printf "${C_SETTING}%b${C_RESET}\n" "$*"
+   fi
+}
+
+
 log_trace()
 {
    log_printf "${C_TRACE}%b${C_RESET}\n" "$*"
@@ -195,6 +205,7 @@ logging_initialize()
    C_INFO="${C_CYAN}${C_BOLD}"
    C_VERBOSE="${C_GREEN}${C_BOLD}"
    C_FLUFF="${C_GREEN}${C_BOLD}"
+   C_SETTING="${C_GREEN}${C_FAINT}"
    C_TRACE="${C_FLUFF}${C_FAINT}"
    C_TRACE2="${C_RESET}${C_FAINT}"
 

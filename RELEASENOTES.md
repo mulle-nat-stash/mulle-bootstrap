@@ -1,5 +1,7 @@
 # 3.0
 
+#### New commands: defer, emancipate, flags, status
+
 #### mulle-bootstrap command syntax was related to git, but now it's related
 to homebrew and apt-get. This has been done, because I wan't to have mulle-brew
 as a separate shell command, and the git syntax doesn't fit.

@@ -240,6 +240,54 @@ all_stashes()
 # Walkers
 #
 
+walk_check()
+{
+   local name="$1" ; shift
+   local stashdir="$1"; shift
+   local permissions="$1"; shift
+
+   local match
+
+   if [ $# -ne 0 ]
+   then
+      # cat is for -e
+      match="`echo "$@" | fgrep -s -x "${name}"`"
+      if [ "${match}" = "${name}" ]
+      then
+         return 1
+      fi
+   fi
+
+   if [ -L "${stashdir}" ]
+   then
+      # cat is for -e
+      match="`echo "${permissions}" | fgrep -s -x "symlink"`"
+      if [ -z "${match}" ]
+      then
+         log_verbose "${stashdir} is a symlink, skipped"
+         return 1
+      fi
+   else
+      if [ ! -d "${stashdir}" ]
+      then
+         if [ -e "${stashdir}" ]
+         then
+            fail "\"${stashdir}\" is unexpectedly not a directory, move it away"
+         fi
+
+         match="`echo "${permissions}" | fgrep -s -x "missing"`"
+         if [ -z "${match}" ]
+         then
+            log_info "Repository expected in \"${stashdir}\" is not yet fetched, skipped"
+            return 1
+         fi
+      fi
+   fi
+
+   return 0
+}
+
+
 walk_repositories()
 {
    local settingname
@@ -256,11 +304,6 @@ walk_repositories()
    reposdir="$1"
    shift
 
-   # rest are repository names or empty if all
-
-   local match
-   local called
-
    # parse_clone
    local name
    local url
@@ -268,8 +311,6 @@ walk_repositories()
    local scm
    local tag
    local stashdir
-
-   called=""
 
    clones="`read_root_setting "${settingname}"`"
 
@@ -281,55 +322,32 @@ walk_repositories()
 
       parse_clone "${clone}"
 
-      if [ $# -ne 0 ]
+      if ! walk_check "${name}" "${stashdir}" "${permissions}" "$@"
       then
-         # cat is for -e
-         match="`echo "$@" | fgrep -s -x "${name}"`"
-         if [ "${match}" = "${name}" ]
-         then
-            continue
-         fi
+         continue
       fi
 
-      if [ -L "${stashdir}" ]
-      then
-        # cat is for -e
-         match="`echo "${permissions}" | fgrep -s -x "symlink"`"
-         if [ -z "${match}" ]
+      #
+      # callbacks for deep embedded must be like
+      # from project directory
+      #
+      (
+         if [ ! -z "${WALK_DIR_PWD}" ]
          then
-            log_verbose "${stashdir} of ${url} is a symlink, skipped"
-            continue
+            cd "${WALK_DIR_PWD}"
          fi
-      else
-         if [ ! -d "${stashdir}" ]
-         then
-            # cat is for -e
-            match="`echo "${permissions}" | fgrep -s -x "missing"`"
-            if [ -z "${match}" ]
-            then
-               log_verbose "${stashdir} of ${url} is missing (or not a directory), skipped"
-               continue
-            fi
-         fi
-      fi
 
-      ${callback} "${reposdir}" \
-                  "${name}" \
-                  "${url}" \
-                  "${branch}" \
-                  "${scm}" \
-                  "${tag}" \
-                  "${stashdir}"
-
-      called="`add_line "${called}" "${name}"`"
+         ${callback} "${WALK_DIR_PREFIX}${reposdir}" \
+                     "${name}" \
+                     "${url}" \
+                     "${branch}" \
+                     "${scm}" \
+                     "${tag}" \
+                     "${WALK_DIR_PREFIX}${stashdir}"
+      ) || exit 1
    done
 
    IFS="${DEFAULT_IFS}"
-
-   if [ ! -z "${called}" ]
-   then
-      echo "${called}"
-   fi
 }
 
 
@@ -364,40 +382,15 @@ walk_deep_embedded_repositories()
 
       parse_clone "${clone}"
 
-      if [ $# -ne 0 ]
+      if ! walk_check "${name}" "${stashdir}" "${permissions}" "$@"
       then
-         # cat is for -e
-         match="`echo "$@" | fgrep -s -x "${name}"`"
-         if [ "${match}" = "${name}" ]
-         then
-            continue
-         fi
-      fi
-
-      if [ -L "${stashdir}" ]
-      then
-         # cat is for -e
-         match="`echo "${permissions}" | fgrep -s -x "symlink"`"
-         if [ -z "${match}" ]
-         then
-            log_verbose "${stashdir} is a symlink, skipped"
-            continue
-         fi
-      else
-         if [ ! -d "${stashdir}" ]
-         then
-            # cat is for -e
-            match="`echo "${permissions}" | fgrep -s -x "missing"`"
-            if [ -z "${match}" ]
-            then
-               log_verbose "${stashdir} is missing (or not a directory), skipped"
-               continue
-            fi
-         fi
+         continue
       fi
 
       # now grab embedded of that
       (
+         WALK_DIR_PREFIX="${stashdir}/"
+         WALK_DIR_PWD="${PWD}"
          cd "${stashdir}" ;
          STASHES_DIR="" ;
          walk_repositories "embedded_repositories" "${callback}" "${permissions}" "${REPOS_DIR}/.embedded"
@@ -516,9 +509,8 @@ parse_clone()
    local dstdir
 
    clone="`expanded_variables "${1}"`"
-   IFS=";" read -r url dstdir branch scm tag <<EOF
-$1
-EOF
+   IFS=";" read -r url dstdir branch scm tag <<< "${clone}"
+
    if [ "${IGNORE_BRANCH}" = "YES" ]
    then
       branch=""
@@ -631,11 +623,13 @@ ensure_reposdir_directory()
 
 mulle_repositories_initialize()
 {
-  [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
-  [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-  [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
-  [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
-  :
+   log_fluff ":mulle_repositories_initialize:"
+
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   :
 }
 
 mulle_repositories_initialize

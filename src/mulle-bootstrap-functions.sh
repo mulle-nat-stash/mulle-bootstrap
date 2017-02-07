@@ -640,8 +640,9 @@ cd_physical()
 
 
 #
-# absolute and simplified path
-# but symlinks may still exist
+# absolute path, does not simplify anymore
+# because it's too slow, but do simplify some
+# simple cases anyway
 #
 absolutepath()
 {
@@ -649,16 +650,22 @@ absolutepath()
 
    apath="$1"
    case "${apath}" in
-      /*)
-         :
+      /*|~*)
+        echo "$apath"
+      ;;
+
+      \.|\./)
+         pwd
+      ;;
+
+      \.\.|\.\./)
+         dirname -- "`pwd`"
       ;;
 
       *)
-         apath="`pwd`/${apath}"
+         echo "`pwd`/${apath}"
       ;;
    esac
-
-   simplify_path "${apath}"
 }
 
 
@@ -1082,13 +1089,9 @@ lso()
 #
 dir_has_files()
 {
-   local dirpath
-
-   dirpath="$1"
-   shift
+   local dirpath="$1"; shift
 
    local flags
-
    case "$1" in
       f)
          flags="-type f"

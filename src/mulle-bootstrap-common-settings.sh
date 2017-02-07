@@ -51,6 +51,15 @@ build_complete_environment()
    N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
    #
+   # expand PATH for build, but it's kinda slow
+   # so don't do it all the time
+   #
+   PATH="`prepend_to_search_path_if_missing "$PATH" "${DEPENDENCIES_DIR}/bin" "${ADDICTIONS_DIR}/bin"`"
+   export PATH
+
+   log_fluff "PATH set to: $PATH"
+
+   #
    # dont export stuff for scripts
    # if scripts want it, they should source this file
    #
@@ -98,11 +107,6 @@ common_settings_initialize()
    [ -z "${DEPENDENCIES_DIR}" ]   && internal_fail "variable DEPENDENCIES_DIR is empty"
    [ -z "${ADDICTIONS_DIR}" ]     && internal_fail "variable ADDICTIONS_DIR is empty"
    [ -z "${STASHES_DIR}" ]        && internal_fail "variable STASHES_DIR is empty"
-
-   PATH="`prepend_to_search_path_if_missing "$PATH" "${DEPENDENCIES_DIR}/bin" "${ADDICTIONS_DIR}/bin"`"
-   export PATH
-
-   log_fluff "PATH set to: $PATH"
 }
 
 common_settings_initialize

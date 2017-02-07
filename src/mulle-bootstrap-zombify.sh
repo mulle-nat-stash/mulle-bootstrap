@@ -126,19 +126,70 @@ mark_all_stashes_as_alive()
 #
 #
 #
+
+_bury_stash()
+{
+   local reposdir="$1"
+   local name="$2"
+   local stashdir="$3"
+
+   local gravepath
+
+   gravepath="${reposdir}/.graveyard/${name}"
+
+   if [ -e "${gravepath}" ]
+   then
+      log_fluff "Repurposing old grave \"${gravepath}\""
+      exekutor rm -rf ${COPYMOVEFLAGS}  "${gravepath}" >&2
+   else
+      mkdir_if_missing "${reposdir}/.graveyard"
+   fi
+
+   log_info "Burying \"${stashdir}\" in grave \"${gravepath}\""
+   exekutor mv ${COPYMOVEFLAGS} "${stashdir}" "${gravepath}" >&2
+}
+
+
+_bury_zombie()
+{
+   local reposdir="$1"
+   local zombie="$2"
+
+   local name
+   local stashdir
+   local gravepath
+
+   name="`basename -- "${zombie}"`"
+   stashdir="`_stash_of_reposdir_file "${reposdir}/${name}"`"
+
+   if [ -L "${stashdir}"  ]
+   then
+      log_info "Removing unused symlink ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO}"
+      exekutor rm ${COPYMOVEFLAGS}  "${stashdir}" >&2
+      return
+   fi
+
+   if [ -d "${stashdir}" ]
+   then
+      _bury_stash "${reposdir}" "${name}" "${stashdir}"
+
+      exekutor rm ${COPYMOVEFLAGS} "${zombie}" >&2
+      exekutor rm ${COPYMOVEFLAGS} "${reposdir}/${name}" >&2
+
+   else
+      log_fluff "Zombie \"${stashdir}\" vanished or never existed ($PWD)"
+   fi
+}
+
+
 _bury_zombies()
 {
-   local reposdir
-
-   reposdir="$1"
+   local reposdir="$1"
 
    [ -z "${reposdir}" ] && internal_fail "reposdir"
 
-   local i
-   local name
-   local stashdir
+   local zombie
    local zombiepath
-   local gravepath
 
    zombiepath="${reposdir}/.zombies"
 
@@ -146,40 +197,11 @@ _bury_zombies()
    then
       log_fluff "Moving zombies into graveyard"
 
-      gravepath="${reposdir}/.graveyard"
-      mkdir_if_missing "${gravepath}"
-
-      for i in `ls -1 "${zombiepath}/"* 2> /dev/null`
+      for zombie in `ls -1 "${zombiepath}/"* 2> /dev/null`
       do
          if [ -f "${i}" ]
          then
-            name="`basename -- "${i}"`"
-            stashdir="`_stash_of_reposdir_file "${reposdir}/${name}"`"
-
-            if [ -L "${stashdir}"  ]
-            then
-               log_info "Removing unused symlink ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO}"
-               exekutor rm ${COPYMOVEFLAGS}  "${stashdir}" >&2
-               continue
-            fi
-
-            if [ -d "${stashdir}" ]
-            then
-               if [ -e "${gravepath}/${name}" ]
-               then
-                  log_fluff "Repurposing old grave \"${gravepath}/${name}\""
-                  exekutor rm -rf ${COPYMOVEFLAGS}  "${gravepath}/${name}" >&2
-               fi
-
-               log_info "Removing unused repository ${C_MAGENTA}${C_BOLD}${name}${C_INFO} (\"${stashdir}\")"
-
-               exekutor mv ${COPYMOVEFLAGS} "${stashdir}" "${gravepath}/" >&2
-               exekutor rm ${COPYMOVEFLAGS} "${i}" >&2
-               exekutor rm ${COPYMOVEFLAGS} "${reposdir}/${name}" >&2
-
-            else
-               log_fluff "Zombie \"${stashdir}\" vanished or never existed ($PWD)"
-            fi
+            _bury_zombie "${reposdir}" "${zombie}"
          fi
       done
    fi

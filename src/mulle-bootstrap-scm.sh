@@ -278,6 +278,27 @@ git_pull()
 }
 
 
+git_status()
+{
+   [ $# -ge 7 ] || internal_fail "git_status: parameters missing"
+
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
+
+   log_info "Status ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
+
+   (
+      exekutor cd "${stashdir}" &&
+      exekutor git ${GITFLAGS} status $* ${GITOPTIONS}
+   ) || fail "git status of \"${stashdir}\" failed"
+}
+
+
 svn_checkout()
 {
    [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
@@ -348,28 +369,53 @@ svn_update()
 }
 
 
+svn_status()
+{
+   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
+
+   local options
+
+   options="$*"
+
+   [ ! -z "${stashdir}" ] || internal_fail "stashdir is empty"
+
+   (
+      exekutor cd "${stashdir}" ;
+      exekutor svn status ${options} ${SVNOPTIONS}
+   ) || fail "svn update of \"${stashdir}\" failed"
+}
+
+
 
 
 append_dir_to_gitignore_if_needed()
 {
-   case "${1}" in
+   local directory=$1
+
+   [ -z "${directory}" ] && internal_fail "empty directory"
+
+   case "${directory}" in
       "${REPOS_DIR}/"*)
          return 0
       ;;
    esac
 
-   local directory
-
-   # make it absolute dir for git -> '/' <subdir> '/'
-   # emit w/o trailing '/' for symlinks
-
-   case "$1" in
+   # strip slashes
+   case "${directory}" in
       /*/)
-         directory="`echo "$1" | sed 's/.$//'`"
+         directory="`echo "$1" | sed 's/.$//' | sed 's/^.//'`"
       ;;
 
       /*)
-         directory="$1"
+         directory="`echo "$1" | sed 's/^.//'`"
       ;;
 
       */)
@@ -377,32 +423,51 @@ append_dir_to_gitignore_if_needed()
       ;;
 
       *)
-         directory="/$1"
+         directory="$1"
       ;;
    esac
-
-   local pattern1
-   local pattern2
-   local pattern3
-
-   # also match with trailing slash
-   pattern1="${directory}/"
-
-   # also match without leading slash
-   pattern2="`echo "${directory}" | sed 's|^/\(.*\)|\1|'`"
-
-   # also match without leading but with trailing slash
-   pattern3="${pattern2}/"
 
    #
    # prepend \n because it is safer, in case .gitignore has no trailing
    # LF which it often seems to not have
-   #
-   if ! fgrep -s -x -e "${directory}" -e "${pattern1}" -e "${pattern2}" -e "${pattern3}" .gitignore > /dev/null 2>&1
+   # fgrep is bugged on at least OS X 10.x, so can't use -e chaining
+   if [ -f ".gitignore" ]
    then
-      redirect_append_exekutor .gitignore echo "\n${directory}" || fail "Couldn\'t append to .gitignore"
-      log_info "Added \"${directory}\" to \".gitignore\""
+      local pattern0
+      local pattern1
+      local pattern2
+      local pattern3
+
+
+      # variations with leadinf and trailing slashes
+      pattern0="${directory}"
+      pattern1="${pattern0}/"
+      pattern2="/${pattern0}"
+      pattern3="/${pattern0}/"
+
+      if fgrep -q -s -x -e "${pattern0}" .gitignore ||
+         fgrep -q -s -x -e "${pattern1}" .gitignore ||
+         fgrep -q -s -x -e "${pattern2}" .gitignore ||
+         fgrep -q -s -x -e "${pattern3}" .gitignore
+      then
+         return
+      fi
    fi
+
+   local line
+   local lf
+   local terminator
+
+   line="/${directory}"
+   terminator="`tail -c 1 ".gitignore 2> /dev/null" | tr '\012' '|'`"
+
+   if [ "${terminator}" != "|" ]
+   then
+      line="${lf}/${directory}"
+   fi
+
+   log_info "Adding \"/${directory}\" to \".gitignore\""
+   redirect_append_exekutor .gitignore echo "${line}" || fail "Couldn\'t append to .gitignore"
 }
 
 

@@ -56,9 +56,9 @@ run_script()
    else
       if [ ! -e "${script}" ]
       then
-         fail "script \"${script}\" not found ($PWD)"
+         fail "Script \"${script}\" not found ($PWD)"
       else
-         fail "script \"${script}\" not executable"
+         fail "Script \"${script}\" not executable"
       fi
    fi
 }
@@ -66,12 +66,7 @@ run_script()
 
 run_root_settings_script()
 {
-   local  scriptname
-
-   scriptname="$1"
-   shift
-
-   [ -z "$scriptname" ] && internal_fail "scriptname is empty"
+   local scriptname="$1" ; shift
 
    local script
 
@@ -86,36 +81,14 @@ run_root_settings_script()
 run_build_settings_script()
 {
    local scriptname="$1" ; shift
-
-   local reposdir="$1"  # ususally .bootstrap.repos
-   local name="$2"      # name of the clone
-   local url="$3"       # URL of the clone
-   local branch="$4"    # branch of the clone
-   local scm="$5"       # scm to use for this clone
-   local tag="$6"       # tag to checkout of the clone
-   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
-
-
-   # can happen, if system libs override
-   if [ ! -e "$stashdir" ]
-   then
-      log_verbose "script \"${scriptname}\" not executed, because ${stashdir} does not exist"
-      return 0
-   fi
+   local name="$1" ; shift
 
    local script
 
    script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      # can happen, if system libs override
-      if [ ! -e "${stashdir}" ]
-      then
-         log_verbose "script \"${scriptname}\" not executed, because ${stashdir} does not exist"
-         return 0
-      fi
-
-      run_script "${script}" "${name}" "${url}" "${stashdir}" "$@" || exit 1
+      run_script "${script}" "$@"
    fi
 }
 
@@ -124,39 +97,43 @@ run_build_settings_script()
 # various scripts runner for fetch, designed to source in the build
 # environment (slow on mingw, if needed)
 #
-fetch__run_script()
-{
-   build_complete_environment
-
-   run_script "$@"
-}
-
-
-#
-#
-#
 fetch__run_root_settings_script()
 {
-   build_complete_environment
+   local scriptname="$1" ; shift
 
-   run_root_settings_script "$@"
+   local script
+
+   script="`find_root_setting_file "bin/${scriptname}.sh"`"
+   if [ ! -z "${script}" ]
+   then
+      build_complete_environment
+
+      run_script "${script}" "$@"
+   fi
 }
-
 
 
 fetch__run_build_settings_script()
 {
-   build_complete_environment
+   local scriptname="$1" ; shift
+   local name="$1" ; shift
 
-   run_build_settings_script "$@"
+   local script
+
+   script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
+   if [ ! -z "${script}" ]
+   then
+      build_complete_environment
+
+      run_script "${script}" "$@"
+   fi
 }
-
 
 
 scripts_initialize()
 {
    log_fluff ":scripts_initialize:"
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
    :
 }

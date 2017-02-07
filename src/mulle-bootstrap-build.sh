@@ -2037,11 +2037,17 @@ build_wrapper()
    # need that path for includes though
    #
 
-   run_repo_settings_script "${name}" "${srcdir}" "pre-build" "$@" || exit 1
+   run_build_settings_script "pre-build" "${name}" \
+                                         "${REPOS_DIR}" \
+                                         "?" \
+                                         "${name}" \
+                                         "-" \
+                                         "-" \
+                                         "${stashdir}" || exit 1
 
    build "${name}" "${srcdir}" || exit 1
 
-   run_repo_settings_script "${name}" "${srcdir}" "post-build" "$@" || exit 1
+   run_build_settings_script "post-build" "${name}" "$@" || exit 1
 
    if [ "${COMMAND}" != "ibuild"  ]
    then
@@ -2061,15 +2067,15 @@ build_wrapper()
 build_if_alive()
 {
    local name
-   local srcdir
+   local stashdir
 
    name="$1"
-   srcdir="$2"
+   stashdir="$2"
 
    local xdone
    local zombie
 
-   zombie="`dirname -- "${srcdir}"`/.zombies/${name}"
+   zombie="`dirname -- "${stashdir}"`/.zombies/${name}"
    if [ -e "${zombie}" ]
    then
       log_warning "Ignoring zombie repo ${name} as \"${zombie}${C_WARNING} exists"
@@ -2077,7 +2083,7 @@ build_if_alive()
       xdone="`/bin/echo "${BUILT}" | grep -x "${name}"`"
       if [ "$xdone" = "" ]
       then
-         build_wrapper "${name}" "${srcdir}"
+         build_wrapper "${name}" "${stashdir}"
          BUILT="${name}
 ${BUILT}"
       else
@@ -2103,7 +2109,7 @@ build_stashes()
    done
    IFS="${DEFAULT_IFS}"
 
-   run_build_settings_script "" "pre-build" "$@"
+   run_root_settings_script "pre-build"
 
    #
    # build_order is created by refresh
@@ -2143,11 +2149,11 @@ build_stashes()
    else
       for name in "$@"
       do
-         srcdir="`stash_of_repository "${REPOS_DIR}" "${name}"`"
+         stashdir="`stash_of_repository "${REPOS_DIR}" "${name}"`"
 
-         if [ -d "${srcdir}" ]
+         if [ -d "${stashdir}" ]
          then
-            build_if_alive "${name}" "${srcdir}"|| exit 1
+            build_if_alive "${name}" "${stashdir}"|| exit 1
          else
             if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
             then
@@ -2162,7 +2168,7 @@ build_stashes()
 
    IFS="${DEFAULT_IFS}"
 
-   run_build_settings_script "" "post-build" "$@"
+   run_root_settings_script "post-build"
 }
 
 
@@ -2319,6 +2325,7 @@ build_main()
 
 
    remove_file_if_present "${REPOS_DIR}/.bootstrap_build_done"
+   create_file_if_missing "${REPOS_DIR}/.bootstrap_build_started"
 
    if [ $# -eq 0 ]
    then
@@ -2353,6 +2360,7 @@ build_main()
       log_fluff "No dependencies have been generated"
    fi
 
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_build_started"
    create_file_if_missing "${REPOS_DIR}/.bootstrap_build_done"
 
    log_fluff "::: build end :::"

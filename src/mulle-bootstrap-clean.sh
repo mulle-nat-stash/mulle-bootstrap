@@ -213,6 +213,32 @@ clean_directories()
 
 
 #
+# dist cleaning is dangerous
+#
+_dist_clean()
+{
+   if is_master_bootstrap_project
+   then
+      fail "You can't dist clean a master repository"
+   fi
+
+   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${REPOS_DIR}
+${ADDICTIONS_DIR}
+${STASHES_DIR}
+.bootstrap.auto"`"
+   EMBEDDED="`stashes_of_embedded_repositories "${REPOS_DIR}"`"
+
+   if [ ! -z "$EMBEDDED" ]
+   then
+      DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
+${EMBEDDED}"
+   fi
+   clean_directories "${DIST_CLEANABLE_SUBDIRS}" "${flag}"
+   clean_files "${DIST_CLEANABLE_FILES}"
+}
+
+
+#
 # for mingw its faster, if we have separate clean functions
 #
 # cleanability is checked, because in some cases its convenient
@@ -228,7 +254,7 @@ _clean_execute()
    [ -z "${ADDICTIONS_DIR}"   ]   && internal_fail "ADDICTIONS_DIR is empty"
    [ -z "${STASHES_DIR}"   ]      && internal_fail "STASHES_DIR is empty"
 
-   flag="NO"
+   flag=
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
 
@@ -278,19 +304,7 @@ ${DEPENDENCIES_DIR}/tmp"`"
 
    case "${COMMAND}" in
       dist)
-         DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${REPOS_DIR}
-${ADDICTIONS_DIR}
-${STASHES_DIR}
-.bootstrap.auto"`"
-         EMBEDDED="`stashes_of_embedded_repositories "${REPOS_DIR}"`"
-
-         if [ ! -z "$EMBEDDED" ]
-         then
-            DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
-${EMBEDDED}"
-         fi
-         clean_directories "${DIST_CLEANABLE_SUBDIRS}" "${flag}"
-         clean_files "${DIST_CLEANABLE_FILES}"
+         dist_clean
       ;;
    esac
 }
@@ -324,7 +338,7 @@ clean_main()
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 
    build_complete_environment
-   
+
    COMMAND=
 
    while [ $# -ne 0 ]

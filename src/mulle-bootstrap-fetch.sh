@@ -542,7 +542,18 @@ _clone()
       return 1
    fi
 
-   [ -e "${stashdir}" ] && fail "${stashdir} already exists"
+   if [ "${url}" = "${stashdir}" ]
+   then
+      is_minion_bootstrap_project "${stashdir}" || fail "\"${stashdir}\" should be a minion but isnt't"
+      log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a minion, so skipped"
+      return 1
+   fi
+
+
+   if [ -e "${stashdir}" ]
+   then
+      _bury_stash "${reposdir}" "${name}" "${stashdir}"
+   fi
 
    if ! clone_or_symlink "$@"
    then
@@ -598,9 +609,10 @@ _checkout()
 
 checkout_repository()
 {
+   local url="$3"       # URL of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   if [ -L "${stashdir}" -a "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" != "YES" ]
+   if [ -L "${stashdir}" -a "${ALLOW_FOLLOWING_SYMLINKS}" != "YES" ]
    then
       echo "Ignoring ${stashdir} because it's a symlink"
       return
@@ -653,7 +665,7 @@ update_repository()
 {
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   if [ -L "${stashdir}" -a "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" != "YES" ]
+   if [ -L "${stashdir}" -a "${ALLOW_FOLLOWING_SYMLINKS}" != "YES" ]
    then
       echo "Ignoring ${stashdir} because it's a symlink"
       return
@@ -705,14 +717,6 @@ _update()
 
 update_repository()
 {
-   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
-
-   if [ -L "${stashdir}" -a "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" != "YES" ]
-   then
-      echo "Ignoring ${stashdir} because it's a symlink"
-      return
-   fi
-
    log_action "update" "$@"
 
    _update "$@"
@@ -759,14 +763,6 @@ _upgrade()
 
 upgrade_repository()
 {
-   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
-
-   if [ -L "${stashdir}" -a "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" != "YES" ]
-   then
-      echo "Ignoring ${stashdir} because it's a symlink"
-      return
-   fi
-
    log_action "upgrade" "$@"
 
    _upgrade "$@"
@@ -783,7 +779,7 @@ _operation_walk_repositories()
    local permissions
 
    permissions=""
-   if [ -z "${MULLE_BOOTSTRAP_WORK_SYMLINKS}" ]
+   if [ "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
    then
       permissions="`add_line "${permissions}" "symlink"`"
    fi
@@ -802,7 +798,7 @@ _operation_walk_embedded_repositories()
    local permissions
 
    permissions=""
-   if [ -z "${ALLOW_FOLLOWING_SYMLINKS}" ]
+   if [ "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
    then
       permissions="`add_line "${permissions}" "symlink"`"
    fi
@@ -831,7 +827,7 @@ _operation_walk_deep_embedded_repositories()
    local permissions
 
    permissions=""
-   if [ -z "${ALLOW_FOLLOWING_SYMLINKS}" ]
+   if [ "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
    then
       permissions="`add_line "${permissions}" "symlink"`"
    fi
@@ -848,27 +844,12 @@ _operation_walk_deep_embedded_repositories()
 ##
 ## FETCH
 ##
-# fetch_repositories()
-# {
-#    _operation_walk_repositories "fetch_repository"
-# }
-
-
-# fetch_embedded_repositories()
-# {
-#    _operation_walk_embedded_repositories "fetch_embedded_repository"
-# }
-
-
-# fetch_deep_embedded_repositories()
-# {
-#    _operation_walk_deep_embedded_repositories "fetch_embedded_repository"
-# }
-
 
 did_fetch_repository()
 {
-   fetch__run_build_settings_script "did-install" "$@"
+   local name="$2"      # name of the clone
+
+   fetch__run_build_settings_script "did-install" "${name}" "$@"
 }
 
 
@@ -883,19 +864,19 @@ did_fetch_repositories()
 ##
 update_repositories()
 {
-   _operation_walk_repositories "update_repository" > /dev/null
+   _operation_walk_repositories "update_repository"
 }
 
 
 update_embedded_repositories()
 {
-   _operation_walk_embedded_repositories "update_repository" > /dev/null
+   _operation_walk_embedded_repositories "update_repository"
 }
 
 
 update_deep_embedded_repositories()
 {
-   _operation_walk_deep_embedded_repositories "update_repository" > /dev/null
+   _operation_walk_deep_embedded_repositories "update_repository"
 }
 
 
@@ -904,25 +885,27 @@ update_deep_embedded_repositories()
 ##
 upgrade_repositories()
 {
-   _operation_walk_repositories "upgrade_repository" > /dev/null
+   _operation_walk_repositories "upgrade_repository"
 }
 
 
 upgrade_embedded_repositories()
 {
-   _operation_walk_embedded_repositories "upgrade_repository" > /dev/null
+   _operation_walk_embedded_repositories "upgrade_repository"
 }
 
 
 upgrade_deep_embedded_repositories()
 {
-   _operation_walk_deep_embedded_repositories "upgrade_repository" > /dev/null
+   _operation_walk_deep_embedded_repositories "upgrade_repository"
 }
 
 
 did_upgrade_repository()
 {
-   fetch__run_build_settings_script "did-upgrade" "$@"
+   local name="$2"      # name of the clone
+
+   fetch__run_build_settings_script "did-upgrade" "${name}" "$@"
 }
 
 
@@ -974,6 +957,11 @@ required_action_for_clone()
 
    parse_clone "${clone}"
 
+   if is_minion_bootstrap_directory "${stashdir}"
+   then
+      fail "\"${stashdir}\" is a minion. Don't hand edit master repositories."
+   fi
+
    if [ "${scm}" != "${newscm}" ]
    then
       log_fluff "SCM has changed from ${scm} to ${newscm}, need to refetch"
@@ -990,7 +978,15 @@ clone"
 
    #
    # if scm is not git, don't try to be clever
-   if [ ! -z "${scm}" -a "${scm}" != "git" ]
+   #
+   if [ ! -z "${scm}"  -a "${scm}" != "git" ]
+   then
+      echo "remove
+clone"
+      return
+   fi
+
+   if [ "${scm}" != "${newscm}" ]
    then
       echo "remove
 clone"
@@ -1036,6 +1032,7 @@ work_clones()
    local fetched
    local repotype
    local oldstashdir
+   local url_is_stash
 
    case "${reposdir}" in
       *embedded)
@@ -1046,11 +1043,6 @@ work_clones()
         repotype=""
       ;;
    esac
-
-   if [ "${DONT_RECURSE}" = YES ]
-   then
-      autoupdate="NO"
-   fi
 
    IFS="
 "
@@ -1071,9 +1063,10 @@ work_clones()
       then
          continue
       fi
+
       __REFRESHED__="`add_line "${__REFRESHED__}" "${clone}"`"
 
-      parse_clone "${clone}" "${stashrootdir}" || exit 1
+      parse_clone "${clone}" || exit 1
 
       actionitems="`required_action_for_clone "${clone}" \
                                               "${reposdir}" \
@@ -1106,15 +1099,16 @@ work_clones()
             "clone")
                log_verbose "Cloning \"${url}\" into ${repotype}\"`absolutepath ${stashdir}`\""
 
-               clone_repository "${reposdir}" \
-                                "${name}" \
-                                "${url}" \
-                                "${branch}" \
-                                "${scm}" \
-                                "${tag}" \
-                                "${stashdir}"
-
-               fetched="`add_line "${fetched}" "${name}"`"
+               if clone_repository "${reposdir}" \
+                                   "${name}" \
+                                   "${url}" \
+                                   "${branch}" \
+                                   "${scm}" \
+                                   "${tag}" \
+                                   "${stashdir}"
+               then
+                  fetched="`add_line "${fetched}" "${name}"`"
+               fi
             ;;
 
             "move")
@@ -1246,7 +1240,7 @@ work_all_repositories()
       do
          loops="${loops}X"
          case "${loops}" in
-            XXXXX) #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)
+            XXXXXXXXXXXXXXXX)
                internal_fail "Loop overflow in worker loop"
             ;;
          esac
@@ -1335,14 +1329,19 @@ run_post_upgrade_scripts()
 fetch_loop()
 {
    local fetched
+   local is_master
 
-   if [ ! -z "${MULLE_BOOTSTRAP_POSTPONE_TRACE}" -a "${MULLE_BOOTSTRAP_TRACE}" = "1848" ]
+   unpostpone_trace
+
+   is_master_bootstrap_project
+   is_master=$?
+
+   if [ "${is_master}" -ne 0 ]
    then
-      set -x
-      PS4="+ ${ps4string} + "
+      assume_stashes_are_zombies
+   else
+      log_fluff "Skipping zombie checks, because project is master"
    fi
-
-   assume_stashes_are_zombies
 
    bootstrap_auto_create
 
@@ -1350,7 +1349,10 @@ fetch_loop()
 
    bootstrap_auto_final
 
-   bury_zombies_in_graveyard
+   if [ "${is_master}" -ne 0 ]
+   then
+      bury_zombies_in_graveyard
+   fi
 
    echo "${fetched}"
 }
@@ -1360,6 +1362,14 @@ fetch_loop()
 #
 _common_fetch()
 {
+   local fetched
+
+   fetched="`fetch_loop "${REPOS_DIR}"`" || exit 1
+
+   #
+   # do this afterwards, because brews will have been composited
+   # now
+   #
    case "${BREW_PERMISSIONS}" in
       fetch|update|upgrade)
          brew_install_brews
@@ -1368,9 +1378,6 @@ _common_fetch()
 
    check_tars
 
-   local fetched
-
-   fetched="`fetch_loop "${REPOS_DIR}"`" || exit 1
    run_post_fetch_scripts "${fetched}"
 }
 
@@ -1429,7 +1436,7 @@ _common_main()
 
    case "${UNAME}" in
       mingw)
-         ALLOW_CREATING_SYMLINKS="NO"
+         ALLOW_CREATING_SYMLINKS=
       ;;
 
       *)
@@ -1485,16 +1492,12 @@ _common_main()
          ;;
 
          -np|--no-parent-search)
-            ALLOW_SEARCH_PARENT="NO"
+            ALLOW_SEARCH_PARENT=
          ;;
 
-         -nr|--no-recursion)
-            DONT_RECURSE="YES"
-         ;;
-
-         -ns|--no-symlink-creation)
-            ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
-            ALLOW_CREATING_SYMLINKS="NO"
+         -ns|--no-symlink-creation|--no-symlinks)
+            ALLOW_CREATING_EMBEDDED_SYMLINKS=
+            ALLOW_CREATING_SYMLINKS=
          ;;
 
 
@@ -1631,7 +1634,7 @@ _common_main()
       then
          append_dir_to_gitignore_if_needed "${BOOTSTRAP_DIR}.auto"
          append_dir_to_gitignore_if_needed "${BOOTSTRAP_DIR}.local"
-         append_dir_to_gitignore_if_needed "${DEPENDENCIES_SUBDIR}"
+         append_dir_to_gitignore_if_needed "${DEPENDENCIES_DIR}"
          if [ "${brew_permissions}" != "none" ]
          then
             append_dir_to_gitignore_if_needed "${ADDICTIONS_DIR}"

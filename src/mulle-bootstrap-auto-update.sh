@@ -54,7 +54,12 @@ bootstrap_auto_create()
    #
    if dir_has_files "${BOOTSTRAP_DIR}.local"
    then
-      exekutor cp -Ra ${COPYMOVEFLAGS} "${BOOTSTRAP_DIR}.local/" "${BOOTSTRAP_DIR}.auto/" >&2
+      exekutor cp -Ra ${COPYMOVEFLAGS} "${BOOTSTRAP_DIR}.local/"* "${BOOTSTRAP_DIR}.auto" >&2
+   fi
+
+   if ! dir_has_files "${BOOTSTRAP_DIR}"
+   then
+      return
    fi
 
    #
@@ -221,7 +226,6 @@ _bootstrap_auto_merge_root_settings()
 
    local srcfile
    local dstfile
-   local localfile
    local tmpfile
    local settingname
    local match
@@ -244,13 +248,7 @@ _bootstrap_auto_merge_root_settings()
          continue
       fi
 
-      localfile="${BOOTSTRAP_DIR}.local/${settingname}"
-
-      if [ -e "${localfile}" ]
-      then
-         log_info "Setting \"${settingname}\" is locally specified, so not merged"
-         continue
-      fi
+      dstfile="${BOOTSTRAP_DIR}.auto/${settingname}"
 
       # cat is for -e
       match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
@@ -260,15 +258,23 @@ _bootstrap_auto_merge_root_settings()
          continue
       fi
 
+      # environment is copied over, but crashes if the contents differ
+
+      match="`egrep -s -x "^[A-Z_]+$" <<< "${settingname}"`"
+      if [ ! -z "${match}" ]
+      then
+         _copy_no_clobber_setting_file "${dstfile}" "${srcfile}"
+         continue
+      fi
+
       # cat is for -e
       match="`echo "${MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
       if [ -z "${match}" ]
       then
-         log_fluff "Setting \"${settingname}\" is unknown"
+         log_fluff "Setting \"${settingname}\" is unknown."
          continue
       fi
 
-      dstfile="${BOOTSTRAP_DIR}.auto/${settingname}"
       if [ -f "${dstfile}" ]
       then
          tmpfile="${BOOTSTRAP_DIR}.auto/${settingname}.tmp"
@@ -429,12 +435,20 @@ bootstrap_auto_final()
    local tag
    local clone
    local order
+   local clones
+
+   clones="`read_root_setting "repositories"`"
+   if [ -z "${clones}" ]
+   then
+      log_fluff "There is apparently nothing to build."
+      return
+   fi
 
    order=""
 
    IFS="
 "
-   for clone in `read_root_setting "repositories"`
+   for clone in ${clones}
    do
       IFS="${DEFAULT_IFS}"
 
@@ -444,7 +458,7 @@ bootstrap_auto_final()
 
    IFS="${DEFAULT_IFS}"
 
-   echo "${order}" > "${BOOTSTRAP_DIR}.auto/build_order"
+   redirect_exekutor "${BOOTSTRAP_DIR}.auto/build_order" echo "${order}"
 
    bootstrap_create_build_folders
 }

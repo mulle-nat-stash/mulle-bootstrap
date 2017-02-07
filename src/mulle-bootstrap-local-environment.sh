@@ -57,8 +57,8 @@ user_say_yes()
    fi
    if [ "${x}" = "NONE" ]
    then
-      MULLE_BOOTSTRAP_ANSWER="NO"
-      x="NO"
+      MULLE_BOOTSTRAP_ANSWER=
+      x=
    fi
 
    [ "$x" = "Y" -o "$x" = "YES" ]
@@ -107,86 +107,14 @@ add_path()
 }
 
 
-# figure out if we need to run refresh
-build_needed()
+unpostpone_trace()
 {
-   if [ ! -f "${REPOS_DIR}/.bootstrap_build_done" ]
+   if [ ! -z "${MULLE_BOOTSTRAP_POSTPONE_TRACE}" -a "${MULLE_BOOTSTRAP_TRACE}" = "1848" ]
    then
-      log_fluff "Need build because ${REPOS_DIR}/.bootstrap_build_done does not exist."
-      return 0
+      set -x
+      PS4="+ ${ps4string} + "
    fi
-
-   if [ "${REPOS_DIR}/.bootstrap_build_done" -ot "${REPOS_DIR}/.bootstrap_refresh_done" ]
-   then
-      log_fluff "Need build because \"${REPOS_DIR}/.bootstrap_build_done\" is older than \"${REPOS_DIR}/.bootstrap_refresh_done\""
-      return 0
-   fi
-
-   return 1
 }
-
-
-fetch_needed()
-{
-   if [ ! -f "${REPOS_DIR}/.bootstrap_fetch_done" ]
-   then
-      log_fluff "Need fetch because ${REPOS_DIR}/.bootstrap_fetch_done does not exist."
-      return 0
-   fi
-
-   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${REPOS_DIR}/.bootstrap_refresh_done" ]
-   then
-      log_fluff "Need fetch because \"${REPOS_DIR}/.bootstrap_fetch_done\" is older than \"${REPOS_DIR}/.bootstrap_refresh_done\""
-      return 0
-   fi
-
-   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_DIR}" ]
-   then
-      log_fluff "Need fetch because \"${BOOTSTRAP_DIR}\" is modified"
-      return 0
-   fi
-
-   return 1
-}
-
-
-refresh_needed()
-{
-   if [ ! -d "${BOOTSTRAP_DIR}.auto" ]
-   then
-     log_fluff "Need refresh because \"${BOOTSTRAP_DIR}.auto\" does not exist."
-     return 0
-   fi
-
-   if [ ! -f "${REPOS_DIR}/.bootstrap_refresh_done" ]
-   then
-      log_fluff "Need refresh because \"${REPOS_DIR}/.bootstrap_refresh_done\" does not exist."
-      return 0
-   fi
-
-   if [ ! -z "`find "${BOOTSTRAP_DIR}" -newer "${REPOS_DIR}/.bootstrap_refresh_done" 2> /dev/null`" ]
-   then
-      log_fluff "Need refresh because \"${BOOTSTRAP_DIR}\" is modified"
-      return 0
-   fi
-
-   if [ ! -z "`find "${BOOTSTRAP_DIR}.local" -newer "${REPOS_DIR}/.bootstrap_refresh_done" 2> /dev/null`" ]
-   then
-      log_fluff "Need refresh because \"${BOOTSTRAP_DIR}.local\" is modified"
-      return 0
-   fi
-
-   if [ ! -z "`find "${REPOS_DIR}"/*/"${BOOTSTRAP_DIR}" -newer "${REPOS_DIR}/.bootstrap_refresh_done" 2> /dev/null`" ]
-   then
-      log_fluff "Need refresh because \"${BOOTSTRAP_DIR}.local\" is modified"
-      return 0
-   fi
-
-   log_fluff "No refresh needed."
-
-   return 1
-}
-
 
 #
 # version must be <= min_major.min_minor
@@ -222,6 +150,49 @@ check_version()
 
    minor="`echo "${version}" | head -1 | cut -d. -f2`"
    [ "${minor}" -le "${min_minor}" ]
+}
+
+
+# figure out if we need to run refresh
+build_needed()
+{
+   if [ ! -f "${REPOS_DIR}/.bootstrap_build_done" ]
+   then
+      log_fluff "Need build because \"${REPOS_DIR}/.bootstrap_build_done\" does not exist."
+      return 0
+   fi
+
+   if [ "${REPOS_DIR}/.bootstrap_build_done" -ot "${REPOS_DIR}/.bootstrap_fetch_done" ]
+   then
+      log_fluff "Need build because \"${REPOS_DIR}/.bootstrap_fetch_done\" is younger"
+      return 0
+   fi
+
+   return 1
+}
+
+
+fetch_needed()
+{
+   if [ ! -f "${REPOS_DIR}/.bootstrap_fetch_done" ]
+   then
+      log_fluff "Need fetch because \"${REPOS_DIR}/.bootstrap_fetch_done\" does not exist."
+      return 0
+   fi
+
+   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_SUBDIR}" ]
+   then
+      log_fluff "Need fetch because \"${BOOTSTRAP_SUBDIR}\" is modified"
+      return 0
+   fi
+
+   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_SUBDIR}.local" ]
+   then
+      log_fluff "Need fetch because \"${BOOTSTRAP_SUBDIR}.local\" is modified"
+      return 0
+   fi
+
+   return 1
 }
 
 
@@ -389,6 +360,29 @@ source_environment()
 }
 
 
+is_bootstrap_project()
+{
+   local  masterpath="${1:-.}"
+
+   [ -d "${masterpath}/${BOOTSTRAP_DIR}" -o -d "${masterpath}/${BOOTSTRAP_DIR}.local" ]
+}
+
+
+is_minion_bootstrap_project()
+{
+   local  minionpath="${1:-.}"
+
+   [ -f "${minionpath}/${BOOTSTRAP_DIR}.local/is_minion" ]
+}
+
+
+is_master_bootstrap_project()
+{
+   local  masterpath="${1:-.}"
+
+   [ -f "${masterpath}/${BOOTSTRAP_DIR}.local/is_master" ]
+}
+
 #
 # read local environment
 # source this file
@@ -440,9 +434,10 @@ local_environment_initialize()
 
 local_environment_main()
 {
-#  don't do it, so far it's been overkill
-#   source_environment
+   log_fluff ":local_environment_main:"
+   # source_environment
    :
 }
+
 
 local_environment_initialize
