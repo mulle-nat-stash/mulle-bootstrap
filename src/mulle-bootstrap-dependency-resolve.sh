@@ -67,7 +67,7 @@ _dependency_add()
 
 dependency_add()
 {
-   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_RESOLVER_FLIP_X}" = "YES" ]
    then
    #     set +x
    :
@@ -75,7 +75,7 @@ dependency_add()
 
    _dependency_add "$@"
 
-   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_RESOLVER_FLIP_X}" = "YES" ]
    then
    #   set -x
    :
@@ -112,14 +112,14 @@ _dependency_add_array()
 
 dependency_add_array()
 {
-   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_RESOLVER_FLIP_X}" = "YES" ]
    then
       set +x
    fi
 
    _dependency_add_array "$@"
 
-   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_RESOLVER_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -134,7 +134,7 @@ _dependency_resolve()
    map="$1"
    name="$2"
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
    then
       log_trace2 "resolve ${name}"
    fi
@@ -191,7 +191,7 @@ dependency_resolve()
    RESOLVED_DEPENDENCIES=
    UNRESOLVED_DEPENDENCIES=
 
-   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_RESOLVER_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -201,7 +201,7 @@ dependency_resolve()
    #
    _dependency_resolve "${map}" "${name}"
 
-   if [ "${MULLE_BOOTSTRAP_RESOLVER_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_RESOLVER_FLIP_X}" = "YES" ]
    then
       set -x
    fi

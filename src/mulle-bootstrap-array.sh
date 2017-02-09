@@ -269,14 +269,12 @@ ${line}"
 
 _assoc_array_remove()
 {
-   local array
-   local key
-
-   array="$1"
+   local array="$1"
+   local key="$2"
 
    if [ ! -z "${array}" ]
    then
-       key="`_assoc_array_key_check "$2"`"
+       key="`_assoc_array_key_check "${key}"`"
        echo "${array}" | grep -v "^${key}="
    fi
 }
@@ -284,11 +282,10 @@ _assoc_array_remove()
 
 assoc_array_get()
 {
-   local array
-   local key
+   local array="$1"
+   local key="$2"
 
-   array="$1"
-   key="`_assoc_array_key_check "$2"`"
+   key="`_assoc_array_key_check "${key}"`"
 
    echo "${array}" | grep "^${key}=" | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
@@ -296,9 +293,7 @@ assoc_array_get()
 
 assoc_array_get_last()
 {
-   local array
-
-   array="$1"
+   local array="$1"
 
    echo "${array}" | tail -1 | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
@@ -306,11 +301,17 @@ assoc_array_get_last()
 
 assoc_array_all_keys()
 {
-   local array
-
-   array="$1"
+   local array="$1"
 
    echo "${array}" | sed -n 's/^\([^=]*\)=.*$/\1/p'
+}
+
+
+assoc_array_all_values()
+{
+   local array="$1"
+
+   echo "${array}" | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
 
 

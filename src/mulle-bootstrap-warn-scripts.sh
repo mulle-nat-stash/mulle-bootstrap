@@ -45,7 +45,7 @@ warn_scripts()
    local ack
    local i
 
-   # log_info "warn_scripts $1:$2:${DONT_ASK_AFTER_WARNING}:${MULLE_BOOTSTRAP_ANSWER}"
+   # log_info "warn_scripts $1:$2:${DONT_ASK_AFTER_WARNING}:${MULLE_FLAG_ANSWER}"
 
    if [ -d "${bootstrapdir}" ]
    then
@@ -139,10 +139,10 @@ warn_scripts_main()
    local  dont_warn_scripts
 
    #
-   # if MULLE_BOOTSTRAP_ANSWER is YES
+   # if MULLE_FLAG_ANSWER is YES
    # then don't warn either
    #
-   dont_warn_scripts="`read_config_setting "dont_warn_scripts" "${MULLE_BOOTSTRAP_ANSWER:-NO}"`"
+   dont_warn_scripts="`read_config_setting "dont_warn_scripts" "${MULLE_FLAG_ANSWER:-NO}"`"
 
    if [ "${dont_warn_scripts}" = "YES"  ]
    then

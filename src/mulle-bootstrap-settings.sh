@@ -85,9 +85,9 @@ warn_environment_setting()
    if [ "$MULLE_BOOTSTRAP_NO_WARN_ENVIRONMENT_SETTINGS" != "YES" ]
    then
       # don't trace some boring ones
-      if [ "${name}" != "MULLE_BOOTSTRAP_ANSWER" -a \
-           "${name}" != "MULLE_BOOTSTRAP_VERBOSE" -a \
-           "${name}" != "MULLE_BOOTSTRAP_TRACE" ]
+      if [ "${name}" != "MULLE_FLAG_ANSWER" -a \
+           "${name}" != "MULLE_FLAG_LOG_VERBOSE" -a \
+           "${name}" != "MULLE_TRACE" ]
       then
          log_warning "Using environment variable \"${name}\""
       fi
@@ -117,7 +117,8 @@ _copy_no_clobber_setting_file()
 
       if [ "${value1}" != "${value2}" ]
       then
-         fail "\"${src}\" is incompatible with \"${dst}\", which is already present."
+         log_warning "\"${src}\" is incompatible with \"${dst}\", which is already present and not being overwritten."
+         return
       fi
       log_fluff "Skipping \"${src}\" as it's already present."
    fi
@@ -129,40 +130,40 @@ _copy_no_clobber_setting_file()
 #
 _read_setting()
 {
-   local path="$1"
+   local apath="$1"
    local name="$2"
 
-   [ ! -z "${path}" ] || fail "no path given to read_setting"
+   [ ! -z "${apath}" ] || fail "no path given to read_setting"
    [ ! -z "${name}" ] || fail "no name given to read_setting"
 
    local value
 
    # file not found = 2 (same as grep)
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
    then
       local  yesno
 
-      if [ ! -r "${path}" ]
+      if [ ! -r "${apath}" ]
       then
          yesno="not "
       fi
 
-      log_trace2 "Looking for setting: ${path} (pwd=$PWD) : ${yesno}found"
+      log_trace2 "Looking for setting ${name} in ${apath} (pwd=$PWD) : ${yesno}found"
    fi
 
 
    if [ "${READ_SETTING_RETURNS_PATH}" = "YES" ]
    then
-      value="${path}"
-      if [ ! -r "${path}" ]
+      value="${apath}"
+      if [ ! -r "${apath}" ]
       then
          return 2
       fi
 
-      if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
+      if [ "$MULLE_FLAG_LOG_VERBOSE" = "YES"  ]
       then
-         log_setting "${C_MAGENTA}${name}${C_SETTING} found as \"${path}\""
+         log_setting "${C_MAGENTA}${name}${C_SETTING} found as \"${apath}\""
       fi
 
       echo "${value}"
@@ -174,7 +175,7 @@ _read_setting()
    #
    # remove empty lines, remove comment lines
    #
-   value="`__read_setting "${path}"`"
+   value="`__read_setting "${apath}"`"
    rval=$?
 
    if [ $rval -eq 2 ]
@@ -182,11 +183,9 @@ _read_setting()
       return 2   # it's grep :)
    fi
 
-   if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
+   if [ "${MULLE_FLAG_LOG_VERBOSE}" = "YES"  ]
    then
-      local apath
-
-      apath="`absolutepath "${path}"`"
+      apath="`absolutepath "${apath}"`"
 
       # make some boring names less prominent
       if [ "${name}" = "repositories" -o \
@@ -266,7 +265,7 @@ _read_environment_setting()
 
    envname="MULLE_BOOTSTRAP_`echo "${name}" | tr '[:lower:]' '[:upper:]'`"
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
    then
       log_trace2 "Looking for setting \"${name}\" as environment variable \"${envname}\""
    fi
@@ -277,7 +276,7 @@ _read_environment_setting()
       return 2
    fi
 
-   if [ "${MULLE_BOOTSTRAP_TRACE_SETTINGS}" = "YES" ]
+   if [ "${MULLE_FLAG_LOG_SETTINGS}" = "YES" ]
    then
       log_trace "Setting ${C_MAGENTA}${C_BOLD}${name}${C_TRACE} found in environment variable \"${envname}\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
    fi
@@ -301,7 +300,7 @@ _read_home_setting()
 
    [ -z "$name" ] && internal_fail "empty name in _read_home_setting"
 
-   if [ "${MULLE_BOOTSTRAP_TRACE_SETTINGS}" = "YES" ]
+   if [ "${MULLE_FLAG_LOG_SETTINGS}" = "YES" ]
    then
       log_trace2 "Looking for setting \"${name}\" in \"~/.mulle-bootstrap\""
    fi
@@ -312,7 +311,7 @@ _read_home_setting()
       return 2
    fi
 
-   if [ "${MULLE_BOOTSTRAP_TRACE_SETTINGS}" = "YES" ]
+   if [ "${MULLE_FLAG_LOG_SETTINGS}" = "YES" ]
    then
       log_trace "Setting ${C_MAGENTA}${C_BOLD}${name}${C_TRACE} found in \"~/.mulle-bootstrap\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
    fi
@@ -328,7 +327,7 @@ _read_home_setting()
 #
 read_config_setting()
 {
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_SETTINGS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -370,7 +369,7 @@ read_config_setting()
 
    echo "$value"
 
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_SETTINGS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -383,7 +382,7 @@ read_config_setting()
 #
 read_build_setting()
 {
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_SETTINGS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -407,14 +406,16 @@ read_build_setting()
    then
       if [ ! -z "${default}" ]
       then
-         log_setting "Build Setting ${C_MAGENTA}${package}${C_SETTING} for ${C_MAGENTA}${C_BOLD}${name}${C_VERBOSE} set to default ${C_MAGENTA}${default}${C_SETTING}"
+         log_setting "Build Setting ${C_MAGENTA}${package}${C_SETTING} \
+for ${C_MAGENTA}${name}${C_SETTING} \
+set to default ${C_MAGENTA}${default}${C_SETTING}"
       fi
       value="${default}"
    fi
 
    echo "$value"
 
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_SETTINGS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -426,7 +427,7 @@ read_build_setting()
 
 read_root_setting()
 {
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_SETTINGS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -454,7 +455,7 @@ read_root_setting()
 
    echo "$value"
 
-   if [ "${MULLE_BOOTSTRAP_SETTINGS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_SETTINGS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -519,16 +520,44 @@ read_sane_config_path_setting()
 }
 
 
-merge_settings_in_front()
+#
+# this is used during copy operations into .auto to already expand variables
+# src is relative to srcbootstrap folder
+#
+_read_expanded_setting()
 {
-   local settings1
-   local settings2
-   local result
-   local name
+   local filepath="$1"
+   local name="$2"
+   local default="$3"
+   local srcbootstrap="$4"
 
-   name="`basename -- "$1"`"
-   settings1="`_read_setting "$1" "${name}"`"
-   settings2="`_read_setting "$2" "${name}"`"
+   [ -z "${srcbootstrap}" ] && internal_fail "empty srcbootstrap"
+   [ $# -eq 4 ] || internal_fail "missing parameters"
+
+   local value
+
+   value="`(
+      MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+      BOOTSTRAP_DIR="${srcbootstrap}"
+      _read_setting "${filepath}" "${name}" "${default}"
+   )`"
+
+   IFS="
+"
+   echo "${value}" | while read line
+   do
+      IFS="${DEFAULT_IFS}"
+      expanded_variables "${line}" "${srcbootstrap}"
+   done
+}
+
+
+_merge_settings_in_front()
+{
+   local settings1="$1"
+   local settings2="$2"
+
+   local result
 
    result="${settings2}"
 
@@ -547,7 +576,8 @@ ${result}"
 
    IFS="${DEFAULT_IFS}"
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o \
+        "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
    then
       log_trace2 "----------------------"
       log_trace2 "Merged settings: $1, $2"
@@ -556,6 +586,24 @@ ${result}"
       log_trace2 "----------------------"
    fi
    echo "${result}"
+}
+
+
+merge_settings_in_front()
+{
+   local settings1
+   local settings2
+   local result
+   local name
+
+   name="`basename -- "$1"`"
+   settings1="`_read_setting "$1" "${name}"`"
+   if [ ! -z "$2" ]
+   then
+      settings2="`_read_setting "$2" "${name}"`"
+   fi
+
+   _merge_settings_in_front "${settings1}" "${settings2}"
 }
 
 
@@ -642,7 +690,7 @@ config_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
             config_usage
          ;;
 
@@ -697,7 +745,6 @@ config_main()
 }
 
 
-
 setting_main()
 {
    local name
@@ -721,7 +768,7 @@ setting_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
             config_usage
          ;;
 

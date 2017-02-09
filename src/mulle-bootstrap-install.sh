@@ -203,7 +203,7 @@ merge_framework_configurations()
    local suffix
    local dstexe
 
-   for configuration in ${CONFIGURATIONS}
+   for configuration in ${OPTION_CONFIGURATIONS}
    do
       suffix="`determine_framework_suffix "${configuration}"`"
       if [ ! -z "${suffix}" ]
@@ -283,8 +283,8 @@ install_main()
    DEFAULT_PREFIX="/usr/local"
    DEFAULT_FRAMEWORK_PREFIX="/Library"
 
-   CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
-   N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
+   OPTION_CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
+   N_CONFIGURATIONS="`echo "${OPTION_CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
    while [ $# -ne 0 ]
    do
@@ -308,7 +308,7 @@ install_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown build option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown build option $1"
             install_usage
          ;;
 

@@ -32,6 +32,89 @@ MULLE_BOOTSTRAP_AUTO_UPDATE_SH="included"
 
 
 #
+# only to be used in bootstrap_auto_create
+#
+_bootstrap_auto_copy()
+{
+   local dst="$1"
+   local src="$2"
+   local is_local="$3"
+
+   #
+   # add stuff from bootstrap folder
+   # don't copy config if exists (it could be malicious)
+   #
+   local filepath
+   local dstfilepath
+   local name
+   local value
+   local match
+   local tmpdir
+
+   #
+   # this first stage folds platform specific files
+   #
+   tmpdir="`mktemp -d /tmp/mulle-bootstrap.XXXXXXXX`"
+   inherit_files "${tmpdir}" "${src}"
+
+   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
+   IFS="
+"
+   for name in `ls -1 "${tmpdir}"` # uppercase first is important!
+   do
+      IFS="${DEFAULT_IFS}"
+
+      filepath="${tmpdir}/${name}"
+      dstfilepath="${dst}/${name}"
+
+      case "${name}" in
+         config)
+            if [ "${is_local}" = "YES" ]
+            then
+               exekutor cp -Ran ${COPYMOVEFLAGS} "${dstfilepath}" "${filepath}"
+            fi
+         ;;
+
+         *.build|settings|overrides)
+            if [ -d "${filepath}" ]
+            then
+               exekutor cp -Ran ${COPYMOVEFLAGS} "${dstfilepath}" "${filepath}"
+            fi
+         ;;
+
+         *)
+            # only inherit, don't override
+            if [ -e "${dstfilepath}" ]
+            then
+               continue
+            fi
+
+            #
+            # root settings get the benefit of expansion
+            #
+            if [ -d "${filepath}" ]
+            then
+               continue
+            fi
+
+            match="`echo "${filepath}" | sed '/[a-z]/d'`"
+            if [ -z "${match}" ] ## has lowercase (not environment)
+            then
+               # log_fluff "****" "${filepath}" "${src}" "${name}" "${tmpdir}" "****"
+               value="`_read_expanded_setting "${filepath}" "${name}" "" "${tmpdir}"`"
+               redirect_exekutor "${dstfilepath}" echo "${value}"
+            else
+               exekutor cp -a ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}"
+            fi
+         ;;
+      esac
+   done
+
+   # rmdir_safer "${tmpdir}"
+}
+
+
+#
 # This function is called initially to setup .bootstrap.auto before
 # doing anything else. It is clear that .bootstrap.auto does not exist
 #
@@ -42,7 +125,7 @@ bootstrap_auto_create()
 {
    [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "empty bootstrap"
 
-   log_fluff "Creating ${BOOTSTRAP_DIR}.auto from ${BOOTSTRAP_DIR}"
+   log_fluff "Creating clean \"${BOOTSTRAP_DIR}.auto\" from \"${BOOTSTRAP_DIR}\""
 
    assert_mulle_bootstrap_version
 
@@ -50,166 +133,43 @@ bootstrap_auto_create()
    mkdir_if_missing "${BOOTSTRAP_DIR}.auto"
 
    #
-   # Copy over .local verbatim
+   # Copy over .local with config
    #
    if dir_has_files "${BOOTSTRAP_DIR}.local"
    then
-      exekutor cp -Ra ${COPYMOVEFLAGS} "${BOOTSTRAP_DIR}.local/"* "${BOOTSTRAP_DIR}.auto" >&2
-   fi
-
-   if ! dir_has_files "${BOOTSTRAP_DIR}"
-   then
-      return
+      _bootstrap_auto_copy "${BOOTSTRAP_DIR}.auto" "${BOOTSTRAP_DIR}.local" "YES"
    fi
 
    #
    # add stuff from bootstrap folder
    # don't copy config if exists (it could be malicious)
    #
-   local path
-   local name
-
-   [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
-   IFS="
-"
-   for path in `ls -1 "${BOOTSTRAP_DIR}"`
-   do
-      IFS="${DEFAULT_IFS}"
-      name="`basename -- "${path}"`"
-
-      case "${name}" in
-         config)
-            continue
-         ;;
-
-         *.build|settings|overrides)
-            if [ -d "${BOOTSTRAP_DIR}/${name}" ]
-            then
-               inherit_files "${BOOTSTRAP_DIR}.auto/${name}" "${BOOTSTRAP_DIR}/${name}"
-            fi
-         ;;
-
-         *)
-            exekutor cp -Ran ${COPYMOVEFLAGS}  "${BOOTSTRAP_DIR}/${name}" "${BOOTSTRAP_DIR}.auto/" >&2
-         ;;
-      esac
-   done
-
-   IFS="${DEFAULT_IFS}"
+   if dir_has_files "${BOOTSTRAP_DIR}"
+   then
+      _bootstrap_auto_copy "${BOOTSTRAP_DIR}.auto" "${BOOTSTRAP_DIR}" "NO"
+   fi
 }
 
 
-
-_bootstrap_auto_refresh_repository_file()
+_bootstrap_merge_expanded_settings_in_front()
 {
-   local clones
-   local stop
-   local refreshed
-   local match
-   local dependency_map
-   local unexpanded
+   local addition="$1"
+   local original="$2"
 
-   [ -z "${MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
+   local settings1
+   local settings2
+   local name
 
-   refreshed=""
-   dependency_map=""
+   name="`basename -- "$1"`"
+   srcbootstrap="`dirname -- "${1}"`"
 
-   clones="`read_root_setting "repositories"`"
-   if [ -z "${clones}" ]
+   settings1="`_read_expanded_setting "$1" "${name}" "" "${srcbootstrap}"`"
+   if [ ! -z "$2" ]
    then
-      return
+      settings2="`_read_setting "$2" "${name}"`"
    fi
 
-   IFS="
-"
-   for unexpanded in ${clones}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      # cat for -e
-      match="`echo "${refreshed}" | fgrep -s -x "${unexpanded}"`"
-      if [ ! -z "${match}" ]
-      then
-         continue
-      fi
-
-      refreshed="${refreshed}
-${unexpanded}"
-
-      if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
-      then
-         log_trace2 "Dealing with ${unexpanded}"
-      fi
-
-      # avoid superflous updates
-
-      local branch
-      local stashdir
-      local name
-      local scm
-      local tag
-      local url
-      local clone
-      local dstdir
-
-      clone="`expanded_variables "${unexpanded}"`"
-      parse_clone "${clone}"
-
-      dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${unexpanded}"`"
-
-      #
-      # dependency management, it could be nicer, but isn't.
-      # Currently matches only URLs
-      #
-
-      if [ ! -d "${stashdir}" ]
-      then
-         if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
-         then
-            log_trace2 "${stashdir} not fetched yet"
-         fi
-         continue
-      fi
-
-      local sub_repos
-      local filename
-
-      filename="${stashdir}/.bootstrap/repositories"
-      sub_repos="`read_setting "${filename}" "repositories"`"
-      if [ ! -z "${sub_repos}" ]
-      then
-#                  unexpanded_url="`url_from_clone "${unexpanded}"`"
-         dependency_map="`dependency_add_array "${dependency_map}" "${unexpanded}" "${sub_repos}"`"
-         if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
-         then
-            log_trace2 "add \"${unexpanded}\" to __ROOT__ as dependencies"
-            log_trace2 "add [ ${sub_repos} ] to ${unexpanded} as dependencies"
-         fi
-      else
-         log_fluff "${name} has no repositories"
-      fi
-   done
-
-   IFS="${DEFAULT_IFS}"
-
-   #
-   # output true repository dependencies
-   #
-   local repositories
-
-   repositories="`dependency_resolve "${dependency_map}" "__ROOT__" | fgrep -v -x "__ROOT__"`"
-   if [ ! -z "${repositories}" ]
-   then
-      if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" -o "$MULLE_BOOTSTRAP_TRACE_MERGE" = "YES"  ]
-      then
-         log_trace2 "----------------------"
-         log_trace2 "resolved dependencies:"
-         log_trace2 "----------------------"
-         log_trace2 "${repositories}"
-         log_trace2 "----------------------"
-      fi
-      echo "${repositories}" > "${BOOTSTRAP_DIR}.auto/repositories"
-   fi
+   _merge_settings_in_front "${settings1}" "${settings2}"
 }
 
 #
@@ -241,7 +201,6 @@ _bootstrap_auto_merge_root_settings()
 
       settingname="`basename -- "${i}"`"
       srcfile="${directory}/.bootstrap/${settingname}"
-
       if [ -d "${srcfile}" ]
       then
          log_fluff "Directory \"${srcfile}\" not copied"
@@ -250,28 +209,51 @@ _bootstrap_auto_merge_root_settings()
 
       dstfile="${BOOTSTRAP_DIR}.auto/${settingname}"
 
-      # cat is for -e
-      match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
-      if [ ! -z "${match}" ]
+      #
+      # "repositories" file gets special treatment
+      #
+      if [ "${settingname}" = "repositories" ]
       then
-         log_fluff "Setting \"${settingname}\" is not mergable, so ignored"
+         local newcontents
+
+         newcontents="`_bootstrap_merge_expanded_settings_in_front "${srcfile}" ""`"
+         if [ -f "${dstfile}" ]
+         then
+            local contents2
+
+            contents="`cat "${dstfile}"`"
+            newcontents="`merge_repository_contents "${contents}" "${newcontents}"`"
+         fi
+         log_fluff "Copying expanded \"repositories\" from \"${srcfile}\""
+
+         redirect_exekutor "${dstfile}" echo "${newcontents}"
          continue
       fi
 
-      # environment is copied over, but crashes if the contents differ
+      # #
+      # # non mergable settings are not merged
+      # #
+      # match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
+      # if [ ! -z "${match}" ]
+      # then
+      #    log_fluff "Setting \"${settingname}\" is not mergable, so ignored"
+      #    continue
+      # fi
 
-      match="`egrep -s -x "^[A-Z_]+$" <<< "${settingname}"`"
-      if [ ! -z "${match}" ]
-      then
-         _copy_no_clobber_setting_file "${dstfile}" "${srcfile}"
-         continue
-      fi
+      # #
+      # # environment is not copied over
+      # #
+      # match="`egrep -s -x "^[A-Z_]+$" <<< "${settingname}"`"
+      # if [ ! -z "${match}" ]
+      # then
+      #    log_fluff "Setting \"${settingname}\" is environment, so ignored"
+      #    continue
+      # fi
 
-      # cat is for -e
       match="`echo "${MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
       if [ -z "${match}" ]
       then
-         log_fluff "Setting \"${settingname}\" is unknown."
+         log_fluff "Setting \"${settingname}\" is not mergable, so ignored"
          continue
       fi
 
@@ -279,15 +261,15 @@ _bootstrap_auto_merge_root_settings()
       then
          tmpfile="${BOOTSTRAP_DIR}.auto/${settingname}.tmp"
 
-         log_fluff "Merging \"${settingname}\" from \"${srcfile}\""
+         log_fluff "Merging expanded \"${settingname}\" from \"${srcfile}\""
 
          exekutor mv ${COPYMOVEFLAGS}  "${dstfile}" "${tmpfile}" >&2 || exit 1
-         redirect_exekutor "${dstfile}" exekutor merge_settings_in_front "${srcfile}" "${tmpfile}"  || exit 1
+         redirect_exekutor "${dstfile}" _bootstrap_merge_expanded_settings_in_front "${srcfile}" "${tmpfile}"  || exit 1
          exekutor rm ${COPYMOVEFLAGS}  "${tmpfile}" >&2 || exit 1
       else
-         log_fluff "Copying \"${settingname}\" from \"${srcfile}\""
+         log_fluff "Copying expanded \"${settingname}\" from \"${srcfile}\""
 
-         exekutor cp ${COPYMOVEFLAGS}  "${srcfile}" "${dstfile}" >&2 || exit 1
+         redirect_exekutor "${dstfile}" _bootstrap_merge_expanded_settings_in_front "${srcfile}" ""
       fi
    done
 
@@ -305,8 +287,15 @@ bootstrap_auto_update()
    if [ -d "${directory}/${BOOTSTRAP_DIR}" ]
    then
       _bootstrap_auto_merge_root_settings "${directory}"
-      _bootstrap_auto_refresh_repository_file "${directory}"
+      sort_repository_file "${directory}"
+   else
+      # could be helpful to user
+      if [ -d "${directory}/${BOOTSTRAP_DIR}.local" ]
+      then
+         log_fluff "Inferior \"${directory}/${BOOTSTRAP_DIR}.local\" ignored"
+      fi
    fi
+
    log_fluff ":bootstrap_auto_update: end"
 }
 

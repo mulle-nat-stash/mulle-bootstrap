@@ -91,7 +91,7 @@ git_must_be_clean()
    if [ "${clean}" != "" ]
    then
       log_error "Repository \"$name\" is not ready to be tagged yet."
-      if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
+      if [ "${MULLE_FLAG_LOG_TERSE}" != "YES" ]
       then
          git status -s >&2
       fi

@@ -70,7 +70,7 @@ defer_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
             defer_usage
          ;;
 
@@ -120,9 +120,8 @@ defer_main()
 
    make_master_bootstrap_project "${masterpath}"
    make_minion_bootstrap_project "${minionpath}" "${masterpath}"
-   log_verbose "Adding project as minion to \"${masterpath}\""
+   log_info "Deferring to \"${masterpath}\""
    master_add_minion_bootstrap_project "${masterpath}" "${minionpath}"
-   log_info "Project defers to \"${masterpath}\""
 }
 
 
@@ -138,7 +137,7 @@ emancipate_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
             defer_usage
          ;;
 
@@ -183,10 +182,8 @@ emancipate_main()
       fail "\"${masterpath}\" is not a master project"
    fi
 
-   log_verbose "Removing minion from \"${masterpath}\""
+   log_info "Emancipating from \"${masterpath}\""
    master_remove_minion_bootstrap_project "${masterpath}" "${minionpath}"
    emancipate_minion_bootstrap_project "${minionpath}"
-
-   log_info "Project is standalone again"
 }
 

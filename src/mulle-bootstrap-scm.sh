@@ -459,7 +459,7 @@ append_dir_to_gitignore_if_needed()
    local terminator
 
    line="/${directory}"
-   terminator="`tail -c 1 ".gitignore 2> /dev/null" | tr '\012' '|'`"
+   terminator="`tail -c 1 ".gitignore" 2> /dev/null | tr '\012' '|'`"
 
    if [ "${terminator}" != "|" ]
    then

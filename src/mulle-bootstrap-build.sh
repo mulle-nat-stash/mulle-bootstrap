@@ -36,8 +36,8 @@ build_usage()
    local defc
    local defkk
 
-   defc="`printf "$CONFIGURATIONS" | tr '\012' ','`"
-   if [ "${CLEAN_BEFORE_BUILD}" = "YES" ]
+   defc="`printf "$OPTION_CONFIGURATIONS" | tr '\012' ','`"
+   if [ "${OPTION_CLEAN_BEFORE_BUILD}" = "YES" ]
    then
       defk=""
       defkk="(default)"
@@ -289,7 +289,7 @@ collect_and_dispense_product()
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
       fi
 
-      if [ "$MULLE_BOOTSTRAP_VERBOSE" = "YES"  ]
+      if [ "$MULLE_FLAG_LOG_VERBOSE" = "YES"  ]
       then
          if dir_has_files "${BUILD_DEPENDENCIES_DIR}"
          then
@@ -426,7 +426,7 @@ build_fail()
       printf "${C_RESET}"
    fi
 
-   if [ "$MULLE_BOOTSTRAP_TRACE" != "1848" ]
+   if [ "$MULLE_TRACE" != "1848" ]
    then
       log_info "Check the build log: ${C_RESET_BOLD}$1${C_INFO}"
    fi
@@ -707,7 +707,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local fallback
    local localcmakeflags
 
-   fallback="`echo "${CONFIGURATIONS}" | tail -1`"
+   fallback="`echo "${OPTION_CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
    mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
    localcmakeflags="`read_build_setting "${name}" "cmakeflags"`"
@@ -783,12 +783,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       logfile1="${owd}/${logfile1}"
       logfile2="${owd}/${logfile2}"
 
-      if [ "$MULLE_BOOTSTRAP_VERBOSE_BUILD" = "YES" ]
+      if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
       then
          logfile1="`tty`"
          logfile2="$logfile1"
       fi
-      if [ "$MULLE_EXECUTOR_DRY_RUN" = "YES" ]
+      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
       then
          logfile1="/dev/null"
          logfile2="/dev/null"
@@ -829,7 +829,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
       frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
 
-      if [ "${ADD_USR_LOCAL}" = "YES" ]
+      if [ "${OPTION_ADD_USR_LOCAL}" = "YES" ]
       then
          includelines="`add_cmake_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
          librarylines="`add_cmake_path "${librarylines}" "${USR_LOCAL_LIB}"`"
@@ -920,7 +920,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       done
 
       IFS=";"
-      if [ "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" = "YES" ]
+      if [ "${MULLE_FLAG_VERBOSE_BUILD}" = "YES" ]
       then
          IFS="${DEFAULT_IFS}"
          local_make_flags="${local_make_flags} VERBOSE=1"
@@ -1020,7 +1020,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local fallback
    local configureflags
 
-   fallback="`echo "${CONFIGURATIONS}" | tail -1`"
+   fallback="`echo "${OPTION_CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
 
    configureflags="`read_build_setting "${name}" "configure_flags"`"
@@ -1073,12 +1073,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       logfile1="${owd}/${logfile1}"
       logfile2="${owd}/${logfile2}"
 
-      if [ "$MULLE_BOOTSTRAP_VERBOSE_BUILD" = "YES" ]
+      if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
       then
          logfile1="`tty`"
          logfile2="$logfile1"
       fi
-      if [ "$MULLE_EXECUTOR_DRY_RUN" = "YES" ]
+      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
       then
          logfile1="/dev/null"
          logfile2="/dev/null"
@@ -1119,7 +1119,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
       frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
 
-      if [ "${ADD_USR_LOCAL}" = "YES" ]
+      if [ "${OPTION_ADD_USR_LOCAL}" = "YES" ]
       then
          includelines="`add_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
          librarylines="`add_path "${librarylines}" "${USR_LOCAL_LIB}"`"
@@ -1381,7 +1381,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local mapped
    local fallback
 
-   fallback="`echo "${CONFIGURATIONS}" | tail -1`"
+   fallback="`echo "${OPTION_CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
 
    mapped=`read_build_setting "${name}" "${configuration}.map" "${configuration}"`
@@ -1458,7 +1458,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local owd
    local command
 
-   if [ "$MULLE_EXECUTOR_DRY_RUN" != "" ]
+   if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" != "" ]
    then
       command=-showBuildSettings
    else
@@ -1547,11 +1547,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       # DONT READ CONFIG SETTING IN THIS INDENT
       logfile="${owd}/${logfile}"
 
-      if [ "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" = "YES" ]
+      if [ "${MULLE_FLAG_VERBOSE_BUILD}" = "YES" ]
       then
          logfile="`tty`"
       fi
-      if [ "$MULLE_EXECUTOR_DRY_RUN" = "YES" ]
+      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
       then
          logfile="/dev/null"
       fi
@@ -1597,7 +1597,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          dependencies_lib_search_path="${path} ${inherited}"
       fi
 
-      if [ "${ADD_USR_LOCAL}" = "YES" ]
+      if [ "${OPTION_ADD_USR_LOCAL}" = "YES" ]
       then
          dependencies_header_search_path="${path} ${USR_LOCAL_INCLUDE}"
          dependencies_lib_search_path="${path} ${USR_LOCAL_LIB}"
@@ -1763,11 +1763,11 @@ build_script()
 
       logfile="${owd}/${logfile}"
 
-      if [ "$MULLE_BOOTSTRAP_VERBOSE_BUILD" = "YES" ]
+      if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
       then
          logfile="`tty`"
       fi
-      if [ "$MULLE_EXECUTOR_DRY_RUN" = "YES" ]
+      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
       then
          logfile="/dev/null"
       fi
@@ -1839,7 +1839,7 @@ build_with_configuration_sdk_preferences()
 
    builddir="${CLONESBUILD_SUBDIR}/${configuration}/${name}"
 
-   if [ -d "${builddir}" -a "${CLEAN_BEFORE_BUILD}" = "YES" ]
+   if [ -d "${builddir}" -a "${OPTION_CLEAN_BEFORE_BUILD}" = "YES" ]
    then
       log_fluff "Cleaning build directory \"${builddir}\""
       rmdir_safer "${builddir}"
@@ -1978,7 +1978,7 @@ configure"`"
    [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
    # settings can override the commandline default
-   configurations="`read_build_setting "${name}" "configurations" "${CONFIGURATIONS}"`"
+   configurations="`read_build_setting "${name}" "configurations" "${OPTION_CONFIGURATIONS}"`"
 
    for sdk in ${sdks}
    do
@@ -2136,7 +2136,7 @@ build_stashes()
             then
                build_if_alive "${name}" "${stashdir}" || exit  1
             else
-               if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
+               if [ "${OPTION_CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
                then
                   log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                   :
@@ -2155,7 +2155,7 @@ build_stashes()
          then
             build_if_alive "${name}" "${stashdir}"|| exit 1
          else
-            if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
+            if [ "${OPTION_CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
             then
                log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                :
@@ -2219,7 +2219,12 @@ build_main()
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
 
-   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   local OPTION_CLEAN_BEFORE_BUILD
+   local OPTION_CHECK_USR_LOCAL_INCLUDE
+   local OPTION_CONFIGURATIONS
+   local OPTION_ADD_USR_LOCAL
+
+   OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    #
    # it is useful, that fetch understands build options and
@@ -2228,22 +2233,21 @@ build_main()
    while [ $# -ne 0 ]
    do
       case "$1" in
-         -K|--clean)
-            CLEAN_BEFORE_BUILD="YES"
-         ;;
-
-         -k|--no-clean)
-            CLEAN_BEFORE_BUILD=
-         ;;
-
-         --prefix)
+         -c|--configuration)
             shift
-            [ $# -ne 0 ] || fail "prefix missing"
+            [ $# -ne 0 ] || fail "configuration names missing"
 
-            USR_LOCAL_INCLUDE="$1/include"
-            USR_LOCAL_LIB="$1/lib"
+            OPTION_CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
+            ;;
+
+         -cs|--check-usr-local-include)
+            # set environment to be picked up by config
+            OPTION_CHECK_USR_LOCAL_INCLUDE="YES"
          ;;
 
+         --debug)
+            OPTION_CONFIGURATIONS="Debug"
+         ;;
 
          -j|--cores)
             case "${UNAME}" in
@@ -2258,28 +2262,29 @@ build_main()
             CORES="$1"
          ;;
 
-         --debug)
-            CONFIGURATIONS="Debug"
+         -k|--no-clean)
+            OPTION_CLEAN_BEFORE_BUILD=
          ;;
+
+         -K|--clean)
+            OPTION_CLEAN_BEFORE_BUILD="YES"
+         ;;
+
+         --prefix)
+            shift
+            [ $# -ne 0 ] || fail "prefix missing"
+
+            USR_LOCAL_INCLUDE="$1/include"
+            USR_LOCAL_LIB="$1/lib"
+         ;;
+
 
          --release)
-            CONFIGURATIONS="Release"
-         ;;
-
-         -c|--configuration)
-            shift
-            [ $# -ne 0 ] || fail "configuration names missing"
-
-            CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
-            ;;
-
-         -cs|--check-usr-local-include)
-            # set environment to be picked up by config
-            CHECK_USR_LOCAL_INCLUDE="YES"
+            OPTION_CONFIGURATIONS="Release"
          ;;
 
          --use-prefix-libraries)
-            ADD_USR_LOCAL=YES
+            OPTION_ADD_USR_LOCAL=YES
          ;;
 
          # fetch options, are just ignored
@@ -2288,7 +2293,7 @@ build_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown build option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown build option $1"
             build_usage
          ;;
 
@@ -2322,7 +2327,6 @@ build_main()
    [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
-
 
    remove_file_if_present "${REPOS_DIR}/.bootstrap_build_done"
    create_file_if_missing "${REPOS_DIR}/.bootstrap_build_started"

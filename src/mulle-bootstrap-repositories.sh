@@ -75,7 +75,7 @@ remember_stash_of_repository()
    content="${stashdir}
 ${clone}"  ## a clone line
 
-   log_fluff "Remember repository \"${name}\" via \"${filepath}\""
+   log_fluff "Remembering repository \"${name}\" via \"${filepath}\""
 
    redirect_exekutor "${filepath}" echo "${content}"
 }
@@ -508,10 +508,13 @@ parse_clone()
 
    local dstdir
 
-   clone="`expanded_variables "${1}"`"
+   #
+   # expansion is now done during already during .auto creation
+   # clone="`expanded_variables "${1}"`"
+   #
    IFS=";" read -r url dstdir branch scm tag <<< "${clone}"
 
-   if [ "${IGNORE_BRANCH}" = "YES" ]
+   if [ "${OPTION_IGNORE_BRANCH}" = "YES" ]
    then
       branch=""
    fi
@@ -548,7 +551,7 @@ parse_clone()
       ;;
    esac
 
-   if [ "$MULLE_BOOTSTRAP_TRACE_SETTINGS" = "YES" ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
    then
       log_trace2 "URL:      \"${url}\""
       log_trace2 "DSTDIR:   \"${dstdir}\""
@@ -619,6 +622,235 @@ ensure_reposdir_directory()
       mkdir_if_missing "${reposdir}"
    fi
 }
+
+
+#
+# Merge two "repositories" files contents. Find duplicates by matching
+# against URL
+#
+merge_repository_contents()
+{
+   local contents="$1"
+   local additions="$2"
+
+   local clone
+   local map
+
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   then
+      log_trace2 "Merging \"${additions}\" into \"${contents}\""
+   fi
+
+   map=""
+   IFS="
+"
+   for clone in ${additions}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      url="`_url_part_from_clone "${clone}"`"
+      map="`assoc_array_set  "${map}" "${url}" "${clone}"`"
+   done
+
+   IFS="
+"
+   for clone in ${contents}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      url="`_url_part_from_clone "${clone}"`"
+      map="`assoc_array_set  "${map}" "${url}" "${clone}"`"
+   done
+   IFS="${DEFAULT_IFS}"
+
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   then
+      log_trace2 "----------------------"
+      log_trace2 "merged \"repositories\":"
+      log_trace2 "----------------------"
+      log_trace2 "`assoc_array_all_values "${map}"`"
+      log_trace2 "----------------------"
+   fi
+   assoc_array_all_values "${map}"
+}
+
+
+#
+# take a list of repositories
+# unique them with another list of repositories by url
+# output uniqued list
+#
+# another:  b;b
+# input:    b
+# output:   b;b
+
+unique_repository_contents()
+{
+   local input="$1"
+   local another="$2"
+
+   local clone
+   local map
+   local output
+
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   then
+      log_trace2 "Uniquing \"${input}\" with \"${another}\""
+   fi
+
+   map=""
+   IFS="
+"
+   for clone in ${another}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      url="`_url_part_from_clone "${clone}"`"
+      map="`assoc_array_set  "${map}" "${url}" "${clone}"`"
+   done
+
+   output=""
+   IFS="
+"
+   for clone in ${input}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      url="`_url_part_from_clone "${clone}"`"
+      uniqued="`assoc_array_get "${map}" "${url}"`"
+      output="`add_line "${output}" "${uniqued:-${clone}}"`"
+   done
+   IFS="${DEFAULT_IFS}"
+
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   then
+      log_trace2 "----------------------"
+      log_trace2 "uniqued \"repositories\":"
+      log_trace2 "----------------------"
+      log_trace2 "${output}"
+      log_trace2 "----------------------"
+   fi
+
+   echo "${output}"
+}
+
+#
+# Take an expanded .bootstrap.auto file and put the
+# entries in proper order, possibly removing duplicates
+# along the way
+#
+sort_repository_file()
+{
+   local clones
+   local stop
+   local refreshed
+   local match
+   local dependency_map
+   local clone
+
+   [ -z "${MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
+
+   refreshed=""
+   dependency_map=""
+
+   #
+   # read from .auto
+   #
+   clones="`read_root_setting "repositories"`"
+   if [ -z "${clones}" ]
+   then
+      return
+   fi
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      match="`echo "${refreshed}" | fgrep -s -x "${clone}"`"
+      if [ ! -z "${match}" ]
+      then
+         continue
+      fi
+      refreshed="${refreshed}
+${clone}"
+
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+      then
+         log_trace2 "Sort is dealing with \"${clone}\" now"
+      fi
+
+      # avoid superflous updates
+
+      local branch
+      local stashdir
+      local name
+      local scm
+      local tag
+      local url
+      local clone
+      local dstdir
+
+      parse_clone "${clone}"
+
+      dependency_map="`dependency_add "${dependency_map}" "__ROOT__" "${clone}"`"
+
+      #
+      # dependency management, it could be nicer, but isn't.
+      # Currently matches only URLs
+      #
+
+      if [ ! -d "${stashdir}" ]
+      then
+         if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+         then
+            log_trace2 "${stashdir} not fetched yet"
+         fi
+         continue
+      fi
+
+      local sub_repos
+      local filename
+
+      filename="${stashdir}/.bootstrap/repositories"
+      sub_repos="`_read_expanded_setting "${filename}" "repositories" "" "${stashdir}/.bootstrap"`"
+      if [ ! -z "${sub_repos}" ]
+      then
+         sub_repos="`unique_repository_contents "${sub_repos}" "${clones}"`"
+         dependency_map="`dependency_add_array "${dependency_map}" "${clone}" "${sub_repos}"`"
+         if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+         then
+            log_trace2 "add \"${clone}\" to __ROOT__ as dependencies"
+            log_trace2 "add [ ${sub_repos} ] to ${clone} as dependencies"
+         fi
+      else
+         log_fluff "${name} has no repositories"
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   #
+   # output true repository dependencies
+   #
+   local repositories
+
+   repositories="`dependency_resolve "${dependency_map}" "__ROOT__" | fgrep -v -x "__ROOT__"`"
+   if [ ! -z "${repositories}" ]
+   then
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+      then
+         log_trace2 "------------------------"
+         log_trace2 "resolved \"repositories\":"
+         log_trace2 "------------------------"
+         log_trace2 "${repositories}"
+         log_trace2 "------------------------"
+      fi
+      echo "${repositories}" > "${BOOTSTRAP_DIR}.auto/repositories"
+   fi
+}
+
 
 
 mulle_repositories_initialize()

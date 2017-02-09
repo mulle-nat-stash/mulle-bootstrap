@@ -128,7 +128,7 @@ _common_status()
       status_embedded_repositories
    fi
 
-   if [ "${EMBEDDED_ONLY}" = "YES" ]
+   if [ "${OPTION_EMBEDDED_ONLY}" = "YES" ]
    then
       return
    fi
@@ -146,8 +146,8 @@ status_main()
 {
    log_fluff ":status_main:"
 
-   local ALLOW_FOLLOWING_SYMLINKS="YES"
-   local EMBEDDED_ONLY="NO"
+   local OPTION_ALLOW_FOLLOWING_SYMLINKS="YES"
+   local OPTION_EMBEDDED_ONLY="NO"
    local SKIP_EMBEDDED="YES"
    local STATUS_SCM="NO"
    local STATUS_FETCH="YES"
@@ -165,7 +165,7 @@ status_main()
          ;;
 
          -e|--embedded-only)
-            EMBEDDED_ONLY="YES"
+            OPTION_EMBEDDED_ONLY="YES"
             SKIP_EMBEDDED="NO"
          ;;
 
@@ -174,7 +174,7 @@ status_main()
          ;;
 
          -nfs|--no-follow-symlinks)
-            ALLOW_FOLLOWING_SYMLINKS="NO"
+            OPTION_ALLOW_FOLLOWING_SYMLINKS="NO"
          ;;
 
          -l|--list)
@@ -190,7 +190,7 @@ status_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown status option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown status option $1"
             status_usage
          ;;
 

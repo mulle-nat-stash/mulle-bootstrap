@@ -96,11 +96,18 @@ fail()
 
 BOOTSTRAP_FLAGS="$@"
 
+
+echo "" >&2
+echo "" >&2
+echo "=== setup ===" >&2
+echo "" >&2
+echo "" >&2
+
 setup
 
 echo "" >&2
 echo "" >&2
-echo "=== setup done ===" >&2
+echo "=== test 1 ===" >&2
 echo "" >&2
 echo "" >&2
 
@@ -109,15 +116,17 @@ echo "" >&2
    run_mulle_bootstrap ${BOOTSTRAP_FLAGS} -y fetch --no-symlink-creation
 
    [ -d src/b_1 ]         || fail "b as src/b_1 failed to be embedded"
-   [ -d src/b_1/src/a_1 ] || fail "src/b_1/src/a_1 faile to be embedded"
+   [ -d src/b_1/src/a_1 ] || fail "src/b_1/src/a_1 failed to be embedded"
    :
 ) || exit 1
 
+
 echo "" >&2
 echo "" >&2
-echo "=== test 1 done ===" >&2
+echo "=== test 2 ===" >&2
 echo "" >&2
 echo "" >&2
+
 
 (
    cd c ;
@@ -134,9 +143,10 @@ echo "" >&2
    :
 ) || exit 1
 
+
 echo "" >&2
 echo "" >&2
-echo "=== test 2 done ===" >&2
+echo "=== test 3 ===" >&2
 echo "" >&2
 echo "" >&2
 
@@ -145,17 +155,17 @@ echo "" >&2
    cd d ;
 
    run_mulle_bootstrap -a ${BOOTSTRAP_FLAGS} -y fetch --no-symlink-creation
-   [ -d stashes/c/src/b_1 ] || fail "b as stashes/c/src/b_2 failed to be fetched"
+   [ -d stashes/c/src/b_1 ]         || fail "b as stashes/c/src/b_2 failed to be fetched"
    [ -d stashes/c/src/b_1/src/a_1 ] || fail " stashes/c/src/b_2/src/a_1 failed to be embedded"
    :
 ) || exit 1
 
-echo "" >&2
-echo "" >&2
-echo "=== test 3 done ===" >&2
-echo "" >&2
-echo "" >&2
 
+echo "" >&2
+echo "" >&2
+echo "=== test 4 ===" >&2
+echo "" >&2
+echo "" >&2
 
 (
    cd d ;
@@ -170,10 +180,5 @@ echo "" >&2
    :
 ) || exit 1
 
-echo "" >&2
-echo "" >&2
-echo "=== test 4 done ===" >&2
-echo "" >&2
-echo "" >&2
 
 echo "succeeded" >&2

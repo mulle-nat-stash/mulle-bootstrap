@@ -210,7 +210,7 @@ link_command()
    linkname="`basename -- ${stashdir}`"
    directory="`dirname -- "${stashdir}"`"
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       (
          cd "${directory}" ;
@@ -273,7 +273,7 @@ ask_symlink_it()
       fi
 
       flag=1  # means clone it
-      if [ "${ALLOW_CREATING_SYMLINKS}" = "YES" ]
+      if [ "${OPTION_ALLOW_CREATING_SYMLINKS}" = "YES" ]
       then
          local prompt
 
@@ -296,7 +296,7 @@ NO is safe, but you often say YES here."
    fi
 
    # can only symlink because not a .git repo yet
-   if [ "${ALLOW_CREATING_SYMLINKS}" = "YES" ]
+   if [ "${OPTION_ALLOW_CREATING_SYMLINKS}" = "YES" ]
    then
       log_info "${clone} is not a git repository (yet ?)"
       log_info "So symlinking is the only way to go."
@@ -473,7 +473,7 @@ clone_or_symlink()
       ;;
 
       *)
-         if [ "${ALLOW_SEARCH_PARENT}" = "YES" ]
+         if [ "${OPTION_ALLOW_SEARCH_PARENT}" = "YES" ]
          then
             found="`search_git_repo_in_parent_of_root "${name}" "${branch}"`"
             if [ -z "${found}" ]
@@ -483,7 +483,7 @@ clone_or_symlink()
 
             if [ ! -z "${found}" ]
             then
-               [ "${ALLOW_AUTOCLONE_PARENT}" = "YES" ] || user_say_yes "There is a \"${found}\" folder in the parent directory of this project.
+               [ "${OPTION_ALLOW_AUTOCLONE_PARENT}" = "YES" ] || user_say_yes "There is a \"${found}\" folder in the parent directory of this project.
 (\"${PWD}\"). Use it ?"
                if [ $? -eq 0 ]
                then
@@ -536,22 +536,28 @@ _clone()
 
    assert_sane_parameters "empty is ok"
 
-   if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
+   if [ "${OPTION_CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${name}"
    then
       log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not fetching it"
       return 1
    fi
 
-   if [ "${url}" = "${stashdir}" ]
-   then
-      is_minion_bootstrap_project "${stashdir}" || fail "\"${stashdir}\" should be a minion but isnt't"
-      log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a minion, so skipped"
-      return 1
-   fi
-
-
    if [ -e "${stashdir}" ]
    then
+      if [ "${url}" = "${stashdir}" ]
+      then
+         if is_master_bootstrap_project
+         then
+            is_minion_bootstrap_project "${stashdir}" || fail "\"${stashdir}\" \
+should be a minion but it isn't.
+Suggested fix:
+   ${C_RESET}${C_BOLD}cd \"${stashdir}\" ; mulle-bootstrap defer \"\
+`perfect_relative_path_between "${PWD}" "${stashdir}"`\
+\""
+            log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a minion, so cloning is skipped"
+            return 1
+         fi
+      fi
       _bury_stash "${reposdir}" "${name}" "${stashdir}"
    fi
 
@@ -612,7 +618,7 @@ checkout_repository()
    local url="$3"       # URL of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   if [ -L "${stashdir}" -a "${ALLOW_FOLLOWING_SYMLINKS}" != "YES" ]
+   if [ -L "${stashdir}" -a "${OPTION_ALLOW_FOLLOWING_SYMLINKS}" != "YES" ]
    then
       echo "Ignoring ${stashdir} because it's a symlink"
       return
@@ -665,7 +671,7 @@ update_repository()
 {
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   if [ -L "${stashdir}" -a "${ALLOW_FOLLOWING_SYMLINKS}" != "YES" ]
+   if [ -L "${stashdir}" -a "${OPTION_ALLOW_FOLLOWING_SYMLINKS}" != "YES" ]
    then
       echo "Ignoring ${stashdir} because it's a symlink"
       return
@@ -779,7 +785,7 @@ _operation_walk_repositories()
    local permissions
 
    permissions=""
-   if [ "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
+   if [ "${OPTION_ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
    then
       permissions="`add_line "${permissions}" "symlink"`"
    fi
@@ -798,7 +804,7 @@ _operation_walk_embedded_repositories()
    local permissions
 
    permissions=""
-   if [ "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
+   if [ "${OPTION_ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
    then
       permissions="`add_line "${permissions}" "symlink"`"
    fi
@@ -810,7 +816,7 @@ _operation_walk_embedded_repositories()
    #
    (
       STASHES_DIR="" ;
-      ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+      OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
 
       walk_repositories "embedded_repositories"  \
                         "${operation}" \
@@ -827,13 +833,13 @@ _operation_walk_deep_embedded_repositories()
    local permissions
 
    permissions=""
-   if [ "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
+   if [ "${OPTION_ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
    then
       permissions="`add_line "${permissions}" "symlink"`"
    fi
 
    (
-      ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+      OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
 
       walk_deep_embedded_repositories "${operation}" \
                                       "${permissions}"
@@ -964,7 +970,7 @@ required_action_for_clone()
 
    if [ "${scm}" != "${newscm}" ]
    then
-      log_fluff "SCM has changed from ${scm} to ${newscm}, need to refetch"
+      log_fluff "SCM has changed from \"${scm}\" to \"${newscm}\", need to refetch"
       echo "remove
 clone"
       return
@@ -972,7 +978,7 @@ clone"
 
    if [ "${stashdir}" != "${newstashdir}" ]
    then
-      log_fluff "Destination has changed from ${stashdir} to ${newstashdir}, need to move"
+      log_fluff "Destination has changed from \"${stashdir}\" to \"${newstashdir}\", need to move"
       echo "move"
    fi
 
@@ -995,19 +1001,19 @@ clone"
 
    if [ "${branch}" != "${newbranch}" ]
    then
-      log_fluff "Branch has changed from ${branch} to ${newbranch}, need to fetch"
+      log_fluff "Branch has changed from \"${branch}\" to \"${newbranch}\", need to fetch"
       echo "pull"
    fi
 
    if [ "${tag}" != "${newtag}" ]
    then
-      log_fluff "Tag has changed from ${tag} to ${newtag}, need to check-out"
+      log_fluff "Tag has changed from \"${tag}\" to \"${newtag}\", need to check-out"
       echo "checkout"
    fi
 
    if [ "${url}" != "${newurl}" ]
    then
-      log_fluff "URL has changed from ${url} to ${newurl}, need to set remote url and fetch"
+      log_fluff "URL has changed from \"${url}\" to \"${newurl}\", need to set remote url and fetch"
       echo "set-remote"
       echo "pull"
    fi
@@ -1175,12 +1181,12 @@ work_clones()
 
       mark_stash_as_alive "${reposdir}" "${name}"
 
-      if [ ! -L "${stashdir}" -o "${ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
+      if [ ! -L "${stashdir}" -o "${OPTION_ALLOW_FOLLOWING_SYMLINKS}" = "YES" ]
       then
          (
             local embedded_clones;
 
-            ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+            OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
             MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES" ;
             STASHES_DIR=""
 
@@ -1221,7 +1227,7 @@ work_all_repositories()
 
    (
       STASHES_DIR="" ;
-      ALLOW_CREATING_SYMLINKS="${ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+      OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
 
       before="`read_root_setting "embedded_repositories"`" ;
       work_clones "${REPOS_DIR}/.embedded" "${before}" "NO"
@@ -1229,7 +1235,7 @@ work_all_repositories()
 
    [  -z "${STASHES_DIR}" ] && internal_fail "hein"
 
-   if [ -z "${EMBEDDED_ONLY}" ]
+   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
    then
       loops=""
       before=""
@@ -1277,7 +1283,7 @@ work_all_repositories()
 assume_stashes_are_zombies()
 {
    zombify_embedded_repository_stashes
-   if [ -z "${EMBEDDED_ONLY}" ]
+   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
    then
       zombify_repository_stashes
       zombify_deep_embedded_repository_stashes
@@ -1288,7 +1294,7 @@ assume_stashes_are_zombies()
 bury_zombies_in_graveyard()
 {
    bury_embedded_repository_zombies
-   if [ -z "${EMBEDDED_ONLY}" ]
+   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
    then
       bury_repository_zombies
       bury_deep_embedded_repository_zombies
@@ -1298,7 +1304,7 @@ bury_zombies_in_graveyard()
 
 run_post_fetch_scripts()
 {
-   if [ -z "${EMBEDDED_ONLY}" ]
+   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
    then
       did_fetch_repositories "$@"
       fetch__run_root_settings_script "post-fetch" "$@"
@@ -1315,7 +1321,7 @@ run_post_update_scripts()
 
 run_post_upgrade_scripts()
 {
-   if [ -z "${EMBEDDED_ONLY}" ]
+   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
    then
       did_upgrade_repositories "$@"
       fetch__run_root_settings_script "post-upgrade" "$@"
@@ -1391,7 +1397,7 @@ _common_update()
    esac
 
    update_embedded_repositories
-   if [ ! -z "${EMBEDDED_ONLY}" ]
+   if [ ! -z "${OPTION_EMBEDDED_ONLY}" ]
    then
       return
    fi
@@ -1410,7 +1416,7 @@ _common_upgrade()
    esac
 
    upgrade_embedded_repositories
-   if [ ! -z "${EMBEDDED_ONLY}" ]
+   if [ ! -z "${OPTION_EMBEDDED_ONLY}" ]
    then
       return
    fi
@@ -1432,20 +1438,27 @@ _common_main()
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
-   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   local OPTION_CHECK_USR_LOCAL_INCLUDE
+   local OPTION_ALLOW_CREATING_SYMLINKS
+   local OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS
+   local OPTION_ALLOW_SEARCH_PARENT
+   local OPTION_ALLOW_AUTOCLONE_PARENT
+   local OPTION_EMBEDDED_ONLY
+
+   OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    case "${UNAME}" in
       mingw)
-         ALLOW_CREATING_SYMLINKS=
+         OPTION_ALLOW_CREATING_SYMLINKS=
       ;;
 
       *)
-         ALLOW_CREATING_SYMLINKS="`read_config_setting "symlink_allowed" "${MULLE_BOOTSTRAP_ANSWER}"`"
+         OPTION_ALLOW_CREATING_SYMLINKS="`read_config_setting "symlink_allowed" "${MULLE_FLAG_ANSWER}"`"
       ;;
    esac
 
-   ALLOW_SEARCH_PARENT="${MULLE_BOOTSTRAP_ANSWER}"
-   ALLOW_AUTOCLONE_PARENT="${MULLE_BOOTSTRAP_ANSWER}"
+   OPTION_ALLOW_SEARCH_PARENT="${MULLE_FLAG_ANSWER}"
+   OPTION_ALLOW_AUTOCLONE_PARENT="${MULLE_FLAG_ANSWER}"
 
    #
    # it is useful, that fetch understands build options and
@@ -1459,45 +1472,45 @@ _common_main()
          ;;
 
          -aa|--allow-autoclone-parent)
-            ALLOW_SEARCH_PARENT="YES"
-            ALLOW_AUTOCLONE_PARENT="YES"
+            OPTION_ALLOW_SEARCH_PARENT="YES"
+            OPTION_ALLOW_AUTOCLONE_PARENT="YES"
          ;;
 
          -ap|--allow-parent-search)
-            ALLOW_SEARCH_PARENT="YES"
+            OPTION_ALLOW_SEARCH_PARENT="YES"
          ;;
 
          -as|--allow-symlink-creation)
-            ALLOW_CREATING_SYMLINKS="YES"
+            OPTION_ALLOW_CREATING_SYMLINKS="YES"
          ;;
 
          -aes|--allow-embedded-symlink-creation|--embedded-symlinks)
-            ALLOW_CREATING_EMBEDDED_SYMLINKS="YES"
+            OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="YES"
          ;;
 
          -cs|--check-usr-local-include)
-            CHECK_USR_LOCAL_INCLUDE="YES"
+            OPTION_CHECK_USR_LOCAL_INCLUDE="YES"
             ;;
 
          -e|--embedded-only)
-            EMBEDDED_ONLY="YES"
+            OPTION_EMBEDDED_ONLY="YES"
          ;;
 
          -fs|--follow-symlinks)
-            ALLOW_FOLLOWING_SYMLINKS="YES"
+            OPTION_ALLOW_FOLLOWING_SYMLINKS="YES"
          ;;
 
          -in|--ignore-branch)
-            IGNORE_BRANCH="YES"
+            OPTION_IGNORE_BRANCH="YES"
          ;;
 
          -np|--no-parent-search)
-            ALLOW_SEARCH_PARENT=
+            OPTION_ALLOW_SEARCH_PARENT=
          ;;
 
          -ns|--no-symlink-creation|--no-symlinks)
-            ALLOW_CREATING_EMBEDDED_SYMLINKS=
-            ALLOW_CREATING_SYMLINKS=
+            OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS=
+            OPTION_ALLOW_CREATING_SYMLINKS=
          ;;
 
 
@@ -1505,7 +1518,7 @@ _common_main()
          -K|--clean|-k|--no-clean|--use-prefix-libraries|--debug|--release)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then
-               log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"
+               log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown fetch option $1"
                ${USAGE}
             fi
          ;;
@@ -1514,20 +1527,20 @@ _common_main()
          -j|--cores|-c|--configuration|--prefix)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then
-               log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"
+               log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown fetch option $1"
                ${USAGE}
             fi
 
             if [ $# -eq 1 ]
             then
-               log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Missing parameter to fetch option $1"
+               log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Missing parameter to fetch option $1"
                ${USAGE}
             fi
             shift
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown fetch option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown fetch option $1"
             ${USAGE}
          ;;
 

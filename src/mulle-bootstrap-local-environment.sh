@@ -36,7 +36,7 @@ user_say_yes()
 {
    local  x
 
-   x="${MULLE_BOOTSTRAP_ANSWER:-ASK}"
+   x="${MULLE_FLAG_ANSWER:-ASK}"
    while [ "$x" != "Y" -a \
            "$x" != "YES" -a \
            "$x" != "ALL" -a \
@@ -52,12 +52,12 @@ user_say_yes()
 
    if [ "${x}" = "ALL" ]
    then
-      MULLE_BOOTSTRAP_ANSWER="YES"
+      MULLE_FLAG_ANSWER="YES"
       x="YES"
    fi
    if [ "${x}" = "NONE" ]
    then
-      MULLE_BOOTSTRAP_ANSWER=
+      MULLE_FLAG_ANSWER=
       x=
    fi
 
@@ -109,7 +109,7 @@ add_path()
 
 unpostpone_trace()
 {
-   if [ ! -z "${MULLE_BOOTSTRAP_POSTPONE_TRACE}" -a "${MULLE_BOOTSTRAP_TRACE}" = "1848" ]
+   if [ ! -z "${MULLE_TRACE_POSTPONE}" -a "${MULLE_TRACE}" = "1848" ]
    then
       set -x
       PS4="+ ${ps4string} + "
@@ -217,9 +217,8 @@ assert_mulle_bootstrap_version()
 #
 _expanded_variables()
 {
-   local string
-
-   string="$1"
+   local string="$1"
+   local altbootstrap="$2"
 
    local key
    local value
@@ -232,7 +231,7 @@ _expanded_variables()
    key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
    if [ -z "${key}" ]
    then
-      echo "$1"
+      echo "${string}"
       return
    fi
 
@@ -247,6 +246,16 @@ _expanded_variables()
       key="${tmp}"
    fi
 
+   if [ ! -z "${altbootstrap}" ]
+   then
+      default="`(
+         BOOTSTRAP_DIR="${altbootstrap}"
+         MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+
+         read_root_setting "${key}" "${default}"
+      )`"
+   fi
+
    value="`read_root_setting "${key}" "${default}"`"
    next="${prefix}${value}${suffix}"
    if [ "${next}" = "${string}" ]
@@ -254,7 +263,7 @@ _expanded_variables()
       fail "${string} expands to itself"
    fi
 
-   _expanded_variables "${next}"
+   _expanded_variables "${next}" "${altbootstrap}"
 }
 
 
@@ -262,102 +271,107 @@ expanded_variables()
 {
    local value
 
-   value="`_expanded_variables "$1"`"
+   value="`_expanded_variables "$@"`"
 
    if [ "$1" != "${value}" ]
    then
-      log_fluff "Expanded \"$1\" to \"${value}\""
+      if [ -z "${value}" ]
+      then
+         log_warning "Expanded \"$1\" to empty string"
+      else
+         log_fluff "Expanded \"$1\" to \"${value}\""
+      fi
    fi
 
    echo "$value"
 }
 
 
-source_environment_file()
-{
-   local filename
+# source_environment_file()
+# {
+#    local filename
 
-   filename="$1"
-   if [ ! -r "${filename}" ]
-   then
-      log_fluff "Environment file ${filename} not found"
-      return 1
-   fi
+#    filename="$1"
+#    if [ ! -r "${filename}" ]
+#    then
+#       log_fluff "Environment file ${filename} not found"
+#       return 1
+#    fi
 
-   local lines
-   local line
-   local key
-   local value
+#    local lines
+#    local line
+#    local key
+#    local value
 
-   log_fluff "Environment file ${filename} exists"
+#    log_fluff "Environment file ${filename} exists"
 
-   lines="`egrep -s -v '^#|^[ ]*$' "${filename}"`"
-   IFS="
-"
-   for line in $lines
-   do
-      IFS="${DEFAULT_IFS}"
+#    lines="`egrep -s -v '^#|^[ ]*$' "${filename}"`"
+#    IFS="
+# "
+#    for line in $lines
+#    do
+#       IFS="${DEFAULT_IFS}"
 
-      key="`echo "${line}" | cut -d= -f1`"
-      value="`echo "${line}" | cut -d= -f2`"
+#       key="`echo "${line}" | cut -d= -f1`"
+#       value="`echo "${line}" | cut -d= -f2`"
 
-      value="`expanded_variables "${value}"`"
-      case "${key}" in
-         *\`*|*\$*|*\!*)
-            fail "Illegal characters in $key of $filename"
-         ;;
-      esac
-      case "${value}" in
-         *\`*|*\$*|*\!*)
-            fail "Illegal characters in $value of $filename"
-         ;;
-      esac
-      log_verbose "Environment variable $key defined as $value"
+#       value="`expanded_variables "${value}"`"
+#       case "${key}" in
+#          *\`*|*\$*|*\!*)
+#             fail "Illegal characters in $key of $filename"
+#          ;;
+#       esac
+#       case "${value}" in
+#          *\`*|*\$*|*\!*)
+#             fail "Illegal characters in $value of $filename"
+#          ;;
+#       esac
+#       log_verbose "Environment variable $key defined as $value"
 
-      eval "${key}=${value}; export ${key}"
-   done
+#       eval "${key}=${value}; export ${key}"
+#    done
 
-   IFS="${DEFAULT_IFS}"
+#    IFS="${DEFAULT_IFS}"
 
-   return 0
-}
+#    return 0
+# }
 
 
-#
-# source environment
-#
-source_environment()
-{
-   local flag
+# #
+# # source environment
+# #
+# source_environment()
+# {
+#    local flag
 
-   flag=""
+#    flag=""
 
-   if source_environment_file "${HOME}/.mulle-bootstrap/environment"
-   then
-      flag="${MULLE_BOOTSTRAP_FLUFF}"
-   fi
+#    if source_environment_file "${HOME}/.mulle-bootstrap/environment"
+#    then
+#       flag="${MULLE_FLAG_LOG_FLUFF}"
+#    fi
 
-   if source_environment_file "${BOOTSTRAP_DIR}.auto/environment"
-   then
-      flag="${MULLE_BOOTSTRAP_FLUFF}"
-   else
-      if source_environment_file "${BOOTSTRAP_DIR}.local/environment"
-      then
-         flag="${MULLE_BOOTSTRAP_FLUFF}"
-      else
-         if source_environment_file "${BOOTSTRAP_DIR}/environment"
-         then
-            flag="${MULLE_BOOTSTRAP_FLUFF}"
-         fi
-      fi
-   fi
+#    if source_environment_file "${BOOTSTRAP_DIR}.auto/environment"
+#    then
+#       flag="${MULLE_FLAG_LOG_FLUFF}"
+#    else
+#       if source_environment_file "${BOOTSTRAP_DIR}.local/environment"
+#       then
+#          flag="${MULLE_FLAG_LOG_FLUFF}"
+#       else
+#          if source_environment_file "${BOOTSTRAP_DIR}/environment"
+#          then
+#             flag="${MULLE_FLAG_LOG_FLUFF}"
+#          fi
+#       fi
+#    fi
 
-   if [ "${flag}" = "YES" ]
-   then
-      log_fluff "Environment:"
-      env >&2
-   fi
-}
+#    if [ "${flag}" = "YES" ]
+#    then
+#       log_fluff "Environment:"
+#       env >&2
+#    fi
+# }
 
 
 is_bootstrap_project()
@@ -368,6 +382,14 @@ is_bootstrap_project()
 }
 
 
+is_master_bootstrap_project()
+{
+   local  masterpath="${1:-.}"
+
+   [ -f "${masterpath}/${BOOTSTRAP_DIR}.local/is_master" ]
+}
+
+
 is_minion_bootstrap_project()
 {
    local  minionpath="${1:-.}"
@@ -375,13 +397,6 @@ is_minion_bootstrap_project()
    [ -f "${minionpath}/${BOOTSTRAP_DIR}.local/is_minion" ]
 }
 
-
-is_master_bootstrap_project()
-{
-   local  masterpath="${1:-.}"
-
-   [ -f "${masterpath}/${BOOTSTRAP_DIR}.local/is_master" ]
-}
 
 #
 # read local environment
@@ -409,9 +424,9 @@ local_environment_initialize()
    case "${UNAME}" in
       mingw)
          # be verbose by default on MINGW because its so slow
-         if [ -z "${MULLE_BOOTSTRAP_TRACE}" ]
+         if [ -z "${MULLE_TRACE}" ]
          then
-           MULLE_BOOTSTRAP_VERBOSE="YES"
+           MULLE_FLAG_LOG_VERBOSE="YES"
          fi
 
          PATH_SEPARATOR=';'
@@ -436,6 +451,12 @@ local_environment_main()
 {
    log_fluff ":local_environment_main:"
    # source_environment
+
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" ]
+   then
+      log_trace "Dry run is active."
+   fi
+
    :
 }
 

@@ -106,8 +106,11 @@ init_main()
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]         && . mulle-bootstrap-functions.sh
 
-   CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
-   CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
+   local OPTION_CREATE_DEFAULT_FILES
+   local OPTION_CREATE_EXAMPLE_FILES
+
+   OPTION_CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
+   OPTION_CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
 
    while [ $# -ne 0 ]
    do
@@ -117,19 +120,19 @@ init_main()
          ;;
 
          -n)
-            MULLE_BOOTSTRAP_ANSWER=
+            MULLE_FLAG_ANSWER="NO"
          ;;
 
          -d)
-            CREATE_DEFAULT_FILES=
+            OPTION_CREATE_DEFAULT_FILES=
          ;;
 
          -e)
-            CREATE_EXAMPLE_FILES="YES"
+            OPTION_CREATE_EXAMPLE_FILES="YES"
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown init option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown init option $1"
             ${USAGE}
 
          ;;
@@ -156,7 +159,7 @@ init_main()
 ${MULLE_BOOTSTRAP_VERSION_MAJOR}.0.0
 EOF
 
-   if [ "${CREATE_DEFAULT_FILES}" = "YES" ]
+   if [ "${OPTION_CREATE_DEFAULT_FILES}" = "YES" ]
    then
       log_fluff "Create default files"
 
@@ -172,8 +175,8 @@ EOF
       if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
       then
          mainfile="repositories"
-         init_add_repositories "repositories"
-         init_add_repositories "embedded_repositories"
+         _init_add_repositories "repositories"
+         _init_add_repositories "embedded_repositories"
       else
          mainfile="brews"
       fi

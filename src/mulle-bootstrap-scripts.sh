@@ -43,7 +43,7 @@ run_script()
    if [ -x "${script}" ]
    then
       log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
-      if  [ "${MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS}" = "YES" ]
+      if  [ "${MULLE_FLAG_LOG_SCRIPTS}" = "YES" ]
       then
          echo "ARGV=" "$@" >&2
          echo "DIRECTORY=$PWD/$3" >&2

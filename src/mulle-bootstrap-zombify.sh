@@ -199,7 +199,7 @@ _bury_zombies()
 
       for zombie in `ls -1 "${zombiepath}/"* 2> /dev/null`
       do
-         if [ -f "${i}" ]
+         if [ -f "${zombie}" ]
          then
             _bury_zombie "${reposdir}" "${zombie}"
          fi

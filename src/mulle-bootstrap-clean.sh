@@ -349,7 +349,7 @@ clean_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown clean option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown clean option $1"
             COMMAND=help
          ;;
 

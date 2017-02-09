@@ -140,7 +140,7 @@ _brew_install_brews()
    do
       IFS="${DEFAULT_IFS}"
 
-      if [ "${CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${formula}"
+      if [ "${OPTION_CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${formula}"
       then
          log_info "${C_MAGENTA}${C_BOLD}${formula}${C_INFO} is a system library, so not installing it"
          continue
@@ -239,7 +239,9 @@ _brew_common_main()
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
-   CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   local  OPTION_CHECK_USR_LOCAL_INCLUDE
+
+   OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    while [ $# -ne 0 ]
    do
@@ -249,11 +251,11 @@ _brew_common_main()
          ;;
 
          -cs|--check-usr-local-include)
-            CHECK_USR_LOCAL_INCLUDE="YES"
+            OPTION_CHECK_USR_LOCAL_INCLUDE="YES"
             ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown ${COMMAND} option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown ${COMMAND} option $1"
             ${USAGE}
          ;;
 

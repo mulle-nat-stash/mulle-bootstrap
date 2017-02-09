@@ -32,7 +32,7 @@
 MULLE_BOOTSTRAP_LOGGING_SH="included"
 
 
-MULLE_BOOTSTRAP_LOGGING_VERSION="2.0"
+MULLE_BOOTSTRAP_LOGGING_VERSION="3.0"
 
 #
 # WARNING! THIS FILE IS A LIBRARY USE BY OTHER PROJECTS
@@ -40,11 +40,11 @@ MULLE_BOOTSTRAP_LOGGING_VERSION="2.0"
 #
 log_printf()
 {
-   if [ -z "${MULLE_LOG_DEVICE}" ]
+   if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
    then
       printf "$@" >&2
    else
-      printf "$@" > "${MULLE_LOG_DEVICE}"
+      printf "$@" > "${MULLE_EXECUTOR_LOG_DEVICE}"
    fi
 }
 
@@ -57,7 +57,7 @@ log_error()
 
 log_warning()
 {
-   if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
+   if [ "${MULLE_FLAG_LOG_TERSE}" != "YES" ]
    then
       log_printf "${C_WARNING}%b${C_RESET}\n" "$*"
    fi
@@ -66,7 +66,7 @@ log_warning()
 
 log_info()
 {
-   if [ "${MULLE_BOOTSTRAP_TERSE}" != "YES" ]
+   if [ "${MULLE_FLAG_LOG_TERSE}" != "YES" ]
    then
       log_printf "${C_INFO}%b${C_RESET}\n" "$*"
    fi
@@ -75,7 +75,7 @@ log_info()
 
 log_verbose()
 {
-   if [ "${MULLE_BOOTSTRAP_VERBOSE}" = "YES"  ]
+   if [ "${MULLE_FLAG_LOG_VERBOSE}" = "YES"  ]
    then
       log_printf "${C_VERBOSE}%b${C_RESET}\n" "$*"
    fi
@@ -84,7 +84,7 @@ log_verbose()
 
 log_fluff()
 {
-   if [ "${MULLE_BOOTSTRAP_FLUFF}" = "YES"  ]
+   if [ "${MULLE_FLAG_LOG_FLUFF}" = "YES"  ]
    then
       log_printf "${C_FLUFF}%b${C_RESET}\n" "$*"
    fi
@@ -94,7 +94,7 @@ log_fluff()
 # setting is like fluff but different color scheme
 log_setting()
 {
-   if [ "${MULLE_BOOTSTRAP_FLUFF}" = "YES"  ]
+   if [ "${MULLE_FLAG_LOG_FLUFF}" = "YES"  ]
    then
       log_printf "${C_SETTING}%b${C_RESET}\n" "$*"
    fi
@@ -118,11 +118,11 @@ log_trace2()
 #
 fail()
 {
-   log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}:" "$@"
-   if [ ! -z "${MULLE_BOOTSTRAP_PID}" ]
+   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}:" "$@"
+   if [ ! -z "${MULLE_EXECUTABLE_PID}" ]
    then
-      kill -INT "${MULLE_BOOTSTRAP_PID}"  # kill myself (especially, if executing in subshell)
-      if [ $$ -ne ${MULLE_BOOTSTRAP_PID} ]
+      kill -INT "${MULLE_EXECUTABLE_PID}"  # kill myself (especially, if executing in subshell)
+      if [ $$ -ne ${MULLE_EXECUTABLE_PID} ]
       then
          kill -INT $$  # actually useful
       fi

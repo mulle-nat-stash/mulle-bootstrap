@@ -45,17 +45,17 @@ MULLE_BOOTSTRAP_FUNCTIONS_VERSION="3.0"
 #
 eval_exekutor()
 {
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
-      if [ -z "${MULLE_LOG_DEVICE}" ]
+      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
       then
          echo "==>" "$@" >&2
       else
-         echo "==>" "$@" > "${MULLE_LOG_DEVICE}"
+         echo "==>" "$@" > "${MULLE_EXECUTOR_LOG_DEVICE}"
       fi
    fi
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       eval "$@"
    fi
@@ -69,17 +69,17 @@ redirect_append_eval_exekutor()
    output="$1"
    shift
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
-      if [ -z "${MULLE_LOG_DEVICE}" ]
+      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
       then
          echo "==>" "$@" ">" "${output}" >&2
       else
-         echo "==>" "$@" ">" "${output}" > "${MULLE_LOG_DEVICE}"
+         echo "==>" "$@" ">" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
       fi
    fi
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       eval "$@" >> "${output}"
    fi
@@ -100,17 +100,17 @@ logging_redirect_eval_exekutor()
 
 exekutor()
 {
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
-      if [ -z "${MULLE_LOG_DEVICE}" ]
+      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
       then
          echo "==>" "$@" >&2
       else
-         echo "==>" "$@" > "${MULLE_LOG_DEVICE}"
+         echo "==>" "$@" > "${MULLE_EXECUTOR_LOG_DEVICE}"
       fi
    fi
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       "$@"
    fi
@@ -124,17 +124,17 @@ redirect_exekutor()
    output="$1"
    shift
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
-      if [ -z "${MULLE_LOG_DEVICE}" ]
+      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
       then
          echo "==>" "$@" ">" "${output}" >&2
       else
-         echo "==>" "$@" ">" "${output}" > "${MULLE_LOG_DEVICE}"
+         echo "==>" "$@" ">" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
       fi
    fi
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       "$@" > "${output}"
    fi
@@ -148,17 +148,17 @@ redirect_append_exekutor()
    output="$1"
    shift
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_EXECUTOR_TRACE}" = "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
-      if [ -z "${MULLE_LOG_DEVICE}" ]
+      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
       then
          echo "==>" "$@" ">" "${output}" >&2
       else
-         echo "==>" "$@" ">" "${output}" > "${MULLE_LOG_DEVICE}"
+         echo "==>" "$@" ">" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
       fi
    fi
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
       "$@" >> "${output}"
    fi
@@ -481,7 +481,7 @@ _relative_path_between()
    local a
    local b
 
-   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
@@ -496,7 +496,7 @@ _relative_path_between()
 
    __relative_path_between "${b}" "${a}"   # flip args (historic)
 
-   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -820,14 +820,14 @@ _simplify_path()
 
 simplify_path()
 {
-   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
 
    _simplify_path "$@"
 
-   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -970,14 +970,14 @@ prepend_to_search_path_if_missing()
 
 make_executable_search_path()
 {
-   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
 
    _make_executable_search_path "$@"
 
-   if [ "${MULLE_BOOTSTRAP_PATHS_FLIP_X}" = "YES" ]
+   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
    then
       set -x
    fi
@@ -1045,7 +1045,7 @@ create_file_if_missing()
       fi
 
       log_fluff "Creating \"$1\""
-      exekutor touch "$1" || fail "failed to create \"$1\""
+      redirect_exekutor "$1" echo "# intentionally blank file" || fail "failed to create \"$1\""
    fi
 }
 

@@ -42,13 +42,13 @@ build_complete_environment()
    LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
    FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 
-   CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
-   if [ -z "${CONFIGURATIONS}" ]
+   OPTION_CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
+   if [ -z "${OPTION_CONFIGURATIONS}" ]
    then
-      CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
-      CONFIGURATIONS="`read_root_setting "configurations" "${CONFIGURATIONS}"`"
+      OPTION_CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
+      OPTION_CONFIGURATIONS="`read_root_setting "configurations" "${OPTION_CONFIGURATIONS}"`"
    fi
-   N_CONFIGURATIONS="`echo "${CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
+   N_CONFIGURATIONS="`echo "${OPTION_CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
    #
    # expand PATH for build, but it's kinda slow

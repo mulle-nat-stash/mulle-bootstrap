@@ -396,7 +396,7 @@ xcode_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown xcode option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown xcode option $1"
             xcode_usage
          ;;
 

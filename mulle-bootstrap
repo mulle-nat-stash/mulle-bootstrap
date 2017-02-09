@@ -47,17 +47,13 @@ trap_fail()
 
 bootstrap_technical_option_usage()
 {
-   if [ "${VERBOSE}" = "YES" -o "${MULLE_BOOTSTRAP_TRACE}" = "YES" ]
+   if [ "${VERBOSE}" = "YES" -o "${MULLE_TRACE}" = "YES" ]
    then
       cat <<EOF
+   -le       : external command execution log output
+   -lm       : extended dependency analysis output
+   -ls       : extended settings log output
    -t        : enable shell trace
-   -tb       : also trace scripts
-   -te       : trace execution
-   -tf       : also trace filepath functionality
-   -tm       : trace merge and dependencies
-   -ts       : also trace settings
-   -vv       : very verbose
-   -vvv      : extremely vebose
    -s        : be silent
 EOF
    fi
@@ -212,7 +208,7 @@ _bootstrap_main()
 
    if fetch_needed
    then
-      MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap fetch"
+      MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap fetch"
       fetch_main "$@" || exit 1
       # used for option handling only
       MULLE_BOOTSTRAP_DID_FETCH="YES"
@@ -220,7 +216,7 @@ _bootstrap_main()
 
    if build_needed
    then
-      MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap build"
+      MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap build"
       build_main "$@" || exit 1
    fi
 
@@ -312,53 +308,56 @@ bootstrap_init()
 }
 
 
+#
+# variables called flag. because they are indirectly set by flags
+#
 bootstrap_setup_trace()
 {
    case "${1}" in
       VERBOSE)
-         MULLE_BOOTSTRAP_FLUFF="NO"
-         MULLE_BOOTSTRAP_VERBOSE="YES"
-         if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
+         MULLE_FLAG_LOG_FLUFF="NO"
+         MULLE_FLAG_LOG_VERBOSE="YES"
+         if [ -z "${MULLE_FLAG_VERBOSE_BUILD}" ]
          then
-            MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
+            MULLE_FLAG_VERBOSE_BUILD="NO"
          fi
       ;;
 
       FLUFF)
-         MULLE_BOOTSTRAP_FLUFF="YES"
-         MULLE_BOOTSTRAP_VERBOSE="YES"
-         MULLE_EXECUTOR_TRACE="YES"
-         if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
+         MULLE_FLAG_LOG_FLUFF="YES"
+         MULLE_FLAG_LOG_VERBOSE="YES"
+         MULLE_FLAG_LOG_EXECUTOR="YES"
+         if [ -z "${MULLE_FLAG_VERBOSE_BUILD}" ]
          then
-            MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
+            MULLE_FLAG_VERBOSE_BUILD="NO"
          fi
       ;;
 
       TRACE)
-         MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
-         MULLE_EXECUTOR_TRACE="YES"
-         MULLE_BOOTSTRAP_FLUFF="YES"
-         MULLE_BOOTSTRAP_VERBOSE="YES"
-         if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
+         MULLE_FLAG_LOG_SETTINGS="YES"
+         MULLE_FLAG_LOG_EXECUTOR="YES"
+         MULLE_FLAG_LOG_FLUFF="YES"
+         MULLE_FLAG_LOG_VERBOSE="YES"
+         if [ -z "${MULLE_FLAG_VERBOSE_BUILD}" ]
          then
-            MULLE_BOOTSTRAP_VERBOSE_BUILD="NO"
+            MULLE_FLAG_VERBOSE_BUILD="NO"
          fi
          bootstrap_dump_env
       ;;
 
       1848)
-         MULLE_BOOTSTRAP_TRACE_SETTINGS="YES"
-         MULLE_EXECUTOR_TRACE="NO"
-         MULLE_BOOTSTRAP_FLUFF="YES"
-         MULLE_BOOTSTRAP_VERBOSE="YES"
-         if [ -z "${MULLE_BOOTSTRAP_VERBOSE_BUILD}" ]
+         MULLE_FLAG_LOG_SETTINGS="YES"
+         MULLE_FLAG_LOG_EXECUTOR="NO"
+         MULLE_FLAG_LOG_FLUFF="YES"
+         MULLE_FLAG_LOG_VERBOSE="YES"
+         if [ -z "${MULLE_FLAG_VERBOSE_BUILD}" ]
          then
-            MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
+            MULLE_FLAG_VERBOSE_BUILD="YES"
          fi
 
          bootstrap_dump_env
 
-         if [ -z "${MULLE_BOOTSTRAP_POSTPONE_TRACE}" ]
+         if [ -z "${MULLE_TRACE_POSTPONE}" ]
          then
             log_trace "1848 trace (set -x) started"
             set -x
@@ -369,55 +368,51 @@ bootstrap_setup_trace()
 }
 
 
-bootstrap_technical_options()
+bootstrap_technical_flags()
 {
    case "$1" in
       -n|--dry-run)
-         MULLE_EXECUTOR_DRY_RUN="YES"
+         MULLE_FLAG_EXECUTOR_DRY_RUN="YES"
+      ;;
+
+      -le|--log-execution)
+         MULLE_FLAG_LOG_EXECUTOR="YES"
+      ;;
+
+      -lm|--log-merge)
+         MULLE_FLAG_MERGE_LOG="YES"
+      ;;
+
+      -ls|--log-settings)
+         MULLE_FLAG_LOG_SETTINGS="YES"
+      ;;
+
+      -lsc|--log-script-calls)
+         MULLE_FLAG_LOG_SCRIPTS="YES"
       ;;
 
       -t|--trace)
-         MULLE_BOOTSTRAP_TRACE="1848"
+         MULLE_TRACE="1848"
          COPYMOVEFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
-         MULLE_BOOTSTRAP_PATHS_FLIP_X="YES"
-         MULLE_BOOTSTRAP_RESOLVER_FLIP_X="YES"
-         MULLE_BOOTSTRAP_SETTINGS_FLIP_X="YES"
-         MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="NO"
+         MULLE_TRACE_PATHS_FLIP_X="YES"
+         MULLE_TRACE_RESOLVER_FLIP_X="YES"
+         MULLE_TRACE_SETTINGS_FLIP_X="YES"
          ps4string='${BASH_SOURCE[1]##*/}:${LINENO}'
       ;;
 
-      -tb|--trace-scripts)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_BOOTSTRAP_TRACE_SCRIPT_CALLS="YES"
-      ;;
-
-      -te|--trace-execution)
-         MULLE_EXECUTOR_TRACE="YES"
-      ;;
-
       -tf|--trace-filepaths)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_BOOTSTRAP_PATHS_FLIP_X="NO"
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         MULLE_TRACE_PATHS_FLIP_X="NO"
       ;;
 
-      -tm|--trace-merge)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_BOOTSTRAP_TRACE_MERGE="YES"
-      ;;
-
-      -tr|--trace-resolver)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_BOOTSTRAP_RESOLVER_FLIP_X="NO"
-      ;;
-
-      -ts|--trace-settings)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_BOOTSTRAP_SETTINGS_FLIP_X="NO"
+      -tfpwd|--trace-full-pwd)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \"\w\"'
       ;;
 
       -tp|--trace-profile)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
          case "${UNAME}" in
             linux)
                ps4string='$(date "\+ +%s.%N (${BASH_SOURCE[1]##*/}:${LINENO})")'
@@ -429,46 +424,51 @@ bootstrap_technical_options()
       ;;
 
       -tpo|--trace-postpone)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_BOOTSTRAP_POSTPONE_TRACE=YES
-      ;;
-
-      -tfpwd|--trace-full-pwd)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \"\w\"'
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         MULLE_TRACE_POSTPONE=YES
       ;;
 
       -tpwd|--trace-pwd)
-         [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
          ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \".../\W\"'
       ;;
 
-      -v|--verbose)
-        [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] && log_warning "${MULLE_BOOTSTRAP_FAIL_PREFIX}: -v after -t invalidates -t"
+      -tr|--trace-resolver)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         MULLE_TRACE_RESOLVER_FLIP_X="NO"
+      ;;
 
-         MULLE_BOOTSTRAP_TRACE="VERBOSE"
+      -ts|--trace-settings)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         MULLE_TRACE_SETTINGS_FLIP_X="NO"
+      ;;
+
+      -v|--verbose)
+        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -v after -t invalidates -t"
+
+         MULLE_TRACE="VERBOSE"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
       ;;
 
-      -vv|--very-verbose)v
-        [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] && log_warning "${MULLE_BOOTSTRAP_FAIL_PREFIX}: -vv after -t invalidates -t"
+      -vv|--very-verbose)
+        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vv after -t invalidates -t"
 
-         MULLE_BOOTSTRAP_TRACE="FLUFF"
+         MULLE_TRACE="FLUFF"
          COPYMOVEFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
       ;;
 
       -vvv|--very-verbose-with-settings)
-        [ "${MULLE_BOOTSTRAP_TRACE}" = "1848" ] && log_warning "${MULLE_BOOTSTRAP_FAIL_PREFIX}: -vvv after -t invalidates -t"
+        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vvv after -t invalidates -t"
 
-         MULLE_BOOTSTRAP_TRACE="TRACE"
+         MULLE_TRACE="TRACE"
          COPYMOVEFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
       ;;
 
       -s|--silent)
-         MULLE_BOOTSTRAP_TRACE=
-         MULLE_BOOTSTRAP_TERSE="YES"
+         MULLE_TRACE=
+         MULLE_FLAG_LOG_TERSE="YES"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
       ;;
 
@@ -534,7 +534,7 @@ bootstrap_main()
    #
    while [ $# -ne 0 ]
    do
-      if bootstrap_technical_options "$1"
+      if bootstrap_technical_flags "$1"
       then
          shift
          continue
@@ -542,19 +542,19 @@ bootstrap_main()
 
       case "$1" in
          -a|--prefer-origin)
-            MULLE_BOOTSTRAP_ANSWER="NO"
+            MULLE_FLAG_ANSWER="NO"
           ;;
 
          -y|--prefer-local)
-            MULLE_BOOTSTRAP_ANSWER="YES"
+            MULLE_FLAG_ANSWER="YES"
          ;;
 
          -f|--force-fetch)
-            MULLE_BOOTSTRAP_DIRTY_HARRY="NO"
+            MULLE_FLAG_DIRTY_HARRY="NO"
          ;;
 
          -ig|--ignore-graveyard)
-            MULLE_BOOTSTRAP_IGNORE_GRAVEYARD="YES"
+            MULLE_FLAG_IGNORE_GRAVEYARD="YES"
          ;;
 
          -h|--help)
@@ -567,11 +567,11 @@ bootstrap_main()
          ;;
 
          -V|--verbose-build)
-            MULLE_BOOTSTRAP_VERBOSE_BUILD="YES"
+            MULLE_FLAG_VERBOSE_BUILD="YES"
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown option \"$1\""
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option \"$1\""
             mulle_bootstrap_usage
          ;;
 
@@ -583,12 +583,7 @@ bootstrap_main()
       shift
    done
 
-   bootstrap_setup_trace "${MULLE_BOOTSTRAP_TRACE}"
-
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" ]
-   then
-      log_trace "Dry run is active."
-   fi
+   bootstrap_setup_trace "${MULLE_TRACE}"
 
    # source in environment now
 
@@ -618,7 +613,7 @@ bootstrap_main()
          return 1
       fi
 
-      if [ "${MULLE_BOOTSTRAP_DIRTY_HARRY}" = "YES" ]
+      if [ "${MULLE_FLAG_DIRTY_HARRY}" = "YES" ]
       then
          case "${command}" in
             clean|dist-clean|init|status)
@@ -631,7 +626,7 @@ bootstrap_main()
       fi
    fi
 
-   MULLE_BOOTSTRAP_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE} ${command}"
+   MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE} ${command}"
    [ $# -eq 0 ] || shift
 
    case "${command}" in
@@ -753,12 +748,12 @@ bootstrap_main()
       xcode|setup-xcode)
          . mulle-bootstrap-xcode.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap xcode"
+         MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap xcode"
          xcode_main "$@" || exit 1
       ;;
 
       *)
-         log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown command \"${command}\""
+         log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown command \"${command}\""
          mulle_bootstrap_usage
       ;;
    esac
@@ -775,7 +770,7 @@ brew_main()
    #
    while [ $# -ne 0 ]
    do
-      if bootstrap_technical_options "$1"
+      if bootstrap_technical_flags "$1"
       then
          shift
          continue
@@ -787,7 +782,7 @@ brew_main()
          ;;
 
          -*)
-            log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown option \"$1\""
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option \"$1\""
             mulle_brew_usage
          ;;
 
@@ -799,9 +794,9 @@ brew_main()
       shift
    done
 
-   bootstrap_setup_trace "${MULLE_BOOTSTRAP_TRACE}"
+   bootstrap_setup_trace "${MULLE_TRACE}"
 
-   if [ "${MULLE_EXECUTOR_DRY_RUN}" = "YES" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" ]
    then
       log_trace "Dry run is active."
    fi
@@ -836,7 +831,7 @@ brew_main()
       fi
    fi
 
-   MULLE_BOOTSTRAP_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE} ${command}"
+   MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE} ${command}"
 
    case "${command}" in
       build)
@@ -929,12 +924,12 @@ brew_main()
       xcode|setup-xcode)
          . mulle-bootstrap-xcode.sh
 
-         MULLE_BOOTSTRAP_FAIL_PREFIX="mulle-bootstrap xcode"
+         MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap xcode"
          xcode_main "$@" || exit 1
       ;;
 
       *)
-         log_error "${MULLE_BOOTSTRAP_FAIL_PREFIX}: Unknown command \"${command}\""
+         log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown command \"${command}\""
          mulle_bootstrap_usage
       ;;
    esac
@@ -945,9 +940,9 @@ brew_main()
 #
 MULLE_BOOTSTRAP_EXECUTABLE="`basename -- "$0"`"
 MULLE_BOOTSTRAP_ARGUMENTS="$@"
-MULLE_BOOTSTRAP_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE}"
-MULLE_BOOTSTRAP_PID="$$"
-export MULLE_BOOTSTRAP_PID
+MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE}"
+MULLE_EXECUTABLE_PID="$$"
+export MULLE_EXECUTABLE_PID
 
 
 bootstrap_init

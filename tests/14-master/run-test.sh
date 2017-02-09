@@ -72,7 +72,7 @@ test_a()
    local content
 
    content="`cat master/.bootstrap.local/repositories`"
-   [ "${content}" = "a" ] ||  fail "wrong repositories"
+   [ "${content}" = "a;a" ] ||  fail "wrong repositories"
 
    content="`cat master/a/.bootstrap.local/is_minion`"
    [ "${content}" = ".." ] ||  fail "wrong is_minion"
