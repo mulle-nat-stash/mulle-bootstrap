@@ -41,10 +41,6 @@ git_is_bare_repository()
 {
    local is_bare
 
-   pwd >&2
-   pwd -P >&2
-   ls -ld .. >&2
-
    # if bare repo, we can only clone anyway
    is_bare=`(
                cd "$1" &&

@@ -37,32 +37,32 @@ user_say_yes()
    local  x
 
    x="${MULLE_FLAG_ANSWER:-ASK}"
-   while [ "$x" != "Y" -a \
-           "$x" != "YES" -a \
-           "$x" != "ALL" -a \
-           "$x" != "N"  -a  \
-           "$x" != "NO"  -a \
-           "$x" != "NONE" -a \
-           "$x" != "" ]
+
+   while :
    do
+      case "$x" in
+         [Aa][Ll][Ll])
+            MULLE_FLAG_ANSWER="YES"
+            return 0
+         ;;
+
+         [Yy]*)
+            return 0
+         ;;
+
+         [Nn][Oo][Nn][Ee])
+            MULLE_FLAG_ANSWER="NONE"
+            return 1
+         ;;
+
+         [Nn]*)
+            return 1
+         ;;
+      esac
+
       printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
       read x
-      x=`echo "${x}" | tr 'a-z' 'A-Z'`
    done
-
-   if [ "${x}" = "ALL" ]
-   then
-      MULLE_FLAG_ANSWER="YES"
-      x="YES"
-   fi
-   if [ "${x}" = "NONE" ]
-   then
-      MULLE_FLAG_ANSWER=
-      x=
-   fi
-
-   [ "$x" = "Y" -o "$x" = "YES" ]
-   return $?
 }
 
 
@@ -256,7 +256,18 @@ _expanded_variables()
       )`"
    fi
 
-   value="`read_root_setting "${key}" "${default}"`"
+   value="`read_root_setting "${key}"`"
+   if [ -z "${value}" ]
+   then
+      if [ -z "${default}" ]
+      then
+         log_warning "\$\{${key}\} expanded to the empty string"
+      else
+         log_setting "Root setting for ${C_MAGENTA}${key}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
+         value="${default}"
+      fi
+   fi
+
    next="${prefix}${value}${suffix}"
    if [ "${next}" = "${string}" ]
    then
@@ -413,12 +424,21 @@ local_environment_initialize()
    # can't reposition this because of embedded reposiories
    REPOS_DIR="${BOOTSTRAP_DIR}.repos"
 
-   # where regular repos are cloned to by (default)
-   STASHES_DIR="stashes"
+   # can't reposition this because of embedded reposiories
+   EMBEDDED_REPOS_DIR="${BOOTSTRAP_DIR}.repos/.embedded"
 
+   # where regular repos are cloned to, when there is no path given
+   STASHES_DEFAULT_DIR="stashes"
+
+   # used by embedded repositories to change location
+   STASHES_ROOT_DIR=""
 
    # our "sandbox" root, probably not changeable
    ROOT_DIR="`pwd -P`"
+
+   # where we look for symlink sources
+   DEFAULT_CACHES_DIR="`dirname -- "${ROOT_DIR}"`"
+
 
    log_fluff "${UNAME} detected"
    case "${UNAME}" in

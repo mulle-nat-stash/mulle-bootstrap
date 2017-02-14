@@ -109,13 +109,10 @@ clone_of_repository()
 
 clone_of_embedded_repository()
 {
-   local reposdir
-   local name
+   local reposdir="$1"
+   local name="$2"
 
-   reposdir="$1"
-   name="$2"
-
-   clone_of_repository "${reposdir}/.embedded" "${name}"
+   clone_of_repository "${EMBEDDED_REPOS_DIR}" "${name}"
 }
 
 
@@ -127,11 +124,8 @@ _stash_of_reposdir_file()
 
 stash_of_repository()
 {
-   local reposdir
-   local name
-
-   reposdir="$1"
-   name="$2"
+   local reposdir="$1"
+   local name="$2"
 
    [ -z "${reposdir}" ] && internal_fail "Empty reposdir"
    [ -z "${name}" ]     && internal_fail "Empty name"
@@ -154,14 +148,9 @@ all_repository_names()
 }
 
 
-#
-# Collect all stashes for embedded, normal and deep_embedded
-#
 _all_repository_stashes()
 {
-   local reposdir
-
-   reposdir="$1"
+   local reposdir="$1"
 
    [ -z "${reposdir}" ] && internal_fail "repos is empty"
 
@@ -194,47 +183,6 @@ all_repository_stashes()
 }
 
 
-all_embedded_repository_stashes()
-{
-   _all_repository_stashes "${REPOS_DIR}/.embedded"
-}
-
-
-all_deep_embedded_repository_stashes()
-{
-   local reposdir
-   local stashes
-   local stash
-
-   IFS="
-"
-   stashes="`all_repository_stashes "${reposdir}"`"
-   for stash in ${stashes}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      reposdir="stash/${REPOS_DIR}"
-      all_embedded_repository_stashes "${reposdir}"
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
-
-#
-# but not deep embedded...
-#
-all_stashes()
-{
-   local reposdir
-   local dstprefix
-
-   reposdir="$1"
-   dstprefix="$2"
-
-   all_repository_stashes "${reposdir}"
-   all_embedded_repository_stashes "${reposdir}" "${dstprefix}"
-}
 
 #
 # Walkers
@@ -288,15 +236,16 @@ walk_check()
 }
 
 
-walk_repositories()
+_walk_repositories()
 {
-   local settingname
    local permissions
    local callback
    local reposdir
+   local clones
 
-   settingname="$1"
+   clones="$1"
    shift
+
    callback="$1"
    shift
    permissions="$1"
@@ -311,8 +260,6 @@ walk_repositories()
    local scm
    local tag
    local stashdir
-
-   clones="`read_root_setting "${settingname}"`"
 
    IFS="
 "
@@ -332,18 +279,13 @@ walk_repositories()
       # from project directory
       #
       (
-         if [ ! -z "${WALK_DIR_PWD}" ]
-         then
-            cd "${WALK_DIR_PWD}"
-         fi
-
-         ${callback} "${WALK_DIR_PREFIX}${reposdir}" \
+         ${callback} "${reposdir}" \
                      "${name}" \
                      "${url}" \
                      "${branch}" \
                      "${scm}" \
                      "${tag}" \
-                     "${WALK_DIR_PREFIX}${stashdir}"
+                     "${stashdir}"
       ) || exit 1
    done
 
@@ -351,15 +293,22 @@ walk_repositories()
 }
 
 
-walk_deep_embedded_repositories()
+walk_repositories()
 {
-   local settingname
-   local permissions
+   local settingname="$1";shift
 
-   callback="$1"
-   shift
-   permissions="$1"
-   shift
+   local clones
+
+   clones="`read_root_setting "${settingname}"`"
+   _walk_repositories "${clones}" "$@"
+}
+
+
+_walk_deep_embedded_repositories()
+{
+   local clones="$1"; shift
+   local callback="$1" ; shift
+   local permissions="$1" ; shift
 
    # rest are repository names or empty if all
    local match
@@ -371,8 +320,6 @@ walk_deep_embedded_repositories()
    local scm
    local tag
    local stashdir
-
-   clones="`read_root_setting "repositories"`"
 
    IFS="
 "
@@ -389,15 +336,28 @@ walk_deep_embedded_repositories()
 
       # now grab embedded of that
       (
-         WALK_DIR_PREFIX="${stashdir}/"
-         WALK_DIR_PWD="${PWD}"
-         cd "${stashdir}" ;
-         STASHES_DIR="" ;
-         walk_repositories "embedded_repositories" "${callback}" "${permissions}" "${REPOS_DIR}/.embedded"
+         local embedded_clones
+         local filepath
+
+         filepath="${BOOTSTRAP_DIR}.auto/.deep/${name}.d/embedded_repositories"
+         embedded_clones="`_read_setting "${filepath}" "embedded_repositories"`"
+
+         STASHES_ROOT_DIR="${stashdir}" ;
+         reposdir="${REPOS_DIR}/.deep/${name}.d"
+         _walk_repositories "${embedded_clones}" "${callback}" "${permissions}" "${reposdir}"
       ) || exit 1
    done
 
    IFS="${DEFAULT_IFS}"
+}
+
+
+walk_deep_embedded_repositories()
+{
+   local clones
+
+   clones="`read_root_setting "repositories"`"
+   _walk_deep_embedded_repositories "${clones}" "$@"
 }
 
 
@@ -437,7 +397,7 @@ _url_part_from_clone()
 }
 
 
-_stashdir_part_from_clone()
+_dstdir_part_from_clone()
 {
    echo "$@" | cut -s '-d;' -f 2
 }
@@ -489,12 +449,34 @@ path_relative_to_root_dir()
 }
 
 
+computed_stashdir()
+{
+   local url="$1"
+   local name="$2"
+   local dstdir="$3"
+
+   # could move this to .auto stage too...
+
+   local relpath
+
+   relpath="${dstdir}"
+   if [ -z "${relpath}" ]
+   then
+      relpath="`path_concat "${STASHES_DEFAULT_DIR}" "${name}"`"
+   fi
+
+   relpath="`path_concat "${STASHES_ROOT_DIR}" "${relpath}"`"
+
+   path_relative_to_root_dir "${relpath}"
+}
+
+
 # this sets values to variables that should be declared
 # in the caller!
 #
 #   # parse_clone
-#   local name   # name of the clone
-#   local url    # url of clone
+#   local name       # name of the clone
+#   local url        # url of clone
 #   local branch
 #   local scm
 #   local tag
@@ -525,21 +507,13 @@ parse_clone()
       ;;
    esac
 
-   local relpath
-
    name="`_canonical_clone_name "${url}"`"
-   relpath="${dstdir}"
-   if [ -z "${dstdir}" ]
-   then
-      relpath="`path_concat "${STASHES_DIR}" "${name}"`"
-   fi
-
-   stashdir="`path_relative_to_root_dir "${relpath}"`" || exit 1
+   stashdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
 
    # make sure destination doesn't stray outside of project
    case "${stashdir}" in
       ${DEPENDENCIES_DIR}*|${ADDICTIONS_DIR}*|${BOOTSTRAP_DIR}*)
-         fail "${relpath} is a suspicious path in \"${clone}\""
+         fail "${dstdir} is a suspicious path in \"${clone}\""
       ;;
 
       "")
@@ -547,7 +521,7 @@ parse_clone()
       ;;
 
       \.\.*)
-         fail "Repository destination \"${stashdir}\" is outside of project directory ($diffpath) (\"${clone}\")"
+         fail "Repository destination \"${dstdir}\" is outside of project directory ($diffpath) (\"${clone}\")"
       ;;
    esac
 
@@ -561,6 +535,8 @@ parse_clone()
       log_trace2 "TAG:      \"${tag}\""
       log_trace2 "STASHDIR: \"${stashdir}\""
    fi
+
+   [ "${url}" = "Already up-to-date." ] && internal_fail "fail"
 
    [ -z "${url}" ]      && internal_fail "url is empty ($clone)"
    [ -z "${name}" ]     && internal_fail "name is empty ($clone)"
@@ -641,6 +617,13 @@ merge_repository_contents()
       log_trace2 "Merging \"${additions}\" into \"${contents}\""
    fi
 
+   #
+   # additions may contain dstdir
+   # we replace this with
+   #
+   # 1. if we are a master, with the name of the url
+   # 2. we erase it
+   #
    map=""
    IFS="
 "
@@ -649,7 +632,7 @@ merge_repository_contents()
       IFS="${DEFAULT_IFS}"
 
       url="`_url_part_from_clone "${clone}"`"
-      map="`assoc_array_set  "${map}" "${url}" "${clone}"`"
+      map="`assoc_array_set "${map}" "${url}" "${clone}"`"
    done
 
    IFS="
@@ -659,7 +642,7 @@ merge_repository_contents()
       IFS="${DEFAULT_IFS}"
 
       url="`_url_part_from_clone "${clone}"`"
-      map="`assoc_array_set  "${map}" "${url}" "${clone}"`"
+      map="`assoc_array_set "${map}" "${url}" "${clone}"`"
    done
    IFS="${DEFAULT_IFS}"
 
@@ -855,9 +838,10 @@ ${clone}"
 
 mulle_repositories_initialize()
 {
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
    log_fluff ":mulle_repositories_initialize:"
 
-   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh

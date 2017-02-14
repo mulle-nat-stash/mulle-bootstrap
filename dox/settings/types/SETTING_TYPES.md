@@ -33,7 +33,7 @@ During all operatios execept **mulle-bootstrap build**, **mulle-bootstrap** will
 
 ![Fetch Setting](fetch-search.svg)
 
-If nothing is found, a built in default is used.
+If nothing is found, a built-in default is used.
 
 ### 3. Build Settings
 

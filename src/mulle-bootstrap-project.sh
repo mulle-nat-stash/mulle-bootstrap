@@ -60,7 +60,7 @@ make_minion_bootstrap_project()
 
    [ $# -eq 2 ] || internal_fail "parameter error"
 
-   masterpath="`perfect_relative_path_between "${masterpath}" "${minionpath}"`"
+   masterpath="`symlink_relpath "${masterpath}" "${minionpath}"`"
 
    mkdir_if_missing "${minionpath}/${BOOTSTRAP_DIR}.local"
    redirect_exekutor "${minionpath}/${BOOTSTRAP_DIR}.local/is_minion" echo "${masterpath}"
@@ -107,7 +107,7 @@ master_owns_minion_bootstrap_project()
    local masterpath="${1:-.}" ; shift
    local minionpath="${1:-.}" ; shift
 
-   minionpath="`perfect_relative_path_between "${minionpath}" "${masterpath}"`"
+   minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
    if [ ! -f "${masterpath}/${BOOTSTRAP_DIR}.local/repositories" ]
    then
       return 1
@@ -148,7 +148,7 @@ master_add_minion_bootstrap_project()
    local masterpath="${1:-.}" ; shift
    local minionpath="${1:-.}" ; shift
 
-   minionpath="`perfect_relative_path_between "${minionpath}" "${masterpath}"`"
+   minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
    redirect_append_exekutor "${masterpath}/${BOOTSTRAP_DIR}.local/repositories" echo "${minionpath};${minionpath}"
 
    #
@@ -170,7 +170,7 @@ master_remove_minion_bootstrap_project()
    local minionpath="${1:-.}" ; shift
    local unregex
 
-   minionpath="`perfect_relative_path_between "${minionpath}" "${masterpath}"`"
+   minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
    unregex="`sed -e 's/[]\/()$*.^|[]/\\&/g' <<< "${minionpath}"`"
    exekutor sed -i "" -e "/^${unregex}\;/d" "${masterpath}/${BOOTSTRAP_DIR}.local/repositories"
    exekutor touch "${masterpath}/${BOOTSTRAP_DIR}.local"

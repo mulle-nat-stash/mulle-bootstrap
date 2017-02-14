@@ -333,6 +333,8 @@ brew_install_main()
 
 brew_initialize()
 {
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
    log_fluff ":brew_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh

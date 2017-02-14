@@ -81,7 +81,7 @@ _copy_files()
    # copy over files only, let tar remove extension
    #
    (
-      cd "${srcdir}" ;
+      exekutor cd "${srcdir}" ;
       if [ -z "${ext}" ]
       then
          exekutor find . \( -type f -a ! -name "*.*" \) -print
@@ -91,15 +91,15 @@ _copy_files()
          exekutor tar -c ${taroptions} -f - -T -
    ) |
    (
-      cd "${dstdir}" ;
+      exekutor cd "${dstdir}" ;
       if [ -z "${noclobber}" ]
       then
-         exekutor tar xf - ${COPYMOVEFLAGS} $*
+         exekutor tar -x ${COPYMOVETARFLAGS} -f -
       else
-         exekutor tar xf - ${COPYMOVEFLAGS} -k 2> /dev/null
+         exekutor tar -x ${COPYMOVETARFLAGS} -k -f -
          :
       fi
-   ) >&2
+   )
 }
 
 

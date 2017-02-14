@@ -91,22 +91,30 @@ build_complete_environment()
 
 common_settings_initialize()
 {
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
    log_fluff ":common_settings_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
+   # experimentally, these could reside outside the project folder but never tested
    CLONESBUILD_SUBDIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
-   BUILDLOG_SUBDIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_SUBDIR}/.logs"`"
+   BUILDLOGS_SUBDIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_SUBDIR}/.logs"`"
+
+   # all of these must reside in the project folder
    DEPENDENCIES_DIR="`read_sane_config_path_setting "dependencies_dir" "dependencies"`"
    ADDICTIONS_DIR="`read_sane_config_path_setting "addictions_dir" "addictions"`"
-   STASHES_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
+   STASHES_DEFAULT_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
+
+   # "repository" caches can and usually are outside the project folder
+   CACHES_DIR="`read_config_setting "cashes_dir" "${DEFAULT_CACHES_DIR}"`"
 
    [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "variable CLONESBUILD_SUBDIR is empty"
-   [ -z "${BUILDLOG_SUBDIR}" ]    && internal_fail "variable BUILDLOG_SUBDIR is empty"
+   [ -z "${BUILDLOGS_SUBDIR}" ]    && internal_fail "variable BUILDLOGS_SUBDIR is empty"
    [ -z "${DEPENDENCIES_DIR}" ]   && internal_fail "variable DEPENDENCIES_DIR is empty"
    [ -z "${ADDICTIONS_DIR}" ]     && internal_fail "variable ADDICTIONS_DIR is empty"
-   [ -z "${STASHES_DIR}" ]        && internal_fail "variable STASHES_DIR is empty"
+   [ -z "${STASHES_DEFAULT_DIR}" ]        && internal_fail "variable STASHES_DEFAULT_DIR is empty"
 }
 
 common_settings_initialize

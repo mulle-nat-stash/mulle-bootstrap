@@ -71,14 +71,14 @@ _bootstrap_auto_copy()
          config)
             if [ "${is_local}" = "YES" ]
             then
-               exekutor cp -Ran ${COPYMOVEFLAGS} "${dstfilepath}" "${filepath}"
+               exekutor cp -Ran ${COPYMOVETARFLAGS} "${filepath}" "${dstfilepath}"
             fi
          ;;
 
          *.build|settings|overrides)
             if [ -d "${filepath}" ]
             then
-               exekutor cp -Ran ${COPYMOVEFLAGS} "${dstfilepath}" "${filepath}"
+               exekutor cp -Ran ${COPYMOVETARFLAGS} "${filepath}" "${dstfilepath}"
             fi
          ;;
 
@@ -100,11 +100,11 @@ _bootstrap_auto_copy()
             match="`echo "${filepath}" | sed '/[a-z]/d'`"
             if [ -z "${match}" ] ## has lowercase (not environment)
             then
-               # log_fluff "****" "${filepath}" "${src}" "${name}" "${tmpdir}" "****"
+               log_fluff "Copy expanded value of \"${filepath}\""
                value="`_read_expanded_setting "${filepath}" "${name}" "" "${tmpdir}"`"
                redirect_exekutor "${dstfilepath}" echo "${value}"
             else
-               exekutor cp -a ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}"
+               exekutor cp -a ${COPYMOVETARFLAGS} "${filepath}" "${dstfilepath}"
             fi
          ;;
       esac
@@ -121,34 +121,44 @@ _bootstrap_auto_copy()
 # copy contents of .bootstrap.local to .bootstrap.auto
 # them add contents of .bootstrap to .bootstrap.auto, if not present
 #
-bootstrap_auto_create()
+_bootstrap_auto_create()
 {
-   [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "empty bootstrap"
+   local dst="$1"
+   local src="$2"
 
-   log_fluff "Creating clean \"${BOOTSTRAP_DIR}.auto\" from \"${BOOTSTRAP_DIR}\""
+   [ -z "${src}" ] && internal_fail "empty bootstrap"
+
+   log_fluff "Creating clean \"${dst}\" from \"${src}\""
 
    assert_mulle_bootstrap_version
 
-   rmdir_safer "${BOOTSTRAP_DIR}.auto"
-   mkdir_if_missing "${BOOTSTRAP_DIR}.auto"
+   rmdir_safer "${dst}"
+   mkdir_if_missing "${dst}"
 
    #
    # Copy over .local with config
    #
-   if dir_has_files "${BOOTSTRAP_DIR}.local"
+   if dir_has_files "${src}.local"
    then
-      _bootstrap_auto_copy "${BOOTSTRAP_DIR}.auto" "${BOOTSTRAP_DIR}.local" "YES"
+      _bootstrap_auto_copy "${dst}" "${src}.local" "YES"
    fi
 
    #
    # add stuff from bootstrap folder
    # don't copy config if exists (it could be malicious)
    #
-   if dir_has_files "${BOOTSTRAP_DIR}"
+   if dir_has_files "${src}"
    then
-      _bootstrap_auto_copy "${BOOTSTRAP_DIR}.auto" "${BOOTSTRAP_DIR}" "NO"
+      _bootstrap_auto_copy "${dst}" "${src}" "NO"
    fi
 }
+
+
+bootstrap_auto_create()
+{
+   _bootstrap_auto_create "${BOOTSTRAP_DIR}.auto" "${BOOTSTRAP_DIR}"
+}
+
 
 
 _bootstrap_merge_expanded_settings_in_front()
@@ -172,6 +182,60 @@ _bootstrap_merge_expanded_settings_in_front()
    _merge_settings_in_front "${settings1}" "${settings2}"
 }
 
+
+_make_master_clones()
+{
+   local clones="$1"
+
+   local clone
+   local name       # name of the clone
+   local url        # url of clone
+   local branch
+   local scm
+   local tag
+   local stashdir   # dir of repository (usually inside stashes)
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      parse_clone "${clone}"
+
+      echo "${url};${name};${branch};${scm};${tag}" | sed 's/;*$//'
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+_remove_dstdir_from_clones()
+{
+   local clones="$1"
+
+   local clone
+   local name       # name of the clone
+   local url        # url of clone
+   local branch
+   local scm
+   local tag
+   local stashdir   # dir of repository (usually inside stashes)
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      parse_clone "${clone}"
+
+      echo "${url};;${branch};${scm};${tag}" | sed 's/;*$//'
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
 #
 # prepend new contents to old contents
 # of a few select and known files, these are merged with whats there
@@ -180,7 +244,8 @@ _bootstrap_merge_expanded_settings_in_front()
 #
 _bootstrap_auto_merge_root_settings()
 {
-   directory="$1"
+   dst="$1"
+   directory="$2"
 
    [ -z "${directory}" ] && internal_fail "wrong"
 
@@ -207,7 +272,7 @@ _bootstrap_auto_merge_root_settings()
          continue
       fi
 
-      dstfile="${BOOTSTRAP_DIR}.auto/${settingname}"
+      dstfile="${dst}/${settingname}"
 
       #
       # "repositories" file gets special treatment
@@ -217,6 +282,13 @@ _bootstrap_auto_merge_root_settings()
          local newcontents
 
          newcontents="`_bootstrap_merge_expanded_settings_in_front "${srcfile}" ""`"
+         if is_master_bootstrap_project
+         then
+            newcontents="`_make_master_clones "${newcontents}"`"
+         else
+            newcontents="`_remove_dstdir_from_clones "${newcontents}"`"
+         fi
+
          if [ -f "${dstfile}" ]
          then
             local contents2
@@ -263,9 +335,9 @@ _bootstrap_auto_merge_root_settings()
 
          log_fluff "Merging expanded \"${settingname}\" from \"${srcfile}\""
 
-         exekutor mv ${COPYMOVEFLAGS}  "${dstfile}" "${tmpfile}" >&2 || exit 1
+         exekutor mv ${COPYMOVETARFLAGS}  "${dstfile}" "${tmpfile}" >&2 || exit 1
          redirect_exekutor "${dstfile}" _bootstrap_merge_expanded_settings_in_front "${srcfile}" "${tmpfile}"  || exit 1
-         exekutor rm ${COPYMOVEFLAGS}  "${tmpfile}" >&2 || exit 1
+         exekutor rm ${COPYMOVETARFLAGS}  "${tmpfile}" >&2 || exit 1
       else
          log_fluff "Copying expanded \"${settingname}\" from \"${srcfile}\""
 
@@ -277,22 +349,54 @@ _bootstrap_auto_merge_root_settings()
 }
 
 
+_bootstrap_auto_embedded_copy()
+{
+   local name="$1"
+   local directory="$2"
+   local srcfile="$3"
+
+   local dst
+
+   dst="${BOOTSTRAP_DIR}.auto/.deep/${name}.d"
+
+   [ -d "${dst}" ] && internal_fail "${dst} already exists"
+   mkdir_if_missing "${dst}"
+
+   # copy over our stuff
+   # _bootstrap_auto_create "${dst}" "${BOOTSTRAP_DIR}"
+
+   # then augment with embedded_settings
+   local clones
+
+   clones="`_bootstrap_merge_expanded_settings_in_front "${srcfile}" ""`" || exit 1
+   redirect_exekutor "${dst}/embedded_repositories" echo "${clones}"
+}
+
+
 bootstrap_auto_update()
 {
-   local directory
+   local name="$1"
+   local stashdir="$2"
 
    log_fluff ":bootstrap_auto_update: begin"
-   directory="$1"
 
-   if [ -d "${directory}/${BOOTSTRAP_DIR}" ]
+   if [ -d "${stashdir}/${BOOTSTRAP_DIR}" ]
    then
-      _bootstrap_auto_merge_root_settings "${directory}"
-      sort_repository_file "${directory}"
+      _bootstrap_auto_merge_root_settings "${BOOTSTRAP_DIR}.auto" "${stashdir}"
+      sort_repository_file "${stashdir}"
+
+      local srcfile
+
+      srcfile="${stashdir}/${BOOTSTRAP_DIR}/embedded_repositories"
+      if [ -f "${srcfile}" ]
+      then
+         _bootstrap_auto_embedded_copy "${name}" "${stashdir}" "${srcfile}"
+      fi
    else
       # could be helpful to user
-      if [ -d "${directory}/${BOOTSTRAP_DIR}.local" ]
+      if [ -d "${stashdir}/${BOOTSTRAP_DIR}.local" ]
       then
-         log_fluff "Inferior \"${directory}/${BOOTSTRAP_DIR}.local\" ignored"
+         log_fluff "Inferior \"${stashdir}/${BOOTSTRAP_DIR}.local\" ignored"
       fi
    fi
 
@@ -455,6 +559,8 @@ bootstrap_auto_final()
 
 auto_update_initialize()
 {
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
    log_fluff ":auto_update_initialize:"
 
    MERGABLE_SETTINGS='brews

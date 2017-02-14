@@ -110,7 +110,7 @@ _copy_no_clobber_setting_file()
 
    if [ ! -f "${dst}" ]
    then
-      exekutor cp ${COPYMOVEFLAGS} "${src}" "${dst}"
+      exekutor cp ${COPYMOVETARFLAGS} "${src}" "${dst}"
    else
       value1="`__read_setting "${src}"`"
       value2="`__read_setting "${dst}"`"

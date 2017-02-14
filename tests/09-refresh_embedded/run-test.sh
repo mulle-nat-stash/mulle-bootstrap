@@ -65,13 +65,12 @@ setup()
       git commit -m "Merciful Release"
       cd ..
 
-
    cd c
       run_mulle_bootstrap init -n
-      echo "b;src/b_1" > .bootstrap/embedded_repositories
+      echo "b;src/b_1" > .bootstrap/repositories
       echo "# c" > README.md
       git init
-      git add README.md .bootstrap/embedded_repositories
+      git add README.md .bootstrap/repositories
       git commit -m "Merciful Release"
       cd ..
 
@@ -83,7 +82,6 @@ setup()
       git add README.md .bootstrap/repositories
       git commit -m "Merciful Release"
       cd ..
-
 }
 
 
@@ -115,7 +113,7 @@ echo "" >&2
    cd c ;
    run_mulle_bootstrap ${BOOTSTRAP_FLAGS} -y fetch --no-symlink-creation
 
-   [ -d src/b_1 ]         || fail "b as src/b_1 failed to be embedded"
+   [ -d src/b_1 ]         || fail "b as src/b_1 failed to be added"
    [ -d src/b_1/src/a_1 ] || fail "src/b_1/src/a_1 failed to be embedded"
    :
 ) || exit 1
@@ -129,17 +127,24 @@ echo "" >&2
 
 
 (
-   cd c ;
-   sleep 1 ;
-
    # overwrite
-   mkdir .bootstrap.local
-   echo "b;src/b_2" > .bootstrap.local/embedded_repositories
 
-   run_mulle_bootstrap ${BOOTSTRAP_FLAGS} -y fetch --no-symlink-creation
+   mkdir c/.bootstrap.local
+   echo "b;src/b_2" > c/.bootstrap.local/repositories
+
+   (
+      cd b
+      echo "a;src/a_2" > .bootstrap/embedded_repositories
+      git commit -m "change" .bootstrap/embedded_repositories
+   )
+
+   cd c ;
+
+   run_mulle_bootstrap ${BOOTSTRAP_FLAGS} -y upgrade --no-symlink-creation
    [ -d src/b_1 ] && fail "b as src/b_1 failed to be removed"
    [ -d src/b_2 ] || fail "b as src/b_2 failed to be added"
-   [ -d src/b_2/src/a_1 ] || fail "src/b_2/src/a_1 failed to be embedded"
+   [ -d src/b_2/src/a_2 ] || fail "src/b_2/src/a_2 failed to be embedded"
+   [ -d src/b_2/src/a_1 ] && fail "src/b_2/src/a_1 failed to be removed"
    :
 ) || exit 1
 
@@ -155,28 +160,8 @@ echo "" >&2
    cd d ;
 
    run_mulle_bootstrap -a ${BOOTSTRAP_FLAGS} -y fetch --no-symlink-creation
-   [ -d stashes/c/src/b_1 ]         || fail "b as stashes/c/src/b_2 failed to be fetched"
-   [ -d stashes/c/src/b_1/src/a_1 ] || fail " stashes/c/src/b_2/src/a_1 failed to be embedded"
-   :
-) || exit 1
 
-
-echo "" >&2
-echo "" >&2
-echo "=== test 4 ===" >&2
-echo "" >&2
-echo "" >&2
-
-(
-   cd d ;
-   sleep 1 ;
-
-   echo "b;src/b_2" > stashes/c/.bootstrap/embedded_repositories ;
-
-   run_mulle_bootstrap ${BOOTSTRAP_FLAGS} -y fetch --no-symlink-creation
-
-   [ -d stashes/c/src/b_1 ] && fail "b as stashes/c/src/b_1 failed to be removed"
-   [ -d stashes/c/src/b_2 ] || fail "b as stashes/c/src/b_2 failed to be added"
+   [ -d stashes/b/src/a_2 ] || fail "b as stashes/b_1/src/a_2 failed to be fetched"
    :
 ) || exit 1
 

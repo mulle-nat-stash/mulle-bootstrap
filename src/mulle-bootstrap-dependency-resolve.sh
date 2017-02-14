@@ -220,6 +220,10 @@ dependency_resolve()
 
 dependency_resolve_initialize()
 {
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
+   log_fluff ":dependency_resolve_initialize:"
+
    [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
    :
 }

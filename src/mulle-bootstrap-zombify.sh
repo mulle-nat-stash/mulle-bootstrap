@@ -72,14 +72,14 @@ _zombify_stashes()
 
    local zombiepath
 
-   # first mark all repos as stale
+   zombiepath="${reposdir}/.zombies"
+   rmdir_safer "${zombiepath}"
 
    if dir_has_files "${reposdir}"
    then
-      zombiepath="${reposdir}/.zombies"
       mkdir_if_missing "${zombiepath}"
 
-      exekutor cp ${COPYMOVEFLAGS} "${reposdir}/"* "${zombiepath}/" >&2
+      exekutor cp ${COPYMOVETARFLAGS} "${reposdir}/"* "${zombiepath}/" >&2
    fi
 }
 
@@ -98,9 +98,9 @@ mark_stash_as_alive()
    then
       log_fluff "Marking \"${name}\" as alive"
 
-      exekutor rm -f ${COPYMOVEFLAGS} "${zombie}" >&2 || fail "failed to delete zombie ${zombie}"
+      exekutor rm -f ${COPYMOVETARFLAGS} "${zombie}" >&2 || fail "failed to delete zombie ${zombie}"
    else
-      log_fluff "Marked \"${name}\" is already alive (`absolutepath "${zombie}"` not present)"
+      log_fluff "\"${name}\" is alive as `absolutepath "${zombie}"` is not present"
    fi
 }
 
@@ -118,7 +118,7 @@ mark_all_stashes_as_alive()
    if dir_has_files "${zombiedir}"
    then
       log_fluff "Marking all stashes of \"${reposdir}\" as alive"
-      exekutor rm -f ${COPYMOVEFLAGS} "${zombiedir}/"* >&2 || fail "failed to delete zombie ${zombie}"
+      exekutor rm -f ${COPYMOVETARFLAGS} "${zombiedir}/"* >&2 || fail "failed to delete zombie ${zombie}"
    fi
 }
 
@@ -140,13 +140,13 @@ _bury_stash()
    if [ -e "${gravepath}" ]
    then
       log_fluff "Repurposing old grave \"${gravepath}\""
-      exekutor rm -rf ${COPYMOVEFLAGS}  "${gravepath}" >&2
+      exekutor rm -rf ${COPYMOVETARFLAGS}  "${gravepath}" >&2
    else
       mkdir_if_missing "${reposdir}/.graveyard"
    fi
 
    log_info "Burying \"${stashdir}\" in grave \"${gravepath}\""
-   exekutor mv ${COPYMOVEFLAGS} "${stashdir}" "${gravepath}" >&2
+   exekutor mv ${COPYMOVETARFLAGS} "${stashdir}" "${gravepath}" >&2
 }
 
 
@@ -165,7 +165,7 @@ _bury_zombie()
    if [ -L "${stashdir}"  ]
    then
       log_info "Removing unused symlink ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO}"
-      exekutor rm ${COPYMOVEFLAGS}  "${stashdir}" >&2
+      exekutor rm ${COPYMOVETARFLAGS}  "${stashdir}" >&2
       return
    fi
 
@@ -173,8 +173,8 @@ _bury_zombie()
    then
       _bury_stash "${reposdir}" "${name}" "${stashdir}"
 
-      exekutor rm ${COPYMOVEFLAGS} "${zombie}" >&2
-      exekutor rm ${COPYMOVEFLAGS} "${reposdir}/${name}" >&2
+      exekutor rm ${COPYMOVETARFLAGS} "${zombie}" >&2
+      exekutor rm ${COPYMOVETARFLAGS} "${reposdir}/${name}" >&2
 
    else
       log_fluff "Zombie \"${stashdir}\" vanished or never existed ($PWD)"
@@ -208,7 +208,7 @@ _bury_zombies()
 
    if [ -d "${zombiepath}" ]
    then
-      exekutor rm -rf ${COPYMOVEFLAGS} "${zombiepath}" >&2
+      exekutor rm -rf ${COPYMOVETARFLAGS} "${zombiepath}" >&2
    fi
 }
 
@@ -220,7 +220,7 @@ zombify_embedded_repository_stashes()
 {
    log_fluff "Marking all embedded repositories as zombies for now"
 
-   _zombify_stashes "${REPOS_DIR}/.embedded"
+   _zombify_stashes "${EMBEDDED_REPOS_DIR}"
 }
 
 
@@ -236,6 +236,7 @@ zombify_deep_embedded_repository_stashes()
 {
    local stashes
    local stash
+   local name
 
    log_fluff "Marking all deep embedded repositories as zombies for now"
 
@@ -246,10 +247,8 @@ zombify_deep_embedded_repository_stashes()
    do
       IFS="${DEFAULT_IFS}"
 
-      (
-         cd "${stash}" &&
-         _zombify_stashes "${REPOS_DIR}/.embedded"
-      ) || fail "failed to mark stashes"
+      name="`basename -- "${stash}"`"
+      _zombify_stashes "${REPOS_DIR}/.deep/${name}.d"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -263,7 +262,7 @@ bury_embedded_repository_zombies()
 {
    log_fluff "Burying embedded zombie repositories"
 
-   _bury_zombies "${REPOS_DIR}/.embedded"
+   _bury_zombies "${EMBEDDED_REPOS_DIR}"
 }
 
 
@@ -289,10 +288,8 @@ bury_deep_embedded_repository_zombies()
    do
       IFS="${DEFAULT_IFS}"
 
-      (
-         cd "${stash}" &&
-         _bury_zombies "${REPOS_DIR}/.embedded"
-      ) || fail "failed to bury zombies"
+      name="`basename -- "${stash}"`"
+      _bury_zombies "${REPOS_DIR}/.deep/${name}.d"
    done
 
    IFS="${DEFAULT_IFS}"

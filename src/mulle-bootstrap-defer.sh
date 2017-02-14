@@ -118,10 +118,21 @@ defer_main()
       internal_fail "Master \"${masterpath}\" already owns \"${minionpath}\", but it was not detected before"
    fi
 
+   log_info "Deferring to \"${masterpath}\""
+
    make_master_bootstrap_project "${masterpath}"
    make_minion_bootstrap_project "${minionpath}" "${masterpath}"
-   log_info "Deferring to \"${masterpath}\""
+
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ] && . mulle-bootstrap-clean.sh
+
+   #
+   # dist clean ourselves
+   #
+   clean_execute "dist"
+
    master_add_minion_bootstrap_project "${masterpath}" "${minionpath}"
+
 }
 
 
@@ -185,5 +196,13 @@ emancipate_main()
    log_info "Emancipating from \"${masterpath}\""
    master_remove_minion_bootstrap_project "${masterpath}" "${minionpath}"
    emancipate_minion_bootstrap_project "${minionpath}"
+
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ] && . mulle-bootstrap-clean.sh
+
+   #
+   # dist clean ourselves
+   #
+   clean_execute "dist"
 }
 

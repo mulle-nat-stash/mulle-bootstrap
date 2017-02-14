@@ -79,7 +79,7 @@ _canonicalize_file_path()
 {
     local dir file
 
-    dir="` dirname "$1"`"
+    dir="`dirname "$1"`"
     file="`basename -- "$1"`"
     (
       cd "${dir}" 2>/dev/null &&

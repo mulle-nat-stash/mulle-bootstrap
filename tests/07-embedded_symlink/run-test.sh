@@ -110,7 +110,6 @@ echo "--| 1 |--------------------------------"
    :
 ) || exit 1
 
-
 #
 # Make embedded repository appear
 #
@@ -139,17 +138,13 @@ echo "--| 3 |--------------------------------"
    cd c ;
    run_mulle_bootstrap "$@" -y fetch
 
-   [ ! -L stashes/b ]     && fail "failed to symlink b" ;
+   [ ! -L stashes/b ]       && fail "failed to symlink b" ;
    [ ! -d stashes/b/src/a ] && fail "superzealously removed symlinked src/a" ;
-   [ -d stashes/b/a ]   && fail "superzealously embedded a" ;
+   [ -d stashes/b/a ]       && fail "superzealously embedded a" ;
    :
 ) || exit 1
 
 
-#
-# now move embedded repository (c should not touch it, because we
-# don't allow following symlinks at first)
-#
 echo "--| 4 |--------------------------------"
 
 (
@@ -157,7 +152,7 @@ echo "--| 4 |--------------------------------"
    run_mulle_bootstrap "$@" -y fetch --follow-symlinks
 
    [ ! -L stashes/b ]     && fail "failed to symlink b" ;
-   [ -d stashes/b/src/a ] && fail "failed to remove src/a" ;
+   [ ! -d stashes/b/src/a ] && fail "removed src/a, though it shouldn't know about it" ;
    [ ! -d stashes/b/a ]   && fail "failed to embed a" ;
    :
 ) || exit 1

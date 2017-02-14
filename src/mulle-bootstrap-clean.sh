@@ -37,7 +37,7 @@ setup_clean_environment()
    [ -z "${DEPENDENCIES_DIR}"  ]  && internal_fail "DEPENDENCIES_DIR is empty"
    [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "CLONESBUILD_SUBDIR is empty"
    [ -z "${ADDICTIONS_DIR}"   ]   && internal_fail "ADDICTIONS_DIR is empty"
-   [ -z "${STASHES_DIR}"   ]      && internal_fail "STASHES_DIR is empty"
+   [ -z "${STASHES_DEFAULT_DIR}"   ]      && internal_fail "STASHES_DEFAULT_DIR is empty"
 
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
@@ -47,11 +47,11 @@ setup_clean_environment()
 ${DEPENDENCIES_DIR}/tmp"`"
    OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
    INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
-${STASHES_DIR}
+${STASHES_DEFAULT_DIR}
 .bootstrap.auto"`"
    DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${REPOS_DIR}
 ${ADDICTIONS_DIR}
-${STASHES_DIR}
+${STASHES_DEFAULT_DIR}
 .bootstrap.auto"`"
    EMBEDDED="`stashes_of_embedded_repositories "${REPOS_DIR}"`"
 
@@ -224,7 +224,7 @@ _dist_clean()
 
    DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${REPOS_DIR}
 ${ADDICTIONS_DIR}
-${STASHES_DIR}
+${STASHES_DEFAULT_DIR}
 .bootstrap.auto"`"
    EMBEDDED="`stashes_of_embedded_repositories "${REPOS_DIR}"`"
 
@@ -249,10 +249,10 @@ _clean_execute()
 {
    local flag
 
-   [ -z "${DEPENDENCIES_DIR}"  ]  && internal_fail "DEPENDENCIES_DIR is empty"
-   [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "CLONESBUILD_SUBDIR is empty"
-   [ -z "${ADDICTIONS_DIR}"   ]   && internal_fail "ADDICTIONS_DIR is empty"
-   [ -z "${STASHES_DIR}"   ]      && internal_fail "STASHES_DIR is empty"
+   [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
+   [ -z "${CLONESBUILD_SUBDIR}" ]  && internal_fail "CLONESBUILD_SUBDIR is empty"
+   [ -z "${ADDICTIONS_DIR}"   ]    && internal_fail "ADDICTIONS_DIR is empty"
+   [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "STASHES_DEFAULT_DIR is empty"
 
    flag=
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"

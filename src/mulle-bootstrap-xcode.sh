@@ -248,7 +248,7 @@ Release"
    local absolute
    local absolute2
 
-   absolute="`realpath "${project}"`"
+   absolute="`absolutepath "${project}"`"
    absolute="`dirname -- "${absolute}"`"
 
    absolute2="`pwd -P`/${DEPENDENCIES_DIR}"

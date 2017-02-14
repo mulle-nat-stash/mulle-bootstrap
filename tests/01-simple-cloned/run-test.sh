@@ -100,7 +100,7 @@ assert_a_2()
    _assert_a
 
    result="`cat stashes/b/README.md`"
-   [ "${result}" != "# VfL Bochum 1848" ] && fail "stashes not created ($result)"
+   [ "${result}" != "# VfL Bochum 1848" ] && fail "stashes not updated ($result)"
    :
 }
 

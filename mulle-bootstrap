@@ -206,21 +206,25 @@ _bootstrap_main()
 
    warn_scripts_main "${BOOTSTRAP_DIR}" || exit 1
 
-   if fetch_needed
+   if [ "${MULLE_FLAG_DIRTY_HARRY}" = "NO" ] || fetch_needed
    then
       MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap fetch"
       fetch_main "$@" || exit 1
       # used for option handling only
       MULLE_BOOTSTRAP_DID_FETCH="YES"
+   else
+      log_verbose "No fetch needed"
    fi
 
    if build_needed
    then
       MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap build"
       build_main "$@" || exit 1
+   else
+      log_verbose "No build needed"
    fi
 
-   log_fluff "::: $command end :::"
+   log_fluff "::: bootstrap end :::"
 }
 
 
@@ -393,7 +397,7 @@ bootstrap_technical_flags()
 
       -t|--trace)
          MULLE_TRACE="1848"
-         COPYMOVEFLAGS="-v"
+         COPYMOVETARFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
          MULLE_TRACE_PATHS_FLIP_X="YES"
          MULLE_TRACE_RESOLVER_FLIP_X="YES"
@@ -454,7 +458,7 @@ bootstrap_technical_flags()
         [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vv after -t invalidates -t"
 
          MULLE_TRACE="FLUFF"
-         COPYMOVEFLAGS="-v"
+         COPYMOVETARFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
       ;;
 
@@ -462,7 +466,7 @@ bootstrap_technical_flags()
         [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vvv after -t invalidates -t"
 
          MULLE_TRACE="TRACE"
-         COPYMOVEFLAGS="-v"
+         COPYMOVETARFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
       ;;
 
@@ -503,13 +507,6 @@ bootstrap_should_defer_to_master()
    masterpath="`get_master_of_minion_bootstrap_project`"
 
    case "${command}" in
-      build|flags|status|fetch|install|upgrade|update|clean)
-         log_info "Minion defers to master \"$masterpath\" for execution"
-
-         cd "${masterpath}" || fail "master is missing"
-         return 0  # this leads to  main deferring later on (but cd is set!)
-      ;;
-
       git|setup-xcode|xcode|tag|version|defer|emancipate)
          log_verbose "Minion executes locally"
       ;;
@@ -517,6 +514,13 @@ bootstrap_should_defer_to_master()
       refer|dist-clean)
          fail "This is a minion bootstrap project.\n \
 ${MULLE_BOOTSTRAP_EXECUTABLE} ${command}t is not possible."
+      ;;
+
+      *)
+         log_info "Minion defers to master \"$masterpath\" for execution"
+
+         cd "${masterpath}" || fail "master is missing"
+         return 0  # this leads to  main deferring later on (but cd is set!)
       ;;
    esac
 

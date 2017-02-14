@@ -384,13 +384,13 @@ _prepend_path_if_relative()
 
 resolve_symlinks()
 {
-   local dir_context path
+   local dir_context
+   local linkpath
 
-   path="`readlink "$1"`"
-   if [ $? -eq 0 ]
+   if linkpath="`readlink "$1"`"
    then
       dir_context=`dirname -- "$1"`
-      resolve_symlinks "`_prepend_path_if_relative "$dir_context" "$path"`"
+      resolve_symlinks "`_prepend_path_if_relative "${dir_context}" "${linkpath}"`"
    else
       echo "$1"
    fi
@@ -421,6 +421,8 @@ _canonicalize_file_path()
 
 canonicalize_path()
 {
+   [ -z "$1" ] && internal_fail "empty path"
+
    if [ -d "$1" ]
    then
       _canonicalize_dir_path "$1"
@@ -435,7 +437,7 @@ canonicalize_path()
 #
 realpath()
 {
-   [ -e "$1" ] || fail "only use realpath on existing files"
+   [ -e "$1" ] || fail "only use realpath on existing files ($1)"
 
    canonicalize_path "`resolve_symlinks "$1"`"
 }
@@ -444,6 +446,7 @@ realpath()
 # ----
 # stolen from: https://stackoverflow.com/questions/2564634/convert-absolute-path-into-relative-path-given-a-current-directory-using-bash
 # because the python dependency irked me
+# there must be no ".." or "." in the path
 #
 __relative_path_between()
 {
@@ -486,10 +489,13 @@ _relative_path_between()
       set +x
    fi
 
-   # remove trailing '/' it upsets the code
+   # remove relative components and './' it upsets the code
 
-   a="`echo "$1" | sed -e 's|/$||g'`"
-   b="`echo "$2" | sed -e 's|/$||g'`"
+   a="`simplified_path "$1"`"
+   b="`simplified_path "$2"`"
+
+#   a="`echo "$1" | sed -e 's|/$||g'`"
+#   b="`echo "$2" | sed -e 's|/$||g'`"
 
    [ -z "${a}" ] && internal_fail "Empty path (\$1)"
    [ -z "${b}" ] && internal_fail "Empty path (\$2)"
@@ -511,7 +517,7 @@ _relative_path_between()
 # ex.   /usr/include /  -> /usr/include
 #
 # the routine can not deal with ../ and ./
-# but is a bit faster than perfect_relative_path_between
+# but is a bit faster than symlink_relpath
 # which uses simplify_path
 #
 relative_path_between()
@@ -639,41 +645,26 @@ cd_physical()
 }
 
 
-#
-# absolute path, does not simplify anymore
-# because it's too slow, but do simplify some
-# simple cases anyway
-#
 absolutepath()
 {
-   local apath
-
-   apath="$1"
-   case "${apath}" in
-      /*|~*)
-        echo "$apath"
-      ;;
-
-      \.|\./)
-         pwd
-      ;;
-
-      \.\.|\.\./)
-         dirname -- "`pwd`"
+   case "${1}" in
+      '/'*|'~'*)
+        simplified_path "${1}"
       ;;
 
       *)
-         echo "`pwd`/${apath}"
+        simplified_path "`pwd`/${1}"
       ;;
    esac
 }
 
 
 #
-# this does relative_path_between perfectly
-# but its much slower than relative_path_between
+# Imagine you are in a working directory pwd and you have two
+# paths `a` and  `b`. This function gives the relpath you need
+# if you were to symlink 'a' into 'b'
 #
-perfect_relative_path_between()
+symlink_relpath()
 {
    local a
    local b
@@ -794,38 +785,110 @@ _path_from_components()
 
 
 #
-# simplify path works on paths that may or may not exist
+# _simplified_path() works on paths that may or may not exist
 # it makes prettier relative or absolute paths
+# you can't have | in your path though
 #
-_simplify_path()
+_simplified_path()
 {
-   local path
+   local filepath="$1"
 
-   path="$1"
+   [ -z "${filepath}" ] && fail "empty path given"
 
-   local components
-   local final_components
-   local final_path
+   local i
+   local last
+   local result
+   local remove_empty
 
-   if [ ! -z "${path}" ]
+#   log_printf "${C_INFO}%b${C_RESET}\n" "$filepath"
+
+   remove_empty="NO"  # remove trailing slashes
+
+   IFS="/"
+   for i in ${filepath}
+   do
+#      log_printf "${C_FLUFF}%b${C_RESET}\n" "$i"
+      case "$i" in
+         \.)
+           remove_empty="YES"
+           continue
+         ;;
+
+         \.\.)
+           # remove /..
+           remove_empty="YES"
+
+           if [ "${last}" = "|" ]
+           then
+              continue
+           fi
+
+           if [ ! -z "${last}" -a "${last}" != ".." ]
+           then
+              result="$(sed '$d' <<< "${result}")"
+              last="$(sed -n '$p' <<< "${result}")"
+              continue
+           fi
+         ;;
+
+         ~*)
+            fail "Can't deal with ~ filepaths"
+         ;;
+
+         "")
+            if [ "${remove_empty}" = "NO" ]
+            then
+               last='|'
+               result='|'
+            fi
+            continue
+         ;;
+      esac
+
+      remove_empty="YES"
+
+      last="${i}"
+      if [ -z "${result}" ]
+      then
+         result="${i}"
+      else
+         result="${result}
+${i}"
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   if [ -z "${result}" ]
    then
-      components="`echo "${path}" | tr '/' '\012' | sed -e 's|$|/|'`"
-      final_components="`_simplify_components "${components}"`"
-      final_path="`_path_from_components "${final_components}"`"
+      echo "."
+      return
    fi
 
-   echo "${final_path}"
+   if [ "${result}" = '|' ]
+   then
+      echo "/"
+      return
+   fi
+
+   printf "%s" "${result}" | tr -d '|' | tr '\012' '/'
+   echo
 }
 
 
-simplify_path()
+simplified_path()
 {
    if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
    then
       set +x
    fi
 
-   _simplify_path "$@"
+   if [ ! -z "$1" ]
+   then
+      _simplified_path "$@"
+   else
+      echo "."
+   fi
 
    if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
    then
@@ -843,7 +906,7 @@ assert_sane_subdir_path()
 {
    local file
 
-   file="`simplify_path "$1"`"
+   file="`simplified_path "$1"`"
 
    case "$file"  in
       "")
@@ -863,7 +926,7 @@ assert_sane_path()
 {
    local file
 
-   file="`simplify_path "$1"`"
+   file="`simplified_path "$1"`"
 
    case "$file" in
       \$*|~|${HOME}|..|.)
@@ -992,7 +1055,7 @@ mkdir_if_missing()
 {
    if [ ! -d "$1" ]
    then
-      log_fluff "Creating \"$1\""
+      log_fluff "Creating \"$1\" ($PWD)"
       exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
    fi
 }
@@ -1047,6 +1110,45 @@ create_file_if_missing()
       log_fluff "Creating \"$1\""
       redirect_exekutor "$1" echo "# intentionally blank file" || fail "failed to create \"$1\""
    fi
+}
+
+
+#
+# the target of the symlink must exist
+#
+create_symlink()
+{
+   local url="$1"       # URL of the clone
+   local stashdir="$2"  # stashdir of this clone (absolute or relative to $PWD)
+   local absolute="$3"
+
+   local srcname
+   local directory
+
+   [ -e "${url}" ]        || fail "${C_RESET}${C_BOLD}${url}${C_ERROR} does not exist ($PWD)"
+   [ ! -z "${absolute}" ] || fail "absolute must be YES or NO"
+
+   url="`absolutepath "${url}"`"
+   url="`realpath "${url}"`"  # resolve symlinks
+
+   srcname="`basename -- ${url}`"
+   directory="`dirname -- "${stashdir}"`"
+   directory="`realpath "${directory}"`"  # resolve symlinks
+
+   mkdir_if_missing "${directory}"
+
+   #
+   # relative paths look nicer, but could fail in more complicated
+   # settings, when you symlink something, and that repo has symlinks
+   # itself
+   #
+   if [ "${absolute}" = "NO" ]
+   then
+      url="`symlink_relpath "${url}" "${directory}"`"
+   fi
+
+   log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} as \"${url}\" ..."
+   exekutor ln -s -f "${url}" "${stashdir}" || fail "failed to setup symlink \"${stashdir}\" (to \"${url}\")"
 }
 
 
@@ -1221,9 +1323,11 @@ write_protect_directory()
 functions_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
-   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 
    log_fluff ":functions_initialize:"
+
+   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
+
 
    :
 }

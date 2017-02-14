@@ -116,7 +116,7 @@ dispense_headers()
          # this fails with more nested header set ups, need to fix!
 
          log_fluff "Copying \"${src}\" to \"${dst}\""
-         exekutor cp -Ra ${COPYMOVEFLAGS} "${src}"/* "${dst}" >&2 || exit 1
+         exekutor cp -Ra ${COPYMOVETARFLAGS} "${src}"/* "${dst}" >&2 || exit 1
 
          rmdir_safer "${src}"
       else
@@ -163,7 +163,7 @@ dispense_binaries()
          log_fluff "Copying \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
-            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}" >&2
+            exekutor xargs -0 -I % mv ${COPYMOVETARFLAGS} "${copyflag}" % "${dst}" >&2
          [ $? -eq 0 ]  || exit 1
       else
          log_fluff "But there are none"
@@ -285,7 +285,7 @@ collect_and_dispense_product()
 
          log_fluff "Copying everything from \"${src}\" to \"${dst}\""
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 -print0 | \
-               exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} -f % "${dst}" >&2
+               exekutor xargs -0 -I % mv ${COPYMOVETARFLAGS} -f % "${dst}" >&2
          [ $? -eq 0 ]  || fail "moving files from ${src} to ${dst} failed"
       fi
 
@@ -445,7 +445,7 @@ build_log_name()
    [ $# -eq 0 ] || shift
 
    local logfile
-   logfile="${BUILDLOG_SUBDIR}/${name}"
+   logfile="${BUILDLOGS_SUBDIR}/${name}"
 
    while [ $# -gt 0 ]
    do
@@ -749,7 +749,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local logfile1
    local logfile2
 
-   mkdir_if_missing "${BUILDLOG_SUBDIR}"
+   mkdir_if_missing "${BUILDLOGS_SUBDIR}"
 
    logfile1="`build_log_name "cmake" "${name}" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
@@ -1051,7 +1051,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local logfile1
    local logfile2
 
-   mkdir_if_missing "${BUILDLOG_SUBDIR}"
+   mkdir_if_missing "${BUILDLOGS_SUBDIR}"
 
    logfile1="`build_log_name "configure" "${name}" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
@@ -1482,7 +1482,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
    local logfile
 
-   mkdir_if_missing "${BUILDLOG_SUBDIR}"
+   mkdir_if_missing "${BUILDLOGS_SUBDIR}"
 
    logfile="`build_log_name "${toolname}" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
    log_verbose "Build log will be in: ${C_RESET_BOLD}${logfile}${C_VERBOSE}"
@@ -1749,9 +1749,9 @@ build_script()
    local targetname
    local logfile
 
-   mkdir_if_missing "${BUILDLOG_SUBDIR}"
+   mkdir_if_missing "${BUILDLOGS_SUBDIR}"
 
-   logfile="${BUILDLOG_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
+   logfile="${BUILDLOGS_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
    log_fluff "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
    mkdir_if_missing "${builddir}"
@@ -2099,7 +2099,7 @@ build_stashes()
 
    IFS="
 "
-   for name in `ls -1d "${STASHES_DIR}"/*.failed 2> /dev/null`
+   for name in `ls -1d "${STASHES_DEFAULT_DIR}"/*.failed 2> /dev/null`
    do
       IFS="${DEFAULT_IFS}"
       if [ -d "${name}" ]
@@ -2318,7 +2318,7 @@ build_main()
 
    if [ ! -f "${BOOTSTRAP_DIR}.auto/build_order" ]
    then
-      log_error "No build_order found. You need to install first."
+      log_error "No ${C_MAGENTA}${C_BOLD}build_order${C_ERROR} found. You need to install first."
       return 1
    fi
 
