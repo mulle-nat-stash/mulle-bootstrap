@@ -59,12 +59,17 @@ usage:
    mulle-bootstrap ${COMMAND} [options] [repositories]
 
    Options
-      -cs   :  check /usr/local for duplicates
-      -e    :  fetch embedded repositories only
-      -i    :  ignore wrongly checked out branches
-      -nr   :  ignore .bootstrap folders of fetched repositories
-      -u    :  try to update symlinked folders as well (not recommended)
-      -es   :  allow embedded symlinks (very experimental)
+      -c           :  use caches from CACHES_PATH to locate repositories
+      -cU          :  check /usr/local for duplicates
+      -e           :  fetch embedded repositories only
+      -es          :  allow embedded symlinks (very experimental)
+      -fb <branch> :  force to use branch for all repostories
+      -fs          :  follow symlinks when updating/upgrading (not recommended)
+      -l           :  allow creation of symlinks
+      -le          :  allow creation of embedded symlinks
+      -i           :  ignore wrongly checked out branches
+      -nc          :  don't use caches. Useful to counter flag -y
+      -ns          :  don't create symlinks. Useful to counter flag -y
 
    install  :  clone or symlink non-exisiting repositories and other resources
    update   :  execute a "fetch" in already fetched repositories
@@ -218,76 +223,73 @@ link_command()
 }
 
 
+can_symlink_it()
+{
+   local  directory="$1"
+
+   if [ "${OPTION_ALLOW_CREATING_SYMLINKS}" != "YES" ]
+   then
+      return 1
+   fi
+
+   case "${UNAME}" in
+      minwgw)
+         return 1
+      ;;
+   esac
+
+   if git_is_repository "${directory}"
+   then
+       # if bare repo, we can only clone anyway
+      if git_is_bare_repository "${directory}"
+      then
+         log_info "${directory} is a bare git repository. So cloning"
+         log_info "is the only way to go."
+         return 1
+      fi
+   else
+      log_info "${directory} is not a git repository (yet ?)"
+      log_info "So symlinking is the only way to go."
+   fi
+
+  return 0
+}
+
+
 ask_symlink_it()
 {
-   local  clone
+   local  directory
 
-   clone="$1"
+   directory="$1"
 
-   if [ ! -d "${clone}" ]
+   if [ ! -d "${directory}" ]
    then
-      fail "You need to check out \"${clone}\" yourself, as it's not there."
+      fail "You need to check out \"${directory}\" yourself, as it's not there."
+   fi
+
+   if ! can_symlink_it "${directory}"
+   then
+      return 1
    fi
 
    #
    # check if checked out
    #
-   if [ -d "${clone}"/.git ]
-   then
-       # if bare repo, we can only clone anyway
-      if git_is_bare_repository "${clone}"
-      then
-         log_info "${clone} is a bare git repository. So cloning"
-         log_info "is the only way to go."
-         return 1
-      fi
+   local prompt
 
-      flag=1  # means clone it
-      if [ "${OPTION_ALLOW_CREATING_SYMLINKS}" = "YES" ]
-      then
-         local prompt
-
-         prompt="Should ${clone} be symlinked instead of cloned ?
+   prompt="Should ${directory} be symlinked instead of cloned ?
 NO is safe, but you often say YES here."
 
-         if [ ! -z "${tag}" ]
-         then
-            prompt="${prompt} (Since tag ${tag} is set, NO is more reasonable)"
-         fi
-
-         user_say_yes "$prompt"
-         flag=$?
-      fi
-
-      if [ $flag -ne 0 ]
-      then
-         return $flag
-      fi
-   fi
-
-   # can only symlink because not a .git repo yet
-   if [ "${OPTION_ALLOW_CREATING_SYMLINKS}" = "YES" ]
+   if [ ! -z "${tag}" ]
    then
-      log_info "${clone} is not a git repository (yet ?)"
-      log_info "So symlinking is the only way to go."
-
-      return 0
+      prompt="${prompt} (Since tag ${tag} is set, NO is more reasonable)"
    fi
 
-   case "${UNAME}" in
-      minwgw)
-         fail "Can't symlink on $UNAME, as symlinks don't exist"
-      ;;
-
-      *)
-         fail "Can't symlink embedded repositories by default. \
-Use --embedded-symlinks option to allow it"
-      ;;
-   esac
+   user_say_yes "$prompt"
 }
 
 
-_search_for_repository_in_caches()
+_search_for_repository_in_cache()
 {
    local directory
    local name
@@ -340,12 +342,22 @@ _search_for_repository_in_caches()
 search_for_repository_in_caches()
 {
    local found
+   local directory
 
-   found="`_search_for_repository_in_caches "${CACHES_DIR}" "$@"`" || exit 1
-   if [ ! -z "${found}" ]
-   then
-      symlink_relpath "${found}" "${ROOT_DIR}"
-   fi
+   IFS=":"
+   for directory in ${CACHES_PATH}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      found="`_search_for_repository_in_cache "${directory}" "$@"`" || exit 1
+      if [ ! -z "${found}" ]
+      then
+         symlink_relpath "${found}" "${ROOT_DIR}"
+         return
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -431,7 +443,7 @@ clone_or_symlink()
       ;;
 
       *)
-         if [ "${OPTION_ALLOW_SEARCH_PARENT}" = "YES" ]
+         if [ "${OPTION_ALLOW_SEARCH_CACHES}" = "YES" ]
          then
             found="`search_for_repository_in_caches "${name}" "${branch}"`"
             if [ -z "${found}" ]
@@ -441,7 +453,7 @@ clone_or_symlink()
 
             if [ ! -z "${found}" ]
             then
-               [ "${OPTION_ALLOW_AUTOCLONE_PARENT}" = "YES" ] || user_say_yes "There is a \"${found}\" folder in the parent directory of this project.
+               user_say_yes "There is a \"${found}\" folder in the parent directory of this project.
 (\"${PWD}\"). Use it ?"
                if [ $? -eq 0 ]
                then
@@ -837,7 +849,9 @@ did_upgrade_repository()
 
 did_upgrade_repositories()
 {
-   walk_clones "did_upgrade_repository" "${REPOS_DIR}" "$@"
+   local clones="$1"
+
+   walk_clones "${clones}" "did_upgrade_repository" "${REPOS_DIR}"
 }
 
 
@@ -869,7 +883,14 @@ required_action_for_clone()
 
    if [ "${clone}" = "${newclone}" ]
    then
-      log_fluff "URL ${url} repository line is unchanged"
+      if [ -e "${newstashdir}" ]
+      then
+         log_fluff "URL ${url} repository line is unchanged"
+         return
+      fi
+
+      log_fluff "\"${newstashdir}\" is missing, reget."
+      echo "clone"
       return
    fi
 
@@ -1191,7 +1212,8 @@ _fetch_once_deep_repository()
 
       local clones
 
-      clones="`_read_setting "${autodir}/embedded_repositories" "embedded_repositories"`" ;
+      # ugliness
+      clones="`read_setting "${autodir}/embedded_repositories"`" ;
       work_clones "${reposdir}" "${clones}" "NO" > /dev/null
    ) || exit 1
 }
@@ -1263,32 +1285,29 @@ fetch_loop_repositories()
 assume_stashes_are_zombies()
 {
    zombify_embedded_repository_stashes
-   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
-   then
-      zombify_repository_stashes
-      zombify_deep_embedded_repository_stashes
-   fi
+   [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
+
+   zombify_repository_stashes
+   zombify_deep_embedded_repository_stashes
 }
 
 
 bury_zombies_in_graveyard()
 {
    bury_embedded_repository_zombies
-   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
-   then
-      bury_repository_zombies
-      bury_deep_embedded_repository_zombies
-   fi
+   [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
+
+   bury_repository_zombies
+   bury_deep_embedded_repository_zombies
 }
 
 
 run_post_fetch_scripts()
 {
-   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
-   then
-      did_fetch_repositories "$@"
-      fetch__run_root_settings_script "post-fetch" "$@"
-   fi
+   [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
+
+   did_fetch_repositories "$@"
+   fetch__run_root_settings_script "post-fetch" "$@"
 }
 
 
@@ -1301,11 +1320,10 @@ run_post_update_scripts()
 
 run_post_upgrade_scripts()
 {
-   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
-   then
-      did_upgrade_repositories "$@"
-      fetch__run_root_settings_script "post-upgrade" "$@"
-   fi
+   [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
+
+   did_upgrade_repositories "$@"
+   fetch__run_root_settings_script "post-upgrade" "$@"
 }
 
 
@@ -1322,18 +1340,14 @@ fetch_loop()
    is_master_bootstrap_project
    is_master=$?
 
-   if [ "${is_master}" -ne 0 ]
-   then
-      assume_stashes_are_zombies
-   else
-      log_fluff "Skipping zombie checks, because project is master"
-   fi
+   # this is wrong, we just do "stashes" though
+   assume_stashes_are_zombies
 
    bootstrap_auto_create
 
    fetch_once_embedded_repositories
 
-   if [ -z "${OPTION_EMBEDDED_ONLY}" ]
+   if [ "${OPTION_EMBEDDED_ONLY}" = "NO" ]
    then
       fetched="`fetch_loop_repositories`" || exit 1
       fetch_once_deep_embedded_repositories
@@ -1383,10 +1397,7 @@ _common_update()
    esac
 
    update_embedded_repositories > /dev/null
-   if [ ! -z "${OPTION_EMBEDDED_ONLY}" ]
-   then
-      return
-   fi
+   [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
 
    update_repositories "$@" > /dev/null
    update_deep_embedded_repositories > /dev/null
@@ -1402,10 +1413,7 @@ _common_upgrade()
    esac
 
    upgrade_embedded_repositories
-   if [ ! -z "${OPTION_EMBEDDED_ONLY}" ]
-   then
-      return
-   fi
+   [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
 
    local upgraded=""
 
@@ -1424,18 +1432,17 @@ _common_main()
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
-   local OPTION_CHECK_USR_LOCAL_INCLUDE
-   local OPTION_ALLOW_CREATING_SYMLINKS
-   local OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS
-   local OPTION_ALLOW_SEARCH_PARENT
-   local OPTION_ALLOW_AUTOCLONE_PARENT
-   local OPTION_EMBEDDED_ONLY
+   local OPTION_CHECK_USR_LOCAL_INCLUDE="NO"
+   local OPTION_ALLOW_CREATING_SYMLINKS="NO"
+   local OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
+   local OPTION_ALLOW_SEARCH_CACHES="NO"
+   local OPTION_EMBEDDED_ONLY="NO"
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
 
    case "${UNAME}" in
       mingw)
-         OPTION_ALLOW_CREATING_SYMLINKS=
+         OPTION_ALLOW_CREATING_SYMLINKS="NO"
       ;;
 
       *)
@@ -1443,8 +1450,7 @@ _common_main()
       ;;
    esac
 
-   OPTION_ALLOW_SEARCH_PARENT="${MULLE_FLAG_ANSWER}"
-   OPTION_ALLOW_AUTOCLONE_PARENT="${MULLE_FLAG_ANSWER}"
+   OPTION_ALLOW_SEARCH_CACHES="${MULLE_FLAG_ANSWER}"
 
    #
    # it is useful, that fetch understands build options and
@@ -1457,24 +1463,11 @@ _common_main()
             ${USAGE}
          ;;
 
-         -aa|--allow-autoclone-parent)
-            OPTION_ALLOW_SEARCH_PARENT="YES"
-            OPTION_ALLOW_AUTOCLONE_PARENT="YES"
+         -c|--caches)
+            OPTION_ALLOW_SEARCH_CACHES="YES"
          ;;
 
-         -ap|--allow-parent-search)
-            OPTION_ALLOW_SEARCH_PARENT="YES"
-         ;;
-
-         -as|--allow-symlink-creation)
-            OPTION_ALLOW_CREATING_SYMLINKS="YES"
-         ;;
-
-         -aes|--allow-embedded-symlink-creation|--embedded-symlinks)
-            OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="YES"
-         ;;
-
-         -cs|--check-usr-local-include)
+         -cu|--check-usr-local-include)
             OPTION_CHECK_USR_LOCAL_INCLUDE="YES"
          ;;
 
@@ -1482,21 +1475,38 @@ _common_main()
             OPTION_EMBEDDED_ONLY="YES"
          ;;
 
+         -fb|--force-branch)
+            shift
+            [ $# -ne 0 ] || fail "branch missing"
+
+            OPTION_FORCE_BRANCH="$1"
+            if [ -z "${OPTION_FORCE_BRANCH}" ]
+            then
+               OPTION_FORCE_BRANCH="master"
+            fi
+         ;;
+
          -fs|--follow-symlinks)
             OPTION_ALLOW_FOLLOWING_SYMLINKS="YES"
          ;;
 
-         -in|--ignore-branch)
-            OPTION_IGNORE_BRANCH="YES"
+         -l|--symlink-creation)
+            OPTION_ALLOW_CREATING_SYMLINKS="YES"
          ;;
 
-         -np|--no-parent-search)
-            OPTION_ALLOW_SEARCH_PARENT=
+         -le|--embedded-symlink-creation)
+            OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="YES"
+         ;;
+
+         -nc|--no-caches)
+            OPTION_ALLOW_SEARCH_CACHES="NO"
+            OPTION_ALLOW_CREATING_SYMLINKS="NO"
          ;;
 
          -ns|--no-symlink-creation|--no-symlinks)
-            OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS=
-            OPTION_ALLOW_CREATING_SYMLINKS=
+            OPTION_ALLOW_FOLLOWING_SYMLINKS="NO"
+            OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
+            OPTION_ALLOW_CREATING_SYMLINKS="NO"
          ;;
 
          # build options with no parameters

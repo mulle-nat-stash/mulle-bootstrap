@@ -89,38 +89,101 @@ fetch_brew_if_needed()
 }
 
 
+walk_brews()
+{
+   local brews="$1"; shift
+   local callback="$1"; shift
+
+   local formula
+
+   IFS="
+"
+   for formula in ${brews}
+   do
+      IFS="${DEFAULT_IFS}"
+      if ! ${callback} "${formula}" "$@"
+      then
+         break
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+}
+
+
+_brew_action()
+{
+   local formula="$1" ; shift
+   local brewcmd="$1"
+
+   if [ "${OPTION_CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${formula}"
+   then
+      log_info "${C_MAGENTA}${C_BOLD}${formula}${C_INFO} is a system library, so not installing it"
+      return
+   fi
+
+   local versions
+
+   case "${brewcmd}" in
+      install)
+         versions="`exekutor ${BREW} ls --versions "${formula}" 2> /dev/null`"
+
+         if [ -z "${versions}" ]
+         then
+            log_fluff "brew install \"${formula}\""
+            exekutor "${BREW}" install "${formula}" || exit 1
+
+            log_info "Force linking it, in case it was keg-only"
+            exekutor "${BREW}" link --force "${formula}" || exit 1
+         else
+            log_info "\"${formula}\" is already installed."
+         fi
+      ;;
+
+      upgrade)
+         log_fluff "brew upgrade \"${formula}\""
+         exekutor "${BREW}" upgrade "${formula}"
+      ;;
+   esac
+}
+
+
+find_brews()
+{
+   log_fluff "Looking for brew formulae"
+
+   brews="`read_root_setting "brews" | sort | sort -u`"
+   if [ ! -z "${brews}" ]
+   then
+      log_info "Setting read from .bootstrap.auto folder. \
+You might want to use mulle-bootstrap instead of mulle-brew."
+      echo "${brews}"
+      return
+   fi
+
+   (
+      MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=YES
+      read_root_setting "brews" | sort | sort -u
+   )
+}
+
 #
 # brews are now installed using a local brew
 # if we are on linx
 #
 _brew_install_brews()
 {
-   local brewcmd
-
-   brewcmd="$1" ; shift
-
+   local brewcmd="$1" ; shift
    local brews="$@"
 
    if [ -z "${brews}" ]
    then
-      log_fluff "Looking for brews"
-
-      brews="`read_root_setting "brews" | sort | sort -u`"
+      brews="`find_brews`"
       if [ -z "${brews}" ]
       then
-         brews="`(
-            MULLE_BOOTSTRAP_SETTINGS_NO_AUTO=YES
-            read_root_setting "brews" | sort | sort -u
-            )`"
-
-         if [ -z "${brews}" ]
-         then
-            log_fluff "No brews found"
-            return
-         fi
-      else
-         log_info "Setting read from .bootstrap.auto folder. \
-   You might want to use mulle-bootstrap instead of mulle-brew."
+         log_fluff "No brews found"
+         return
       fi
    fi
 
@@ -134,44 +197,7 @@ _brew_install_brews()
 
    local flag
 
-   IFS="
-"
-   for formula in ${brews}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      if [ "${OPTION_CHECK_USR_LOCAL_INCLUDE}" = "YES" ] && has_usr_local_include "${formula}"
-      then
-         log_info "${C_MAGENTA}${C_BOLD}${formula}${C_INFO} is a system library, so not installing it"
-         continue
-      fi
-
-      local versions
-
-      case "${brewcmd}" in
-         install)
-            versions="`exekutor ${BREW} ls --versions "${formula}" 2> /dev/null`"
-
-            if [ -z "${versions}" ]
-            then
-               log_fluff "brew install \"${formula}\""
-               exekutor "${BREW}" install "${formula}" || exit 1
-
-               log_info "Force linking it, in case it was keg-only"
-               exekutor "${BREW}" link --force "${formula}" || exit 1
-            else
-               log_info "\"${formula}\" is already installed."
-            fi
-         ;;
-
-         upgrade)
-            log_fluff "brew upgrade \"${formula}\""
-            exekutor "${BREW}" upgrade "${formula}"
-         ;;
-      esac
-   done
-
-   IFS="${DEFAULT_IFS}"
+   walk_brews "_brew_action" "${brewcmd}"
 }
 
 

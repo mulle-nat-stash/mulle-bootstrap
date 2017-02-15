@@ -40,6 +40,14 @@ EOF
   exit 1
 }
 
+expansion_usage()
+{
+    cat <<EOF >&2
+usage:
+   mulle-bootstrap expansion <name> [value]
+EOF
+  exit 1
+}
 
 setting_usage()
 {
@@ -95,6 +103,7 @@ warn_environment_setting()
 }
 
 
+# returns 2 if file is missing
 __read_setting()
 {
    local path="$1"
@@ -131,10 +140,8 @@ _copy_no_clobber_setting_file()
 _read_setting()
 {
    local apath="$1"
-   local name="$2"
 
    [ ! -z "${apath}" ] || fail "no path given to read_setting"
-   [ ! -z "${name}" ] || fail "no name given to read_setting"
 
    local value
 
@@ -149,13 +156,11 @@ _read_setting()
          yesno="not "
       fi
 
-      log_trace2 "Looking for setting ${name} in ${apath} (pwd=$PWD) : ${yesno}found"
+      log_trace2 "Looking for setting in \"${apath}\" (pwd=$PWD) : ${yesno}found"
    fi
-
 
    if [ "${READ_SETTING_RETURNS_PATH}" = "YES" ]
    then
-      value="${apath}"
       if [ ! -r "${apath}" ]
       then
          return 2
@@ -163,10 +168,13 @@ _read_setting()
 
       if [ "$MULLE_FLAG_LOG_VERBOSE" = "YES"  ]
       then
+         local name
+
+         name="`basename -- "${apath}"`"
          log_setting "${C_MAGENTA}${name}${C_SETTING} found as \"${apath}\""
       fi
 
-      echo "${value}"
+      echo "${apath}"
       return 0
    fi
 
@@ -175,16 +183,16 @@ _read_setting()
    #
    # remove empty lines, remove comment lines
    #
-   value="`__read_setting "${apath}"`"
-   rval=$?
-
-   if [ $rval -eq 2 ]
+   if ! value="`__read_setting "${apath}"`"
    then
       return 2   # it's grep :)
    fi
 
    if [ "${MULLE_FLAG_LOG_VERBOSE}" = "YES"  ]
    then
+      local name
+
+      name="`basename -- "${apath}"`"
       apath="`absolutepath "${apath}"`"
 
       # make some boring names less prominent
@@ -212,20 +220,31 @@ read_setting()
 }
 
 
+read_raw_setting()
+{
+   local name="$1"
+
+   [ $# -ne 1 ]     && internal_fail "parameterization error"
+   [ -z "${name}" ] && internal_fail "empty name in read_raw_setting"
+
+   if _read_setting "${BOOTSTRAP_DIR}.local/${name}"
+   then
+      return
+   fi
+   _read_setting "${BOOTSTRAP_DIR}/${name}"
+}
+
 #
 # this has to be flexible, because fetch and build settings read differently
 #
 _read_bootstrap_setting()
 {
-   local name
-
-   name="$1"
+   local name="$1"
 
    [ $# -ne 1 ]     && internal_fail "parameterization error"
    [ -z "${name}" ] && internal_fail "empty name in _read_bootstrap_setting"
 
    local value
-   local suffix
 
    #
    # to access unmerged data (needed for embedded repos)
@@ -237,13 +256,7 @@ _read_bootstrap_setting()
       suffix=".auto"
    fi
 
-   value="`_read_setting "${BOOTSTRAP_DIR}${suffix}/${name}" "${name}"`"
-   if [ $? -ne 0 ]
-   then
-      return 2
-   fi
-
-   echo "${value}"
+   _read_setting "${BOOTSTRAP_DIR}${suffix}/${name}"
 }
 
 
@@ -305,7 +318,7 @@ _read_home_setting()
       log_trace2 "Looking for setting \"${name}\" in \"~/.mulle-bootstrap\""
    fi
 
-   value="`_read_setting "${HOME}/.mulle-bootstrap/${name}" "${name}"`"
+   value="`_read_setting "${HOME}/.mulle-bootstrap/${name}"`"
    if [ $? -ne 0 ]
    then
       return 2
@@ -352,7 +365,7 @@ read_config_setting()
    value="`_read_environment_setting "${name}"`"
    if [ $? -ne 0 ]
    then
-      value="`_read_setting "${BOOTSTRAP_DIR}.local/config/${name}" "${name}"`"
+      value="`_read_setting "${BOOTSTRAP_DIR}.local/config/${name}"`"
       if [ $? -ne 0 ]
       then
          value="`_read_home_setting "${name}"`"
@@ -524,23 +537,27 @@ read_sane_config_path_setting()
 # this is used during copy operations into .auto to already expand variables
 # src is relative to srcbootstrap folder
 #
-_read_expanded_setting()
+read_expanded_setting()
 {
    local filepath="$1"
-   local name="$2"
-   local default="$3"
-   local srcbootstrap="$4"
+   local default="$2"
+   local srcbootstrap="$3"
 
    [ -z "${srcbootstrap}" ] && internal_fail "empty srcbootstrap"
-   [ $# -eq 4 ] || internal_fail "missing parameters"
+   [ $# -eq 3 ]             || internal_fail "wrong parameters"
 
    local value
 
    value="`(
       MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
       BOOTSTRAP_DIR="${srcbootstrap}"
-      _read_setting "${filepath}" "${name}" "${default}"
+      _read_setting "${filepath}"
    )`"
+
+   if [ -z "${value}" ]
+   then
+      value="${default}"
+   fi
 
    IFS="
 "
@@ -594,13 +611,11 @@ merge_settings_in_front()
    local settings1
    local settings2
    local result
-   local name
 
-   name="`basename -- "$1"`"
-   settings1="`_read_setting "$1" "${name}"`"
+   settings1="`_read_setting "$1"`"
    if [ ! -z "$2" ]
    then
-      settings2="`_read_setting "$2" "${name}"`"
+      settings2="`_read_setting "$2"`"
    fi
 
    _merge_settings_in_front "${settings1}" "${settings2}"
@@ -638,26 +653,53 @@ ${keys3}
 # "config" interface sorta like git config
 # obviously need to "vet" the keys sometime
 #
-config_read()
+_config_read()
 {
    read_config_setting "$1"
 }
 
 
-config_write()
+_config_write()
 {
    mkdir_if_missing "${BOOTSTRAP_DIR}.local/config"
+
    exekutor echo "$2" > "${BOOTSTRAP_DIR}.local/config/$1"
+   exekutor touch "${BOOTSTRAP_DIR}.local"
 }
 
 
-config_delete()
+_config_delete()
 {
    if [ -f "${BOOTSTRAP_DIR}.local/config/$1" ]
    then
       exekutor rm "${BOOTSTRAP_DIR}.local/config/$1"
+      exekutor touch "${BOOTSTRAP_DIR}.local"
    fi
 }
+
+
+_expansion_read()
+{
+   read_root_setting "$1"
+}
+
+
+_expansion_write()
+{
+   mkdir_if_missing "${BOOTSTRAP_DIR}.local"
+
+   exekutor echo "$2" > "${BOOTSTRAP_DIR}.local/$1"
+}
+
+
+_expansion_delete()
+{
+   if [ -f "${BOOTSTRAP_DIR}.local/$1" ]
+   then
+      exekutor rm "${BOOTSTRAP_DIR}.local/$1"
+   fi
+}
+
 
 
 config_main()
@@ -675,7 +717,7 @@ config_main()
             config_usage
          ;;
 
-         -d)
+         -d|--delete)
             command="delete"
          ;;
 
@@ -703,16 +745,12 @@ config_main()
    done
 
    name="$1"
-   [ $# -ne 0 ] && shift
-
-   if [ -z "${name}" ]
-   then
-      config_usage
-   fi
+   [ -z "${name}" ] && config_usage
+   shift
 
    if [ $# -ne 0 ]
    then
-      [ "${command}" != "read" ] && config_usage
+      [ "${command}" != "read" ] && "config_usage"
 
       command="write"
       value="$1"
@@ -721,7 +759,7 @@ config_main()
 
    case "${command}" in
       read)
-         value="`config_read "${name}"`"
+         value="`"_config_read" "${name}"`"
          if [ -z "${value}" ]
          then
             value="`eval echo "$"${name}`"
@@ -733,16 +771,94 @@ config_main()
       ;;
 
       delete)
-         config_delete "${name}"
-         create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_needed"
+         _config_delete "${name}"
       ;;
 
       write)
-         config_write "${name}" "${value}"
-         create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_needed"
+         _config_write "${name}" "${value}"
       ;;
    esac
 }
+
+
+expansion_main()
+{
+   local name
+   local value
+   local command
+
+   command="read"
+
+   while [ $# -ne 0 ]
+   do
+      case "$1" in
+         -h|-help|--help)
+            expansion_usage
+         ;;
+
+         -d|--delete)
+            command="delete"
+         ;;
+
+         -n|--off|--no|--NO)
+            command="write"
+            value=
+         ;;
+
+         -y|--on|--yes|--YES)
+            command="write"
+            value="YES"
+         ;;
+
+         -*)
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
+            expansion_usage
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+   name="`echo "${1}" | tr '[a-z]' '[A-Z]'`"
+   [ -z "${name}" ] && expansion_usage
+   shift
+
+   if [ $# -ne 0 ]
+   then
+      [ "${command}" != "read" ] && "${prefix}_usage"
+
+      command="write"
+      value="$1"
+      shift
+   fi
+
+   case "${command}" in
+      read)
+         value="`"_expansion_read" "${name}"`"
+         if [ -z "${value}" ]
+         then
+            value="`eval echo "$"${name}`"
+         fi
+         if [ ! -z "${value}" ]
+         then
+            echo "${value}"
+         fi
+      ;;
+
+      delete)
+         _expansion_delete "${name}"
+      ;;
+
+      write)
+         _expansion_write "${name}" "${value}"
+      ;;
+   esac
+}
+
 
 
 setting_main()
@@ -751,6 +867,7 @@ setting_main()
    local value
    local command
    local repository
+   local expansion
 
    command="read"
 

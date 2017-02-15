@@ -33,7 +33,7 @@ MULLE_BOOTSTRAP_SCM_SH="included"
 
 git_is_repository()
 {
-   [ -d "${1}.git" ] || [ -d  "${1}/refs" -a  -f "${1}/HEAD" ]
+   [ -d "${1}/.git" ] || [ -d  "${1}/refs" -a -f "${1}/HEAD" ]
 }
 
 

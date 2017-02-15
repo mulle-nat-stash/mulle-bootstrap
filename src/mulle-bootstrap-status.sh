@@ -108,36 +108,56 @@ status_deep_embedded_repositories()
 }
 
 
+status_brew()
+{
+   local formula="$1"  # ususally .bootstrap.repos
+
+   ${BREW} list "${formula}"
+}
+
+
+status_brews()
+{
+   local brews
+
+   brews="`find_brews`"
+   walk_brews "${brews}" "status_brew"
+}
+
 
 _common_status()
 {
-#   case "${BREW_PERMISSIONS}" in
-#      update|upgrade)
-#         brew_status_main
-#      ;;
-#   esac
-   local MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
-
-   if [ ! -d "${BOOTSTRAP_DIR}.auto" ]
+   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
    then
-      MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+      local MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
+
+      if [ ! -d "${BOOTSTRAP_DIR}.auto" ]
+      then
+         MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+      fi
+
+
+      if [ "${SKIP_EMBEDDED}" = "YES"  ]
+      then
+         status_embedded_repositories
+      fi
+
+      if [ "${OPTION_EMBEDDED_ONLY}" = "YES" ]
+      then
+         return
+      fi
+
+      status_repositories "$@"
+
+      if [ "${SKIP_EMBEDDED}" = "YES"  ]
+      then
+         status_deep_embedded_repositories
+      fi
    fi
 
-   if [ "${SKIP_EMBEDDED}" = "YES"  ]
+   if [ "${SHOW_BREWS}" = "YES"  ]
    then
-      status_embedded_repositories
-   fi
-
-   if [ "${OPTION_EMBEDDED_ONLY}" = "YES" ]
-   then
-      return
-   fi
-
-   status_repositories "$@"
-
-   if [ "${SKIP_EMBEDDED}" = "YES"  ]
-   then
-      status_deep_embedded_repositories
+      status_brews
    fi
 }
 
@@ -149,6 +169,7 @@ status_main()
    local OPTION_ALLOW_FOLLOWING_SYMLINKS="YES"
    local OPTION_EMBEDDED_ONLY="NO"
    local SKIP_EMBEDDED="YES"
+   local SHOW_BREWS="YES"
    local STATUS_SCM="NO"
    local STATUS_FETCH="YES"
    local STATUS_LIST="NO"
@@ -156,6 +177,12 @@ status_main()
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_FETCH_SH}" ]        && . mulle-bootstrap-fetch.sh
    [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]          && . mulle-bootstrap-scm.sh
+   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ]         && . mulle-bootstrap-brew.sh
+
+   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   then
+      SHOW_BREWS="NO"
+   fi
 
    while [ $# -ne 0 ]
    do
@@ -171,6 +198,10 @@ status_main()
 
          -a|--all)
             SKIP_EMBEDDED="NO"
+         ;;
+
+         -b|--show-brews)
+            SHOW_BREWS="YES"
          ;;
 
          -nfs|--no-follow-symlinks)

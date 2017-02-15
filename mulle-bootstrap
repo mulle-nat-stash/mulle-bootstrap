@@ -47,14 +47,19 @@ trap_fail()
 
 bootstrap_technical_option_usage()
 {
-   if [ "${VERBOSE}" = "YES" -o "${MULLE_TRACE}" = "YES" ]
+   if [ ! -z "${MULLE_TRACE}" ]
    then
       cat <<EOF
    -le       : external command execution log output
    -lm       : extended dependency analysis output
    -ls       : extended settings log output
    -t        : enable shell trace
+   -tpwd     : emit shortened PWD during trace
+   -tr       : also trace resolver
+   -ts       : also trace settings
    -s        : be silent
+
+   [Check source for more options]
 EOF
    fi
 }
@@ -115,14 +120,12 @@ EOF
    bootstrap     : does install and build recursively [default]
    build         : builds fetched repositories
    clean         : cleans mulle-bootstrap produced files.
+   init          : initializes a bootstrap project
    install       : fetches required repositories recursively. Use it after
                    updating the repositories and embedded_repositories files.
-   init          : initializes a bootstrap project
-   systeminstall : install dependencies as system headers
-   git           : run git commands on fetched repositories
-   tag           : tag fetched repositories
    update        : updates repositories (fetch).
    upgrade       : updates and checks out repositories (pull).
+   show          : show repositories and brews
 
  Options are command specific. Use mulle-bootstrap <command> -h for help.
 EOF
@@ -130,7 +133,18 @@ EOF
    if [ "${UNAME}" = 'darwin' ]
    then
       cat <<EOF
-   xcode     : sets up xcodeproj settings
+   xcode         : sets up xcodeproj settings
+EOF
+   fi
+
+   if [ !  -z "${MULLE_TRACE}" ]
+   then
+      cat <<EOF
+
+   systeminstall : install dependencies as system headers
+   git           : run git commands on fetched repositories
+   status        : show status of repositories and brews
+   tag           : tag fetched repositories
 EOF
    fi
 
@@ -156,7 +170,7 @@ Well, do ya, punk?"
 }
 
 
-define_local_keyvalue()
+define_expansion()
 {
    local keyvalue
 
@@ -173,7 +187,7 @@ define_local_keyvalue()
    local key
    local value
 
-   key="`echo "${keyvalue}" | cut -d= -f1`"
+   key="`echo "${keyvalue}" | cut -d= -f1 | tr '[a-z]' '[A-Z]'`"
    if [ -z "${key}" ]
    then
       key="${keyvalue}"
@@ -500,6 +514,11 @@ bootstrap_should_defer_to_master()
       return 1
    fi
 
+   if [ "${MULLE_BOOTSTRAP_DONT_DEFER}" = "YES" ]
+   then
+      return 1
+   fi
+
    local masterpath
 
    . mulle-bootstrap-project.sh
@@ -567,7 +586,7 @@ bootstrap_main()
 
          -D*)  # just like C
             # define key values (by putting them into .bootstrap.local)
-            define_local_keyvalue "`echo "$1" | sed s'/^-D[ ]*//'`"
+            define_expansion "`echo "$1" | sed s'/^-D[ ]*//'`"
          ;;
 
          -V|--verbose-build)
@@ -633,6 +652,8 @@ bootstrap_main()
    MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE} ${command}"
    [ $# -eq 0 ] || shift
 
+   MULLE_EXECUTABLE_OPTIONS="$@"
+
    case "${command}" in
       bootstrap)
          _bootstrap_main "$@"
@@ -674,6 +695,13 @@ bootstrap_main()
          emancipate_main "$@" || exit 1
       ;;
 
+      expansion)
+         . mulle-bootstrap-settings.sh
+
+         expansion_main "$@" || exit 1
+      ;;
+
+
       flags)
          . mulle-bootstrap-flags.sh
 
@@ -684,6 +712,10 @@ bootstrap_main()
          . mulle-bootstrap-scm.sh
 
          git_main "$@" || exit 1
+      ;;
+
+      help)
+         mulle_bootstrap_usage "$@" || exit 1
       ;;
 
       init)
@@ -713,6 +745,12 @@ bootstrap_main()
          . mulle-bootstrap-install.sh
 
          install_main "$@" || exit 1
+      ;;
+
+      show)
+         . mulle-bootstrap-show.sh
+
+         show_main "$@" || exit 1
       ;;
 
       status)
@@ -836,6 +874,7 @@ brew_main()
    fi
 
    MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE} ${command}"
+   MULLE_EXECUTABLE_OPTIONS="$@"
 
    case "${command}" in
       build)
@@ -880,6 +919,10 @@ brew_main()
          flags_main "$@" || exit 1
       ;;
 
+      help)
+         mulle_brew_usage "$@" || exit 1
+      ;;
+
       init)
          . mulle-bootstrap-init.sh
 
@@ -901,6 +944,12 @@ brew_main()
          . mulle-bootstrap-settings.sh
 
          setting_main "$@" || exit 1
+      ;;
+
+      show)
+         . mulle-bootstrap-show.sh
+
+         show_main "$@" || exit 1
       ;;
 
       uname)

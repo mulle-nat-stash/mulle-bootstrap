@@ -108,7 +108,8 @@ common_settings_initialize()
    STASHES_DEFAULT_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
 
    # "repository" caches can and usually are outside the project folder
-   CACHES_DIR="`read_config_setting "cashes_dir" "${DEFAULT_CACHES_DIR}"`"
+   # this can be multiple paths!
+   CACHES_PATH="`read_config_setting "cashes_dir" "${DEFAULT_CACHES_PATH}"`"
 
    [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "variable CLONESBUILD_SUBDIR is empty"
    [ -z "${BUILDLOGS_SUBDIR}" ]    && internal_fail "variable BUILDLOGS_SUBDIR is empty"

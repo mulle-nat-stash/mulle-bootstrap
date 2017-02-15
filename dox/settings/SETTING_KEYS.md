@@ -2,6 +2,12 @@
 
 > <font color="green">**Important: Setting values are delimited by LF.**</font>
 
+1. All files in lowercase are regular settings
+2. All files in uppercase are expansion settings (somewhar like an environment variable).These are not described here.
+3 Config settings are local to the system. They are not part of a
+distribution.
+
+
 Root Settings
 ===================
 
@@ -102,7 +108,7 @@ Setting Name                      |  Description                                
 `check_usr_local_include`         | do not fetch, if a system header of same      |
                                   | is present in `/usr/local/include`            | NO
 
-Build Config Settings
+##### Build Config Settings
 
 Setting Name                      |  Description                                  | Default
 ----------------------------------|-----------------------------------------------|--------------

@@ -101,7 +101,7 @@ _bootstrap_auto_copy()
             if [ -z "${match}" ] ## has lowercase (not environment)
             then
                log_fluff "Copy expanded value of \"${filepath}\""
-               value="`_read_expanded_setting "${filepath}" "${name}" "" "${tmpdir}"`"
+               value="`read_expanded_setting "${filepath}" "" "${tmpdir}"`"
                redirect_exekutor "${dstfilepath}" echo "${value}"
             else
                exekutor cp -a ${COPYMOVETARFLAGS} "${filepath}" "${dstfilepath}"
@@ -168,46 +168,44 @@ _bootstrap_merge_expanded_settings_in_front()
 
    local settings1
    local settings2
-   local name
 
-   name="`basename -- "$1"`"
    srcbootstrap="`dirname -- "${1}"`"
 
-   settings1="`_read_expanded_setting "$1" "${name}" "" "${srcbootstrap}"`"
+   settings1="`read_expanded_setting "$1" "" "${srcbootstrap}"`"
    if [ ! -z "$2" ]
    then
-      settings2="`_read_setting "$2" "${name}"`"
+      settings2="`read_setting "$2"`"
    fi
 
    _merge_settings_in_front "${settings1}" "${settings2}"
 }
 
 
-_make_master_clones()
-{
-   local clones="$1"
+# _make_master_clones()
+# {
+#    local clones="$1"
 
-   local clone
-   local name       # name of the clone
-   local url        # url of clone
-   local branch
-   local scm
-   local tag
-   local stashdir   # dir of repository (usually inside stashes)
+#    local clone
+#    local name       # name of the clone
+#    local url        # url of clone
+#    local branch
+#    local scm
+#    local tag
+#    local stashdir   # dir of repository (usually inside stashes)
 
-   IFS="
-"
-   for clone in ${clones}
-   do
-      IFS="${DEFAULT_IFS}"
+#    IFS="
+# "
+#    for clone in ${clones}
+#    do
+#       IFS="${DEFAULT_IFS}"
 
-      parse_clone "${clone}"
+#       parse_clone "${clone}"
 
-      echo "${url};${name};${branch};${scm};${tag}" | sed 's/;*$//'
-   done
+#       echo "${url};${name};${branch};${scm};${tag}" | sed 's/;*$//'
+#    done
 
-   IFS="${DEFAULT_IFS}"
-}
+#    IFS="${DEFAULT_IFS}"
+# }
 
 
 _remove_dstdir_from_clones()
@@ -215,12 +213,11 @@ _remove_dstdir_from_clones()
    local clones="$1"
 
    local clone
-   local name       # name of the clone
    local url        # url of clone
+   local dstdir       # name of the clone
    local branch
    local scm
    local tag
-   local stashdir   # dir of repository (usually inside stashes)
 
    IFS="
 "
@@ -228,7 +225,7 @@ _remove_dstdir_from_clones()
    do
       IFS="${DEFAULT_IFS}"
 
-      parse_clone "${clone}"
+      parse_raw_clone "${clone}"
 
       echo "${url};;${branch};${scm};${tag}" | sed 's/;*$//'
    done
@@ -279,26 +276,21 @@ _bootstrap_auto_merge_root_settings()
       #
       if [ "${settingname}" = "repositories" ]
       then
-         local newcontents
+         local additions
 
-         newcontents="`_bootstrap_merge_expanded_settings_in_front "${srcfile}" ""`"
-         if is_master_bootstrap_project
-         then
-            newcontents="`_make_master_clones "${newcontents}"`"
-         else
-            newcontents="`_remove_dstdir_from_clones "${newcontents}"`"
-         fi
+         additions="`_bootstrap_merge_expanded_settings_in_front "${srcfile}" ""`"
+         additions="`_remove_dstdir_from_clones "${additions}"`"
 
          if [ -f "${dstfile}" ]
          then
-            local contents2
+            local contents
 
             contents="`cat "${dstfile}"`"
-            newcontents="`merge_repository_contents "${contents}" "${newcontents}"`"
+            additions="`merge_repository_contents "${contents}" "${additions}"`"
+         else
+            log_fluff "Copying expanded \"repositories\" from \"${srcfile}\""
          fi
-         log_fluff "Copying expanded \"repositories\" from \"${srcfile}\""
-
-         redirect_exekutor "${dstfile}" echo "${newcontents}"
+         redirect_exekutor "${dstfile}" echo "${additions}"
          continue
       fi
 
@@ -359,7 +351,7 @@ _bootstrap_auto_embedded_copy()
 
    dst="${BOOTSTRAP_DIR}.auto/.deep/${name}.d"
 
-   [ -d "${dst}" ] && internal_fail "${dst} already exists"
+   rmdir_safer "${dst}"
    mkdir_if_missing "${dst}"
 
    # copy over our stuff
@@ -506,7 +498,7 @@ bootstrap_create_build_folders()
 
 bootstrap_auto_final()
 {
-   [ -d "${BOOTSTRAP_DIR}.auto" ] || internal_fail "${BOOTSTRAP_DIR}.auto does not exists"
+   exekutor [ -d "${BOOTSTRAP_DIR}.auto" ] || internal_fail "${BOOTSTRAP_DIR}.auto does not exist"
 
    log_fluff "Creating ${C_MAGENTA}${C_BOLD}build_order${C_VERBOSE} from repositories"
 

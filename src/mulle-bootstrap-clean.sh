@@ -34,10 +34,10 @@ MULLE_BOOTSTRAP_CLEAN_SH="included"
 
 setup_clean_environment()
 {
-   [ -z "${DEPENDENCIES_DIR}"  ]  && internal_fail "DEPENDENCIES_DIR is empty"
-   [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "CLONESBUILD_SUBDIR is empty"
-   [ -z "${ADDICTIONS_DIR}"   ]   && internal_fail "ADDICTIONS_DIR is empty"
-   [ -z "${STASHES_DEFAULT_DIR}"   ]      && internal_fail "STASHES_DEFAULT_DIR is empty"
+   [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
+   [ -z "${CLONESBUILD_SUBDIR}" ]  && internal_fail "CLONESBUILD_SUBDIR is empty"
+   [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "ADDICTIONS_DIR is empty"
+   [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "STASHES_DEFAULT_DIR is empty"
 
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
@@ -77,17 +77,17 @@ ${BUILD_CLEANABLE_FILES}
 ${OUTPUT_CLEANABLE_SUBDIRS}
 ---
 
+   install : useful if you know, you don't want to rebuild.
+---
+${BUILD_CLEANABLE_SUBDIRS}
+${INSTALL_CLEANABLE_SUBDIRS}
+---
+
    dist    : remove all clones, dependencies, addictions. It cleans
 ---
 ${BUILD_CLEANABLE_SUBDIRS}
 ${OUTPUT_CLEANABLE_SUBDIRS}
 ${DIST_CLEANABLE_SUBDIRS}
----
-
-   install  : useful if you know, you don't want to rebuild ever. It cleans
----
-${BUILD_CLEANABLE_SUBDIRS}
-${INSTALL_CLEANABLE_SUBDIRS}
 ---
 EOF
 }
@@ -212,28 +212,61 @@ clean_directories()
 }
 
 
+
+_print_stashdir()
+{
+   # local reposdir="$1"  # ususally .bootstrap.repos
+   # local name="$2"      # name of the clone
+   # local url="$3"       # URL of the clone
+   # local branch="$4"    # branch of the clone
+   # local scm="$5"       # scm to use for this clone
+   # local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   echo "${stashdir}"
+}
+
+
+print_stashdir_repositories()
+{
+   _operation_walk_repositories "_print_stashdir"
+}
+
+
+print_stashdir_embedded_repositories()
+{
+   _operation_walk_embedded_repositories "_print_stashdir"
+}
+
+
 #
 # dist cleaning is dangerous
 #
 _dist_clean()
 {
-   if is_master_bootstrap_project
-   then
-      fail "You can't dist clean a master repository"
-   fi
-
-   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${REPOS_DIR}
+   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" \
+"${REPOS_DIR}
+${DEPENDENCIES_DIR}
 ${ADDICTIONS_DIR}
 ${STASHES_DEFAULT_DIR}
-.bootstrap.auto"`"
-   EMBEDDED="`stashes_of_embedded_repositories "${REPOS_DIR}"`"
+${BOOTSTRAP_DIR}.auto"`"
 
-   if [ ! -z "$EMBEDDED" ]
+   #
+   # as a master we don't throw the minions out
+   #
+   if ! is_master_bootstrap_project
    then
-      DIST_CLEANABLE_SUBDIRS="${DIST_CLEANABLE_SUBDIRS}
-${EMBEDDED}"
+      local stashes
+
+      stashes="`print_stashdir_repositories`"
+      DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
+
+      stashes="`print_stashdir_embedded_repositories`"
+      DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
    fi
+
    clean_directories "${DIST_CLEANABLE_SUBDIRS}" "${flag}"
+
    clean_files "${DIST_CLEANABLE_FILES}"
 }
 
@@ -304,7 +337,7 @@ ${DEPENDENCIES_DIR}/tmp"`"
 
    case "${COMMAND}" in
       dist)
-         dist_clean
+         _dist_clean
       ;;
    esac
 }

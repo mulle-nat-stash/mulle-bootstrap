@@ -201,7 +201,7 @@ assert_mulle_bootstrap_version()
    local version
 
    # has to be read before .auto is setup
-   version="`read_setting "${BOOTSTRAP_DIR}/version" "version"`"
+   version="`read_raw_setting "version"`"
 
    if check_version "$version" "${MULLE_BOOTSTRAP_VERSION_MAJOR}" "${MULLE_BOOTSTRAP_VERSION_MINOR}"
    then
@@ -436,9 +436,14 @@ local_environment_initialize()
    # our "sandbox" root, probably not changeable
    ROOT_DIR="`pwd -P`"
 
+   #
    # where we look for symlink sources
-   DEFAULT_CACHES_DIR="`dirname -- "${ROOT_DIR}"`"
+   # user can set also seT via environment "CACHES_PATH"
+   #
+   local parent
 
+   parent="`dirname -- "${ROOT_DIR}"`"
+   DEFAULT_CACHES_PATH="${CACHES_PATH:-${parent}}"
 
    log_fluff "${UNAME} detected"
    case "${UNAME}" in

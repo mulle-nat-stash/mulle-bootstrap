@@ -206,6 +206,11 @@ walk_check()
       fi
    fi
 
+   if [ "${WALK_MISSING_REPOSITORIES}" = "YES" ]
+   then
+      return 0
+   fi
+
    if [ -L "${stashdir}" ]
    then
       # cat is for -e
@@ -340,9 +345,12 @@ _walk_deep_embedded_repositories()
          local filepath
 
          filepath="${BOOTSTRAP_DIR}.auto/.deep/${name}.d/embedded_repositories"
-         embedded_clones="`_read_setting "${filepath}" "embedded_repositories"`"
+         # sigh have to use read_setting here
+         embedded_clones="`read_setting "${filepath}"`"
 
-         STASHES_ROOT_DIR="${stashdir}" ;
+         PARENT_REPOSITORY_NAME="${name}"
+         STASHES_DEFAULT_DIR=""
+         STASHES_ROOT_DIR="${stashdir}"
          reposdir="${REPOS_DIR}/.deep/${name}.d"
          _walk_repositories "${embedded_clones}" "${callback}" "${permissions}" "${reposdir}"
       ) || exit 1
@@ -474,14 +482,29 @@ computed_stashdir()
 # this sets values to variables that should be declared
 # in the caller!
 #
-#   # parse_clone
-#   local name       # name of the clone
+#   # parse_raw_clone
 #   local url        # url of clone
+#   local dstdir
 #   local branch
 #   local scm
 #   local tag
-#   local stashdir   # dir of repository (usually inside stashes)
 #
+parse_raw_clone()
+{
+   IFS=";" read -r url dstdir branch scm tag <<< "${1}"
+}
+
+
+# this sets values to variables that should be declared
+# in the caller!
+#
+#   # parse_clone
+#   local name
+#   local url
+#   local branch
+#   local scm
+#   local tag
+#   local stashdir
 parse_clone()
 {
    local clone="$1"
@@ -496,10 +519,7 @@ parse_clone()
    #
    IFS=";" read -r url dstdir branch scm tag <<< "${clone}"
 
-   if [ "${OPTION_IGNORE_BRANCH}" = "YES" ]
-   then
-      branch=""
-   fi
+   branch="${OPTION_FORCE_BRANCH:-${branch}}"
 
    case "${url}" in
       */\.\./*|\.\./*|*/\.\.|\.\.)
@@ -536,8 +556,6 @@ parse_clone()
       log_trace2 "STASHDIR: \"${stashdir}\""
    fi
 
-   [ "${url}" = "Already up-to-date." ] && internal_fail "fail"
-
    [ -z "${url}" ]      && internal_fail "url is empty ($clone)"
    [ -z "${name}" ]     && internal_fail "name is empty ($clone)"
    [ -z "${stashdir}" ] && internal_fail "stashdir is empty ($clone)"
@@ -547,11 +565,42 @@ parse_clone()
 
 
 #
-# walk over clones given as parameters
-# call callback
+# walk over clones just give raw values
 #
+walk_raw_clones()
+{
+   local clones=$1; shift
+   local callback=$1; shift
+
+   local url
+   local dstdir
+   local branch
+   local scm
+   local tag
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      parse_raw_clone "${clone}"
+
+      "${callback}" "${url}" \
+                    "${dstdir}" \
+                    "${branch}" \
+                    "${scm}" \
+                    "${tag}" \
+                    "$@"
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
 walk_clones()
 {
+   local clones=$1; shift
    local callback=$1; shift
    local reposdir=$1; shift
 
@@ -565,7 +614,7 @@ walk_clones()
 
    IFS="
 "
-   for clone in $*
+   for clone in ${clones}
    do
       IFS="${DEFAULT_IFS}"
 
@@ -577,7 +626,8 @@ walk_clones()
                     "${branch}" \
                     "${scm}" \
                     "${tag}" \
-                    "${stashdir}"
+                    "${stashdir}" \
+                    "$@"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -797,7 +847,7 @@ ${clone}"
       local filename
 
       filename="${stashdir}/.bootstrap/repositories"
-      sub_repos="`_read_expanded_setting "${filename}" "repositories" "" "${stashdir}/.bootstrap"`"
+      sub_repos="`read_expanded_setting "${filename}" "" "${stashdir}/.bootstrap"`"
       if [ ! -z "${sub_repos}" ]
       then
          sub_repos="`unique_repository_contents "${sub_repos}" "${clones}"`"

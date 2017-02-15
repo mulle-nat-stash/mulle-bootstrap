@@ -105,24 +105,6 @@ mark_stash_as_alive()
 }
 
 
-mark_all_stashes_as_alive()
-{
-   local reposdir
-
-   reposdir="$1"
-
-   local zombiedir
-
-   zombiedir="${reposdir}/.zombies"
-
-   if dir_has_files "${zombiedir}"
-   then
-      log_fluff "Marking all stashes of \"${reposdir}\" as alive"
-      exekutor rm -f ${COPYMOVETARFLAGS} "${zombiedir}/"* >&2 || fail "failed to delete zombie ${zombie}"
-   fi
-}
-
-
 #
 #
 #
