@@ -51,16 +51,15 @@ test_a()
 {
    cd a || exit 1
 
-
    run_mulle_bootstrap "$@" -y -f fetch --embedded-symlinks || exit 1
 
    result="`cat .bootstrap.auto/embedded_repositories`"
-   [ "b;b" != "${result}" ] && fail ".bootstrap.auto/embedded_repositories ($result)"
+   [ "b;b;master;git" != "${result}" ] && fail ".bootstrap.auto/embedded_repositories ($result)"
 
-   [ ! -e "b" ] && fail "stashes not created ($result)"
+   [ ! -e "b" ] && fail "b not created ($result)"
 
    result="`head -1 .bootstrap.repos/.embedded/b`"
-   [ "b" != "${result}" ] && fail "($result)"
+   [ "b;b;master;symlink" != "${result}" ] && fail "($result)"
 
    :
 }

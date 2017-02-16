@@ -94,9 +94,9 @@ _copy_files()
       exekutor cd "${dstdir}" ;
       if [ -z "${noclobber}" ]
       then
-         exekutor tar -x ${COPYMOVETARFLAGS} -f -
+         exekutor tar -x ${TARFLAGS} -f - >&2 2> /dev/null #intentional order
       else
-         exekutor tar -x ${COPYMOVETARFLAGS} -k -f -
+         exekutor tar -x ${TARFLAGS} -k -f - >&2 2> /dev/null
          :
       fi
    )

@@ -81,12 +81,20 @@ _bootstrap_auto_copy()
          *.build|settings|overrides)
             if [ -d "${filepath}" ]
             then
-               exekutor cp -Ran ${COPYMOVETARFLAGS} "${filepath}" "${dstfilepath}"
+               exekutor cp -Ran ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
             fi
          ;;
 
          repositories)
             _bootstrap_merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+         ;;
+
+         embedded_repositories)
+            (
+               STASHES_DEFAULT_DIR=""
+               STASHES_ROOT_DIR=""
+               _bootstrap_merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+            )
          ;;
 
          *)
@@ -105,7 +113,7 @@ _bootstrap_auto_copy()
                value="`read_expanded_setting "${filepath}" "" "${tmpdir}"`"
                redirect_exekutor "${dstfilepath}" echo "${value}"
             else
-               exekutor cp -a ${COPYMOVETARFLAGS} "${filepath}" "${dstfilepath}"
+               exekutor cp -a ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
             fi
          ;;
       esac
@@ -219,6 +227,12 @@ _bootstrap_read_repository_file()
          ;;
       esac
 
+      case "${scm}" in
+         symlink)
+            fail "You can't specify symlink in the repositories file yourself. Use -y flag"
+         ;;
+      esac
+
       branch="${OVERRIDE_BRANCH:-${branch}}"
       branch="${branch:-master}"
 
@@ -226,6 +240,9 @@ _bootstrap_read_repository_file()
       then
          dstdir=""
       fi
+
+      dstdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
+      scm="${scm:-git}"
 
       echo "${url};${dstdir};${branch};${scm};${tag}"
    done
@@ -295,13 +312,14 @@ _bootstrap_auto_merge_root_settings()
       dstfile="${dst}/${settingname}"
 
       #
-      # "repositories" file gets special treatment
-      #
-      if [ "${settingname}" = "repositories" ]
-      then
-         _bootstrap_merge_repository_files "${srcfile}" "${dstfile}"
-         continue
-      fi
+      # "repositories" files gets special treatment
+      # "embedded_repositories" is not merged though
+      case "${settingname}" in
+            "repositories")
+               _bootstrap_merge_repository_files "${srcfile}" "${dstfile}" "YES"
+            continue
+            ;;
+      esac
 
       # #
       # # non mergable settings are not merged
@@ -336,9 +354,9 @@ _bootstrap_auto_merge_root_settings()
 
          log_fluff "Merging expanded \"${settingname}\" from \"${srcfile}\""
 
-         exekutor mv ${COPYMOVETARFLAGS}  "${dstfile}" "${tmpfile}" >&2 || exit 1
+         exekutor mv ${COPYMOVEFLAGS}  "${dstfile}" "${tmpfile}" >&2 || exit 1
          redirect_exekutor "${dstfile}" _bootstrap_merge_expanded_settings_in_front "${srcfile}" "${tmpfile}"  || exit 1
-         exekutor rm ${COPYMOVETARFLAGS}  "${tmpfile}" >&2 || exit 1
+         exekutor rm ${COPYMOVEFLAGS}  "${tmpfile}" >&2 || exit 1
       else
          log_fluff "Copying expanded \"${settingname}\" from \"${srcfile}\""
 
@@ -354,7 +372,7 @@ _bootstrap_auto_embedded_copy()
 {
    local name="$1"
    local directory="$2"
-   local srcfile="$3"
+   local filepath="$3"
 
    local dst
 
@@ -365,14 +383,19 @@ _bootstrap_auto_embedded_copy()
    rmdir_safer "${dst}"
    mkdir_if_missing "${dst}"
 
-   # copy over our stuff
-   # _bootstrap_auto_create "${dst}" "${BOOTSTRAP_DIR}"
-
-   # then augment with embedded_settings
+   #
+   # augment with embedded_settings
+   #
    local clones
+   local dstfilepath
 
-   clones="`_bootstrap_merge_expanded_settings_in_front "${srcfile}" ""`" || exit 1
-   redirect_exekutor "${dst}/embedded_repositories" echo "${clones}"
+   dstfilepath="${dst}/embedded_repositories"
+
+   (
+      STASHES_DEFAULT_DIR=""
+      STASHES_ROOT_DIR="${directory}"
+      _bootstrap_merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+   )
 }
 
 

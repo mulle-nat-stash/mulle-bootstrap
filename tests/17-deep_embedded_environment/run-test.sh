@@ -57,7 +57,7 @@ _test_1()
    run_mulle_bootstrap ${BOOTSTRAP_FLAGS} -y -f fetch  || exit 1
 
    result="`cat .bootstrap.auto/repositories 2> /dev/null`"
-   expect="b;b"
+   expect="b;b;master;git"
    if [ "${expect}" != "${result}" ]
    then
       fail "($result)" >&2
@@ -84,10 +84,10 @@ _test_1()
 
 _test_2()
 {
-   run_mulle_bootstrap ${BOOTSTRAP_FLAGS} -y -f fetch --embedded-symlinks --follow-symlinks || exit 1
+   run_mulle_bootstrap ${BOOTSTRAP_FLAGS} -y -f fetch --embedded-symlinks --update-symlinks || exit 1
 
    result="`cat .bootstrap.auto/repositories 2> /dev/null`"
-   expect="b;b"
+   expect="b;b;master;git"
    if [ "${expect}" != "${result}" ]
    then
       fail "($result)" >&2

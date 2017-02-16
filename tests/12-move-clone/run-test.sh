@@ -73,12 +73,12 @@ assert_a_1()
 assert_a_2()
 {
    result="`cat .bootstrap.auto/repositories`"
-   [ "b;b2" != "${result}" ] &&  fail ".bootstrap.auto/repositories ($result)"
+   [ "b;b2;master;git" != "${result}" ] &&  fail ".bootstrap.auto/repositories ($result)"
 
    [ ! -e "b2" ] && fail "stashes not created ($result)"
 
    result="`head -1 .bootstrap.repos/b`"
-   [ "b2" != "${result}" ] && fail "($result)"
+   [ "b;b2;master;git" != "${result}" ] && fail "($result)"
 
    result="`cat b2/README.md`"
    [ "${result}" != "# VfL Bochum 1848" ] && fail "stashes not created ($result)"

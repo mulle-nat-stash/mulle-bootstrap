@@ -87,7 +87,7 @@ emancipate_minion_bootstrap_project()
 {
    local  minionpath="${1:-.}"
 
-   exekutor rm "${minionpath}/${BOOTSTRAP_DIR}.local/is_minion"
+   exekutor rm "${minionpath}/${BOOTSTRAP_DIR}.local/is_minion"  >&2
 }
 
 
@@ -118,25 +118,25 @@ master_owns_minion_bootstrap_project()
 
 _copy_environment_files()
 {
-   local masterbootstrap="${1:-.}" ; shift
-   local minionbootstrap="${1:-.}" ; shift
+   local src="${1:-.}" ; shift
+   local dst="${1:-.}" ; shift
 
-   local files
+   local srcfiles
    local name
-   local src
-   local dst
+   local srcfile
+   local dstfile
 
-   files="`find "${minionbootstrap}" -xdev -mindepth 1 -maxdepth 1 -name "[A-Z_]*" -type f -print 2> /dev/null`"
+   srcfiles="`find "${src}" -xdev -mindepth 1 -maxdepth 1 -name "[A-Z_]*" -type f -print 2> /dev/null`"
    IFS="
 "
-   for src in ${files}
+   for srcfile in ${srcfiles}
    do
-      name="`basename -- "${src}"`"
+      name="`basename -- "${srcfile}"`"
 
       IFS="${DEFAULT_IFS}"
-      dst="${masterbootstrap}/${name}"
+      dstfile="${dst}/${name}"
 
-      _copy_no_clobber_setting_file "${dst}" "${src}"
+      _copy_no_clobber_setting_file "${srcfile}" "${dstfile}"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -147,6 +147,8 @@ master_add_minion_bootstrap_project()
 {
    local masterpath="${1:-.}" ; shift
    local minionpath="${1:-.}" ; shift
+
+   mkdir_if_missing "${masterpath}/${BOOTSTRAP_DIR}.local"
 
    minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
    redirect_append_exekutor "${masterpath}/${BOOTSTRAP_DIR}.local/repositories" echo "${minionpath};${minionpath}"
@@ -169,10 +171,21 @@ master_remove_minion_bootstrap_project()
    local masterpath="${1:-.}" ; shift
    local minionpath="${1:-.}" ; shift
    local unregex
+   local filepath
 
    minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
    unregex="`sed -e 's/[]\/()$*.^|[]/\\&/g' <<< "${minionpath}"`"
-   exekutor sed -i "" -e "/^${unregex}\;/d" "${masterpath}/${BOOTSTRAP_DIR}.local/repositories"
+   filepath="${masterpath}/${BOOTSTRAP_DIR}.local/repositories"
+   exekutor sed -i "" -e "/^${unregex}\;/d" "${filepath}"
+
+   if [ -z "`read_setting "${filepath}"`" ]
+   then
+      remove_file_if_present "${filepath}"
+
+      # not be master anymore if last one is gone ?
+      # remove_file_if_present "${masterpath}/${BOOTSTRAP_DIR}.local/is_master"
+   fi
+
    exekutor touch "${masterpath}/${BOOTSTRAP_DIR}.local"
 }
 

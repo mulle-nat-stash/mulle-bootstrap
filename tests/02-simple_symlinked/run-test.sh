@@ -34,8 +34,6 @@ run_mulle_bootstrap()
 #
 #
 #
-
-
 setup_test_case()
 {
    mkdir -p a/.bootstrap
@@ -46,16 +44,18 @@ setup_test_case()
 
 assert_a()
 {
-   local result
-
    result="`cat .bootstrap.auto/repositories`"
-   [ "b" != "${result}" ] && fail ".bootstrap.auto/repositories ($result)"
+   expected="b;stashes/b;master;git"
 
+   [ "${expected}" = "${result}" ] || fail ".bootstrap.auto/repositories: ${result} != ${expected}"
    [ ! -e "stashes/b" ] && fail "stashes not created ($result)"
 
-   result="`head -1 .bootstrap.repos/b`"
-   [ "stashes/b" != "${result}" ] && fail "($result)"
+   result="`cat .bootstrap.repos/b`"
+   expected="b;stashes/b;master;symlink"
+   [ "${expected}" = "${result}" ] || fail ".bootstrap.repos/b: ${result} != ${expected}"
    :
+
+   [ -L "stashes/b" ] || fail "not a symlink"
 }
 
 

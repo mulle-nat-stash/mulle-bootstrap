@@ -35,7 +35,6 @@ run_mulle_bootstrap()
 #
 #
 #
-
 setup_test_case()
 {
    clear_test_dirs a b
@@ -76,11 +75,11 @@ _assert_a()
 {
    result="`cat .bootstrap.auto/repositories`"
 
-   [ "b" != "${result}" ] && fail ".bootstrap.auto/repositories ($result)"
+   [ "b;stashes/b;master;git" != "${result}" ] && fail ".bootstrap.auto/repositories ($result)"
    [ ! -e "stashes/b" ] && fail "stashes not created ($result)"
 
    result="`head -1 .bootstrap.repos/b`"
-   [ "stashes/b" != "${result}" ] && fail "($result)"
+   [ "b;stashes/b;master;git" != "${result}" ] && fail "($result)"
    :
 }
 

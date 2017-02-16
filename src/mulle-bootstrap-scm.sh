@@ -58,7 +58,7 @@ git_get_url()
 
    (
       cd "$1" &&
-      git remote get-url "${remote}"
+      git remote get-url "${remote}"  >&2
    ) || internal_fail "wrong \"$1\" or \"${remote}\" for \"`pwd`\""
 }
 
@@ -73,8 +73,8 @@ git_set_url()
 
    (
       cd "$1" &&
-      git remote set-url "${remote}" "${url}" &&
-      git fetch "${remote}" # prefetch to get new branches
+      git remote set-url "${remote}" "${url}"  >&2 &&
+      git fetch "${remote}"  >&2  # prefetch to get new branches
    ) || exit 1
 }
 
@@ -166,7 +166,7 @@ git_checkout()
       log_info "Checking out version ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
       (
          exekutor cd "${stashdir}" ;
-         exekutor git ${GITFLAGS} checkout ${options} "${tag}"
+         exekutor git ${GITFLAGS} checkout ${options} "${tag}"  >&2
       ) || exit 1
 
       if [ $? -ne 0 ]
@@ -175,7 +175,7 @@ git_checkout()
          log_error "You need to fix this manually and then move it back."
 
          rmdir_safer "${stashdir}.failed"
-         exekutor mv "${stashdir}" "${stashdir}.failed"
+         exekutor mv "${stashdir}" "${stashdir}.failed"  >&2
          exit 1
       fi
    else
@@ -218,7 +218,8 @@ git_clone()
 #    parent="`dirname -- "${stashdir}"`"
 #   mkdir_if_missing "${parent}"
 
-   exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${stashdir}" || fail "git clone of \"${url}\" into \"${stashdir}\" failed"
+   exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${stashdir}"  >&2 \
+    || fail "git clone of \"${url}\" into \"${stashdir}\" failed"
 
    if [ ! -z "${tag}" ]
    then
@@ -243,7 +244,7 @@ git_fetch()
 
    (
       exekutor cd "${stashdir}" &&
-      exekutor git ${GITFLAGS} fetch $* ${GITOPTIONS}
+      exekutor git ${GITFLAGS} fetch $* ${GITOPTIONS}  >&2
    ) || fail "git fetch of \"${stashdir}\" failed"
 }
 
@@ -264,12 +265,12 @@ git_pull()
 
    (
       exekutor cd "${stashdir}" &&
-      exekutor git ${GITFLAGS} pull $* ${GITOPTIONS}
+      exekutor git ${GITFLAGS} pull $* ${GITOPTIONS}  >&2
    ) || fail "git pull of \"${stashdir}\" failed"
 
    if [ ! -z "${tag}" ]
    then
-      git_checkout "$@"
+      git_checkout "$@"  >&2
    fi
 }
 
@@ -290,7 +291,7 @@ git_status()
 
    (
       exekutor cd "${stashdir}" &&
-      exekutor git ${GITFLAGS} status $* ${GITOPTIONS}
+      exekutor git ${GITFLAGS} status $* ${GITOPTIONS} >&2
    ) || fail "git status of \"${stashdir}\" failed"
 }
 
@@ -324,7 +325,8 @@ svn_checkout()
       fi
    fi
 
-   exekutor svn checkout ${options} ${SVNOPTIONS} "${url}" "${stashdir}" || fail "svn clone of \"${url}\" into \"${stashdir}\" failed"
+   exekutor svn checkout ${options} ${SVNOPTIONS} "${url}" "${stashdir}"  >&2 \
+     || fail "svn clone of \"${url}\" into \"${stashdir}\" failed"
 }
 
 
@@ -360,7 +362,7 @@ svn_update()
 
    (
       exekutor cd "${stashdir}" ;
-      exekutor svn update ${options} ${SVNOPTIONS}
+      exekutor svn update ${options} ${SVNOPTIONS}  >&2
    ) || fail "svn update of \"${stashdir}\" failed"
 }
 
@@ -385,7 +387,7 @@ svn_status()
 
    (
       exekutor cd "${stashdir}" ;
-      exekutor svn status ${options} ${SVNOPTIONS}
+      exekutor svn status ${options} ${SVNOPTIONS}  >&2
    ) || fail "svn update of \"${stashdir}\" failed"
 }
 
@@ -473,7 +475,7 @@ git_main()
    log_debug "::: git :::"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]           && . mulle-bootstrap-scripts.sh
 
 
    while :
@@ -513,7 +515,7 @@ run_git()
          log_info "### $i:"
          (
             cd "$i" ;
-            exekutor git ${GITFLAGS} "$@" ${GITOPTIONS}
+            exekutor git ${GITFLAGS} "$@" ${GITOPTIONS}  >&2
          ) || fail "git failed"
          log_info
       fi

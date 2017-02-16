@@ -110,19 +110,19 @@ setup_test_dirs
 (
    setup_test_case1 &&
    cd a &&
-   test "e
-d
-c
-b"
+   test "e;stashes/e;master;git
+d;stashes/d;master;git
+c;stashes/c;master;git
+b;stashes/b;master;git"
 ) || exit 1
 
 (
    setup_test_case2 &&
    cd a &&
-   test "d
-c
-b
-e"
+   test "d;stashes/d;master;git
+c;stashes/c;master;git
+b;stashes/b;master;git
+e;stashes/e;master;git"
 ) || exit 1
 clear_test_dirs a b c d e
 

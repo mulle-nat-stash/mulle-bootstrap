@@ -79,7 +79,7 @@ _zombify_stashes()
    then
       mkdir_if_missing "${zombiepath}"
 
-      exekutor cp ${COPYMOVETARFLAGS} "${reposdir}/"* "${zombiepath}/" >&2
+      exekutor cp ${COPYMOVEFLAGS} "${reposdir}/"* "${zombiepath}/" >&2
    fi
 }
 
@@ -98,7 +98,7 @@ mark_stash_as_alive()
    then
       log_fluff "Marking \"${name}\" as alive"
 
-      exekutor rm -f ${COPYMOVETARFLAGS} "${zombie}" >&2 || fail "failed to delete zombie ${zombie}"
+      exekutor rm -f ${COPYMOVEFLAGS} "${zombie}" >&2 || fail "failed to delete zombie ${zombie}"
    else
       log_fluff "\"${name}\" is alive as `absolutepath "${zombie}"` is not present"
    fi
@@ -122,13 +122,13 @@ _bury_stash()
    if [ -e "${gravepath}" ]
    then
       log_fluff "Repurposing old grave \"${gravepath}\""
-      exekutor rm -rf ${COPYMOVETARFLAGS}  "${gravepath}" >&2
+      exekutor rm -rf ${COPYMOVEFLAGS}  "${gravepath}" >&2
    else
       mkdir_if_missing "${reposdir}/.graveyard"
    fi
 
    log_info "Burying \"${stashdir}\" in grave \"${gravepath}\""
-   exekutor mv ${COPYMOVETARFLAGS} "${stashdir}" "${gravepath}" >&2
+   exekutor mv ${COPYMOVEFLAGS} "${stashdir}" "${gravepath}" >&2
 }
 
 
@@ -147,7 +147,7 @@ _bury_zombie()
    if [ -L "${stashdir}"  ]
    then
       log_info "Removing unused symlink ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO}"
-      exekutor rm ${COPYMOVETARFLAGS}  "${stashdir}" >&2
+      exekutor rm ${COPYMOVEFLAGS}  "${stashdir}" >&2
       return
    fi
 
@@ -155,8 +155,8 @@ _bury_zombie()
    then
       _bury_stash "${reposdir}" "${name}" "${stashdir}"
 
-      exekutor rm ${COPYMOVETARFLAGS} "${zombie}" >&2
-      exekutor rm ${COPYMOVETARFLAGS} "${reposdir}/${name}" >&2
+      exekutor rm ${COPYMOVEFLAGS} "${zombie}" >&2
+      exekutor rm ${COPYMOVEFLAGS} "${reposdir}/${name}" >&2
 
    else
       log_fluff "Zombie \"${stashdir}\" vanished or never existed ($PWD)"
@@ -190,7 +190,7 @@ _bury_zombies()
 
    if [ -d "${zombiepath}" ]
    then
-      exekutor rm -rf ${COPYMOVETARFLAGS} "${zombiepath}" >&2
+      exekutor rm -rf ${COPYMOVEFLAGS} "${zombiepath}" >&2
    fi
 }
 

@@ -235,13 +235,19 @@ _print_stashdir()
 
 print_stashdir_repositories()
 {
-   walk_repositories "repositories" "_print_stashdir"
+   walk_repositories "repositories" \
+                     "_print_stashdir" \
+                     "" \
+                     "${REPOS_DIR}"
 }
 
 
 print_stashdir_embedded_repositories()
 {
-   walk_repositories "embedded_repositories" "_print_stashdir"
+   walk_repositories "embedded_repositories" \
+                     "_print_stashdir" \
+                     "" \
+                     "${EMBEDDED_REPOS_DIR}"
 }
 
 
@@ -258,18 +264,24 @@ ${ADDICTIONS_DIR}
 ${STASHES_DEFAULT_DIR}
 ${BOOTSTRAP_DIR}.auto"`"
 
-   #
-   # as a master we don't throw the minions out
-   #
-   if ! is_master_bootstrap_project
+   # scrub old stuff
+   if [ -d ".repos" ]
    then
-      local stashes
+      DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" ".repos"`"
+   else
+      #
+      # as a master we don't throw the minions out
+      #
+      if ! is_master_bootstrap_project
+      then
+         local stashes
 
-      stashes="`print_stashdir_repositories`"
-      DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
+         stashes="`print_stashdir_repositories`"
+         DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
 
-      stashes="`print_stashdir_embedded_repositories`"
-      DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
+         stashes="`print_stashdir_embedded_repositories`"
+         DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
+      fi
    fi
 
    clean_directories "${DIST_CLEANABLE_SUBDIRS}" "${flag}"

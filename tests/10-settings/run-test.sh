@@ -110,7 +110,6 @@ fail()
    exit 1
 }
 
-
 BOOTSTRAP_FLAGS="$@"
 
 setup

@@ -336,22 +336,13 @@ bootstrap_setup_trace()
 {
    case "${1}" in
       VERBOSE)
-         MULLE_FLAG_LOG_FLUFF="NO"
          MULLE_FLAG_LOG_VERBOSE="YES"
-         if [ -z "${MULLE_FLAG_VERBOSE_BUILD}" ]
-         then
-            MULLE_FLAG_VERBOSE_BUILD="NO"
-         fi
       ;;
 
       FLUFF)
          MULLE_FLAG_LOG_FLUFF="YES"
          MULLE_FLAG_LOG_VERBOSE="YES"
          MULLE_FLAG_LOG_EXECUTOR="YES"
-         if [ -z "${MULLE_FLAG_VERBOSE_BUILD}" ]
-         then
-            MULLE_FLAG_VERBOSE_BUILD="NO"
-         fi
       ;;
 
       TRACE)
@@ -359,26 +350,18 @@ bootstrap_setup_trace()
          MULLE_FLAG_LOG_EXECUTOR="YES"
          MULLE_FLAG_LOG_FLUFF="YES"
          MULLE_FLAG_LOG_VERBOSE="YES"
-         if [ -z "${MULLE_FLAG_VERBOSE_BUILD}" ]
-         then
-            MULLE_FLAG_VERBOSE_BUILD="NO"
-         fi
          bootstrap_dump_env
       ;;
 
       1848)
          MULLE_FLAG_LOG_SETTINGS="YES"
-         MULLE_FLAG_LOG_EXECUTOR="NO"
          MULLE_FLAG_LOG_FLUFF="YES"
          MULLE_FLAG_LOG_VERBOSE="YES"
-         if [ -z "${MULLE_FLAG_VERBOSE_BUILD}" ]
-         then
-            MULLE_FLAG_VERBOSE_BUILD="YES"
-         fi
+         MULLE_FLAG_VERBOSE_BUILD="YES"
 
          bootstrap_dump_env
 
-         if [ -z "${MULLE_TRACE_POSTPONE}" ]
+         if [ "${MULLE_TRACE_POSTPONE}" = "NO" ]
          then
             log_trace "1848 trace (set -x) started"
             set -x
@@ -418,7 +401,7 @@ bootstrap_technical_flags()
 
       -t|--trace)
          MULLE_TRACE="1848"
-         COPYMOVETARFLAGS="-v"
+         COPYMOVEFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
          MULLE_TRACE_PATHS_FLIP_X="YES"
          MULLE_TRACE_RESOLVER_FLIP_X="YES"
@@ -450,7 +433,7 @@ bootstrap_technical_flags()
 
       -tpo|--trace-postpone)
          [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_TRACE_POSTPONE=YES
+         MULLE_TRACE_POSTPONE="YES"
       ;;
 
       -tpwd|--trace-pwd)
@@ -479,7 +462,7 @@ bootstrap_technical_flags()
         [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vv after -t invalidates -t"
 
          MULLE_TRACE="FLUFF"
-         COPYMOVETARFLAGS="-v"
+         COPYMOVEFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
       ;;
 
@@ -487,7 +470,7 @@ bootstrap_technical_flags()
         [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vvv after -t invalidates -t"
 
          MULLE_TRACE="TRACE"
-         COPYMOVETARFLAGS="-v"
+         COPYMOVEFLAGS="-v"
          GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
       ;;
 
@@ -558,6 +541,26 @@ bootstrap_main()
 {
    local command
    local ps4string
+
+   local MULLE_FLAG_ANSWER="ASK"
+   local MULLE_FLAG_DIRTY_HARRY="YES"
+   local MULLE_FLAG_IGNORE_GRAVEYARD="NO"
+   local MULLE_FLAG_VERBOSE_BUILD="NO"
+
+   # technical flags
+   local MULLE_FLAG_EXECUTOR_DRY_RUN="NO"
+   local MULLE_FLAG_LOG_DEBUG="NO"
+   local MULLE_FLAG_LOG_EXECUTOR="NO"
+   local MULLE_FLAG_LOG_EXECUTOR="NO"
+   local MULLE_FLAG_LOG_FLUFF="NO"
+   local MULLE_FLAG_LOG_SCRIPTS="NO"
+   local MULLE_FLAG_LOG_SETTINGS="NO"
+   local MULLE_FLAG_LOG_VERBOSE="NO"
+   local MULLE_FLAG_MERGE_LOG="NO"
+   local MULLE_TRACE_PATHS_FLIP_X="NO"
+   local MULLE_TRACE_POSTPONE="NO"
+   local MULLE_TRACE_RESOLVER_FLIP_X="NO"
+   local MULLE_TRACE_SETTINGS_FLIP_X="NO"
 
    #
    # simple option handling
@@ -813,6 +816,21 @@ brew_main()
 {
    local command
    local ps4string
+
+   # technical flags
+   local MULLE_FLAG_EXECUTOR_DRY_RUN="NO"
+   local MULLE_FLAG_LOG_DEBUG="NO"
+   local MULLE_FLAG_LOG_EXECUTOR="NO"
+   local MULLE_FLAG_LOG_EXECUTOR="NO"
+   local MULLE_FLAG_LOG_FLUFF="NO"
+   local MULLE_FLAG_LOG_SCRIPTS="NO"
+   local MULLE_FLAG_LOG_SETTINGS="NO"
+   local MULLE_FLAG_LOG_VERBOSE="NO"
+   local MULLE_FLAG_MERGE_LOG="NO"
+   local MULLE_TRACE_PATHS_FLIP_X="NO"
+   local MULLE_TRACE_POSTPONE="NO"
+   local MULLE_TRACE_RESOLVER_FLIP_X="NO"
+   local MULLE_TRACE_SETTINGS_FLIP_X="NO"
 
    #
    # simple option handling

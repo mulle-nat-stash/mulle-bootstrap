@@ -85,7 +85,7 @@ create_demo_repo c
    echo "a;src/a" > .bootstrap/embedded_repositories ;
    git add .bootstrap/embedded_repositories ;
    git commit -m "embedded added"
-)
+) 2> /dev/null
 
 # c depends on b
 (
@@ -94,7 +94,7 @@ create_demo_repo c
    echo "b" > .bootstrap/repositories ;
    git add .bootstrap/repositories ;
    git commit -m "repository added"
-)
+) 2> /dev/null
 
 
 ##
@@ -149,7 +149,7 @@ echo "--| 4 |--------------------------------"
 
 (
    cd c ;
-   run_mulle_bootstrap "$@" -y fetch --follow-symlinks
+   run_mulle_bootstrap "$@" -y fetch --update-symlinks
 
    [ ! -L stashes/b ]     && fail "failed to symlink b" ;
    [ ! -d stashes/b/src/a ] && fail "removed src/a, though it shouldn't know about it" ;

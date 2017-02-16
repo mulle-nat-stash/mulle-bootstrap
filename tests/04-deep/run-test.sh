@@ -56,14 +56,14 @@ test()
 {
    cd a || exit 1
 
-   run_mulle_bootstrap "$@" -y -f fetch --follow-symlinks || exit 1
+   run_mulle_bootstrap "$@" -y -f fetch || exit 1
 
    local result
    local expect
 
    result="`cat .bootstrap.auto/repositories`"
-   expect="c
-b"
+   expect="c;stashes/c;master;git
+b;stashes/b;master;git"
    if [ "${expect}" != "${result}" ]
    then
       fail ": ($result)"

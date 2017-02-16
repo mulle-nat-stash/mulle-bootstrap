@@ -75,12 +75,13 @@ move_test_case()
 _assert_a()
 {
    result="`cat .bootstrap.auto/repositories`"
+   expected="b;stashes/b;master;git"
 
-   [ "b" != "${result}" ] && fail ".bootstrap.auto/repositories ($result)"
+   [ "${expected}" = "${result}" ] || fail ".bootstrap.auto/repositories, result:${result} != expected:${expected}"
    [ ! -e "stashes/b" ] && fail "stashes not created ($result)"
 
    result="`head -1 .bootstrap.repos/b`"
-   [ "stashes/b" != "${result}" ] && fail "($result)"
+   [ "${expected}" = "${result}" ] || fail ".bootstrap.repos/b: ${result} != ${expected}"
    :
 }
 

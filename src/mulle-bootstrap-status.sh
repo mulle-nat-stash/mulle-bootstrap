@@ -92,19 +92,25 @@ status_repository()
 
 status_repositories()
 {
-   _operation_walk_repositories "status_repository"
+   walk_repositories "repositories"  \
+                     "status_repository" \
+                     "" \
+                     "${REPOS_DIR}"
 }
 
 
 status_embedded_repositories()
 {
-   _operation_walk_embedded_repositories "status_repository"
+   walk_repositories "embedde_repositories"  \
+                     "status_repository" \
+                     "" \
+                     "${EMBEDDED_REPOS_DIR}"
 }
 
 
 status_deep_embedded_repositories()
 {
-   _operation_walk_deep_embedded_repositories "status_repository"
+   walk_deep_embedded_repositories "${operation}" ""
 }
 
 

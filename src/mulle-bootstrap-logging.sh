@@ -128,7 +128,18 @@ log_trace2()
 fail()
 {
    log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}:" "$@"
-   log_error `caller`
+
+   local i=0
+   local line
+
+   while line="`caller $i`"
+   do
+      log_info "$i: #${line}"
+      ((i++))
+   done
+
+   # should kill process group...
+   kill 0
 
    if [ ! -z "${MULLE_EXECUTABLE_PID}" ]
    then
@@ -138,6 +149,7 @@ fail()
          kill -INT $$  # actually useful
       fi
    fi
+
    exit 1        # paranoia
    # don't ask me why the fail message is printed twice
 }

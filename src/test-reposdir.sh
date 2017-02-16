@@ -12,7 +12,7 @@ run_test_1()
    local tag
    local stashdir
 
-   local clone 
+   local clone
 
    clone="url/name;stashdir;branch;scm;tag"
    parse_clone "${clone}"
@@ -27,11 +27,7 @@ run_test_1()
    remember_stash_of_repository "${clone}" \
                                 ".bootstrap.repos" \
                                 "${name}"  \
-                                "${url}" \
-                                "${branch}" \
-                                "${scm}" \
-                                "${tag}" \
-                                "${stashdir}" 
+                                "${stashdir}"
 
    local foodir
 
@@ -56,7 +52,7 @@ run_test_2()
    local tag
    local stashdir
 
-   local clone 
+   local clone
 
    clone="a/b/c/name;d/e/f/g;branch;scm;tag"
    parse_clone "${clone}"
@@ -71,10 +67,6 @@ run_test_2()
    remember_stash_of_repository "${clone}" \
                                 ".bootstrap.repos/.embedded" \
                                 "${name}"  \
-                                "${url}" \
-                                "${branch}" \
-                                "${scm}" \
-                                "${tag}" \
                                 "${stashdir}"
 
    local foodir

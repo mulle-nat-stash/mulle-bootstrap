@@ -114,12 +114,12 @@ __read_setting()
 
 _copy_no_clobber_setting_file()
 {
-   local dst="${1:-.}" ; shift
    local src="${1:-.}" ; shift
+   local dst="${1:-.}" ; shift
 
    if [ ! -f "${dst}" ]
    then
-      exekutor cp ${COPYMOVETARFLAGS} "${src}" "${dst}"
+      exekutor cp ${COPYMOVEFLAGS} "${src}" "${dst}"  >&2
    else
       value1="`__read_setting "${src}"`"
       value2="`__read_setting "${dst}"`"
@@ -668,8 +668,8 @@ _config_delete()
 {
    if [ -f "${BOOTSTRAP_DIR}.local/config/$1" ]
    then
-      exekutor rm "${BOOTSTRAP_DIR}.local/config/$1"
-      exekutor touch "${BOOTSTRAP_DIR}.local"
+      exekutor rm "${BOOTSTRAP_DIR}.local/config/$1"  >&2
+      exekutor touch "${BOOTSTRAP_DIR}.local"  >&2
    fi
 }
 
@@ -692,7 +692,7 @@ _expansion_delete()
 {
    if [ -f "${BOOTSTRAP_DIR}.local/$1" ]
    then
-      exekutor rm "${BOOTSTRAP_DIR}.local/$1"
+      exekutor rm "${BOOTSTRAP_DIR}.local/$1"  >&2
    fi
 }
 

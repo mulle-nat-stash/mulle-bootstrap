@@ -50,21 +50,15 @@ MULLE_BOOTSTRAP_REPOSITORIES_SH="included"
 #
 remember_stash_of_repository()
 {
-   local clone="$1" ; shift
-
-   local reposdir="$1"  # ususally .bootstrap.repos
-   local name="$2"      # name of the clone
-#   local url="$3"       # URL of the clone
-#   local branch="$4"    # branch of the clone
-#   local scm="$5"       # scm to use for this clone
-#   local tag="$6"       # tag to checkout of the clone
-   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+   local clone="$1"
+   local reposdir="$2"  # ususally .bootstrap.repos
+   local name="$3"      # name of the clone
+   local parentclone="$5"
 
    [ -z "${clone}" ]    && internal_fail "clone is missing"
    [ -z "${reposdir}" ] && internal_fail "reposdir is missing"
    [ -z "${name}" ]     && internal_fail "name is missing"
    [ -z "${stashdir}" ] && internal_fail "stashdir is missing"
-   [ $# -ne 7  ]        && internal_fail "parameter error"
 
    local content
    local filepath
@@ -72,8 +66,8 @@ remember_stash_of_repository()
    mkdir_if_missing "${reposdir}"
    filepath="${reposdir}/${name}"
 
-   content="${stashdir}
-${clone}"  ## a clone line
+   content="${clone}
+${parentclone}"  ## a clone line
 
    log_fluff "Remembering repository \"${name}\" via \"${filepath}\""
 
@@ -83,7 +77,13 @@ ${clone}"  ## a clone line
 
 _clone_of_reposdir_file()
 {
-   tail -1 "${1}"
+   sed -n '1p' "${1}"
+}
+
+
+_parentclone_of_reposdir_file()
+{
+   sed -n '2p' "$1"
 }
 
 
@@ -107,22 +107,25 @@ clone_of_repository()
 }
 
 
-clone_of_embedded_repository()
-{
-   local reposdir="$1"
-   local name="$2"
-
-   clone_of_repository "${EMBEDDED_REPOS_DIR}" "${name}"
-}
-
-
 _stash_of_reposdir_file()
 {
-   head -1 "$1"
+   local clone
+
+   clone="`_clone_of_reposdir_file "$@"`"
+   _dstdir_part_from_clone "${clone}"
 }
 
 
 stash_of_repository()
+{
+   local clone
+
+   clone="`clone_of_repository "$@"`"
+   _dstdir_part_from_clone "${clone}"
+}
+
+
+parentclone_of_repository()
 {
    local reposdir="$1"
    local name="$2"
@@ -135,7 +138,7 @@ stash_of_repository()
    reposfilepath="${reposdir}/${name}"
    if [ -f "${reposfilepath}" ]
    then
-      _stash_of_reposdir_file "${reposfilepath}"
+      _parentclone_of_reposdir_file "${reposfilepath}"
    else
       log_fluff "No stash found for ${name} in ${reposdir}"
    fi
@@ -187,7 +190,8 @@ all_repository_stashes()
 #
 # Walkers
 #
-
+# Possible permissions: "symlink\nmissing"
+#
 walk_check()
 {
    local name="$1" ; shift
@@ -204,11 +208,6 @@ walk_check()
       then
          return 1
       fi
-   fi
-
-   if [ "${WALK_MISSING_REPOSITORIES}" = "YES" ]
-   then
-      return 0
    fi
 
    if [ -L "${stashdir}" ]
@@ -243,20 +242,10 @@ walk_check()
 
 _walk_repositories()
 {
-   local permissions
-   local callback
-   local reposdir
-   local clones
-
-   clones="$1"
-   shift
-
-   callback="$1"
-   shift
-   permissions="$1"
-   shift
-   reposdir="$1"
-   shift
+   local clones="$1"; shift
+   local callback="$1";shift
+   local permissions="$1";shift
+   local reposdir="$1";shift
 
    [ -z "${callback}" ]  && internal_fail "callback is empty"
 
@@ -281,19 +270,13 @@ _walk_repositories()
          continue
       fi
 
-      #
-      # callbacks for deep embedded must be like
-      # from project directory
-      #
-      (
-         ${callback} "${reposdir}" \
-                     "${name}" \
-                     "${url}" \
-                     "${branch}" \
-                     "${scm}" \
-                     "${tag}" \
-                     "${stashdir}"
-      ) || exit 1
+      ${callback} "${reposdir}" \
+                  "${name}" \
+                  "${url}" \
+                  "${branch}" \
+                  "${scm}" \
+                  "${tag}" \
+                  "${stashdir}"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -351,6 +334,7 @@ _walk_deep_embedded_repositories()
          embedded_clones="`read_setting "${filepath}"`"
 
          PARENT_REPOSITORY_NAME="${name}"
+         PARENT_CLONE="${clone}"
          STASHES_DEFAULT_DIR=""
          STASHES_ROOT_DIR="${stashdir}"
          reposdir="${REPOS_DIR}/.deep/${name}.d"
@@ -465,19 +449,14 @@ computed_stashdir()
    local name="$2"
    local dstdir="$3"
 
-   # could move this to .auto stage too...
-
-   local relpath
-
-   relpath="${dstdir}"
-   if [ -z "${relpath}" ]
+   if [ -z "${dstdir}" ]
    then
-      relpath="`path_concat "${STASHES_DEFAULT_DIR}" "${name}"`"
+      name="`_canonical_clone_name "${url}"`"
+      dstdir="`path_concat "${STASHES_DEFAULT_DIR}" "${name}"`"
    fi
 
-   relpath="`path_concat "${STASHES_ROOT_DIR}" "${relpath}"`"
-
-   path_relative_to_root_dir "${relpath}"
+   dstdir="`path_concat "${STASHES_ROOT_DIR}" "${dstdir}"`"
+   path_relative_to_root_dir "${dstdir}"
 }
 
 
@@ -500,52 +479,16 @@ parse_raw_clone()
    IFS=";" read -r url dstdir branch scm tag <<< "${clone}"
 }
 
+
+process_raw_clone()
+{
+   name="`_canonical_clone_name "${url}"`"
+}
+
+
 # this sets values to variables that should be declared
 # in the caller!
 #
-#   # parse_raw_clone
-#   local name
-#   local stashdir
-process_clone()
-{
-   local clone="$1"
-
-   name="`_canonical_clone_name "${url}"`"
-   stashdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
-
-   # make sure destination doesn't stray outside of project
-   case "${stashdir}" in
-      ${DEPENDENCIES_DIR}*|${ADDICTIONS_DIR}*|${BOOTSTRAP_DIR}*)
-         fail "${dstdir} is a suspicious path in \"${clone}\""
-      ;;
-
-      "")
-         internal_fail "Stashdir is empty for \"${clone}\""
-      ;;
-
-      \.\.*)
-         fail "Repository destination \"${dstdir}\" is outside of project directory ($stashdir) (\"${clone}\")"
-      ;;
-   esac
-
-
-   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
-   then
-      log_trace2 "URL:      \"${url}\""
-      log_trace2 "DSTDIR:   \"${dstdir}\""
-      log_trace2 "NAME:     \"${name}\""
-      log_trace2 "SCM:      \"${scm}\""
-      log_trace2 "BRANCH:   \"${branch}\""
-      log_trace2 "TAG:      \"${tag}\""
-      log_trace2 "STASHDIR: \"${stashdir}\""
-   fi
-
-   [ -z "${url}" ]      && internal_fail "url is empty ($clone)"
-   [ -z "${name}" ]     && internal_fail "name is empty ($clone)"
-   [ -z "${stashdir}" ] && internal_fail "stashdir is empty ($clone)"
-   :
-}
-
 # this sets values to variables that should be declared
 # in the caller!
 #
@@ -566,8 +509,84 @@ parse_clone()
 
    local dstdir
 
-   parse_raw_clone "${clone}"
-   process_clone "${clone}"
+   parse_raw_clone "$1"
+   process_raw_clone
+
+   stashdir="${dstdir}"
+
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
+   then
+      log_trace2 "URL:      \"${url}\""
+      log_trace2 "NAME:     \"${name}\""
+      log_trace2 "SCM:      \"${scm}\""
+      log_trace2 "BRANCH:   \"${branch}\""
+      log_trace2 "TAG:      \"${tag}\""
+      log_trace2 "STASHDIR: \"${stashdir}\""
+   fi
+
+   [ -z "${url}" ]      && internal_fail "url is empty ($clone)"
+   [ -z "${name}" ]     && internal_fail "name is empty ($clone)"
+   [ -z "${stashdir}" ] && internal_fail "stashdir is empty ($clone)"
+   :
+}
+
+
+#
+# read repository file, properly do expansions
+# replace branch with override if needed
+#
+read_repository_file()
+{
+   local srcfile="$1"
+   local delete_dstdir="$2"
+
+   local srcbootstrap
+   local clones
+
+   srcbootstrap="`dirname -- "${srcfile}"`"
+   clones="`read_expanded_setting "$srcfile" "" "${srcbootstrap}"`"
+
+   local url        # url of clone
+   local dstdir
+   local branch
+   local scm
+   local tag
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      parse_raw_clone "${clone}"
+
+      case "${url}" in
+         */\.\./*|\.\./*|*/\.\.|\.\.)
+            fail "Relative urls like \"${url}\" don't work (anymore).\nTry \"-y fetch --no-symlink-creation\" instead"
+         ;;
+      esac
+
+      case "${scm}" in
+         symlink)
+            fail "You can't specify symlink in the repositories file yourself. Use -y flag"
+         ;;
+      esac
+
+      branch="${OVERRIDE_BRANCH:-${branch}}"
+      branch="${branch:-master}"
+
+      if [ "${delete_dstdir}" = "YES" ]
+      then
+         dstdir=""
+      fi
+
+      dstdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
+      scm="${scm:-git}"
+
+      echo "${url};${dstdir};${branch};${scm};${tag}"
+   done
+
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -584,6 +603,8 @@ walk_raw_clones()
    local branch
    local scm
    local tag
+
+   log_debug "Walking raw \"${clones}\" with \"${callback}\""
 
    IFS="
 "
@@ -620,6 +641,8 @@ walk_clones()
    local tag
    local stashdir
    local clone
+
+   log_debug "Walking \"${clones}\" with \"${callback}\""
 
    IFS="
 "
@@ -749,6 +772,7 @@ unique_repository_contents()
 
    local clone
    local map
+   local name
    local output
 
    if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
@@ -764,7 +788,8 @@ unique_repository_contents()
       IFS="${DEFAULT_IFS}"
 
       url="`_url_part_from_clone "${clone}"`"
-      map="`assoc_array_set  "${map}" "${url}" "${clone}"`"
+      name="`_canonical_clone_name "${url}"`"
+      map="`assoc_array_set  "${map}" "${name}" "${clone}"`"
    done
 
    output=""
@@ -775,7 +800,8 @@ unique_repository_contents()
       IFS="${DEFAULT_IFS}"
 
       url="`_url_part_from_clone "${clone}"`"
-      uniqued="`assoc_array_get "${map}" "${url}"`"
+      name="`_canonical_clone_name "${url}"`"
+      uniqued="`assoc_array_get "${map}" "${name}"`"
       output="`add_line "${output}" "${uniqued:-${clone}}"`"
    done
    IFS="${DEFAULT_IFS}"
@@ -806,9 +832,9 @@ sort_repository_file()
    local dependency_map
    local clone
 
-   log_debug ":sort_repository_file:"
-
    [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
+
+   log_debug ":sort_repository_file:"
 
    refreshed=""
    dependency_map=""
@@ -874,7 +900,9 @@ ${clone}"
       local filename
 
       filename="${stashdir}/.bootstrap/repositories"
-      sub_repos="`read_expanded_setting "${filename}" "" "${stashdir}/.bootstrap"`"
+
+      sub_repos="`read_repository_file "${filename}" "" "${stashdir}/.bootstrap"`"
+
       if [ ! -z "${sub_repos}" ]
       then
          sub_repos="`unique_repository_contents "${sub_repos}" "${clones}"`"

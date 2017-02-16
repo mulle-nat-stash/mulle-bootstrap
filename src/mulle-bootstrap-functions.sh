@@ -1080,8 +1080,8 @@ rmdir_safer()
    if [ -d "$1" ]
    then
       assert_sane_path "$1"
-      exekutor chmod -R u+w "$1" || fail "Failed to make $1 writable"
-      exekutor rm -rf "$1" || fail "failed to remove $1"
+      exekutor chmod -R u+w "$1"  >&2 || fail "Failed to make $1 writable"
+      exekutor rm -rf "$1"  >&2 || fail "failed to remove $1"
    fi
 }
 
@@ -1090,7 +1090,7 @@ rmdir_if_empty()
 {
    if dir_is_empty "$1"
    then
-      exekutor rmdir "$1" || fail "failed to remove $1"
+      exekutor rmdir "$1"  >&2 || fail "failed to remove $1"
    fi
 }
 
@@ -1148,7 +1148,7 @@ create_symlink()
    fi
 
    log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} as \"${url}\" ..."
-   exekutor ln -s -f "${url}" "${stashdir}" || fail "failed to setup symlink \"${stashdir}\" (to \"${url}\")"
+   exekutor ln -s -f "${url}" "${stashdir}"  >&2 || fail "failed to setup symlink \"${stashdir}\" (to \"${url}\")"
 }
 
 
@@ -1157,8 +1157,8 @@ remove_file_if_present()
    if [ -e "$1" ]
    then
       log_fluff "Removing \"$1\""
-      exekutor chmod u+w "$1" || fail "Failed to make $1 writable"
-      exekutor rm -f "$1" || fail "failed to remove \"$1\""
+      exekutor chmod u+w "$1"  >&2 || fail "Failed to make $1 writable"
+      exekutor rm -f "$1"  >&2 || fail "failed to remove \"$1\""
    fi
 }
 

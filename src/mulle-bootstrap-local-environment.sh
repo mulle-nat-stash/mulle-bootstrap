@@ -161,6 +161,8 @@ check_version()
 # figure out if we need to run refresh
 build_needed()
 {
+   [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
+
    if [ ! -f "${REPOS_DIR}/.bootstrap_build_done" ]
    then
       log_fluff "Need build because \"${REPOS_DIR}/.bootstrap_build_done\" does not exist."
@@ -179,21 +181,24 @@ build_needed()
 
 fetch_needed()
 {
+   [ -z "${REPOS_DIR}" ]     && internal_fail "REPOS_DIR undefined"
+   [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "BOOTSTRAP_DIR undefined"
+
    if [ ! -f "${REPOS_DIR}/.bootstrap_fetch_done" ]
    then
       log_fluff "Need fetch because \"${REPOS_DIR}/.bootstrap_fetch_done\" does not exist."
       return 0
    fi
 
-   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_SUBDIR}" ]
+   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_DIR}" ]
    then
-      log_fluff "Need fetch because \"${BOOTSTRAP_SUBDIR}\" is modified"
+      log_fluff "Need fetch because \"${BOOTSTRAP_DIR}\" is modified"
       return 0
    fi
 
-   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_SUBDIR}.local" ]
+   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_DIR}.local" ]
    then
-      log_fluff "Need fetch because \"${BOOTSTRAP_SUBDIR}.local\" is modified"
+      log_fluff "Need fetch because \"${BOOTSTRAP_DIR}.local\" is modified"
       return 0
    fi
 

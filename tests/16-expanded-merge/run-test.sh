@@ -128,7 +128,7 @@ test_b()
 
    (
       cd main ;
-      run_mulle_bootstrap "$@" -y -vv -lm fetch
+      run_mulle_bootstrap "$@" -y fetch
       assert_b
    ) || fail "setup"
 }
