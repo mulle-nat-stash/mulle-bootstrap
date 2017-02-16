@@ -223,19 +223,25 @@ _print_stashdir()
    # local tag="$6"       # tag to checkout of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   echo "${stashdir}"
+   local stashparentdir
+
+   stashparentdir="`dirname -- "${stashdir}"`"
+   if [ "${stashparentdir}" != "${STASHES_DEFAULT_DIR}" ]
+   then
+      echo "${stashdir}"
+   fi
 }
 
 
 print_stashdir_repositories()
 {
-   _operation_walk_repositories "_print_stashdir"
+   walk_repositories "repositories" "_print_stashdir"
 }
 
 
 print_stashdir_embedded_repositories()
 {
-   _operation_walk_embedded_repositories "_print_stashdir"
+   walk_repositories "embedded_repositories" "_print_stashdir"
 }
 
 
@@ -244,9 +250,10 @@ print_stashdir_embedded_repositories()
 #
 _dist_clean()
 {
+   # dependencies already done before
+
    DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" \
 "${REPOS_DIR}
-${DEPENDENCIES_DIR}
 ${ADDICTIONS_DIR}
 ${STASHES_DEFAULT_DIR}
 ${BOOTSTRAP_DIR}.auto"`"
@@ -362,7 +369,7 @@ clean_execute()
 #
 clean_main()
 {
-   log_fluff "::: clean :::"
+   log_debug "::: clean :::"
 
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh

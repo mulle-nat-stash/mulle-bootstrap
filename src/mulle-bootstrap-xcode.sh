@@ -375,10 +375,10 @@ Release"
 
 xcode_main()
 {
-   log_fluff "::: xcode :::"
+   log_debug "::: xcode :::"
 
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
+   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ]     && . mulle-bootstrap-brew.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
 
    build_complete_environment

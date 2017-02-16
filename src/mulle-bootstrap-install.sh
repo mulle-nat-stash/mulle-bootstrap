@@ -276,7 +276,7 @@ install_frameworks_by_symlinking()
 #
 install_main()
 {
-   log_fluff "::: install :::"
+   log_debug "::: install :::"
 
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
 

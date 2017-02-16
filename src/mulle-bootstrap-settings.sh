@@ -196,7 +196,8 @@ _read_setting()
       apath="`absolutepath "${apath}"`"
 
       # make some boring names less prominent
-      if [ "${name}" = "repositories" -o \
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES"  -o \
+           "${name}" = "repositories" -o \
            "${name}" = "repositories.tmp" -o \
            "${name}" = "build_order" -o \
            "${name}" = "versions" -o \
@@ -204,9 +205,7 @@ _read_setting()
            "${name}" = "MULLE_REPOSITORIES" -o \
            "${name}" = "MULLE_NAT_REPOSITORIES"  ]
       then
-         log_setting "Setting ${C_MAGENTA}${name}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${C_BOLD}${value}${C_SETTING}"
-      else
-         log_verbose "${C_SETTING}Setting ${C_MAGENTA}${name}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${value}${C_SETTING}"
+         log_printf "${C_SETTING}%b${C_RESET}\n" "Setting ${C_MAGENTA}${name}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${C_BOLD}${value}${C_SETTING}"
       fi
    fi
 
@@ -318,8 +317,7 @@ _read_home_setting()
       log_trace2 "Looking for setting \"${name}\" in \"~/.mulle-bootstrap\""
    fi
 
-   value="`_read_setting "${HOME}/.mulle-bootstrap/${name}"`"
-   if [ $? -ne 0 ]
+   if ! value="`_read_setting "${HOME}/.mulle-bootstrap/${name}"`"
    then
       return 2
    fi
@@ -358,24 +356,21 @@ read_config_setting()
    #
    # always lowercase config names
    #
-   name=`echo "${name}" | tr '[:lower:]' '[:upper:]'`
+   name=`echo "${name}" | tr '[:upper:]' '[:lower:]'`
 
    local value
 
-   value="`_read_environment_setting "${name}"`"
-   if [ $? -ne 0 ]
+   if ! value="`_read_environment_setting "${name}"`"
    then
-      value="`_read_setting "${BOOTSTRAP_DIR}.local/config/${name}"`"
-      if [ $? -ne 0 ]
+      if ! value="`_read_setting "${BOOTSTRAP_DIR}.local/config/${name}"`"
       then
-         value="`_read_home_setting "${name}"`"
-         if [ $? -ne 0 ]
+         if ! value="`_read_home_setting "${name}"`"
          then
             if [ ! -z "${default}" ]
             then
                log_setting "Setting ${C_MAGENTA}${name}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
+               value="${default}"
             fi
-            value="${default}"
          fi
       fi
    fi
@@ -573,6 +568,7 @@ _merge_settings_in_front()
 {
    local settings1="$1"
    local settings2="$2"
+   local name="$3"
 
    local result
 
@@ -597,7 +593,7 @@ ${result}"
         "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
    then
       log_trace2 "----------------------"
-      log_trace2 "Merged settings: $1, $2"
+      log_trace2 "Merged settings:      "
       log_trace2 "----------------------"
       log_trace2 "${result}"
       log_trace2 "----------------------"
@@ -618,7 +614,7 @@ merge_settings_in_front()
       settings2="`_read_setting "$2"`"
    fi
 
-   _merge_settings_in_front "${settings1}" "${settings2}"
+   _merge_settings_in_front "${settings1}" "${settings2}" "`basename -- "$1"`"
 }
 
 
@@ -932,7 +928,7 @@ setting_main()
 
 settings_initialize()
 {
-   log_fluff ":settings_initialize:"
+   log_debug ":settings_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 

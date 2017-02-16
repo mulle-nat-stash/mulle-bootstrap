@@ -190,7 +190,7 @@ tag()
 
 tag_main()
 {
-   log_fluff "::: tag :::"
+   log_debug "::: tag :::"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh

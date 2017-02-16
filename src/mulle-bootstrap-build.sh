@@ -2213,7 +2213,7 @@ build_main()
 {
    local  clean
 
-   log_fluff "::: build begin :::"
+   log_debug "::: build begin :::"
 
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
@@ -2367,7 +2367,7 @@ build_main()
    remove_file_if_present "${REPOS_DIR}/.bootstrap_build_started"
    create_file_if_missing "${REPOS_DIR}/.bootstrap_build_done"
 
-   log_fluff "::: build end :::"
+   log_debug "::: build end :::"
 }
 
 

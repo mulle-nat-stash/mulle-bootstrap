@@ -67,12 +67,15 @@ _bootstrap_auto_copy()
       filepath="${tmpdir}/${name}"
       dstfilepath="${dst}/${name}"
 
+      # only inherit, don't override
+      if [ -e "${dstfilepath}" ]
+      then
+         continue
+      fi
+
       case "${name}" in
          config)
-            if [ "${is_local}" = "YES" ]
-            then
-               exekutor cp -Ran ${COPYMOVETARFLAGS} "${filepath}" "${dstfilepath}"
-            fi
+            # stays in local
          ;;
 
          *.build|settings|overrides)
@@ -82,13 +85,11 @@ _bootstrap_auto_copy()
             fi
          ;;
 
-         *)
-            # only inherit, don't override
-            if [ -e "${dstfilepath}" ]
-            then
-               continue
-            fi
+         repositories)
+            _bootstrap_merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+         ;;
 
+         *)
             #
             # root settings get the benefit of expansion
             #
@@ -156,6 +157,8 @@ _bootstrap_auto_create()
 
 bootstrap_auto_create()
 {
+   log_debug "bootstrap_auto_create"
+
    _bootstrap_auto_create "${BOOTSTRAP_DIR}.auto" "${BOOTSTRAP_DIR}"
 }
 
@@ -181,40 +184,23 @@ _bootstrap_merge_expanded_settings_in_front()
 }
 
 
-# _make_master_clones()
-# {
-#    local clones="$1"
-
-#    local clone
-#    local name       # name of the clone
-#    local url        # url of clone
-#    local branch
-#    local scm
-#    local tag
-#    local stashdir   # dir of repository (usually inside stashes)
-
-#    IFS="
-# "
-#    for clone in ${clones}
-#    do
-#       IFS="${DEFAULT_IFS}"
-
-#       parse_clone "${clone}"
-
-#       echo "${url};${name};${branch};${scm};${tag}" | sed 's/;*$//'
-#    done
-
-#    IFS="${DEFAULT_IFS}"
-# }
-
-
-_remove_dstdir_from_clones()
+#
+# read repository file, properly do expansions
+# replace branch with override if needed
+#
+_bootstrap_read_repository_file()
 {
-   local clones="$1"
+   local srcfile="$1"
+   local delete_dstdir="$2"
 
-   local clone
+   local srcbootstrap
+   local clones
+
+   srcbootstrap="`dirname -- "${srcfile}"`"
+   clones="`read_expanded_setting "$srcfile" "" "${srcbootstrap}"`"
+
    local url        # url of clone
-   local dstdir       # name of the clone
+   local dstdir
    local branch
    local scm
    local tag
@@ -227,11 +213,46 @@ _remove_dstdir_from_clones()
 
       parse_raw_clone "${clone}"
 
-      echo "${url};;${branch};${scm};${tag}" | sed 's/;*$//'
+      case "${url}" in
+         */\.\./*|\.\./*|*/\.\.|\.\.)
+            fail "Relative urls like \"${url}\" don't work (anymore).\nTry \"-y fetch --no-symlink-creation\" instead"
+         ;;
+      esac
+
+      branch="${OVERRIDE_BRANCH:-${branch}}"
+      branch="${branch:-master}"
+
+      if [ "${delete_dstdir}" = "YES" ]
+      then
+         dstdir=""
+      fi
+
+      echo "${url};${dstdir};${branch};${scm};${tag}"
    done
 
    IFS="${DEFAULT_IFS}"
 }
+
+
+_bootstrap_merge_repository_files()
+{
+   local srcfile="$1"
+   local dstfile="$2"
+   local delete_dstdir="${3:-NO}"
+
+   log_fluff "Copying expanded \"repositories\" from \"${srcfile}\""
+
+   local contents
+   local additions
+
+   contents="`cat "${dstfile}" 2> /dev/null || :`"
+   additions="`_bootstrap_read_repository_file "${srcfile}" "${delete_dstdir}"`" || fail "read"
+   additions="`echo "${additions}"| sed 's/;*$//'`"
+   additions="`merge_repository_contents "${contents}" "${additions}"`"
+
+   redirect_exekutor "${dstfile}" echo "${additions}"
+}
+
 
 #
 # prepend new contents to old contents
@@ -241,6 +262,8 @@ _remove_dstdir_from_clones()
 #
 _bootstrap_auto_merge_root_settings()
 {
+   log_debug ":_bootstrap_auto_merge_root_settings:"
+
    dst="$1"
    directory="$2"
 
@@ -276,21 +299,7 @@ _bootstrap_auto_merge_root_settings()
       #
       if [ "${settingname}" = "repositories" ]
       then
-         local additions
-
-         additions="`_bootstrap_merge_expanded_settings_in_front "${srcfile}" ""`"
-         additions="`_remove_dstdir_from_clones "${additions}"`"
-
-         if [ -f "${dstfile}" ]
-         then
-            local contents
-
-            contents="`cat "${dstfile}"`"
-            additions="`merge_repository_contents "${contents}" "${additions}"`"
-         else
-            log_fluff "Copying expanded \"repositories\" from \"${srcfile}\""
-         fi
-         redirect_exekutor "${dstfile}" echo "${additions}"
+         _bootstrap_merge_repository_files "${srcfile}" "${dstfile}"
          continue
       fi
 
@@ -349,6 +358,8 @@ _bootstrap_auto_embedded_copy()
 
    local dst
 
+   log_debug ":_bootstrap_auto_embedded_copy:"
+
    dst="${BOOTSTRAP_DIR}.auto/.deep/${name}.d"
 
    rmdir_safer "${dst}"
@@ -370,12 +381,11 @@ bootstrap_auto_update()
    local name="$1"
    local stashdir="$2"
 
-   log_fluff ":bootstrap_auto_update: begin"
+   log_debug ":bootstrap_auto_update: begin"
 
    if [ -d "${stashdir}/${BOOTSTRAP_DIR}" ]
    then
       _bootstrap_auto_merge_root_settings "${BOOTSTRAP_DIR}.auto" "${stashdir}"
-      sort_repository_file "${stashdir}"
 
       local srcfile
 
@@ -392,7 +402,7 @@ bootstrap_auto_update()
       fi
    fi
 
-   log_fluff ":bootstrap_auto_update: end"
+   log_debug ":bootstrap_auto_update: end"
 }
 
 
@@ -500,6 +510,10 @@ bootstrap_auto_final()
 {
    exekutor [ -d "${BOOTSTRAP_DIR}.auto" ] || internal_fail "${BOOTSTRAP_DIR}.auto does not exist"
 
+   log_fluff "Analysing dependencies of repositories"
+
+   sort_repository_file
+
    log_fluff "Creating ${C_MAGENTA}${C_BOLD}build_order${C_VERBOSE} from repositories"
 
    if [ -f "${BOOTSTRAP_DIR}.auto/build_order" ]
@@ -553,7 +567,7 @@ auto_update_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
-   log_fluff ":auto_update_initialize:"
+   log_debug ":auto_update_initialize:"
 
    MERGABLE_SETTINGS='brews
 tarballs

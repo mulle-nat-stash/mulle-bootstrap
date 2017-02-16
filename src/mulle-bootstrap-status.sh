@@ -164,7 +164,7 @@ _common_status()
 
 status_main()
 {
-   log_fluff ":status_main:"
+   log_debug ":status_main:"
 
    local OPTION_ALLOW_FOLLOWING_SYMLINKS="YES"
    local OPTION_EMBEDDED_ONLY="NO"

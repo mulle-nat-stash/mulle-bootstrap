@@ -50,6 +50,7 @@ bootstrap_technical_option_usage()
    if [ ! -z "${MULLE_TRACE}" ]
    then
       cat <<EOF
+   -ld       : additional debug output
    -le       : external command execution log output
    -lm       : extended dependency analysis output
    -ls       : extended settings log output
@@ -176,6 +177,8 @@ define_expansion()
 
    keyvalue="$1"
 
+   is_bootstrap_project || fail "This is not a mulle-bootstrap project"
+
    if [ -z "${keyvalue}" ]
    then
       fail "Missing key, directly after -D"
@@ -209,7 +212,7 @@ _bootstrap_main()
 {
    local command
 
-   log_fluff "::: bootstrap begin :::"
+   log_debug "::: bootstrap begin :::"
 
    . mulle-bootstrap-fetch.sh
    . mulle-bootstrap-build.sh
@@ -238,7 +241,7 @@ _bootstrap_main()
       log_verbose "No build needed"
    fi
 
-   log_fluff "::: bootstrap end :::"
+   log_debug "::: bootstrap end :::"
 }
 
 
@@ -391,6 +394,10 @@ bootstrap_technical_flags()
    case "$1" in
       -n|--dry-run)
          MULLE_FLAG_EXECUTOR_DRY_RUN="YES"
+      ;;
+
+      -ld|--log-debug)
+         MULLE_FLAG_LOG_DEBUG="YES"
       ;;
 
       -le|--log-execution)

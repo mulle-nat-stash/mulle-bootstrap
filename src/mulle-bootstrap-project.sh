@@ -181,7 +181,7 @@ project_initialize()
 {
 #  don't do it, so far it's been overkill
 #   source_environment
-   log_fluff ":project_initialize:"
+   log_debug ":project_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ]   && . mulle-bootstrap-logging.sh
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh

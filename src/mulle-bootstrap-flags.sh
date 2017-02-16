@@ -347,7 +347,7 @@ flags_main()
    local COMBINE
    local ABSOLUTE_PATHS
 
-   log_fluff ":flags_main:"
+   log_debug ":flags_main:"
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 

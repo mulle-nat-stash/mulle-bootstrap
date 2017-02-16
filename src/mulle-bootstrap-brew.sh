@@ -156,8 +156,11 @@ find_brews()
    brews="`read_root_setting "brews" | sort | sort -u`"
    if [ ! -z "${brews}" ]
    then
-      log_info "Setting read from .bootstrap.auto folder. \
+      if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" != "mulle-bootstrap" ]
+      then
+         log_info "Setting read from .bootstrap.auto folder. \
 You might want to use mulle-bootstrap instead of mulle-brew."
+      fi
       echo "${brews}"
       return
    fi
@@ -296,7 +299,6 @@ _brew_common_main()
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
    [ -z "${ADDICTIONS_DIR}" ] && internal_fail "missing ADDICTIONS_DIR"
 
-   BREW="${ADDICTIONS_DIR}/bin/brew"
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if
@@ -323,37 +325,37 @@ _brew_common_main()
 
 brew_upgrade_main()
 {
-   log_fluff "::: brew upgrade begin :::"
+   log_debug "::: brew upgrade begin :::"
 
    USAGE="_brew_usage"
    COMMAND="upgrade"
    _brew_common_main "$@"
 
-   log_fluff "::: brew upgrade end :::"
+   log_debug "::: brew upgrade end :::"
 }
 
 
 brew_update_main()
 {
-   log_fluff "::: brew update begin :::"
+   log_debug "::: brew update begin :::"
 
    USAGE="_brew_usage"
    COMMAND="update"
    _brew_common_main "$@"
 
-   log_fluff "::: brew update end :::"
+   log_debug "::: brew update end :::"
 }
 
 
 brew_install_main()
 {
-   log_fluff "::: brew install begin :::"
+   log_debug "::: brew install begin :::"
 
    USAGE="_brew_usage"
    COMMAND="install"
    _brew_common_main "$@"
 
-   log_fluff "::: brew install end :::"
+   log_debug "::: brew install end :::"
 }
 
 
@@ -361,9 +363,13 @@ brew_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
-   log_fluff ":brew_initialize:"
+   log_debug ":brew_initialize:"
 
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]         && . mulle-bootstrap-functions.sh
+
+   BREW="${ADDICTIONS_DIR}/bin/brew"
+
    :
 }
 

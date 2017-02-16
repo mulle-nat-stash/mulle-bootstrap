@@ -60,7 +60,7 @@ EOF
 
 defer_main()
 {
-   log_fluff ":defer_main:"
+   log_debug ":defer_main:"
 
    while [ $# -ne 0 ]
    do
@@ -124,7 +124,7 @@ defer_main()
    make_minion_bootstrap_project "${minionpath}" "${masterpath}"
 
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ] && . mulle-bootstrap-clean.sh
+   [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ]           && . mulle-bootstrap-clean.sh
 
    #
    # dist clean ourselves
@@ -138,7 +138,7 @@ defer_main()
 
 emancipate_main()
 {
-   log_fluff ":emancipate_main:"
+   log_debug ":emancipate_main:"
 
    while [ $# -ne 0 ]
    do

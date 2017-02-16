@@ -130,7 +130,7 @@ now."
 
 warn_scripts_main()
 {
-   log_fluff "::: warn_scripts begin :::"
+   log_debug "::: warn_scripts begin :::"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
@@ -151,5 +151,5 @@ warn_scripts_main()
       warn_scripts "$@"
    fi
 
-   log_fluff "::: warn_scripts end :::"
+   log_debug "::: warn_scripts end :::"
 }

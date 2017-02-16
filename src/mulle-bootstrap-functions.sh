@@ -1311,7 +1311,7 @@ write_protect_directory()
       exekutor mkdir "$1/lib" 2> /dev/null
       exekutor mkdir "$1/include" 2> /dev/null
 
-      log_info "Write-protecting ${C_RESET_BOLD}$1${C_INFO} to avoid spurious header edits"
+      log_verbose "Write-protecting ${C_RESET_BOLD}$1${C_VERBOSE} to avoid spurious header edits"
       exekutor chmod -R a-w "$1"
    fi
 }
@@ -1324,7 +1324,7 @@ functions_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
-   log_fluff ":functions_initialize:"
+   log_debug ":functions_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 

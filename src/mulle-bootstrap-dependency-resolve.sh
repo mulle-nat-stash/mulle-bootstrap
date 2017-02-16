@@ -30,7 +30,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 #
 #
-MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH="included"
+MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH="included"
 
 
 _dependency_add()
@@ -222,7 +222,7 @@ dependency_resolve_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
-   log_fluff ":dependency_resolve_initialize:"
+   log_debug ":dependency_resolve_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
    :

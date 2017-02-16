@@ -54,10 +54,10 @@ remember_stash_of_repository()
 
    local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
-   local url="$3"       # URL of the clone
-   local branch="$4"    # branch of the clone
-   local scm="$5"       # scm to use for this clone
-   local tag="$6"       # tag to checkout of the clone
+#   local url="$3"       # URL of the clone
+#   local branch="$4"    # branch of the clone
+#   local scm="$5"       # scm to use for this clone
+#   local tag="$6"       # tag to checkout of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
    [ -z "${clone}" ]    && internal_fail "clone is missing"
@@ -257,6 +257,8 @@ _walk_repositories()
    shift
    reposdir="$1"
    shift
+
+   [ -z "${callback}" ]  && internal_fail "callback is empty"
 
    # parse_clone
    local name
@@ -491,41 +493,22 @@ computed_stashdir()
 #
 parse_raw_clone()
 {
-   IFS=";" read -r url dstdir branch scm tag <<< "${1}"
-}
+   local clone="$1"
 
+   [ -z "${clone}" ] && internal_fail "parse_raw_clone: clone is empty"
+
+   IFS=";" read -r url dstdir branch scm tag <<< "${clone}"
+}
 
 # this sets values to variables that should be declared
 # in the caller!
 #
-#   # parse_clone
+#   # parse_raw_clone
 #   local name
-#   local url
-#   local branch
-#   local scm
-#   local tag
 #   local stashdir
-parse_clone()
+process_clone()
 {
    local clone="$1"
-
-   [ -z "${clone}" ] && internal_fail "parse_clone: clone is empty"
-
-   local dstdir
-
-   #
-   # expansion is now done during already during .auto creation
-   # clone="`expanded_variables "${1}"`"
-   #
-   IFS=";" read -r url dstdir branch scm tag <<< "${clone}"
-
-   branch="${OPTION_FORCE_BRANCH:-${branch}}"
-
-   case "${url}" in
-      */\.\./*|\.\./*|*/\.\.|\.\.)
-         fail "Relative urls like \"${url}\" don't work (anymore).\nTry \"-y fetch --no-symlink-creation\" instead"
-      ;;
-   esac
 
    name="`_canonical_clone_name "${url}"`"
    stashdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
@@ -537,13 +520,14 @@ parse_clone()
       ;;
 
       "")
-         internal_fail "Diffpath is empty for \"${clone}\""
+         internal_fail "Stashdir is empty for \"${clone}\""
       ;;
 
       \.\.*)
-         fail "Repository destination \"${dstdir}\" is outside of project directory ($diffpath) (\"${clone}\")"
+         fail "Repository destination \"${dstdir}\" is outside of project directory ($stashdir) (\"${clone}\")"
       ;;
    esac
+
 
    if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
    then
@@ -559,8 +543,31 @@ parse_clone()
    [ -z "${url}" ]      && internal_fail "url is empty ($clone)"
    [ -z "${name}" ]     && internal_fail "name is empty ($clone)"
    [ -z "${stashdir}" ] && internal_fail "stashdir is empty ($clone)"
-
    :
+}
+
+# this sets values to variables that should be declared
+# in the caller!
+#
+#   # parse_clone
+#   local name
+#   local url
+#   local branch
+#   local scm
+#   local tag
+#   local stashdir
+#
+# expansion is now done during already during .auto creation
+# clone="`expanded_variables "${1}"`"
+#
+parse_clone()
+{
+   local clone="$1"
+
+   local dstdir
+
+   parse_raw_clone "${clone}"
+   process_clone "${clone}"
 }
 
 
@@ -603,6 +610,8 @@ walk_clones()
    local clones=$1; shift
    local callback=$1; shift
    local reposdir=$1; shift
+
+   [ -z "${callback}" ] && internal_fail "parameter error"
 
    local name
    local url
@@ -661,10 +670,12 @@ merge_repository_contents()
 
    local clone
    local map
+   local url
+   local name
 
    if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
    then
-      log_trace2 "Merging \"${additions}\" into \"${contents}\""
+      log_trace2 "Merging repositories \"${additions}\" into \"${contents}\""
    fi
 
    #
@@ -682,7 +693,14 @@ merge_repository_contents()
       IFS="${DEFAULT_IFS}"
 
       url="`_url_part_from_clone "${clone}"`"
-      map="`assoc_array_set "${map}" "${url}" "${clone}"`"
+      name="`_canonical_clone_name "${url}"`"
+
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+      then
+         log_trace2 "${name}: ${clone}"
+      fi
+
+      map="`assoc_array_set "${map}" "${name}" "${clone}"`"
    done
 
    IFS="
@@ -692,7 +710,14 @@ merge_repository_contents()
       IFS="${DEFAULT_IFS}"
 
       url="`_url_part_from_clone "${clone}"`"
-      map="`assoc_array_set "${map}" "${url}" "${clone}"`"
+      name="`_canonical_clone_name "${url}"`"
+
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+      then
+         log_trace2 "${name}: ${clone}"
+      fi
+
+      map="`assoc_array_set "${map}" "${name}" "${clone}"`"
    done
    IFS="${DEFAULT_IFS}"
 
@@ -781,7 +806,9 @@ sort_repository_file()
    local dependency_map
    local clone
 
-   [ -z "${MULLE_BOOTSTRAP_DEPENDENY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
+   log_debug ":sort_repository_file:"
+
+   [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
 
    refreshed=""
    dependency_map=""
@@ -885,15 +912,14 @@ ${clone}"
 }
 
 
-
 mulle_repositories_initialize()
 {
-   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ]         && . mulle-bootstrap-logging.sh
 
-   log_fluff ":mulle_repositories_initialize:"
+   log_debug ":mulle_repositories_initialize:"
 
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]       && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
    :
 }

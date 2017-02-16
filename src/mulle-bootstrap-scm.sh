@@ -470,7 +470,7 @@ append_dir_to_gitignore_if_needed()
 
 git_main()
 {
-   log_fluff "::: git :::"
+   log_debug "::: git :::"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
@@ -525,7 +525,7 @@ run_git()
 
 scm_initialize()
 {
-   log_fluff ":scm_initialize:"
+   log_debug ":scm_initialize:"
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    :

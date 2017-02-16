@@ -62,6 +62,11 @@ user_say_yes()
 
       printf "${C_WARNING}%b${C_RESET} (y/${C_GREEN}N${C_RESET}) > " "$*" >&2
       read x
+
+      if [ -z "${x}" ]
+      then
+         x="${MULLE_FLAG_ANSWER}"
+      fi
    done
 }
 
@@ -474,7 +479,7 @@ local_environment_initialize()
 
 local_environment_main()
 {
-   log_fluff ":local_environment_main:"
+   log_debug ":local_environment_main:"
    # source_environment
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" ]

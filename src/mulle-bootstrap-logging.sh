@@ -100,6 +100,15 @@ log_setting()
    fi
 }
 
+# for debugging, not for user. same as fluff
+log_debug()
+{
+   if [ "${MULLE_FLAG_LOG_DEBUG}" = "YES"  ]
+   then
+      log_printf "${C_BR_RED}%b${C_RESET}\n" "$*"
+   fi
+}
+
 
 log_trace()
 {
@@ -119,6 +128,8 @@ log_trace2()
 fail()
 {
    log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}:" "$@"
+   log_error `caller`
+
    if [ ! -z "${MULLE_EXECUTABLE_PID}" ]
    then
       kill -INT "${MULLE_EXECUTABLE_PID}"  # kill myself (especially, if executing in subshell)

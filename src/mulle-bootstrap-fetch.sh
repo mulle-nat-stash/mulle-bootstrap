@@ -59,17 +59,16 @@ usage:
    mulle-bootstrap ${COMMAND} [options] [repositories]
 
    Options
-      -c           :  use caches from CACHES_PATH to locate repositories
-      -cU          :  check /usr/local for duplicates
-      -e           :  fetch embedded repositories only
-      -es          :  allow embedded symlinks (very experimental)
-      -fb <branch> :  force to use branch for all repostories
-      -fs          :  follow symlinks when updating/upgrading (not recommended)
-      -l           :  allow creation of symlinks
-      -le          :  allow creation of embedded symlinks
-      -i           :  ignore wrongly checked out branches
-      -nc          :  don't use caches. Useful to counter flag -y
-      -ns          :  don't create symlinks. Useful to counter flag -y
+      -c    :  use caches from CACHES_PATH to locate repositories
+      -cU   :  check /usr/local for duplicates
+      -e    :  fetch embedded repositories only
+      -es   :  allow embedded symlinks (very experimental)
+      -fs   :  follow symlinks when updating/upgrading (not recommended)
+      -l    :  allow creation of symlinks
+      -le   :  allow creation of embedded symlinks
+      -i    :  ignore wrongly checked out branches
+      -nc   :  don't use caches. Useful to counter flag -y
+      -ns   :  don't create symlinks. Useful to counter flag -y
 
    install  :  clone or symlink non-exisiting repositories and other resources
    update   :  execute a "fetch" in already fetched repositories
@@ -103,24 +102,6 @@ assert_sane_parameters()
 
    :
 }
-
-
-write_protect_directory()
-{
-   if [ -d "$1" ]
-   then
-      #
-      # ensure basic structure is there to squelch linker warnings
-      #
-      exekutor mkdir "$1/Frameworks" 2> /dev/null
-      exekutor mkdir "$1/lib" 2> /dev/null
-      exekutor mkdir "$1/include" 2> /dev/null
-
-      log_info "Write-protecting ${C_RESET_BOLD}$1${C_INFO} to avoid spurious header edits"
-      exekutor chmod -R a-w "$1"
-   fi
-}
-
 
 #
 # future, download tarballs...
@@ -785,15 +766,21 @@ _operation_walk_deep_embedded_repositories()
 
 did_fetch_repository()
 {
+#   local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
+#   local url="$3"       # URL of the clone
+#   local branch="$4"    # branch of the clone
+#   local scm="$5"       # scm to use for this clone
+#   local tag="$6"       # tag to checkout of the clone
+#   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   fetch__run_build_settings_script "did-install" "${name}" "$@"
+   fetch__run_build_settings_script "post-fetch" "${name}" "$@"
 }
 
 
 did_fetch_repositories()
 {
-   walk_clones "did_fetch_repository" "${REPOS_DIR}" "$@"
+   walk_clones "$*" "did_fetch_repository" "${REPOS_DIR}"
 }
 
 
@@ -843,7 +830,7 @@ did_upgrade_repository()
 {
    local name="$2"      # name of the clone
 
-   fetch__run_build_settings_script "did-upgrade" "${name}" "$@"
+   fetch__run_build_settings_script "post-fetch" "${name}" "$@"
 }
 
 
@@ -893,6 +880,8 @@ required_action_for_clone()
       echo "clone"
       return
    fi
+
+   log_debug "Change: \"${clone}\" -> \"${newclone}\""
 
    local reposdir
    local name
@@ -1029,7 +1018,7 @@ work_clones()
       fi
 
       #
-      # optimization, try to no redo fetches
+      # optimization, try not to redo fetches
       #
       echo "${__IGNORE__}" | fgrep -s -q -x "${clone}" > /dev/null
       if [ $? -eq 0 ]
@@ -1037,9 +1026,19 @@ work_clones()
          continue
       fi
 
+      #
+      # unify clone, by stripping extraneous ;
+      #
+      clone="`echo "${clone}" | sed 's/;*$//'`"
+
+      log_debug "${C_INFO}Doing ${clone}..."
+
       __REFRESHED__="`add_line "${__REFRESHED__}" "${clone}"`"
 
-      parse_clone "${clone}" || exit 1
+      local dstdir
+
+      parse_raw_clone "${clone}"
+      process_clone "${clone}"
 
       actionitems="`required_action_for_clone "${clone}" \
                                               "${reposdir}" \
@@ -1050,7 +1049,7 @@ work_clones()
                                               "${tag}" \
                                               "${stashdir}"`" || exit 1
 
-      log_fluff "Actions for \"${name}\": ${actionitems}"
+      log_debug "${C_INFO}Actions for \"${name}\": ${actionitems:-none}"
 
       IFS="
 "
@@ -1146,7 +1145,13 @@ work_clones()
       #
       if [ "${remember}" = "YES" ]
       then
-         remember_stash_of_repository "${clone}" \
+         local actualclone
+
+         # branch could be overwritten
+         actualclone="`echo "${url};${dstdir};${branch};${scm};${tag}" | sed 's/;*$//'`"
+         log_debug "${C_INFO}Remembering ${actualclone}..."
+
+         remember_stash_of_repository "${actualclone}" \
                                       "${reposdir}" \
                                       "${name}"  \
                                       "${url}" \
@@ -1171,7 +1176,8 @@ work_clones()
 #
 fetch_once_embedded_repositories()
 {
-   log_fluff "fetch_once_embedded_repositories"
+   log_debug "fetch_once_embedded_repositories"
+
    (
       STASHES_DEFAULT_DIR=""
       STASHES_ROOT_DIR=""
@@ -1180,7 +1186,7 @@ fetch_once_embedded_repositories()
       local clones
 
       clones="`read_root_setting "embedded_repositories"`" ;
-      work_clones "${EMBEDDED_REPOS_DIR}" "${clones}" "NO" > /dev/null
+      work_clones "${EMBEDDED_REPOS_DIR}" "${clones}" "NO"
    ) || exit 1
 }
 
@@ -1214,14 +1220,14 @@ _fetch_once_deep_repository()
 
       # ugliness
       clones="`read_setting "${autodir}/embedded_repositories"`" ;
-      work_clones "${reposdir}" "${clones}" "NO" > /dev/null
+      work_clones "${reposdir}" "${clones}" "NO"
    ) || exit 1
 }
 
 
 fetch_once_deep_embedded_repositories()
 {
-   log_fluff "fetch_once_deep_embedded_repositories"
+   log_debug "fetch_once_deep_embedded_repositories"
 
    _operation_walk_repositories "_fetch_once_deep_repository"
 }
@@ -1236,7 +1242,7 @@ fetch_loop_repositories()
    local before
    local after
 
-   log_fluff "fetch_loop_repositories"
+   log_debug "fetch_loop_repositories"
 
    loops=""
    before=""
@@ -1323,7 +1329,7 @@ run_post_upgrade_scripts()
    [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
 
    did_upgrade_repositories "$@"
-   fetch__run_root_settings_script "post-upgrade" "$@"
+   fetch__run_root_settings_script "post-fetch" "$@"
 }
 
 
@@ -1333,6 +1339,7 @@ run_post_upgrade_scripts()
 fetch_loop()
 {
    local fetched
+   local deep_fetched
    local is_master
 
    unpostpone_trace
@@ -1345,12 +1352,16 @@ fetch_loop()
 
    bootstrap_auto_create
 
-   fetch_once_embedded_repositories
+   fetched="`fetch_once_embedded_repositories`" || exit 1
+   did_fetch_repositories "${fetched}"
 
    if [ "${OPTION_EMBEDDED_ONLY}" = "NO" ]
    then
       fetched="`fetch_loop_repositories`" || exit 1
-      fetch_once_deep_embedded_repositories
+      did_fetch_repositories "${fetched}"
+
+      fetched="`fetch_once_deep_embedded_repositories`" || exit 1
+      did_fetch_repositories "${fetched}"
    fi
 
    bootstrap_auto_final
@@ -1437,8 +1448,10 @@ _common_main()
    local OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
    local OPTION_ALLOW_SEARCH_CACHES="NO"
    local OPTION_EMBEDDED_ONLY="NO"
+   local OVERRIDE_BRANCH
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   OVERRIDE_BRANCH="`read_config_setting "override_branch"`"
 
    case "${UNAME}" in
       mingw)
@@ -1473,17 +1486,6 @@ _common_main()
 
          -e|--embedded-only)
             OPTION_EMBEDDED_ONLY="YES"
-         ;;
-
-         -fb|--force-branch)
-            shift
-            [ $# -ne 0 ] || fail "branch missing"
-
-            OPTION_FORCE_BRANCH="$1"
-            if [ -z "${OPTION_FORCE_BRANCH}" ]
-            then
-               OPTION_FORCE_BRANCH="master"
-            fi
          ;;
 
          -fs|--follow-symlinks)
@@ -1656,35 +1658,35 @@ _common_main()
 
 fetch_main()
 {
-   log_fluff "::: fetch begin :::"
+   log_debug "::: fetch begin :::"
 
    USAGE="fetch_usage"
    COMMAND="fetch"
    _common_main "$@"
 
-   log_fluff "::: fetch end :::"
+   log_debug "::: fetch end :::"
 }
 
 
 update_main()
 {
-   log_fluff "::: update begin :::"
+   log_debug "::: update begin :::"
 
    USAGE="fetch_usage"
    COMMAND="update"
    _common_main "$@"
 
-   log_fluff "::: update end :::"
+   log_debug "::: update end :::"
 }
 
 
 upgrade_main()
 {
-   log_fluff "::: upgrade begin :::"
+   log_debug "::: upgrade begin :::"
 
    USAGE="fetch_usage"
    COMMAND="upgrade"
    _common_main "$@"
 
-   log_fluff "::: upgrade end :::"
+   log_debug "::: upgrade end :::"
 }
