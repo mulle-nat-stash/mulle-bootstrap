@@ -52,7 +52,7 @@ run_script()
          env | sed 's/^\(.\)/   \1/' >&2
          echo "}" >&2
       fi
-      exekutor "${script}" "$@"  >&2 || fail "script \"${script}\" did not run successfully"
+      exekutor "${script}" "$@" >&2 || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]
       then

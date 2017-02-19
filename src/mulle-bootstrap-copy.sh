@@ -57,15 +57,58 @@ tar_remove_extension()
 # dstdir need not exist
 # srcdir must exist
 # ext can be empty
-# noclobber can be empty or YES
+# noclobber can be empty=NO,NO or YES
 #
+_archive_files()
+{
+   local srcdir="$1"
+   local ext="$2"
+
+   (
+      exekutor cd "${srcdir}" ;
+      if [ -z "${ext}" ]
+      then
+         exekutor find . \( -type f -a ! -name "*.*" \) -print
+      else
+         exekutor find . \( -type f -a -name "*.${ext}" \) -print
+      fi |
+         exekutor tar -c ${taroptions} -f - -T -
+   ) || exit 1
+}
+
+
+_filter_boring_tar_output()
+{
+   egrep -v 'Already exist|Error exit delayed'
+   :
+}
+
+
+_unarchive_files()
+{
+   local dstdir="$1"
+   local noclobber="$2"
+
+   (
+      exekutor cd "${dstdir}" ;
+      if [ "${noclobber}" = "NO" ]
+      then
+         exekutor tar -x ${TARFLAGS} -f -
+      else
+         exekutor tar -x ${TARFLAGS} -k -f -
+         :
+      fi 2>&1 | _filter_boring_tar_output
+   ) >&2 # 2> /dev/null   #intentional order
+}
+
+
 _copy_files()
 {
    local taroptions="$1" ; shift
    local dstdir="$1" ; shift
    local srcdir="$1" ; shift
    local ext="$1" ; shift
-   local noclobber="$1" ; shift
+   local noclobber="${1:-YES}" ; shift
 
    [ -d "${srcdir}" ] || internal_fail "${srcdir} does not exist"
    [ -d "${dstdir}" ] || internal_fail "${dstdir} does not exist"
@@ -80,26 +123,7 @@ _copy_files()
    #
    # copy over files only, let tar remove extension
    #
-   (
-      exekutor cd "${srcdir}" ;
-      if [ -z "${ext}" ]
-      then
-         exekutor find . \( -type f -a ! -name "*.*" \) -print
-      else
-         exekutor find . \( -type f -a -name "*.${ext}" \) -print
-      fi |
-         exekutor tar -c ${taroptions} -f - -T -
-   ) |
-   (
-      exekutor cd "${dstdir}" ;
-      if [ -z "${noclobber}" ]
-      then
-         exekutor tar -x ${TARFLAGS} -f - >&2 2> /dev/null #intentional order
-      else
-         exekutor tar -x ${TARFLAGS} -k -f - >&2 2> /dev/null
-         :
-      fi
-   )
+   _archive_files "${srcdir}" "${ext}" | _unarchive_files "${dstdir}" "${noclobber}"
 }
 
 
@@ -125,7 +149,10 @@ copy_files_keeping_extension()
 #
 inherit_files()
 {
-   local dstdir
+   local dstdir="$1"
+   # local srcdir="$2"
+   # local ext="$3"
+   # local noclobber="$4"
 
    dstdir="$1"
 
@@ -135,10 +162,29 @@ inherit_files()
 
    # prefer to copy os-specific first, "-k" won't overwrite
    copy_files_stripping_last_extension "$@" "${UNAME}" "YES" || fail "copy"
-   copy_files_stripping_last_extension "$@" "sh.${UNAME}" "YES" || fail "copy"
 
    # then to copy generic, again "-k" won't overwrite
    copy_files_keeping_extension "$@" "" "YES" || fail "copy"
+}
+
+
+inherit_scripts()
+{
+   local dstdir="$1"
+   # local srcdir="$2"
+   # local ext="$3"
+   # local noclobber="$4" default YES
+
+   dstdir="$1"
+
+   [ $# -eq 2 ] || internal_fail "parameter error"
+
+   mkdir_if_missing "${dstdir}"
+
+   # prefer to copy os-specific first, "-k" won't overwrite
+   copy_files_stripping_last_extension "$@" "sh.${UNAME}" "YES" || fail "copy"
+
+   # then to copy generic, again "-k" won't overwrite
    copy_files_keeping_extension "$@" "sh" "YES" || fail "copy"
 }
 
@@ -149,23 +195,40 @@ inherit_files()
 #
 override_files()
 {
-   local dstdir
-
-   dstdir="$1"
+   local dstdir="$1"
+   local srcdir="$2"
+   local ext="$3"
+   # local noclobber="$4"
 
    [ $# -eq 2 ] || internal_fail "parameter error"
 
    mkdir_if_missing "${dstdir}"
 
    # first copy generic, clobber what's there
-   copy_files_keeping_extension "$@"      || fail "copy"
+   copy_files_keeping_extension "${dstdir}" "${srcdir}" "" "NO"      || fail "copy"
+
+   # then copy os-specific to clobber generics
+   copy_files_stripping_last_extension "${dstdir}" "${srcdir}" "${UNAME}" "NO" || fail "copy"
+}
+
+
+override_scripts()
+{
+   local dstdir="$1"
+   # local srcdir="$2"
+   # local ext="$3"
+   # local noclobber="$4"
+
+   [ $# -eq 2 ] || internal_fail "parameter error"
+
+   mkdir_if_missing "${dstdir}"
+
+   # first copy generic, clobber what's there
    copy_files_keeping_extension "$@" "sh" || fail "copy"
 
    # then copy os-specific to clobber generics
-   copy_files_stripping_last_extension "$@" "${UNAME}" || fail "copy"
    copy_files_stripping_last_extension "$@" "sh.${UNAME}" || fail "copy"
 }
-
 
 # make sure functions are present
 

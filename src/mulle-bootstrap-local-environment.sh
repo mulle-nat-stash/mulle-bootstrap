@@ -184,6 +184,12 @@ fetch_needed()
    [ -z "${REPOS_DIR}" ]     && internal_fail "REPOS_DIR undefined"
    [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "BOOTSTRAP_DIR undefined"
 
+   if [ ! -f "${BOOTSTRAP_DIR}.local/build_order" ]
+   then
+      log_fluff "Need fetch because \"${BOOTSTRAP_DIR}.local/build_order\" does not exist."
+      return 0
+   fi
+
    if [ ! -f "${REPOS_DIR}/.bootstrap_fetch_done" ]
    then
       log_fluff "Need fetch because \"${REPOS_DIR}/.bootstrap_fetch_done\" does not exist."
@@ -203,6 +209,27 @@ fetch_needed()
    fi
 
    return 1
+}
+
+#
+# and clean up some other cruft
+#
+set_fetch_needed()
+{
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+
+   remove_file_if_present "${BOOTSTRAP_DIR}.local/build_order"
+   remove_file_if_present "${BOOTSTRAP_DIR}.local/.bootstrap_fetch_started"
+   remove_file_if_present "${BOOTSTRAP_DIR}.local/.bootstrap_fetch_done"
+}
+
+
+set_build_needed()
+{
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+
+   remove_file_if_present "${BOOTSTRAP_DIR}.local/.bootstrap_build_started"
+   remove_file_if_present "${BOOTSTRAP_DIR}.local/.bootstrap_build_done"
 }
 
 
@@ -306,93 +333,6 @@ expanded_variables()
 
    echo "$value"
 }
-
-
-# source_environment_file()
-# {
-#    local filename
-
-#    filename="$1"
-#    if [ ! -r "${filename}" ]
-#    then
-#       log_fluff "Environment file ${filename} not found"
-#       return 1
-#    fi
-
-#    local lines
-#    local line
-#    local key
-#    local value
-
-#    log_fluff "Environment file ${filename} exists"
-
-#    lines="`egrep -s -v '^#|^[ ]*$' "${filename}"`"
-#    IFS="
-# "
-#    for line in $lines
-#    do
-#       IFS="${DEFAULT_IFS}"
-
-#       key="`echo "${line}" | cut -d= -f1`"
-#       value="`echo "${line}" | cut -d= -f2`"
-
-#       value="`expanded_variables "${value}"`"
-#       case "${key}" in
-#          *\`*|*\$*|*\!*)
-#             fail "Illegal characters in $key of $filename"
-#          ;;
-#       esac
-#       case "${value}" in
-#          *\`*|*\$*|*\!*)
-#             fail "Illegal characters in $value of $filename"
-#          ;;
-#       esac
-#       log_verbose "Environment variable $key defined as $value"
-
-#       eval "${key}=${value}; export ${key}"
-#    done
-
-#    IFS="${DEFAULT_IFS}"
-
-#    return 0
-# }
-
-
-# #
-# # source environment
-# #
-# source_environment()
-# {
-#    local flag
-
-#    flag=""
-
-#    if source_environment_file "${HOME}/.mulle-bootstrap/environment"
-#    then
-#       flag="${MULLE_FLAG_LOG_FLUFF}"
-#    fi
-
-#    if source_environment_file "${BOOTSTRAP_DIR}.auto/environment"
-#    then
-#       flag="${MULLE_FLAG_LOG_FLUFF}"
-#    else
-#       if source_environment_file "${BOOTSTRAP_DIR}.local/environment"
-#       then
-#          flag="${MULLE_FLAG_LOG_FLUFF}"
-#       else
-#          if source_environment_file "${BOOTSTRAP_DIR}/environment"
-#          then
-#             flag="${MULLE_FLAG_LOG_FLUFF}"
-#          fi
-#       fi
-#    fi
-
-#    if [ "${flag}" = "YES" ]
-#    then
-#       log_fluff "Environment:"
-#       env >&2
-#    fi
-# }
 
 
 is_bootstrap_project()

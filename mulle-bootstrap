@@ -163,7 +163,7 @@ Suggested resolution (in $owd):
     ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
 
 Or do you feel lucky ? Then try again with
-   ${C_RESET_BOLD}mulle-bootstrap -f${C_ERROR}
+   ${C_RESET_BOLD}mulle-bootstrap -f ${MULLE_BOOTSTRAP_ARGUMENTS}${C_ERROR}
 But you've gotta ask yourself one question: Do I feel lucky ?
 Well, do ya, punk?"
       exit 1
@@ -223,7 +223,7 @@ _bootstrap_main()
 
    warn_scripts_main "${BOOTSTRAP_DIR}" || exit 1
 
-   if [ "${MULLE_FLAG_DIRTY_HARRY}" = "NO" ] || fetch_needed
+   if fetch_needed
    then
       MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap fetch"
       fetch_main "$@" || exit 1
@@ -626,6 +626,12 @@ bootstrap_main()
    # some commands only run when we have a .bootstrap folder
    #
    command=${1:-"bootstrap"}
+
+   if [ "${MULLE_FLAG_DIRTY_HARRY}" = "YES" ]
+   then
+      set_fetch_needed
+      set_build_needed
+   fi
 
    if ! is_bootstrap_project
    then

@@ -458,7 +458,12 @@ clone_or_symlink()
                   "${tag}" \
                   "${stashdir}"
 
-   warn_scripts_main "${stashdir}/.bootstrap" "${stashdir}" || fail "Ok, aborted"  #sic
+   if [ "${DONT_WARN_SCRIPTS}" != "YES" ]
+   then
+      [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ] && . mulle-bootstrap-warn-scripts.sh
+
+      warn_scripts_main "${stashdir}/.bootstrap" "${stashdir}" || fail "Ok, aborted"  #sic
+   fi
 
    if [ "${operation}" = "link_command" ]
    then
@@ -471,7 +476,7 @@ clone_or_symlink()
 ##
 ## CLONE
 ##
-_clone_repository()
+clone_repository()
 {
    local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
@@ -482,6 +487,8 @@ _clone_repository()
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
    [ $# -eq 7 ] || internal_fail "fail"
+
+   log_action "clone" "$@"
 
    assert_sane_parameters "empty is ok"
 
@@ -514,18 +521,10 @@ Suggested fix:
 }
 
 
-clone_repository()
-{
-   log_action "clone" "$@"
-
-   _clone_repository "$@"   # pass thru rval
-}
-
-
 ##
 ## CHECKOUT
 ##
-_checkout_repository()
+checkout_repository()
 {
    local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
@@ -534,6 +533,8 @@ _checkout_repository()
    local scm="$5"       # scm to use for this clone
    local tag="$6"       # tag to checkout of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   log_action "checkout" "$@"
 
    local operation
 
@@ -559,23 +560,11 @@ _checkout_repository()
 }
 
 
-checkout_repository()
-{
-   local url="$3"       # URL of the clone
-   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
-
-   log_action "checkout" "$@"
-
-   _checkout_repository "$@"
-}
-
-
 ##
 ## UPDATE
 ## this like git fetch, does not update repository
 ##
-
-_update_repository()
+update_repository()
 {
    local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
@@ -584,6 +573,8 @@ _update_repository()
    local scm="$5"       # scm to use for this clone
    local tag="$6"       # tag to checkout of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   log_action "update" "$@"
 
    local operation
 
@@ -609,21 +600,11 @@ _update_repository()
 }
 
 
-update_repository()
-{
-   log_action "update" "$@"
-
-   _update_repository "$@" > /dev/null
-
-   echo "${clone}"  # hackish
-}
-
-
 ##
 ## UPGRADE
 ## This is a pull
 
-_upgrade_repository()
+upgrade_repository()
 {
    local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
@@ -632,6 +613,8 @@ _upgrade_repository()
    local scm="$5"       # scm to use for this clone
    local tag="$6"       # tag to checkout of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   log_action "upgrade" "$@"
 
    local operation
 
@@ -654,16 +637,6 @@ _upgrade_repository()
    else
       "${operation}" "$@"
    fi
-}
-
-
-upgrade_repository()
-{
-   log_action "upgrade" "$@"
-
-   _upgrade_repository "$@" > /dev/null
-
-   echo "${clone}"  # hackish
 }
 
 
@@ -741,34 +714,6 @@ _update_operation_walk_deep_embedded_repositories()
 
 
 ##
-## FETCH
-##
-
-did_fetch_repository()
-{
-#   local reposdir="$1"  # ususally .bootstrap.repos
-   local name="$2"      # name of the clone
-#   local url="$3"       # URL of the clone
-#   local branch="$4"    # branch of the clone
-#   local scm="$5"       # scm to use for this clone
-#   local tag="$6"       # tag to checkout of the clone
-#   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
-
-   fetch__run_build_settings_script "post-fetch" "${name}" "$@"
-}
-
-
-did_fetch_repositories()
-{
-   walk_clones "$*" "did_fetch_repository" "${REPOS_DIR}"
-}
-
-did_fetch_embedded_repositories()
-{
-   walk_clones "$*" "did_fetch_repository" "${REPOS_DIR}"
-}
-
-##
 ## UPDATE
 ##
 update_repositories()
@@ -810,26 +755,10 @@ upgrade_deep_embedded_repositories()
 }
 
 
-did_upgrade_repository()
-{
-   local name="$2"      # name of the clone
-
-   fetch__run_build_settings_script "post-fetch" "${name}" "$@"
-}
-
-
-did_upgrade_repositories()
-{
-   local clones="$1"
-
-   walk_clones "${clones}" "did_upgrade_repository" "${REPOS_DIR}"
-}
-
 
 ##
 ##
 ##
-
 required_action_for_clone()
 {
    local newclone="$1" ; shift
@@ -918,12 +847,15 @@ clone"
       local oldstashdir
 
       oldstashdir="`get_old_stashdir "${reposdir}" "${name}"`"
-      if [ -d "${oldstashdir}" ]
+      if [ "${oldstashdir}" != "${newstashdir}" ]
       then
-         echo "move ${oldstashdir}"
-      else
-         log_warning "Can't find ${name} in ${oldstashdir}. Will clone again"
-         echo "clone"
+         if [ -d "${oldstashdir}" ]
+         then
+            echo "move ${oldstashdir}"
+         else
+            log_warning "Can't find ${name} in ${oldstashdir}. Will clone again"
+            echo "clone"
+         fi
       fi
    fi
 
@@ -998,11 +930,9 @@ work_clones()
    local dstdir
 
    local actionitems
-   local fetched
    local remember
    local repotype
    local oldstashdir
-   local did_fetch
 
    case "${reposdir}" in
       *embedded)
@@ -1057,8 +987,6 @@ work_clones()
 
       log_debug "${C_INFO}Actions for \"${name}\": ${actionitems:-none}"
 
-      did_fetch="NO"
-
       IFS="
 "
       for item in ${actionitems}
@@ -1097,7 +1025,6 @@ work_clones()
                      scm="symlink"
                   ;;
                esac
-               did_fetch="YES"
             ;;
 
             "ignore")
@@ -1169,11 +1096,6 @@ work_clones()
       # create clone as it is now
       clone="`echo "${url};${dstdir};${branch};${scm};${tag}" | sed 's/;*$//'`"
 
-      if [ "${did_fetch}" = "YES" ]
-      then
-         fetched="`add_line "${fetched}" "${url};${stashdir};${branch};${scm};${tag}"`"
-      fi
-
       #
       # always remember, what we have now (except if its a minion)
       #
@@ -1192,11 +1114,6 @@ work_clones()
    done
 
    IFS="${DEFAULT_IFS}"
-
-   if [ ! -z "${fetched}" ]
-   then
-      echo "${fetched}"
-   fi
 }
 
 #
@@ -1215,7 +1132,7 @@ fetch_once_embedded_repositories()
 
       clones="`read_root_setting "embedded_repositories"`" ;
       work_clones "${EMBEDDED_REPOS_DIR}" "${clones}" "NO"
-   ) || exit 1
+   ) > /dev/null || exit 1
 }
 
 
@@ -1235,6 +1152,7 @@ _fetch_once_deep_repository()
 
    if [ ! -d "${autodir}" ]
    then
+      log_fluff "${autodir} not present, so done"
       return
    fi
 
@@ -1268,16 +1186,13 @@ fetch_once_deep_embedded_repositories()
    walk_repositories "repositories"  \
                      "_fetch_once_deep_repository" \
                      "${permissions}" \
-                     "${REPOS_DIR}"
+                     "${REPOS_DIR}" > /dev/null
 }
 
 
 fetch_loop_repositories()
 {
-   local fetched
-   local all_fetched
    local loops
-
    local before
    local after
 
@@ -1305,22 +1220,18 @@ fetch_loop_repositories()
          break
       fi
 
+      if [ -z "${__IGNORE__}" ]
+      then
+         log_fluff "Get back in the ring to take another swing"
+      fi
+
       __REFRESHED__=""
 
-      fetched="`work_clones "${REPOS_DIR}" "${before}" "YES"`" || exit 1
-      all_fetched="`add_line "${all_fetched}" "${fetched}"`"
+      work_clones "${REPOS_DIR}" "${before}" "YES" > /dev/null
 
       __IGNORE__="`add_line "${__IGNORE__}" "${__REFRESHED__}"`"
 
-      log_fluff "Get back in the ring to take another swing"
    done
-
-   if [ ! -z "${fetched}" ]
-   then
-      echo "${fetched}"
-   fi
-
-   :
 }
 
                       #----#
@@ -1353,39 +1264,11 @@ bury_zombies_in_graveyard()
 }
 
 
-run_post_fetch_scripts()
-{
-   [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
-
-   did_fetch_repositories "$@"
-   fetch__run_root_settings_script "post-fetch" "$@"
-}
-
-
-run_post_update_scripts()
-{
-   # makes no sense to me to run scripts here
-   :
-}
-
-
-run_post_upgrade_scripts()
-{
-   [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
-
-   did_upgrade_repositories "$@"
-   fetch__run_root_settings_script "post-fetch" "$@"
-}
-
-
 #
 # the main fetch loop as documented somewhere with graphviz
 #
 fetch_loop()
 {
-   local fetched
-   local deep_fetched
-
    unpostpone_trace
 
    # this is wrong, we just do "stashes" though
@@ -1393,23 +1276,18 @@ fetch_loop()
 
    bootstrap_auto_create
 
-   fetched="`fetch_once_embedded_repositories`" || exit 1
-   did_fetch_repositories "${fetched}"
+   fetch_once_embedded_repositories
 
    if [ "${OPTION_EMBEDDED_ONLY}" = "NO" ]
    then
-      fetched="`fetch_loop_repositories`" || exit 1
-      did_fetch_repositories "${fetched}"
+      fetch_loop_repositories
 
-      fetched="`fetch_once_deep_embedded_repositories`" || exit 1
-      did_fetch_repositories "${fetched}"
+      fetch_once_deep_embedded_repositories || exit 1
    fi
 
    bootstrap_auto_final
 
    bury_zombies_in_graveyard
-
-   echo "${fetched}"
 }
 
 #
@@ -1417,9 +1295,8 @@ fetch_loop()
 #
 _common_fetch()
 {
-   local fetched
 
-   fetched="`fetch_loop "${REPOS_DIR}"`"
+   fetch_loop "${REPOS_DIR}"
 
    #
    # do this afterwards, because brews will have been composited
@@ -1432,8 +1309,6 @@ _common_fetch()
    esac
 
    check_tars
-
-   run_post_fetch_scripts "${fetched}"
 }
 
 
@@ -1464,14 +1339,10 @@ _common_upgrade()
    upgrade_embedded_repositories
    [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
 
-   local upgraded=""
-
-   upgraded="`upgrade_repositories "$@"`"
+   upgrade_repositories "$@"
    upgrade_deep_embedded_repositories
 
    _common_fetch  # update what needs to be update
-
-   run_post_upgrade_scripts "${upgraded}"
 }
 
 
@@ -1488,9 +1359,17 @@ _common_main()
    local OPTION_ALLOW_SEARCH_CACHES="NO"
    local OPTION_EMBEDDED_ONLY="NO"
    local OVERRIDE_BRANCH
+   local DONT_WARN_SCRIPTS="NO"
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OVERRIDE_BRANCH="`read_config_setting "override_branch"`"
+
+   DONT_WARN_SCRIPTS="`read_config_setting "dont_warn_scripts" "${MULLE_FLAG_ANSWER:-NO}"`"
+
+   if [ "${DONT_WARN_SCRIPTS}" = "YES" ]
+   then
+      log_verbose "Script checking disabled"
+   fi
 
    case "${UNAME}" in
       mingw)
@@ -1596,7 +1475,6 @@ _common_main()
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
    [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]             && . mulle-bootstrap-scm.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]         && . mulle-bootstrap-scripts.sh
-   [ -z "${MULLE_BOOTSTRAP_WARN_SCRIPTS_SH}" ]    && . mulle-bootstrap-warn-scripts.sh
    [ -z "${MULLE_BOOTSTRAP_ZOMBIFY_SH}" ]         && . mulle-bootstrap-zombify.sh
 
    #
@@ -1628,8 +1506,6 @@ _common_main()
    esac
 
    local default_permissions
-   local fetched
-   local upgraded
 
    #
    # possible values none|fetch|update|upgrade
@@ -1676,7 +1552,14 @@ _common_main()
    _common_fetch "$@"
 
    remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_started"
-   create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_done"
+
+   #
+   # only say we are done if a build_order was created
+   #
+   if [ -f "${BOOTSTRAP_DIR}.auto/build_order" ]
+   then
+      create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_done"
+   fi
 
    if read_yes_no_config_setting "upgrade_gitignore" "YES"
    then

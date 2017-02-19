@@ -129,6 +129,8 @@ defer_main()
    #
    # dist clean ourselves
    #
+   log_info "Cleaning minion before deferral"
+
    clean_execute "dist"
 
    master_add_minion_bootstrap_project "${masterpath}" "${minionpath}"
@@ -195,6 +197,10 @@ emancipate_main()
 
    log_info "Emancipating from \"${masterpath}\""
    master_remove_minion_bootstrap_project "${masterpath}" "${minionpath}"
+
+   log_info "Cleaning master before emancipation"
+   clean_execute "output"
+
    emancipate_minion_bootstrap_project "${minionpath}"
 
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
@@ -203,6 +209,7 @@ emancipate_main()
    #
    # dist clean ourselves
    #
+   log_info "Cleaning ex-minion after emancipation"
    clean_execute "dist"
 }
 

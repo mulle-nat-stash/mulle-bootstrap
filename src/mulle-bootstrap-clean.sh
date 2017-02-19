@@ -59,8 +59,14 @@ ${STASHES_DEFAULT_DIR}
 }
 
 
-_clean_usage()
+clean_usage()
 {
+   cat <<EOF >&2
+usage:
+   mulle-bootstrap clean [build|dist|install|output]
+
+EOF
+
    setup_clean_environment
 
    cat <<EOF >&2
@@ -90,17 +96,7 @@ ${OUTPUT_CLEANABLE_SUBDIRS}
 ${DIST_CLEANABLE_SUBDIRS}
 ---
 EOF
-}
 
-
-clean_usage()
-{
-   cat <<EOF >&2
-usage:
-   mulle-bootstrap clean [build|dist|install|output]
-
-EOF
-   _clean_usage
    exit 1
 }
 
@@ -213,7 +209,7 @@ clean_directories()
 
 
 
-_print_stashdir()
+_collect_stashdir()
 {
    # local reposdir="$1"  # ususally .bootstrap.repos
    # local name="$2"      # name of the clone
@@ -223,20 +219,22 @@ _print_stashdir()
    # local tag="$6"       # tag to checkout of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
+   is_minion_bootstrap_project "${stashdir}" && return
+
    local stashparentdir
 
    stashparentdir="`dirname -- "${stashdir}"`"
-   if [ "${stashparentdir}" != "${STASHES_DEFAULT_DIR}" ]
-   then
-      echo "${stashdir}"
-   fi
+
+   [ "${stashparentdir}" = "${STASHES_DEFAULT_DIR}" ] && return
+
+   echo "${stashdir}"
 }
 
 
 print_stashdir_repositories()
 {
    walk_repositories "repositories" \
-                     "_print_stashdir" \
+                     "_collect_stashdir" \
                      "" \
                      "${REPOS_DIR}"
 }
@@ -245,7 +243,7 @@ print_stashdir_repositories()
 print_stashdir_embedded_repositories()
 {
    walk_repositories "embedded_repositories" \
-                     "_print_stashdir" \
+                     "_collect_stashdir" \
                      "" \
                      "${EMBEDDED_REPOS_DIR}"
 }
@@ -269,6 +267,8 @@ ${BOOTSTRAP_DIR}.auto"`"
    then
       DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" ".repos"`"
    else
+      [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+
       #
       # as a master we don't throw the minions out
       #
@@ -299,6 +299,8 @@ ${BOOTSTRAP_DIR}.auto"`"
 #
 _clean_execute()
 {
+   local style="$1"
+
    local flag
 
    [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
@@ -310,7 +312,7 @@ _clean_execute()
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
 
-   case "${COMMAND}" in
+   case "${style}" in
       build)
          BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCIES_DIR}/tmp"`"
@@ -327,9 +329,13 @@ ${DEPENDENCIES_DIR}/tmp"`"
          flag="`clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"`"
          clean_files "${BUILD_CLEANABLE_FILES}"
       ;;
+
+      *)
+         internal_fail "Unknown clean style \"${style}\""
+      ;;
    esac
 
-   case "${COMMAND}" in
+   case "${style}" in
       output)
          OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
          clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"
@@ -344,7 +350,7 @@ ${DEPENDENCIES_DIR}/tmp"`"
       ;;
    esac
 
-   case "${COMMAND}" in
+   case "${style}" in
       install)
          INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
 .bootstrap.auto"`"
@@ -354,7 +360,7 @@ ${DEPENDENCIES_DIR}/tmp"`"
       ;;
    esac
 
-   case "${COMMAND}" in
+   case "${style}" in
       dist)
          _dist_clean
       ;;
@@ -383,26 +389,23 @@ clean_main()
 {
    log_debug "::: clean :::"
 
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 
    build_complete_environment
 
-   COMMAND=
-
    while [ $# -ne 0 ]
    do
       case "$1" in
          -h|-help|--help)
-            COMMAND=help
+            clean_usage
          ;;
 
          -*)
             log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown clean option $1"
-            COMMAND=help
+            clean_usage
          ;;
 
          *)
@@ -413,28 +416,21 @@ clean_main()
       shift
    done
 
-   if [ -z "${COMMAND}" ]
-   then
-      COMMAND=${1:-"output"}
-      [ $# -eq 0 ] || shift
-   fi
+   local style
 
+   style=${1:-"output"}
 
-   case "$COMMAND" in
+   case "$1" in
       output|dist|build|install)
-         clean_execute "$@"
+         clean_execute "${style}"
       ;;
 
       help)
          clean_usage
       ;;
 
-      _help)
-         _clean_usage
-      ;;
-
       *)
-         log_error "Unknown command \"${COMMAND}\""
+         log_error "Unknown clean style \"${style}\""
          clean_usage
       ;;
    esac

@@ -56,6 +56,7 @@ _bootstrap_auto_copy()
    #
    tmpdir="`mktemp -d /tmp/mulle-bootstrap.XXXXXXXX`"
    inherit_files "${tmpdir}" "${src}"
+   inherit_scripts "${tmpdir}" "${src}"
 
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
    IFS="
@@ -79,6 +80,13 @@ _bootstrap_auto_copy()
          ;;
 
          *.build|settings|overrides)
+            if [ -d "${filepath}" ]
+            then
+               exekutor cp -Ran ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
+            fi
+         ;;
+
+         bin)
             if [ -d "${filepath}" ]
             then
                exekutor cp -Ran ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
@@ -165,13 +173,17 @@ _bootstrap_auto_create()
 
 bootstrap_auto_create()
 {
-   log_debug "bootstrap_auto_create"
+   log_debug ":bootstrap_auto_create begin:"
 
    _bootstrap_auto_create "${BOOTSTRAP_DIR}.auto" "${BOOTSTRAP_DIR}"
+
+   log_debug ":bootstrap_auto_create end:"
 }
 
 
-
+##
+## bootstrap_auto_update
+##
 _bootstrap_merge_expanded_settings_in_front()
 {
    local addition="$1"
@@ -192,64 +204,6 @@ _bootstrap_merge_expanded_settings_in_front()
 }
 
 
-#
-# read repository file, properly do expansions
-# replace branch with override if needed
-#
-_bootstrap_read_repository_file()
-{
-   local srcfile="$1"
-   local delete_dstdir="$2"
-
-   local srcbootstrap
-   local clones
-
-   srcbootstrap="`dirname -- "${srcfile}"`"
-   clones="`read_expanded_setting "$srcfile" "" "${srcbootstrap}"`"
-
-   local url        # url of clone
-   local dstdir
-   local branch
-   local scm
-   local tag
-
-   IFS="
-"
-   for clone in ${clones}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      parse_raw_clone "${clone}"
-
-      case "${url}" in
-         */\.\./*|\.\./*|*/\.\.|\.\.)
-            fail "Relative urls like \"${url}\" don't work (anymore).\nTry \"-y fetch --no-symlink-creation\" instead"
-         ;;
-      esac
-
-      case "${scm}" in
-         symlink)
-            fail "You can't specify symlink in the repositories file yourself. Use -y flag"
-         ;;
-      esac
-
-      branch="${OVERRIDE_BRANCH:-${branch}}"
-      branch="${branch:-master}"
-
-      if [ "${delete_dstdir}" = "YES" ]
-      then
-         dstdir=""
-      fi
-
-      dstdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
-      scm="${scm:-git}"
-
-      echo "${url};${dstdir};${branch};${scm};${tag}"
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
 
 _bootstrap_merge_repository_files()
 {
@@ -263,7 +217,7 @@ _bootstrap_merge_repository_files()
    local additions
 
    contents="`cat "${dstfile}" 2> /dev/null || :`"
-   additions="`_bootstrap_read_repository_file "${srcfile}" "${delete_dstdir}"`" || fail "read"
+   additions="`read_repository_file "${srcfile}" "${delete_dstdir}"`" || fail "read"
    additions="`echo "${additions}"| sed 's/;*$//'`"
    additions="`merge_repository_contents "${contents}" "${additions}"`"
 
@@ -315,31 +269,15 @@ _bootstrap_auto_merge_root_settings()
       # "repositories" files gets special treatment
       # "embedded_repositories" is not merged though
       case "${settingname}" in
-            "repositories")
-               _bootstrap_merge_repository_files "${srcfile}" "${dstfile}" "YES"
+         "embedded_repositories")
+            continue  # done by caller
+         ;;
+
+         "repositories")
+            _bootstrap_merge_repository_files "${srcfile}" "${dstfile}" "YES"
             continue
-            ;;
+         ;;
       esac
-
-      # #
-      # # non mergable settings are not merged
-      # #
-      # match="`echo "${NON_MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
-      # if [ ! -z "${match}" ]
-      # then
-      #    log_fluff "Setting \"${settingname}\" is not mergable, so ignored"
-      #    continue
-      # fi
-
-      # #
-      # # environment is not copied over
-      # #
-      # match="`egrep -s -x "^[A-Z_]+$" <<< "${settingname}"`"
-      # if [ ! -z "${match}" ]
-      # then
-      #    log_fluff "Setting \"${settingname}\" is environment, so ignored"
-      #    continue
-      # fi
 
       match="`echo "${MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
       if [ -z "${match}" ]
@@ -410,12 +348,18 @@ bootstrap_auto_update()
    then
       _bootstrap_auto_merge_root_settings "${BOOTSTRAP_DIR}.auto" "${stashdir}"
 
-      local srcfile
+      local src
 
-      srcfile="${stashdir}/${BOOTSTRAP_DIR}/embedded_repositories"
-      if [ -f "${srcfile}" ]
+      src="${stashdir}/${BOOTSTRAP_DIR}/embedded_repositories"
+      if [ -f "${src}" ]
       then
-         _bootstrap_auto_embedded_copy "${name}" "${stashdir}" "${srcfile}"
+         _bootstrap_auto_embedded_copy "${name}" "${stashdir}" "${src}"
+      fi
+
+      src="${stashdir}/${BOOTSTRAP_DIR}/bin"
+      if [ -d "${src}" ]
+      then
+         inherit_scripts "${BOOTSTRAP_DIR}.auto/${name}.build/bin" "${src}"
       fi
    else
       # could be helpful to user
@@ -429,8 +373,14 @@ bootstrap_auto_update()
 }
 
 
-bootstrap_create_build_folders()
+##
+## bootstrap_auto_final
+##
+_bootstrap_create_build_folders()
 {
+   local clonenames="$1"
+   local reposdir="$2"
+
    #
    # now pick up on build order and produce .build folders
    # but build order could be "hand coded", lets use it
@@ -449,7 +399,6 @@ bootstrap_create_build_folders()
    [ -d "${BOOTSTRAP_DIR}.auto/overrides" ]
    has_overrides=$?
 
-   clonenames="`read_root_setting "build_order"`"
    revclonenames="`echo "${clonenames}" | sed '1!G;h;$!d'`"  # reverse lines
 
    local tmp
@@ -471,7 +420,7 @@ bootstrap_create_build_folders()
    do
       IFS="${DEFAULT_IFS}"
 
-      apath="`stash_of_repository "${REPOS_DIR}" "${revname}"`/.bootstrap"
+      apath="`stash_of_repository "${reposdir}" "${revname}"`/.bootstrap"
       if [ -d "${apath}" ]
       then
          revclonenames="`add_line "${revclonenames}" "${revname}"`"
@@ -488,6 +437,7 @@ bootstrap_create_build_folders()
       if [ ${has_settings} -eq 0 ]
       then
          inherit_files "${dstdir}" "${BOOTSTRAP_DIR}.auto/settings"
+         inherit_scripts "${dstdir}" "${BOOTSTRAP_DIR}.auto/settings"
       fi
 
       if [ "`read_build_setting "${name}" "final" "NO"`" = "YES" ]
@@ -501,11 +451,12 @@ bootstrap_create_build_folders()
       do
          IFS="${DEFAULT_IFS}"
 
-         srcdir="`stash_of_repository "${REPOS_DIR}" "${revname}"`/.bootstrap/${name}.build"
+         srcdir="`stash_of_repository "${reposdir}" "${revname}"`/.bootstrap/${name}.build"
 
          if [ -d "${srcdir}" ]
          then
             inherit_files "${dstdir}" "${srcdir}"
+            inherit_scripts "${dstdir}" "${srcdir}"
             if [ "`read_build_setting "${name}" "final" "NO"`" = "YES" ]
             then
                break
@@ -516,12 +467,12 @@ bootstrap_create_build_folders()
          then
             break
          fi
-
       done
 
       if [ ${has_overrides} -eq 0 ]
       then
          override_files "${dstdir}" "${BOOTSTRAP_DIR}.auto/overrides"
+         override_scripts "${dstdir}" "${BOOTSTRAP_DIR}.auto/overrides"
       fi
    done
 
@@ -539,11 +490,7 @@ bootstrap_auto_final()
 
    log_fluff "Creating ${C_MAGENTA}${C_BOLD}build_order${C_VERBOSE} from repositories"
 
-   if [ -f "${BOOTSTRAP_DIR}.auto/build_order" ]
-   then
-      log_fluff "build_order already exists"
-      return
-   fi
+   [ -f "${BOOTSTRAP_DIR}.auto/build_order" ] && internal_fail "build_order already exists"
 
    #
    # add stuff from bootstrap folder
@@ -582,7 +529,10 @@ bootstrap_auto_final()
 
    redirect_exekutor "${BOOTSTRAP_DIR}.auto/build_order" echo "${order}"
 
-   bootstrap_create_build_folders
+   local clonenames
+
+   clonenames="`read_root_setting "build_order"`"
+   _bootstrap_create_build_folders "${clonenames}" "${REPOS_DIR}"
 }
 
 

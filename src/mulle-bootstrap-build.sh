@@ -1845,17 +1845,6 @@ build_with_configuration_sdk_preferences()
       rmdir_safer "${builddir}"
    fi
 
-   #
-   # execute pre-build script (f.e. for libcurl)
-   #
-   local script
-
-   script="`find_build_setting_file "${name}" "bin/pre-build.sh"`"
-   if [ -x "${script}" ]
-   then
-      build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" || exit 1
-   fi
-
    local project
 
    for preference in ${preferences}
@@ -2310,15 +2299,9 @@ build_main()
    #
    # START
    #
-   if [ ! -d "${REPOS_DIR}" ]
-   then
-      log_info "No repositories fetched, so nothing to build."
-      return 0
-   fi
-
    if [ ! -f "${BOOTSTRAP_DIR}.auto/build_order" ]
    then
-      log_error "No ${C_MAGENTA}${C_BOLD}build_order${C_ERROR} found. You need to install first."
+      log_info "No repositories fetched, so nothing to build."
       return 1
    fi
 

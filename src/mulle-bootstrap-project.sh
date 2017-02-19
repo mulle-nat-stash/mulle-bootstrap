@@ -176,14 +176,18 @@ master_remove_minion_bootstrap_project()
    minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
    unregex="`sed -e 's/[]\/()$*.^|[]/\\&/g' <<< "${minionpath}"`"
    filepath="${masterpath}/${BOOTSTRAP_DIR}.local/repositories"
-   exekutor sed -i "" -e "/^${unregex}\;/d" "${filepath}"
 
-   if [ -z "`read_setting "${filepath}"`" ]
+   if [ -f "${filepath}" ]
    then
-      remove_file_if_present "${filepath}"
+      exekutor sed -i "" -e "/^${unregex}\;/d" "${filepath}"
 
-      # not be master anymore if last one is gone ?
-      # remove_file_if_present "${masterpath}/${BOOTSTRAP_DIR}.local/is_master"
+      if [ -z "`read_setting "${filepath}"`" ]
+      then
+         remove_file_if_present "${filepath}"
+
+         # not be master anymore if last one is gone ?
+         # remove_file_if_present "${masterpath}/${BOOTSTRAP_DIR}.local/is_master"
+      fi
    fi
 
    exekutor touch "${masterpath}/${BOOTSTRAP_DIR}.local"
@@ -198,6 +202,7 @@ project_initialize()
 
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ]   && . mulle-bootstrap-logging.sh
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]  && . mulle-bootstrap-settings.sh
    :
 }
 
