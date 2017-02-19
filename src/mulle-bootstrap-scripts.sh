@@ -33,26 +33,32 @@ MULLE_BOOTSTRAP_SCRIPTS_SH="included"
 
 run_script()
 {
-   local script
-
-   script="$1"
-   shift
+   local script="$1" ; shift
 
    [ ! -z "$script" ] || internal_fail "script is empty"
 
+   local directory
+
+   directory="${PWD}/$3"
+   [ -d "$directory" ] || internal_fail "expected directory \"${directory}\" is missing from \"${PWD}\""
+
    if [ -x "${script}" ]
    then
+      script="`absolutepath "${script}"`"
       log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
       if  [ "${MULLE_FLAG_LOG_SCRIPTS}" = "YES" ]
       then
          echo "ARGV=" "$@" >&2
-         echo "DIRECTORY=$PWD/$3" >&2
+         echo "DIRECTORY=${directory}" >&2
          echo "ENVIRONMENT=" >&2
          echo "{" >&2
          env | sed 's/^\(.\)/   \1/' >&2
          echo "}" >&2
       fi
-      exekutor "${script}" "$@" >&2 || fail "script \"${script}\" did not run successfully"
+      (
+         cd "${directory}"
+         exekutor "${script}" "$@" >&2
+      ) || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]
       then
@@ -88,43 +94,6 @@ run_build_settings_script()
    script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      run_script "${script}" "$@"
-   fi
-}
-
-
-#
-# various scripts runner for fetch, designed to source in the build
-# environment (slow on mingw, if needed)
-#
-fetch__run_root_settings_script()
-{
-   local scriptname="$1" ; shift
-
-   local script
-
-   script="`find_root_setting_file "bin/${scriptname}.sh"`"
-   if [ ! -z "${script}" ]
-   then
-      build_complete_environment
-
-      run_script "${script}" "$@"
-   fi
-}
-
-
-fetch__run_build_settings_script()
-{
-   local scriptname="$1" ; shift
-   local name="$1" ; shift
-
-   local script
-
-   script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
-   if [ ! -z "${script}" ]
-   then
-      build_complete_environment
-
       run_script "${script}" "$@"
    fi
 }

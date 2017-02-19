@@ -39,7 +39,6 @@ usage:
    Options:
       -1             : output is a one-liner
       -m             : emit regardless of directory existence
-      -c             : suppress -F output for cflags
       -l             : emit link directives for libraries
       -f             : emit link directives for Frameworks
 
@@ -49,6 +48,7 @@ usage:
       cflags         : output CFLAGS for gcc, clang and friends
       cxxflags       : output CXXFLAGS
       ldflags        : output LDFLAGS
+      path           : output PATH
       environment*   : output CFLAGS, CXXFLAGS, LDFLAGS (default)
       frameworkpath  : output framework search paths PATH style
       headerpath     : output framework search paths PATH style
@@ -90,12 +90,12 @@ __collect_frameworks()
 
 _collect_libraries()
 {
-   if [ "${WITH_DEPENDENCIES}" ]
+   if [ "${OPTION_WITH_DEPENDENCIES}" ]
    then
       __collect_libraries "${DEPENDENCIES_DIR}/lib"
    fi
 
-   if [ "${WITH_ADDICTIONS}" ]
+   if [ "${OPTION_WITH_ADDICTIONS}" ]
    then
       __collect_libraries "${ADDICTIONS_DIR}/lib"
    fi
@@ -104,12 +104,12 @@ _collect_libraries()
 
 _collect_frameworks()
 {
-   if [ "${WITH_DEPENDENCIES}" ]
+   if [ "${OPTION_WITH_DEPENDENCIES}" ]
    then
       __collect_frameworks "${DEPENDENCIES_DIR}/Frameworks"
    fi
 
-   if [ "${WITH_ADDICTIONS}" ]
+   if [ "${OPTION_WITH_ADDICTIONS}" ]
    then
       __collect_frameworks "${ADDICTIONS_DIR}/Frameworks"
    fi
@@ -131,15 +131,41 @@ collect_frameworks()
 #
 # Construct FLAGS paths
 #
+_flags_emit_path()
+{
+   local directory="$1"
+
+   if [ "${OPTION_WITH_MISSING_PATHS}" = "YES" -o -d "${directory}" ]
+   then
+      if [ "${OPTION_USE_ABSOLUTE_PATHS}" = "YES" ]
+      then
+         directory="`absolutepath "${directory}"`"
+      fi
+      echo "${directory}"
+   fi
+}
+
+
+_flags_binpath_value()
+{
+   local pathline
+   local line
+
+   pathline="`_flags_emit_path "${DEPENDENCIES_DIR}/bin"`"
+   line="`_flags_emit_path "${ADDICTIONS_DIR}/bin"`"
+
+   add_path "${pathline}" "${line}"
+}
+
 
 _flags_emit_option()
 {
    local prefix="$1"
    local directory="$2"
 
-   if [ "${FUTURE}" = "YES" -o -d "${directory}" ]
+   if [ "${OPTION_WITH_MISSING_PATHS}" = "YES" -o -d "${directory}" ]
    then
-      if [ "${ABSOLUTE_PATHS}" = "YES" ]
+      if [ "${OPTION_USE_ABSOLUTE_PATHS}" = "YES" ]
       then
          directory="`absolutepath "${directory}"`"
       fi
@@ -150,25 +176,25 @@ _flags_emit_option()
 
 _flags_cflags_value()
 {
-   if [ "${WITH_HEADERPATHS}" = "YES" ]
+   if [ "${OPTION_WITH_HEADERPATHS}" = "YES" ]
    then
-      if [ "${WITH_DEPENDENCIES}" = "YES" ]
+      if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
          _flags_emit_option "-I" "${DEPENDENCIES_DIR}/include"
       fi
-      if [ "${WITH_ADDICTIONS}" = "YES" ]
+      if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
          _flags_emit_option "-I" "${ADDICTIONS_DIR}/include"
       fi
    fi
 
-   if [ "${WITH_FRAMEWORKPATHS}" = "YES" -a -z "${COMBINE}" ]
+   if [ "${OPTION_WITH_FRAMEWORKPATHS}" = "YES" -a "${OPTION_SUPPRESS_FRAMEWORK_CFLAGS}" = "NO" ]
    then
-      if [ "${WITH_DEPENDENCIES}" = "YES" ]
+      if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
          _flags_emit_option "-F" "${DEPENDENCIES_DIR}/Frameworks"
       fi
-      if [ "${WITH_ADDICTIONS}" = "YES" ]
+      if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
          _flags_emit_option "-F" "${ADDICTIONS_DIR}/Frameworks"
       fi
@@ -184,31 +210,31 @@ _flags_cxxflags_value()
 
 _flags_ldflags_value()
 {
-   if [ "${WITH_LIBRARYPATHS}" = "YES" ]
+   if [ "${OPTION_WITH_LIBRARYPATHS}" = "YES" ]
    then
-      if [ "${WITH_DEPENDENCIES}" = "YES" ]
+      if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
          _flags_emit_option "-L" "${DEPENDENCIES_DIR}/lib"
       fi
-      if [ "${WITH_ADDICTIONS}" = "YES" ]
+      if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
          _flags_emit_option "-L" "${ADDICTIONS_DIR}/lib"
       fi
    fi
 
-   if [ "${WITH_FRAMEWORKPATHS}" = "YES" ]
+   if [ "${OPTION_WITH_FRAMEWORKPATHS}" = "YES" -a "${OPTION_SUPPRESS_FRAMEWORK_LDFLAGS}" = "NO" ]
    then
-      if [ "${WITH_DEPENDENCIES}" = "YES" ]
+      if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
          _flags_emit_option "-F" "${DEPENDENCIES_DIR}/Frameworks"
       fi
-      if [ "${WITH_ADDICTIONS}" = "YES" ]
+      if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
          _flags_emit_option "-F" "${ADDICTIONS_DIR}/Frameworks"
       fi
    fi
 
-   if [ "${WITH_LIBRARIES}" = "YES" ]
+   if [ "${OPTION_WITH_LIBRARIES}" = "YES" ]
    then
       local i
 
@@ -223,7 +249,7 @@ _flags_ldflags_value()
    fi
 
 
-   if [ "${WITH_FRAMEWORKS}" = "YES" ]
+   if [ "${OPTION_WITH_FRAMEWORKS}" = "YES" ]
    then
       local i
 
@@ -247,9 +273,9 @@ _flags_add_search_path()
    local result="$1"
    local searchpath="$2"
 
-   if [ "${FUTURE}" = "YES" -o -d "${searchpath}" ]
+   if [ "${OPTION_WITH_MISSING_PATHS}" = "YES" -o -d "${searchpath}" ]
    then
-      if [ "${ABSOLUTE_PATHS}" = "YES" ]
+      if [ "${OPTION_USE_ABSOLUTE_PATHS}" = "YES" ]
       then
          searchpath="`absolutepath "${searchpath}"`"
       fi
@@ -264,13 +290,13 @@ _flags_frameworkpath_value()
 {
    local result
 
-   if [ "${WITH_FRAMEWORKPATHS}" = "YES" ]
+   if [ "${OPTION_WITH_FRAMEWORKPATHS}" = "YES" ]
    then
-      if [ "${WITH_DEPENDENCIES}" = "YES" ]
+      if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
          result="`_flags_add_search_path "${result}" "${DEPENDENCIES_DIR}/Frameworks"`"
       fi
-      if [ "${WITH_ADDICTIONS}" = "YES" ]
+      if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
          result="`_flags_add_search_path "${result}" "${ADDICTIONS_DIR}/Frameworks"`"
       fi
@@ -287,13 +313,13 @@ _flags_headerpath_value()
 {
    local result
 
-   if [ "${WITH_HEADERPATHS}" = "YES" ]
+   if [ "${OPTION_WITH_HEADERPATHS}" = "YES" ]
    then
-      if [ "${WITH_DEPENDENCIES}" = "YES" ]
+      if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
          result="`_flags_add_search_path "${result}" "${DEPENDENCIES_DIR}/include"`"
       fi
-      if [ "${WITH_ADDICTIONS}" = "YES" ]
+      if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
          result="`_flags_add_search_path "${result}" "${ADDICTIONS_DIR}/include"`"
       fi
@@ -308,16 +334,16 @@ _flags_headerpath_value()
 
 _flags_librarypath_value()
 {
-   if [ "${WITH_LIBRARYPATHS}" = "YES" ]
+   if [ "${OPTION_WITH_LIBRARYPATHS}" = "YES" ]
    then
-      if [ "${WITH_DEPENDENCIES}" = "YES" ]
+      if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
-         if [ "${FUTURE}" = "YES" -o -d "${DEPENDENCIES_DIR}/lib" ]
+         if [ "${OPTION_WITH_MISSING_PATHS}" = "YES" -o -d "${DEPENDENCIES_DIR}/lib" ]
          then
             result="`_flags_add_search_path "${result}" "${DEPENDENCIES_DIR}/lib"`"
          fi
       fi
-      if [ "${WITH_ADDICTIONS}" = "YES" ]
+      if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
          result="`_flags_add_search_path "${result}" "${ADDICTIONS_DIR}/lib"`"
       fi
@@ -330,42 +356,97 @@ _flags_librarypath_value()
 }
 
 
+_flags_do_path()
+{
+   local result="$1"
+
+   local values
+   local line
+
+   values="`_flags_binpath_value`"
+   if [ ! -z "${values}" ]
+   then
+      line="PATH='${values}:${PATH}'"
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   printf "%s" "$result"
+}
+
+
+_flags_do_environment()
+{
+   local result="$1"
+
+   local values
+   local line
+
+   values="`_flags_cflags_value`"
+   if [ ! -z "${values}" ]
+   then
+      values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
+      line="CFLAGS=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   values="`_flags_cxxflags_value`"
+   if [ ! -z "${values}" ]
+   then
+      values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
+      line="CXXFLAGS=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   values="`_flags_ldflags_value`"
+   if [ ! -z "${values}" ]
+   then
+      values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
+      line="LDFLAGS=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   printf "%s" "$result"
+}
+
+
 flags_main()
 {
    local types
    local separator
 
    # semi-local
-   local WITH_HEADERPATHS
-   local WITH_LIBRARYPATHS
-   local WITH_FRAMEWORKPATHS
-   local WITH_LIBRARIES
-   local WITH_FRAMEWORKS
-   local WITH_ADDICTIONS
-   local WITH_DEPENDENCIES
-   local FUTURE
-   local COMBINE
-   local ABSOLUTE_PATHS
+   local OPTION_SUPPRESS_FRAMEWORK_CFLAGS="NO"
+   local OPTION_SUPPRESS_FRAMEWORK_LDFLAGS="NO"
+   local OPTION_USE_ABSOLUTE_PATHS="YES"
+   local OPTION_WITH_ADDICTIONS="YES"
+   local OPTION_WITH_DEPENDENCIES="NO"
+   local OPTION_WITH_FRAMEWORKPATHS="NO"
+   local OPTION_WITH_FRAMEWORKS="NO"
+   local OPTION_WITH_HEADERPATHS="YES"
+   local OPTION_WITH_LIBRARIES="NO"
+   local OPTION_WITH_LIBRARYPATHS="YES"
+   local OPTION_WITH_MISSING_PATHS="NO"
+   local OPTION_PATH_SEPARATOR=":"
 
    log_debug ":flags_main:"
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
-   WITH_HEADERPATHS="YES"
-   WITH_LIBRARYPATHS="YES"
-   WITH_ADDICTIONS="YES"
-   ABSOLUTE_PATHS="YES"
+   OPTION_WITH_HEADERPATHS="YES"
+   OPTION_WITH_LIBRARYPATHS="YES"
+   OPTION_WITH_ADDICTIONS="YES"
+   OPTION_USE_ABSOLUTE_PATHS="YES"
 
    case "${UNAME}" in
       darwin)
-         WITH_FRAMEWORKS="YES"
-         WITH_FRAMEWORKPATHS="YES"
+         OPTION_WITH_FRAMEWORKS="YES"
+         OPTION_WITH_FRAMEWORKPATHS="YES"
       ;;
    esac
 
    if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
    then
-      WITH_DEPENDENCIES="YES"
+      OPTION_WITH_DEPENDENCIES="YES"
    fi
 
    separator="\n"
@@ -380,42 +461,53 @@ flags_main()
             separator=" "
          ;;
 
-         -c|--COMBINE)
-            COMBINE="YES"
+         -s|--separator)
+            shift
+            [ $# -eq 0 ] && fail "separator missing"
+
+            OPTION_PATH_SEPARATOR="$1"
          ;;
 
          -d|--dependencies)
-            WITH_DEPENDENCIES="YES"
+            OPTION_WITH_DEPENDENCIES="YES"
          ;;
 
          -f|--frameworks)
-            WITH_FRAMEWORKS="YES"
-            WITH_FRAMEWORKPATHS="YES"
+            OPTION_WITH_FRAMEWORKS="YES"
+            OPTION_WITH_FRAMEWORKPATHS="YES"
          ;;
 
          -l|--libraries)
-            WITH_LIBRARYPATHS="YES"
-            WITH_LIBRARIES="YES"
+            OPTION_WITH_LIBRARYPATHS="YES"
+            OPTION_WITH_LIBRARIES="YES"
          ;;
 
          -m|--missing)
-            FUTURE="YES"
+            OPTION_WITH_MISSING_PATHS="YES"
          ;;
 
          -na|--no-addictions)
-            WITH_ADDICTIONS=
+            OPTION_WITH_ADDICTIONS="NO"
+         ;;
+
+         -nc|-no-cflags-frameworks)
+            OPTION_SUPPRESS_FRAMEWORK_CFLAGS="YES"
+         ;;
+
+         -nd|-no-ldflags-frameworks)
+            OPTION_SUPPRESS_FRAMEWORK_LDFLAGS="YES"
          ;;
 
          -nh|--no-header-paths)
-            WITH_HEADERPATHS=
+            OPTION_WITH_HEADERPATHS="NO"
          ;;
 
          -nl|--no-library-paths)
-            WITH_LIBRARYPATHS=
+            OPTION_WITH_LIBRARYPATHS="NO"
          ;;
 
          -nf|--no-framework-paths)
-            WITH_FRAMEWORKPATHS=
+            OPTION_WITH_FRAMEWORKPATHS="NO"
          ;;
 
          -*)
@@ -432,8 +524,8 @@ flags_main()
    done
 
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
-
-   build_complete_environment
+   [ -z "${DEPENDENCIES_DIR}" ] && internal_fail "missing DEPENDENCIES_DIR"
+   [ -z "${ADDICTIONS_DIR}" ]   && internal_fail "missing ADDICTIONS_DIR"
 
    local type
    local values
@@ -442,62 +534,29 @@ flags_main()
    result=""
    type="${1:-environment}"
 
+
+   local memo
+
+   # hacque
+   PATH_SEPARATOR="${OPTION_PATH_SEPARATOR}"
+
    while [ ! -z "${type}" ]
    do
       [ $# -ne 0 ] && shift
 
       case "${type}" in
-         "cflags"|"cxxflags"|"ldflags"|"frameworkpath"|"headerpath"|"librarypath")
-            values="`_flags_${type}_value "${WITH_HEADERPATHS}"  \
-                                          "${WITH_LIBRARYPATHS}" \
-                                          "${WITH_FRAMEWORKPATHS}" \
-                                          "${WITH_LIBRARIES}"   \
-                                          "${WITH_FRAMEWORKS}"  \
-                                          "${WITH_ADDICTIONS}" \
-                                          "${WITH_DEPENDENCIES}"`"
+         "cflags"|"cxxflags"|"ldflags"|"binpath"|"frameworkpath"|"headerpath"|"librarypath")
+            values="`_flags_${type}_value`"
             result="`add_line "${result}" "${values}"`"
          ;;
 
 
+         "path")
+            result="`_flags_do_path "${result}"`"
+         ;;
+
          "environment")
-            values="`_flags_cflags_value "${WITH_HEADERPATHS}"  \
-                                         "${WITH_LIBRARYPATHS}" \
-                                         "${WITH_FRAMEWORKPATHS}" \
-                                         "${WITH_LIBRARIES}"   \
-                                         "${WITH_FRAMEWORKS}"  \
-                                         "${WITH_ADDICTIONS}" \
-                                         "${WITH_DEPENDENCIES}"`"
-            if [ ! -z "${values}" ]
-            then
-               values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-               result="`add_line "${result}" "CFLAGS='${values}'"`"
-            fi
-
-            values="`_flags_cxxflags_value "${WITH_HEADERPATHS}"  \
-                                           "${WITH_LIBRARYPATHS}" \
-                                           "${WITH_FRAMEWORKPATHS}" \
-                                           "${WITH_LIBRARIES}"   \
-                                           "${WITH_FRAMEWORKS}"  \
-                                           "${WITH_ADDICTIONS}" \
-                                           "${WITH_DEPENDENCIES}"`"
-            if [ ! -z "${values}" ]
-            then
-               values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-               result="`add_line "${result}" "CXXFLAGS='${values}'"`"
-            fi
-
-            values="`_flags_ldflags_value "${WITH_HEADERPATHS}"  \
-                                          "${WITH_LIBRARYPATHS}" \
-                                          "${WITH_FRAMEWORKPATHS}" \
-                                          "${WITH_LIBRARIES}"   \
-                                          "${WITH_FRAMEWORKS}"  \
-                                          "${WITH_ADDICTIONS}" \
-                                          "${WITH_DEPENDENCIES}"`"
-            if [ ! -z "${values}" ]
-            then
-               values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-               result="`add_line "${result}" "LDFLAGS='${values}'"`"
-            fi
+            result="`_flags_do_environment "${result}"`"
          ;;
 
          *)
@@ -513,11 +572,10 @@ flags_main()
    then
       if [ "${separator}" = " " ]
       then
-         echo "${result}" | tr '\012' ' '  | sed 's/ *$//'
-         echo ""
+         printf "${result}" | tr '\012' ' '  | sed 's/ *$//'
+         printf "\n"
       else
-         echo "${result}"
+         printf "%s\n" "${result}"
       fi
    fi
 }
-

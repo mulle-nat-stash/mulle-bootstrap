@@ -385,38 +385,6 @@ cmake_sdk_parameter()
 }
 
 
-create_dummy_dirs_against_warnings()
-{
-   local mapped
-   local suffix
-
-   mapped="$1"
-   suffix="$2"
-
-   local mappedsubdir
-   local suffixsubdir
-
-   mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
-   suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
-
-   local owd
-
-   owd="${PWD}"
-
-   # to avoid warnings, make sure directories are all there
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"
-
-   mkdir_if_missing "${owd}/${REFERENCE_ADDICTIONS_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
-   mkdir_if_missing "${owd}/${REFERENCE_ADDICTIONS_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
-
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"
-
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"
-   mkdir_if_missing "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"
-}
-
-
 build_fail()
 {
    if [ -f "$1" ]
@@ -714,8 +682,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    sdkparameter="`cmake_sdk_parameter "${sdk}"`"
 
-   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
-
    local mappedsubdir
    local fallbacksubdir
    local suffixsubdir
@@ -804,35 +770,35 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="`add_cmake_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"`"
-      includelines="`add_cmake_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_cmake_path_if_exists "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_cmake_path_if_exists "${includelines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}"`"
-      librarylines="`add_cmake_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}"`"
 
-      frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
-      frameworklines="`add_cmake_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
 
       if [ "${OPTION_ADD_USR_LOCAL}" = "YES" ]
       then
-         includelines="`add_cmake_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
-         librarylines="`add_cmake_path "${librarylines}" "${USR_LOCAL_LIB}"`"
+         includelines="`add_cmake_path_if_exists "${includelines}" "${USR_LOCAL_INCLUDE}"`"
+         librarylines="`add_cmake_path_if_exists "${librarylines}" "${USR_LOCAL_LIB}"`"
       fi
 
       local relative_srcdir
@@ -843,9 +809,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
 
-      prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
-      dependenciesdir="`add_cmake_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
-      addictionsdir="`add_cmake_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
+      prefixbuild="`add_cmake_path_if_exists "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+      dependenciesdir="`add_cmake_path_if_exists "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
+      addictionsdir="`add_cmake_path_if_exists "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
 
 #      cmakemodulepath="\${CMAKE_MODULE_PATH}"
 #      if [ ! -z "${CMAKE_MODULE_PATH}" ]
@@ -1094,35 +1060,35 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ ! -z "${suffixsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
       if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
       then
-         frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
+         frameworklines="`add_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
+         librarylines="`add_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
       fi
 
-      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"`"
-      includelines="`add_path "${includelines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_path_if_exists "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"`"
+      includelines="`add_path_if_exists "${includelines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`"
 
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}"`"
-      librarylines="`add_path "${librarylines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}"`"
+      librarylines="`add_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}"`"
 
-      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
-      frameworklines="`add_path "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
+      frameworklines="`add_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
 
       if [ "${OPTION_ADD_USR_LOCAL}" = "YES" ]
       then
-         includelines="`add_path "${includelines}" "${USR_LOCAL_INCLUDE}"`"
-         librarylines="`add_path "${librarylines}" "${USR_LOCAL_LIB}"`"
+         includelines="`add_path_if_exists "${includelines}" "${USR_LOCAL_INCLUDE}"`"
+         librarylines="`add_path_if_exists "${librarylines}" "${USR_LOCAL_LIB}"`"
       fi
 
       local prefixbuild
@@ -1130,9 +1096,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local addictionsdir
       #local linker
 
-      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
-      dependenciesdir="`add_path "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
-      addictionsdir="`add_path "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
+      prefixbuild="`add_path_if_exists "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+      dependenciesdir="`add_path_if_exists "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
+      addictionsdir="`add_path_if_exists "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
 
       case "${UNAME}" in
          darwin)
@@ -1580,7 +1546,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       fi
 
       inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`" || exit 1
-      path=`combined_escaped_search_path \
+      path=`combined_escaped_search_path_if_exists \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}" \
@@ -1604,7 +1570,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       fi
 
       inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`" || exit 1
-      path=`combined_escaped_search_path \
+      path=`combined_escaped_search_path_if_exists \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}" \

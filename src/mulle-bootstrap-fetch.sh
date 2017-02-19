@@ -842,19 +842,31 @@ clone"
 
    if [ "${stashdir}" != "${newstashdir}" ]
    then
-      log_fluff "Destination has changed from \"${stashdir}\" to \"${newstashdir}\", need to move"
-
-      local oldstashdir
-
-      oldstashdir="`get_old_stashdir "${reposdir}" "${name}"`"
-      if [ "${oldstashdir}" != "${newstashdir}" ]
+      if [ -e "${newstashdir}" ]
       then
-         if [ -d "${oldstashdir}" ]
+         log_fluff "Destination already exists. Remove old."
+         echo "remove"
+
+         # hacque ?
+         if is_minion_bootstrap_project "${newstashdir}"
          then
-            echo "move ${oldstashdir}"
-         else
-            log_warning "Can't find ${name} in ${oldstashdir}. Will clone again"
-            echo "clone"
+            return
+         fi
+      else
+         log_fluff "Destination has changed from \"${stashdir}\" to \"${newstashdir}\", need to move"
+
+         local oldstashdir
+
+         oldstashdir="`get_old_stashdir "${reposdir}" "${name}"`"
+         if [ "${oldstashdir}" != "${newstashdir}" ]
+         then
+            if [ -d "${oldstashdir}" ]
+            then
+               echo "move ${oldstashdir}"
+            else
+               log_warning "Can't find ${name} in ${oldstashdir}. Will clone again"
+               echo "clone"
+            fi
          fi
       fi
    fi
@@ -898,7 +910,6 @@ get_old_stashdir()
    url="`_url_part_from_clone "${oldclone}"`"
    name="`_canonical_clone_name "${url}"`"
    dstdir="`_dstdir_part_from_clone "${oldclone}"`"
-
 
    oldparent="`parentclone_of_repository "${reposdir}" "${name}"`"
    if [ ! -z "${oldparent}" ]
@@ -1031,11 +1042,6 @@ work_clones()
                remember="NO"
             ;;
 
-            #
-            # its actually wrong to do this here
-            # because deeply embedded repos might lose contact
-            # if also moved at same time
-            #
             move*)
                oldstashdir="${item:5}"
 
@@ -1360,6 +1366,25 @@ _common_main()
    local OPTION_EMBEDDED_ONLY="NO"
    local OVERRIDE_BRANCH
    local DONT_WARN_SCRIPTS="NO"
+
+
+   local ROOT_DIR="`pwd -P`"
+   local CACHES_PATH
+
+   #
+   # where we look for symlink sources
+   # user can set also seT via environment "CACHES_PATH"
+   #
+   # "repository" caches can and usually are outside the project folder
+   # this can be multiple paths!
+   local parent
+   local default_caches_path
+
+   # our "sandbox" root, probably not changeable
+   parent="`dirname -- "${ROOT_DIR}"`"
+   default_caches_path="${CACHES_PATH:-${parent}}"
+
+   CACHES_PATH="`read_config_setting "cashes_dir" "${default_caches_path}"`"
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OVERRIDE_BRANCH="`read_config_setting "override_branch"`"

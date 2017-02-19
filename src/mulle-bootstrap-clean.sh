@@ -394,8 +394,6 @@ clean_main()
 
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 
-   build_complete_environment
-
    while [ $# -ne 0 ]
    do
       case "$1" in
@@ -420,8 +418,8 @@ clean_main()
 
    style=${1:-"output"}
 
-   case "$1" in
-      output|dist|build|install)
+   case "${style}" in
+      "output"|"dist"|"build"|"install")
          clean_execute "${style}"
       ;;
 

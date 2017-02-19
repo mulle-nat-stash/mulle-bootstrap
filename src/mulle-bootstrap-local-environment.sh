@@ -89,13 +89,10 @@ get_core_count()
 
 add_path()
 {
-   local line
-   local path
+   local line="$1"
+   local path="$2"
 
    [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
-
-   line="$1"
-   path="$2"
 
    case "${UNAME}" in
       mingw)
@@ -108,6 +105,17 @@ add_path()
       echo "${path}"
    else
       echo "${line}${PATH_SEPARATOR}${path}"
+   fi
+}
+
+
+add_path_if_exists()
+{
+   if [ -e "${path}" ]
+   then
+      add_path "$@"
+   else
+      echo "$1"
    fi
 }
 
@@ -362,6 +370,8 @@ is_minion_bootstrap_project()
 #
 # read local environment
 # source this file
+# there should be nothing project specific in here
+# especially no setting or config reads
 #
 local_environment_initialize()
 {
@@ -383,18 +393,6 @@ local_environment_initialize()
    # used by embedded repositories to change location
    STASHES_ROOT_DIR=""
 
-   # our "sandbox" root, probably not changeable
-   ROOT_DIR="`pwd -P`"
-
-   #
-   # where we look for symlink sources
-   # user can set also seT via environment "CACHES_PATH"
-   #
-   local parent
-
-   parent="`dirname -- "${ROOT_DIR}"`"
-   DEFAULT_CACHES_PATH="${CACHES_PATH:-${parent}}"
-
    log_fluff "${UNAME} detected"
    case "${UNAME}" in
       mingw)
@@ -410,7 +408,7 @@ local_environment_initialize()
       ;;
 
       "")
-         fail "UNAME not set"
+         fail "UNAME not set yet"
       ;;
 
       *)

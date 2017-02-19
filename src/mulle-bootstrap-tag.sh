@@ -193,8 +193,8 @@ tag_main()
    log_debug "::: tag :::"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
-   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]           && . mulle-bootstrap-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ]      && . mulle-bootstrap-repositories.sh
 
    TAG_OPERATION="tag"
 
@@ -271,9 +271,9 @@ tag_main()
       return 0
    fi
 
-   fetch__run_root_settings_script "pre-tag"
+   run_root_settings_script "pre-tag"
 
    tag "${TAG}" "$@"
 
-   fetch__run_root_settings_script "pre-tag"
+   run_root_settings_script "pre-tag"
 }

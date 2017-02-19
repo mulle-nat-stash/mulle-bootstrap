@@ -201,6 +201,23 @@ is_yes()
 }
 
 
+add_cmake_path_if_exists()
+{
+   local line
+   local path
+
+   line="$1"
+   path="$2"
+
+   if [ -z "${line}" -o ! -e "${line}" ]
+   then
+      echo "${path}"
+   else
+      echo "${line};${path}"
+   fi
+}
+
+
 add_cmake_path()
 {
    local line
@@ -681,6 +698,31 @@ escaped_spaces()
    echo "$1" | sed 's/ /\\ /g'
 }
 
+
+combined_escaped_search_path_if_exists()
+{
+   local i
+   local combinedpath
+
+   for i in "$@"
+   do
+      if [ ! -z "${i}" ]
+      then
+         i="`escaped_spaces "${i}"`"
+         if [ -e "${i}" ]
+         then
+           if [ -z "$combinedpath" ]
+           then
+              combinedpath="${i}"
+           else
+              combinedpath="${combinedpath} ${i}"
+           fi
+        fi
+      fi
+   done
+
+   echo "${combinedpath}"
+}
 
 combined_escaped_search_path()
 {

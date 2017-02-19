@@ -45,6 +45,8 @@ EOF
    then
       cat <<EOF >&2
       -b : show brews
+      -d : show deeply embedded repositories
+      -r : show raw repository content
       -u : show URL
       -s : show scm, branch, tag info
 EOF
@@ -180,7 +182,7 @@ show_raw_repository()
          cd "${stashdir}"
          SHOW_PREFIX="${SHOW_PREFIX}   " \
          MULLE_BOOTSTRAP_DONT_DEFER="YES" \
-            mulle-bootstrap show ${MULLE_EXECUTABLE_OPTIONS}
+            mulle-bootstrap show -n ${MULLE_EXECUTABLE_OPTIONS}
       )
    fi
 }
@@ -262,15 +264,31 @@ show_brews()
 
 _common_show()
 {
+   if [ "${SHOW_HEADER}" = "YES" ]
+   then
+      log_info "${SHOW_PREFIX}Project:"
+      printf "${SHOW_PREFIX}   "
+      printf "${C_INFO}Directory${C_RESET}: "
+      printf "%s\n" "${PWD}"
+
+      # minions won't see this ever
+      printf "${SHOW_PREFIX}   "
+      printf "${C_INFO}Master${C_RESET}: "
+      if is_master_bootstrap_project
+      then
+         printf "YES\n"
+      else
+         printf "NO\n"
+      fi
+      log_info ""
+   fi
+
    if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       log_info "${SHOW_PREFIX}Repositories:"
       if [ "${SHOW_RAW}" = "YES" ]
       then
-         if [ "${SHOW_RAW}" = "YES" ]
-         then
-           log_info "${SHOW_PREFIX}   ${C_FAINT}URL;DSTDIR;BRANCH;SCM;TAG"
-         fi
+         log_info "${SHOW_PREFIX}   ${C_FAINT}URL;DSTDIR;BRANCH;SCM;TAG"
          show_raw_repositories
       else
          show_repositories
@@ -286,7 +304,7 @@ _common_show()
       fi
 
 
-      if [ "${SHOW_RAW}" = "NO" ]
+      if [ "${SHOW_RAW}" = "NO" -a "${SHOW_DEEP}" = "YES" ]
       then
          log_info ""
          log_info "${SHOW_PREFIX}Deeply Embedded Repositories:"
@@ -307,10 +325,14 @@ show_main()
 {
    log_debug ":show_main:"
 
+   local ROOT_DIR="`pwd -P`"
+
    local SHOW_SCM="NO"
    local SHOW_URL="NO"
    local SHOW_BREWS="YES"
    local SHOW_RAW="NO"
+   local SHOW_DEEP="NO"
+   local SHOW_HEADER="YES"
 
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_FETCH_SH}" ]        && . mulle-bootstrap-fetch.sh
@@ -333,6 +355,10 @@ show_main()
             SHOW_BREWS="YES"
          ;;
 
+         -d|--show-deep)
+            SHOW_DEEP="YES"
+         ;;
+
          -r|--raw)
             SHOW_RAW="YES"
          ;;
@@ -344,6 +370,11 @@ show_main()
          -u|--show-url)
             SHOW_URL="YES"
          ;;
+
+         -n|--no-header)
+            SHOW_HEADER="NO"
+         ;;
+
          -*)
             log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown status option $1"
             status_usage

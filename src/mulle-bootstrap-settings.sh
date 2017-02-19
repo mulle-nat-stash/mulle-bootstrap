@@ -65,20 +65,7 @@ warn_user_setting()
 
    path="$1"
 
-   if [ "$MULLE_BOOTSTRAP_NO_WARN_USER_SETTINGS" != "YES" ]
-   then
-      log_warning "Using `dirname -- "${path}"` for `basename -- "${path}"`"
-   fi
-}
-
-
-warn_local_setting()
-{
-   local path
-
-   path="$1"
-
-   if [ "$MULLE_BOOTSTRAP_NO_WARN_LOCAL_SETTINGS" != "YES" ]
+   if [ "$MULLE_BOOTSTRAP_WARN_USER_SETTINGS" = "YES" ]
    then
       log_warning "Using `dirname -- "${path}"` for `basename -- "${path}"`"
    fi
@@ -90,7 +77,7 @@ warn_environment_setting()
    local name
 
    name="$1"
-   if [ "$MULLE_BOOTSTRAP_NO_WARN_ENVIRONMENT_SETTINGS" != "YES" ]
+   if [ "$MULLE_BOOTSTRAP_WARN_ENVIRONMENT_SETTINGS" = "YES" ]
    then
       # don't trace some boring ones
       if [ "${name}" != "MULLE_FLAG_ANSWER" -a \
@@ -314,7 +301,7 @@ _read_home_setting()
 
    if [ "${MULLE_FLAG_LOG_SETTINGS}" = "YES" ]
    then
-      log_trace2 "Looking for setting \"${name}\" in \"~/.mulle-bootstrap\""
+      log_trace2 "Looking for setting \"${name}\" in \"~/.mulle-bootstrap/${name}\""
    fi
 
    if ! value="`_read_setting "${HOME}/.mulle-bootstrap/${name}"`"
@@ -324,7 +311,7 @@ _read_home_setting()
 
    if [ "${MULLE_FLAG_LOG_SETTINGS}" = "YES" ]
    then
-      log_trace "Setting ${C_MAGENTA}${C_BOLD}${name}${C_TRACE} found in \"~/.mulle-bootstrap\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
+      log_trace "Setting ${C_MAGENTA}${C_BOLD}${name}${C_TRACE} found in \"~/.mulle-bootstrap/${name}\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
    fi
    warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
 
@@ -924,17 +911,18 @@ setting_main()
 }
 
 
+#
 # read some config stuff now
-
+#
 settings_initialize()
 {
    log_debug ":settings_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
-   MULLE_BOOTSTRAP_NO_WARN_LOCAL_SETTINGS="`read_config_setting "no_warn_local_setting"`"
-   MULLE_BOOTSTRAP_NO_WARN_USER_SETTINGS="`read_config_setting "no_warn_user_setting"`"
-   MULLE_BOOTSTRAP_NO_WARN_ENVIRONMENT_SETTINGS="`read_config_setting "no_warn_environment_setting"`"
+   # MULLE_BOOTSTRAP_NO_WARN_LOCAL_SETTINGS="`read_config_setting "no_warn_local_setting"`"
+   MULLE_BOOTSTRAP_WARN_USER_SETTINGS="`read_config_setting "warn_user_setting" "YES"`"
+   MULLE_BOOTSTRAP_WARN_ENVIRONMENT_SETTINGS="`read_config_setting "warn_environment_setting" "YES"`"
 }
 
 settings_initialize

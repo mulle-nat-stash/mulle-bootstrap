@@ -46,7 +46,7 @@ EOF
 }
 
 
-status_repository()
+_status_repository()
 {
    local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
@@ -93,7 +93,7 @@ status_repository()
 status_repositories()
 {
    walk_repositories "repositories"  \
-                     "status_repository" \
+                     "_status_repository" \
                      "" \
                      "${REPOS_DIR}"
 }
@@ -101,8 +101,8 @@ status_repositories()
 
 status_embedded_repositories()
 {
-   walk_repositories "embedde_repositories"  \
-                     "status_repository" \
+   walk_repositories "embedded_repositories"  \
+                     "_status_repository" \
                      "" \
                      "${EMBEDDED_REPOS_DIR}"
 }
@@ -110,7 +110,8 @@ status_embedded_repositories()
 
 status_deep_embedded_repositories()
 {
-   walk_deep_embedded_repositories "${operation}" ""
+   walk_deep_embedded_repositories "_status_repository" \
+                                    ""
 }
 
 

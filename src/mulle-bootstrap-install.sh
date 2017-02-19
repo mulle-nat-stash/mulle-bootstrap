@@ -283,8 +283,6 @@ install_main()
    DEFAULT_PREFIX="/usr/local"
    DEFAULT_FRAMEWORK_PREFIX="/Library"
 
-   OPTION_CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
-   N_CONFIGURATIONS="`echo "${OPTION_CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
    while [ $# -ne 0 ]
    do
@@ -321,9 +319,10 @@ install_main()
       continue
    done
 
-
    PREFIX="${1:-${DEFAULT_PREFIX}}"
    [ $# -eq 0 ] || shift
+
+   build_complete_environment
 
    case "${UNAME}" in
       *)

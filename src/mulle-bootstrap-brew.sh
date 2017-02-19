@@ -64,6 +64,11 @@ fetch_brew_if_needed()
       return
    fi
 
+   if [ -d "${ADDICTIONS_DIR}" ]
+   then
+      fail "There is already a \"${ADDICTIONS_DIR}\" directory, move it away"
+   fi
+
    case "${UNAME}" in
       darwin)
          log_info "Installing OS X brew"

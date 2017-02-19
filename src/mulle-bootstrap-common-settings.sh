@@ -31,16 +31,21 @@
 #
 MULLE_BOOTSTRAP_COMMON_SETTINGS_SH="included"
 
+#
 # only needed for true builds
-
+#
 build_complete_environment()
 {
    #
    # Global Settings
-   #
-   HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
-   LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
-   FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
+   # used to be configurable, but just slows me down
+   HEADER_DIR_NAME="include"
+   LIBRARY_DIR_NAME="lib"
+   FRAMEWORK_DIR_NAME="Frameworks"
+
+   # HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
+   # LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
+   # FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 
    OPTION_CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
    if [ -z "${OPTION_CONFIGURATIONS}" ]
@@ -96,26 +101,28 @@ common_settings_initialize()
    log_debug ":common_settings_initialize:"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
    # experimentally, these could reside outside the project folder but never tested
    CLONESBUILD_SUBDIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
    BUILDLOGS_SUBDIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_SUBDIR}/.logs"`"
 
    # all of these must reside in the project folder
-   DEPENDENCIES_DIR="`read_sane_config_path_setting "dependencies_dir" "dependencies"`"
-   ADDICTIONS_DIR="`read_sane_config_path_setting "addictions_dir" "addictions"`"
-   STASHES_DEFAULT_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
+   # used to be configurable, but what's the point really ? just slows us down
 
-   # "repository" caches can and usually are outside the project folder
-   # this can be multiple paths!
-   CACHES_PATH="`read_config_setting "cashes_dir" "${DEFAULT_CACHES_PATH}"`"
+   DEPENDENCIES_DIR="dependencies"
+   ADDICTIONS_DIR="addictions"
+   STASHES_DEFAULT_DIR="stashes"
 
-   [ -z "${CLONESBUILD_SUBDIR}" ] && internal_fail "variable CLONESBUILD_SUBDIR is empty"
+   # DEPENDENCIES_DIR="`read_sane_config_path_setting "dependencies_dir" "dependencies"`"
+   # ADDICTIONS_DIR="`read_sane_config_path_setting "addictions_dir" "addictions"`"
+   # STASHES_DEFAULT_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
+
+   [ -z "${CLONESBUILD_SUBDIR}" ]  && internal_fail "variable CLONESBUILD_SUBDIR is empty"
    [ -z "${BUILDLOGS_SUBDIR}" ]    && internal_fail "variable BUILDLOGS_SUBDIR is empty"
-   [ -z "${DEPENDENCIES_DIR}" ]   && internal_fail "variable DEPENDENCIES_DIR is empty"
-   [ -z "${ADDICTIONS_DIR}" ]     && internal_fail "variable ADDICTIONS_DIR is empty"
-   [ -z "${STASHES_DEFAULT_DIR}" ]        && internal_fail "variable STASHES_DEFAULT_DIR is empty"
+#   [ -z "${DEPENDENCIES_DIR}" ]    && internal_fail "variable DEPENDENCIES_DIR is empty"
+#   [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "variable ADDICTIONS_DIR is empty"
+#   [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "variable STASHES_DEFAULT_DIR is empty"
 }
 
 common_settings_initialize

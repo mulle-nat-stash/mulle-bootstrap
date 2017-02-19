@@ -135,6 +135,11 @@ defer_main()
 
    master_add_minion_bootstrap_project "${masterpath}" "${minionpath}"
 
+   #
+   # clean the master, because cmake doesn't like old paths
+   # kinda superzealous though...
+   #
+   mulle-bootstrap clean output
 }
 
 

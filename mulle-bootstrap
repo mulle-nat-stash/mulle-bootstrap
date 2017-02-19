@@ -423,10 +423,10 @@ bootstrap_technical_flags()
          [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
          case "${UNAME}" in
             linux)
-               ps4string='$(date "\+ +%s.%N (${BASH_SOURCE[1]##*/}:${LINENO})")'
+               ps4string='$(date "+%s.%N (${BASH_SOURCE[1]##*/}:${LINENO})")'
             ;;
             *)
-               ps4string='$(date "\+ +%s (${BASH_SOURCE[1]##*/}:${LINENO})")'
+               ps4string='$(date "+%s (${BASH_SOURCE[1]##*/}:${LINENO})")'
             ;;
          esac
       ;;
@@ -516,7 +516,7 @@ bootstrap_should_defer_to_master()
    masterpath="`get_master_of_minion_bootstrap_project`"
 
    case "${command}" in
-      git|setup-xcode|xcode|tag|version|defer|emancipate)
+      git|setup-xcode|xcode|tag|version|defer|emancipate|uname|library-path)
          log_verbose "Minion executes locally"
       ;;
 
@@ -526,7 +526,7 @@ ${MULLE_BOOTSTRAP_EXECUTABLE} ${command}t is not possible."
       ;;
 
       *)
-         log_info "Minion defers to master \"$masterpath\" for execution"
+         log_verbose "Minion defers to master \"$masterpath\" for execution"
 
          cd "${masterpath}" || fail "master is missing"
          return 0  # this leads to  main deferring later on (but cd is set!)
@@ -625,9 +625,9 @@ bootstrap_main()
    #
    # some commands only run when we have a .bootstrap folder
    #
-   command=${1:-"bootstrap"}
+   command="${1:-bootstrap}"
 
-   if [ "${MULLE_FLAG_DIRTY_HARRY}" = "YES" ]
+   if [ "${MULLE_FLAG_DIRTY_HARRY}" = "NO" ]
    then
       set_fetch_needed
       set_build_needed
@@ -881,7 +881,7 @@ brew_main()
    #
    # some commands only run when we have a .bootstrap folder
    #
-   command=${1:-"install"}
+   command="${1:-install}"
    [ $# -eq 0 ] || shift
 
    if [ ! -d "${BOOTSTRAP_DIR}" ]
@@ -1031,23 +1031,29 @@ export MULLE_EXECUTABLE_PID
 
 bootstrap_init
 
-case "${MULLE_BOOTSTRAP_EXECUTABLE}" in
-   "mulle-brew")
-      if ! brew_main "$@"
-      then
-         "${MULLE_BOOTSTRAP_EXECUTABLE}" "$@" # is array
-         exit $?
-      fi
-   ;;
+main()
+{
+   case "${MULLE_BOOTSTRAP_EXECUTABLE}" in
+      "mulle-brew")
+         if ! brew_main "$@"
+         then
+            # just do it again, but cd has been set differently
+            main "$@" # is array
+            exit $?
+         fi
+      ;;
 
-   "mulle-bootstrap")
-      if ! bootstrap_main "$@"
-      then
-         "${MULLE_BOOTSTRAP_EXECUTABLE}" "$@" # is array
-         exit $?
-      fi
-   ;;
-esac
+      "mulle-bootstrap")
+         if ! bootstrap_main "$@"
+         then
+            # just do it again, but cd has been set differently
+            main "$@"
+            exit $?
+         fi
+      ;;
+   esac
+}
+
+main "$@"
 
 trap - TERM EXIT
-
