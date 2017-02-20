@@ -35,13 +35,10 @@ MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH="included"
 
 _dependency_add()
 {
-   local map
-   local name
-   local sub_name
+   local map="$1"
+   local name="$2"
+   local sub_name="$3"
 
-   map="$1"
-   name="$2"
-   sub_name="$3"
 
    local escaped_dependencies
    local dependencies
@@ -69,29 +66,23 @@ dependency_add()
 {
    if [ "${MULLE_TRACE_RESOLVER_FLIP_X}" = "YES" ]
    then
-   #     set +x
-   :
+      set +x
    fi
 
    _dependency_add "$@"
 
    if [ "${MULLE_TRACE_RESOLVER_FLIP_X}" = "YES" ]
    then
-   #   set -x
-   :
+      set -x
    fi
 }
 
 
 _dependency_add_array()
 {
-   local map
-   local name
-   local array
-
-   map="$1"
-   name="$2"
-   array="$3"
+   local map="$1"
+   local name="$2"
+   local array="$3"
 
    local sub_name
 
@@ -128,11 +119,8 @@ dependency_add_array()
 
 _dependency_resolve()
 {
-   local map
-   local name
-
-   map="$1"
-   name="$2"
+   local map="$1"
+   local name="$2"
 
    if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
    then
@@ -182,11 +170,8 @@ _dependency_resolve()
 
 dependency_resolve()
 {
-   local map
-   local name
-
-   map="$1"
-   name="$2"
+   local map="$1"
+   local name="$2"
 
    RESOLVED_DEPENDENCIES=
    UNRESOLVED_DEPENDENCIES=

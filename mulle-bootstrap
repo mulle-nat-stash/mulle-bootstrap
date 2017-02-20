@@ -158,7 +158,7 @@ ensure_consistency()
    if [ -f "${REPOS_DIR}/.bootstrap_fetch_started" ]
    then
       log_error "A previous fetch or update was incomplete.
-Suggested resolution (in $owd):
+Suggested resolution (in $PWD):
     ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
     ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
 
@@ -642,7 +642,8 @@ bootstrap_main()
          *)
             case "${command}" in
                bootstrap|nomagic|build|dist|clean|dist-clean|fetch|install|syteminstall|upgrade|update|setup-xcode|xcode|tag)
-               fail "There is no ${BOOTSTRAP_DIR} folder here, can't continue"
+                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here, can't continue"
+               ;;
             esac
          ;;
       esac
@@ -884,7 +885,7 @@ brew_main()
    command="${1:-install}"
    [ $# -eq 0 ] || shift
 
-   if [ ! -d "${BOOTSTRAP_DIR}" ]
+   if [ ! -d "${BOOTSTRAP_DIR}" -a ! -d "${BOOTSTRAP_DIR}.local" ]
    then
       case "$1" in
          -h|--help)
@@ -892,8 +893,9 @@ brew_main()
 
          *)
             case "${command}" in
-            dist|clean|dist-clean|install|upgrade|update|setup-xcode|xcode)
-               fail "There is no ${BOOTSTRAP_DIR} folder here, can't continue"
+               dist|clean|dist-clean|install|upgrade|update|setup-xcode|xcode)
+                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here, can't continue"
+               ;;
             esac
          ;;
       esac

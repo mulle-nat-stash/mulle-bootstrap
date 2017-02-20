@@ -351,11 +351,8 @@ assoc_array_set()
 #
 assoc_array_merge_with_array()
 {
-   local array1
-   local array2
-
-   array="$1"
-   array="$2"
+   local array1="$1"
+   local array2="$2"
 
    echo "${array2}" "${array1}" | sort -u -t'=' -k1,1
 }
@@ -368,11 +365,8 @@ assoc_array_merge_with_array()
 #
 assoc_array_augment_with_array()
 {
-   local array1
-   local array2
-
-   array="$1"
-   array="$2"
+   local array1="$1"
+   local array2="$2"
 
    echo "${array1}" "${array2}" | sort -u -t'=' -k1,1
 }
