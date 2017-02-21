@@ -74,7 +74,7 @@ EOF
 
    local  repositories
 
-   repositories="`repository_directories_from_repos`"
+   repositories="`all_repository_directories_from_repos`"
    if [ -z "${repositories}" ]
    then
       echo "Currently available repositories are:"
@@ -413,7 +413,8 @@ build_log_name()
    [ $# -eq 0 ] || shift
 
    local logfile
-   logfile="${BUILDLOGS_SUBDIR}/${name}"
+
+   logfile="${BUILDLOGS_DIR}/${name}"
 
    while [ $# -gt 0 ]
    do
@@ -424,7 +425,7 @@ build_log_name()
       [ $# -eq 0 ] || shift
    done
 
-   echo "${logfile}.${tool}.log"
+   absolutepath "${logfile}.${tool}.log"
 }
 
 
@@ -678,7 +679,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    fallback="`echo "${OPTION_CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
    mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
-   localcmakeflags="`read_build_setting "${name}" "cmakeflags"`"
+   localcmakeflags="`read_build_setting "${name}" "CMAKEFLAGS"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
    sdkparameter="`cmake_sdk_parameter "${sdk}"`"
 
@@ -715,12 +716,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local logfile1
    local logfile2
 
-   mkdir_if_missing "${BUILDLOGS_SUBDIR}"
+   mkdir_if_missing "${BUILDLOGS_DIR}"
 
    logfile1="`build_log_name "cmake" "${name}" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
-
-   log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
    local local_make_flags
 
@@ -746,9 +745,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       # DONT READ CONFIG SETTING IN THIS INDENT
       set -f
 
-      logfile1="${owd}/${logfile1}"
-      logfile2="${owd}/${logfile2}"
-
       if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
       then
          logfile1="`tty`"
@@ -759,6 +755,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          logfile1="/dev/null"
          logfile2="/dev/null"
       fi
+
+      log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
       local frameworklines
       local librarylines
@@ -1048,12 +1046,10 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local logfile1
    local logfile2
 
-   mkdir_if_missing "${BUILDLOGS_SUBDIR}"
+   mkdir_if_missing "${BUILDLOGS_DIR}"
 
    logfile1="`build_log_name "configure" "${name}" "${configuration}" "${sdk}"`"
    logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
-
-   log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
    local owd
    local nativewd
@@ -1080,6 +1076,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          logfile1="/dev/null"
          logfile2="/dev/null"
       fi
+
+      log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
       local frameworklines
       local librarylines
@@ -1479,10 +1477,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
    local logfile
 
-   mkdir_if_missing "${BUILDLOGS_SUBDIR}"
+   mkdir_if_missing "${BUILDLOGS_DIR}"
 
    logfile="`build_log_name "${toolname}" "${name}" "${configuration}" "${targetname}" "${schemename}" "${sdk}"`"
-   log_verbose "Build log will be in: ${C_RESET_BOLD}${logfile}${C_VERBOSE}"
 
    set -f
 
@@ -1542,8 +1539,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    exekutor cd "${srcdir}" || exit 1
 
       # DONT READ CONFIG SETTING IN THIS INDENT
-      logfile="${owd}/${logfile}"
-
       if [ "${MULLE_FLAG_VERBOSE_BUILD}" = "YES" ]
       then
          logfile="`tty`"
@@ -1552,6 +1547,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       then
          logfile="/dev/null"
       fi
+
+      log_verbose "Build log will be in: ${C_RESET_BOLD}${logfile}${C_VERBOSE}"
 
       # manually point xcode to our headers and libs
       # this is like manually doing xcode-setup
@@ -1746,9 +1743,11 @@ build_script()
    local targetname
    local logfile
 
-   mkdir_if_missing "${BUILDLOGS_SUBDIR}"
+   mkdir_if_missing "${BUILDLOGS_DIR}"
 
-   logfile="${BUILDLOGS_SUBDIR}/${name}-${configuration}-${sdk}.script.log"
+   logfile="${BUILDLOGS_DIR}/${name}-${configuration}-${sdk}.script.log"
+   logfile="`absolutepath "${logfile}"`"
+
    log_fluff "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
    mkdir_if_missing "${builddir}"
@@ -1757,8 +1756,6 @@ build_script()
 
    owd=`pwd`
    exekutor cd "${srcdir}" || exit 1
-
-      logfile="${owd}/${logfile}"
 
       if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
       then
@@ -1834,7 +1831,7 @@ build_with_configuration_sdk_preferences()
 
    local builddir
 
-   builddir="${CLONESBUILD_SUBDIR}/${configuration}/${name}"
+   builddir="${CLONESBUILD_DIR}/${configuration}/${name}"
 
    if [ -d "${builddir}" -a "${OPTION_CLEAN_BEFORE_BUILD}" = "YES" ]
    then
@@ -2023,17 +2020,15 @@ build_wrapper()
    # need that path for includes though
    #
 
-   run_build_settings_script "pre-build" "${name}" \
-                                         "${REPOS_DIR}" \
-                                         "?" \
-                                         "${name}" \
-                                         "-" \
-                                         "-" \
-                                         "${stashdir}" || exit 1
+   run_build_settings_script "pre-build" \
+                             "${name}" \
+                             "${srcdir}"
 
-   build "${name}" "${srcdir}" || exit 1
+   build "${name}" "${srcdir}"
 
-   run_build_settings_script "post-build" "${name}" "$@" || exit 1
+   run_build_settings_script "post-build" \
+                             "${name}" \
+                             "${srcdir}"
 
    if [ "${COMMAND}" != "ibuild"  ]
    then
@@ -2073,7 +2068,7 @@ build_if_alive()
          BUILT="${name}
 ${BUILT}"
       else
-         log_fluff "Ignoring \"${name}\". (Either in \"build_ignore\" or already built)"
+         log_fluff "Ignoring \"${name}\" as already built."
       fi
    fi
 }
@@ -2275,7 +2270,7 @@ build_main()
 
          # TODO: outdated!
          # fetch options, are just ignored (need to update this!)
-         -i|--ignore-branch|-fc|--force-checkout|-nr|--no-recursion|-e|--embedded-only|-es|--embedded-symlink|-u|--follow-symlinks)
+         -e|--embedded-only|-es|--embedded-symlinks|-l|--symlinks)
             :
          ;;
 

@@ -57,44 +57,38 @@ eval_exekutor()
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
-      eval "$@"
+      ( eval "$@" )
    fi
 }
 
 
 redirect_append_eval_exekutor()
 {
-   local output
-
-   output="$1"
-   shift
+   local output="$1"; shift
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
       if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
       then
-         echo "==>" "$@" ">" "${output}" >&2
+         echo "==>" "$@" ">>" "${output}" >&2
       else
-         echo "==>" "$@" ">" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
+         echo "==>" "$@" ">>" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
       fi
    fi
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
-      eval "$@" >> "${output}"
+      ( eval "$@" ) >> "${output}"
    fi
 }
 
 
 logging_redirect_eval_exekutor()
 {
-   local output
-
-   output="$1"
-   shift
+   local output="$1"; shift
 
    echo "==>" "$@" > "${output}" # to stdout
-   redirect_append_eval_exekutor "$1" "$@"
+   redirect_append_eval_exekutor "${output}" "$@"
 }
 
 
@@ -119,10 +113,7 @@ exekutor()
 
 redirect_exekutor()
 {
-   local output
-
-   output="$1"
-   shift
+   local output="$1"; shift
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
@@ -136,17 +127,14 @@ redirect_exekutor()
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
-      "$@" > "${output}"
+      ( "$@" ) > "${output}"
    fi
 }
 
 
 redirect_append_exekutor()
 {
-   local output
-
-   output="$1"
-   shift
+   local output="$1"; shift
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
@@ -160,17 +148,14 @@ redirect_append_exekutor()
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
-      "$@" >> "${output}"
+      ( "$@" ) >> "${output}"
    fi
 }
 
 
 logging_redirekt_exekutor()
 {
-   local output
-
-   output="$1"
-   shift
+   local output="$1"; shift
 
    echo "==>" "$@" > "${output}"
    redirect_append_exekutor "${output}" "$@"
@@ -548,7 +533,6 @@ _relative_path_between()
 #
 # the routine can not deal with ../ and ./
 # but is a bit faster than symlink_relpath
-# which uses simplify_path
 #
 relative_path_between()
 {
@@ -690,9 +674,9 @@ absolutepath()
 
 
 #
-# Imagine you are in a working directory pwd and you have two
-# paths `a` and  `b`. This function gives the relpath you need
-# if you were to symlink 'a' into 'b'
+# Imagine you are in a working directory `dirname b`
+# This function gives the relpath you need
+# if you were to create symlink 'b' pointing to 'a'
 #
 symlink_relpath()
 {
@@ -764,6 +748,8 @@ _simplify_components()
 {
    local i
    local result
+
+   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
 
    result= # voodoo linux fix ?
    IFS="
@@ -1380,9 +1366,6 @@ functions_initialize()
    [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
 
    log_debug ":functions_initialize:"
-
-   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ] && . mulle-bootstrap-array.sh
-
 
    :
 }

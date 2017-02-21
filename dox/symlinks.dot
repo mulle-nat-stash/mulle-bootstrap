@@ -1,0 +1,35 @@
+digraph linkage {
+	node [ shape="folder" ]
+
+	project      -> repository_a
+	repository_a -> embedded_repository1
+	repository_a -> embedded_repository2    [ label=" symlink", color=" blue" ]
+
+	project      -> repository_b    	    [ label=" symlink", color=" blue" ]
+	repository_b -> embedded_repository3     
+	repository_b -> embedded_repository4    [ label=" symlink", color=" blue" ]
+
+	project      -> embedded_repository_c    [ label=" symlink", color=" blue" ]
+
+	repository_a  [ label="repository (a)"]
+	repository_b  [ label="repository (b)", color="blue"]
+	embedded_repository1  [ label="embedded_repository (1)"]
+	embedded_repository2  [ label="embedded_repository (2)", color="blue"]
+	embedded_repository3  [ label="embedded_repository (3)"]
+	embedded_repository4  [ label="embedded_repository (4)", color="blue"]
+	embedded_repository_c [ label="embedded_repository (c)", color="blue"]
+
+  node [shape=plaintext]
+  subgraph cluster_01 { 
+    label = "Legend";
+    key [label=<<table border="0" cellpadding="2" cellspacing="0" cellborder="0">
+      <tr><td align="left">(a): Created by -a. Updates normally</td></tr>
+      <tr><td align="left">(1): Created by -a. Updates normally</td></tr>
+      <tr><td align="left">(2): Created by -y --embedded-symlinks (no cache found). Updates with --follow-symlinks</td></tr>
+      <tr><td align="left">(b): Created by -y. Updates with --follow-symlinks</td></tr>
+      <tr><td align="left">(3): Created by -y --embedded-symlinks --follow-symlinks (no cache found). Updates with --follow-symlinks</td></tr>
+      <tr><td align="left">(4): Created by -y --embedded-symlinks --follow-symlinks. Updates with --follow-symlinks</td></tr>
+      <tr><td align="left">(c): Created by -y --embedded-symlinks. Updates with --follow-symlinks</td></tr>
+      </table>>]
+  }
+}

@@ -192,6 +192,35 @@ all_embedded_repository_stashes()
 }
 
 
+# all_minion_stashdirs()
+# {
+#    local reposdir="$1"
+
+#    [ -z "${reposdir}" ] && internal_fail "repos is empty"
+
+#    local name
+#    local stash
+
+#    IFS="
+# "
+#    for name in `ls -1 "${reposdir}/" 2> /dev/null`
+#    do
+#       IFS="${DEFAULT_IFS}"
+
+#       stash="`stash_of_repository "${reposdir}" "${name}"`"
+#       if [ ! -z "${stash}" ]
+#       then
+#          if is_minion_bootstrap_project "${stash}"
+#          then
+#             echo "${stash}"
+#          fi
+#       fi
+#    done
+
+#    IFS="${DEFAULT_IFS}"
+# }
+
+
 #
 # Walkers
 #
@@ -307,7 +336,6 @@ _get_all_repos_clones()
 }
 
 
-
 _deep_walk_repos_trampoline()
 {
    log_debug ":_deep_walk_repos_trampoline:" "$@"
@@ -374,8 +402,10 @@ _deep_walk_auto_trampoline()
 
       PARENT_REPOSITORY_NAME="${name}"
       PARENT_CLONE="${clone}"
+
       STASHES_DEFAULT_DIR=""
       STASHES_ROOT_DIR="${stashdir}"
+
       _walk_repositories "${embedded_clones}" \
                          "${callback}" \
                          "${permissions}" \
@@ -487,7 +517,6 @@ walk_raw_clones()
 
    IFS="${DEFAULT_IFS}"
 }
-
 
 
 # deal with stuff like
@@ -725,7 +754,6 @@ read_repository_file()
 }
 
 
-
 ensure_reposdir_directory()
 {
    local reposdir
@@ -877,6 +905,7 @@ unique_repository_contents()
 
    echo "${output}"
 }
+
 
 #
 # Take an expanded .bootstrap.auto file and put the

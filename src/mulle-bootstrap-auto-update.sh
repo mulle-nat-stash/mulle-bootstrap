@@ -259,7 +259,7 @@ _bootstrap_auto_merge_root_settings()
       srcfile="${directory}/.bootstrap/${settingname}"
       if [ -d "${srcfile}" ]
       then
-         log_fluff "Directory \"${srcfile}\" not copied"
+         # log_fluff "Directory \"${srcfile}\" not copied"
          continue
       fi
 
@@ -282,7 +282,7 @@ _bootstrap_auto_merge_root_settings()
       match="`echo "${MERGABLE_SETTINGS}" | fgrep -s -x "${settingname}"`"
       if [ -z "${match}" ]
       then
-         log_fluff "Setting \"${settingname}\" is not mergable, so ignored"
+         # log_fluff "Setting \"${settingname}\" is not mergable, so ignored"
          continue
       fi
 

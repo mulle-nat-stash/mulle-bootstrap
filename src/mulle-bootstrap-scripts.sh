@@ -37,28 +37,21 @@ run_script()
 
    [ ! -z "$script" ] || internal_fail "script is empty"
 
-   local directory
-
-   directory="${PWD}/$3"
-   [ -d "$directory" ] || internal_fail "expected directory \"${directory}\" is missing from \"${PWD}\""
-
    if [ -x "${script}" ]
    then
       script="`absolutepath "${script}"`"
-      log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} $1 ..."
-      if  [ "${MULLE_FLAG_LOG_SCRIPTS}" = "YES" ]
+      log_verbose "Executing script ${C_RESET_BOLD}${script}${C_VERBOSE} in ($PWD)..."
+
+      if [ "${MULLE_FLAG_LOG_SCRIPTS}" = "YES" ]
       then
          echo "ARGV=" "$@" >&2
-         echo "DIRECTORY=${directory}" >&2
+         echo "DIRECTORY=${PWD}" >&2
          echo "ENVIRONMENT=" >&2
          echo "{" >&2
          env | sed 's/^\(.\)/   \1/' >&2
          echo "}" >&2
       fi
-      (
-         cd "${directory}"
-         exekutor "${script}" "$@" >&2
-      ) || fail "script \"${script}\" did not run successfully"
+      exekutor "${script}" "$@" >&2 || fail "script \"${script}\" did not run successfully"
    else
       if [ ! -e "${script}" ]
       then
@@ -87,14 +80,19 @@ run_root_settings_script()
 run_build_settings_script()
 {
    local scriptname="$1" ; shift
-   local name="$1" ; shift
+   local name="$1"
+   local stashdir="$2"
 
    local script
 
    script="`find_build_setting_file "${name}" "bin/${scriptname}.sh"`"
    if [ ! -z "${script}" ]
    then
-      run_script "${script}" "$@"
+      script="`absolutepath "${script}"`"
+      (
+         cd "${stashdir}"
+         run_script "${script}" "$@"
+      ) || exit 1
    fi
 }
 

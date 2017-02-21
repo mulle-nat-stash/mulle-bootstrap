@@ -46,11 +46,11 @@ _collect_stashdir()
 
    is_minion_bootstrap_project "${stashdir}" && return
 
-   local stashparentdir
-
-   stashparentdir="`dirname -- "${stashdir}"`"
-
-   [ "${stashparentdir}" = "${STASHES_DEFAULT_DIR}" ] && return
+   case "${stashdir}" in
+      stashes/*)
+         return
+      ;;
+   esac
 
    echo "${stashdir}"
 }
@@ -121,7 +121,7 @@ print_stashdir_embedded_repositories()
 setup_clean_environment()
 {
    [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
-   [ -z "${CLONESBUILD_SUBDIR}" ]  && internal_fail "CLONESBUILD_SUBDIR is empty"
+   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "CLONESBUILD_DIR is empty"
    [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "ADDICTIONS_DIR is empty"
    [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "STASHES_DEFAULT_DIR is empty"
 
@@ -129,7 +129,7 @@ setup_clean_environment()
 
    OUTPUT_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
 
-   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
+   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
 ${DEPENDENCIES_DIR}/tmp"`"
    OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
    INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
@@ -307,7 +307,7 @@ clean_execute()
    local style="$1"
 
    [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
-   [ -z "${CLONESBUILD_SUBDIR}" ]  && internal_fail "CLONESBUILD_SUBDIR is empty"
+   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "CLONESBUILD_DIR is empty"
    [ -z "${ADDICTIONS_DIR}"   ]    && internal_fail "ADDICTIONS_DIR is empty"
    [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "STASHES_DEFAULT_DIR is empty"
 
@@ -315,14 +315,14 @@ clean_execute()
 
    case "${style}" in
       build)
-         BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
+         BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
 ${DEPENDENCIES_DIR}/tmp"`"
          clean_directories "${BUILD_CLEANABLE_SUBDIRS}"
          return
       ;;
 
       dist|output|install)
-         BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
+         BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
 ${DEPENDENCIES_DIR}/tmp"`"
 
          clean_directories "${BUILD_CLEANABLE_SUBDIRS}"

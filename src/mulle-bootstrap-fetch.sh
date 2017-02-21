@@ -63,7 +63,7 @@ usage:
       --check-usr-local   :  check /usr/local for duplicates
       --embedded-only     :  fetch embedded repositories only
 
-      --allow-symlinks    :  allow symlinking instead of cloning
+      --symlinks          :  allow symlinking instead of cloning
       --embedded-symlinks :  allow embedded symlinks (very experimental)
       --follow-symlinks   :  follow symlinks when updating (not recommended)
       --no-caches         :  don't use caches. Useful to counter flag -y
@@ -209,11 +209,13 @@ can_symlink_it()
 
    if [ "${OPTION_ALLOW_CREATING_SYMLINKS}" != "YES" ]
    then
+      log_trace "Can't symlink it, because forbidden"
       return 1
    fi
 
    case "${UNAME}" in
       minwgw)
+         log_trace "Can't symlink it, because symlinking is unavailable on this platform"
          return 1
       ;;
    esac
@@ -241,11 +243,6 @@ ask_symlink_it()
    local  directory
 
    directory="$1"
-
-   if [ ! -d "${directory}" ]
-   then
-      fail "You need to check out \"${directory}\" yourself, as it's not there."
-   fi
 
    if ! can_symlink_it "${directory}"
    then
@@ -403,7 +400,7 @@ clone_or_symlink()
 
    if [ ! -z "${script}" ]
    then
-      fetch__run_script "${script}" "$@"
+      run_script "${script}" "$@"
       return $?
    fi
 
@@ -433,7 +430,7 @@ clone_or_symlink()
 
             if [ ! -z "${found}" ]
             then
-               user_say_yes "There is a \"${found}\" folder in the parent directory of this project.
+               user_say_yes "There is a \"${found}\" folder in the repository cache.
 (\"${PWD}\"). Use it ?"
                if [ $? -eq 0 ]
                then
@@ -553,7 +550,7 @@ checkout_repository()
    script="`find_build_setting_file "${name}" "bin/checkout.sh"`"
    if [ ! -z "${script}" ]
    then
-      fetch__run_script "${script}" "$@"
+      run_script "${script}" "$@"
    else
       "${operation}" "$@"
    fi
@@ -593,7 +590,7 @@ update_repository()
    script="`find_build_setting_file "${name}" "bin/update.sh"`"
    if [ ! -z "${script}" ]
    then
-      fetch__run_script "${script}" "$@"
+      run_script "${script}" "$@"
    else
       "${operation}" "$@"
    fi
@@ -633,7 +630,7 @@ upgrade_repository()
    script="`find_build_setting_file "${name}" "bin/upgrade.sh"`"
    if [ ! -z "${script}" ]
    then
-      fetch__run_script "${script}" "$@"
+      run_script "${script}" "$@"
    else
       "${operation}" "$@"
    fi
@@ -800,12 +797,6 @@ required_action_for_clone()
       return
    fi
 
-   if [ "${scm}" = "symlink" ]
-   then
-      log_fluff "\"${stashdir}\" is symlink. Ignoring possible differences."
-      return
-   fi
-
    log_debug "Change: \"${clone}\" -> \"${newclone}\""
 
    if [ "${scm}" != "${newscm}" ]
@@ -819,7 +810,7 @@ clone"
    #
    # if scm is not git, don't try to be clever
    #
-   if [ ! -z "${scm}"  -a "${scm}" != "git" ]
+   if [ ! -z "${scm}" ] && [ "${scm}" != "git" -a "${scm}" != "symlink" ]
    then
       echo "remove
 clone"
@@ -855,6 +846,19 @@ clone"
             fi
          fi
       fi
+   fi
+
+   if [ "${scm}" = "symlink" ]
+   then
+      if [ -e "${newstashdir}" ]
+      then
+         log_fluff "\"${stashdir}\" is symlink. Ignoring possible differences."
+         return
+      fi
+
+      log_fluff "\"${newstashdir}\" is missing, reget."
+      echo "clone"
+      return
    fi
 
    if [ "${branch}" != "${newbranch}" ]
@@ -1345,11 +1349,10 @@ _common_main()
    local MULLE_FLAG_FOLLOW_SYMLINKS="NO"
    local OPTION_ALLOW_CREATING_SYMLINKS="NO"
    local OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
-   local OPTION_ALLOW_SEARCH_CACHES="NO"
+   local OPTION_ALLOW_SEARCH_CACHES="YES"
    local OPTION_EMBEDDED_ONLY="NO"
    local OVERRIDE_BRANCH
    local DONT_WARN_SCRIPTS="NO"
-
 
    local ROOT_DIR="`pwd -P`"
    local CACHES_PATH
@@ -1360,17 +1363,11 @@ _common_main()
    #
    # "repository" caches can and usually are outside the project folder
    # this can be multiple paths!
-   local parent
-   local default_caches_path
-
-   # our "sandbox" root, probably not changeable
-   parent="`dirname -- "${ROOT_DIR}"`"
-   default_caches_path="${CACHES_PATH:-${parent}}"
-
-   CACHES_PATH="`read_config_setting "cashes_dir" "${default_caches_path}"`"
+   CACHES_PATH="`read_config_setting "cashes_path" "${CACHES_PATH}"`"
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OVERRIDE_BRANCH="`read_config_setting "override_branch"`"
+
 
    DONT_WARN_SCRIPTS="`read_config_setting "dont_warn_scripts" "${MULLE_FLAG_ANSWER:-NO}"`"
 
@@ -1381,16 +1378,13 @@ _common_main()
 
    case "${UNAME}" in
       mingw)
-         OPTION_ALLOW_CREATING_SYMLINKS="NO"
-         MULLE_FLAG_FOLLOW_SYMLINKS="NO"
       ;;
 
       *)
-         OPTION_ALLOW_CREATING_SYMLINKS="`read_config_setting "symlink_allowed" "${MULLE_FLAG_ANSWER}"`"
+         OPTION_ALLOW_CREATING_SYMLINKS="`read_config_setting "symlinks" "${MULLE_FLAG_ANSWER}"`"
+         OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="`read_config_setting "embedded_symlinks" "NO"`"
       ;;
    esac
-
-   OPTION_ALLOW_SEARCH_CACHES="${MULLE_FLAG_ANSWER}"
 
    #
    # it is useful, that fetch understands build options and
@@ -1401,10 +1395,6 @@ _common_main()
       case "$1" in
          -h|-help|--help)
             ${USAGE}
-         ;;
-
-         -c|--caches)
-            OPTION_ALLOW_SEARCH_CACHES="YES"
          ;;
 
          -cu|--check-usr-local|--check-usr-local)
@@ -1420,8 +1410,8 @@ _common_main()
             MULLE_FLAG_FOLLOW_SYMLINKS="YES"
          ;;
 
-         # create symlinks instead of clones for repositories
-         -l|--symlink-creation)
+         # allow creating symlinks instead of clones for repositories
+         -l|--symlink-creation|--symlinks)
             OPTION_ALLOW_CREATING_SYMLINKS="YES"
          ;;
 
@@ -1437,13 +1427,12 @@ _common_main()
 
          --no-caches)
             OPTION_ALLOW_SEARCH_CACHES="NO"
-            OPTION_ALLOW_CREATING_SYMLINKS="NO"
          ;;
 
          --no-symlink-creation|--no-symlinks)
             MULLE_FLAG_FOLLOW_SYMLINKS="NO"
-            OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
             OPTION_ALLOW_CREATING_SYMLINKS="NO"
+            OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
          ;;
 
          # TODO: outdated!

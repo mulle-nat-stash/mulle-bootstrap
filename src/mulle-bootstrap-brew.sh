@@ -66,7 +66,7 @@ fetch_brew_if_needed()
 
    if [ -d "${ADDICTIONS_DIR}" ]
    then
-      fail "There is already an \"${ADDICTIONS_DIR}\" folder here, move it away"
+      fail "There is already an \"${ADDICTIONS_DIR}\" folder here ($PWD), move it away"
    fi
 
    case "${UNAME}" in

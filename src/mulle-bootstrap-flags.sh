@@ -45,14 +45,19 @@ usage:
    Output flags for various tool types. You can specify multiple types.
 
    Types:
+      addictions     : output "addictions" path
+      binpath        : output paths for binaries
       cflags         : output CFLAGS for gcc, clang and friends
+      cmake-flags    : output cmake flag definitions
+      cmake-paths    : output cmake paths definitions
       cxxflags       : output CXXFLAGS
-      ldflags        : output LDFLAGS
-      path           : output PATH
+      dependencies   : output "dependencies" path
       environment*   : output CFLAGS, CXXFLAGS, LDFLAGS (default)
       frameworkpath  : output framework search paths PATH style
       headerpath     : output framework search paths PATH style
+      ldflags        : output LDFLAGS
       librarypath    : output library search paths PATH style
+      path           : output PATH
 EOF
   exit 1
 }
@@ -334,6 +339,8 @@ _flags_headerpath_value()
 
 _flags_librarypath_value()
 {
+   local result
+
    if [ "${OPTION_WITH_LIBRARYPATHS}" = "YES" ]
    then
       if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
@@ -354,6 +361,78 @@ _flags_librarypath_value()
       echo "${result}"
    fi
 }
+
+
+_flags_do_cmake_flags()
+{
+   local result="$1"
+
+   local values
+   local line
+
+   values="`_flags_cflags_value`"
+   if [ ! -z "${values}" ]
+   then
+      values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
+      line="-DCMAKE_C_FLAGS=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   values="`_flags_cxxflags_value`"
+   if [ ! -z "${values}" ]
+   then
+      values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
+      line="-DCMAKE_CXX_FLAGS=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   values="`_flags_ldflags_value`"
+   if [ ! -z "${values}" ]
+   then
+      values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
+      line="-DCMAKE_EXE_LINKER_FLAGS=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+
+      line="-DCMAKE_SHARED_LINKER_FLAGS=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   printf "%s" "$result"
+}
+
+
+_flags_do_cmake_paths()
+{
+   local result="$1"
+
+   local values
+   local line
+
+   values="`_flags_headerpath_value`"
+   if [ ! -z "${values}" ]
+   then
+      line="-DCMAKE_INCLUDE_PATH =\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   values="`_flags_librarypath_value`"
+   if [ ! -z "${values}" ]
+   then
+      line="-DCMAKE_LIBRARY_PATH=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   # does CMAKE_FRAMEWORK_PATH even exist ?
+   values="`_flags_frameworkpath_value`"
+   if [ ! -z "${values}" ]
+   then
+      line="-DCMAKE_FRAMEWORK_PATH=\"${values}\""
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   printf "%s" "$result"
+}
+
 
 
 _flags_do_path()
@@ -545,11 +624,28 @@ flags_main()
       [ $# -ne 0 ] && shift
 
       case "${type}" in
+         addictions)
+            values="`_flags_emit_path "${ADDICTIONS_DIR}"`"
+            result="`add_line "${result}" "${values}"`"
+         ;;
+
+         dependencies)
+            values="`_flags_emit_path "${DEPENDENCIES_DIR}"`"
+            result="`add_line "${result}" "${values}"`"
+         ;;
+
          "cflags"|"cxxflags"|"ldflags"|"binpath"|"frameworkpath"|"headerpath"|"librarypath")
             values="`_flags_${type}_value`"
             result="`add_line "${result}" "${values}"`"
          ;;
 
+         "cmake-flags")
+            result="`_flags_do_cmake_flags "${result}"`"
+         ;;
+
+         "cmake-paths")
+            result="`_flags_do_cmake_paths "${result}"`"
+         ;;
 
          "path")
             result="`_flags_do_path "${result}"`"
@@ -572,7 +668,7 @@ flags_main()
    then
       if [ "${separator}" = " " ]
       then
-         printf "${result}" | tr '\012' ' '  | sed 's/ *$//'
+         printf "%s" "${result}" | tr '\012' ' '  | sed 's/ *$//'
          printf "\n"
       else
          printf "%s\n" "${result}"

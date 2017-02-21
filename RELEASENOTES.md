@@ -32,7 +32,7 @@ REPOS_DIR         | CLONES_SUBDIR       |
 patch anymore. It's also convenient for the test scripts
 * various status files are now prefixed with .bootstrap_
 * **tag** as a setting does not exist anymore. Now its part of the repositories line
-* A lot of options have changed. Sorry about this, but progres...
+* A lot of options have changed. Too many to mention. Sorry about this, but progres...
 
 
 ### 2.6.1

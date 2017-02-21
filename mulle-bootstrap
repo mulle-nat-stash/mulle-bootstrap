@@ -647,7 +647,7 @@ bootstrap_main()
 
          *)
             case "${command}" in
-               bootstrap|nomagic|build|dist|clean|dist-clean|fetch|install|syteminstall|upgrade|update|setup-xcode|xcode|tag)
+               bootstrap|nomagic|build|dist|clean|dist-clean|fetch|install|syteminstall|upgrade|update|setup-xcode|show|status|xcode|tag)
                   fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here, can't continue"
                ;;
             esac
@@ -662,7 +662,7 @@ bootstrap_main()
       if [ "${MULLE_FLAG_DIRTY_HARRY}" = "YES" ]
       then
          case "${command}" in
-            clean|dist-clean|init|status)
+            clean|dist-clean|init|status|show|config|setting)
             ;;
 
             *)

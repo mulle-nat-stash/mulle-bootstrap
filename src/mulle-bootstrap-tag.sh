@@ -275,5 +275,5 @@ tag_main()
 
    tag "${TAG}" "$@"
 
-   run_root_settings_script "pre-tag"
+   run_root_settings_script "post-tag"
 }

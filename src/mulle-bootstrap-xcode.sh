@@ -37,7 +37,7 @@ xcode_usage()
 {
    cat <<EOF >&2
 usage:
-   mulle-bootstrap xcode [<add|remove> [xcodeproj]
+   mulle-bootstrap xcode <add|remove> [xcodeproj]
 
    add      : add settings to Xcode project (default)
    remove   : remove settings from Xcode project
@@ -160,6 +160,7 @@ patch_library_configurations()
    for i in ${xcode_configurations}
    do
       IFS="${DEFAULT_IFS}"
+
       mapped=`map_configuration "${configurations}" "${i}" "${default}"`
       exekutor mulle-xcode-settings -configuration "${i}" "${flag}" "LIBRARY_CONFIGURATION" "${mapped}" "${project}" || exit 1
    done
@@ -193,6 +194,10 @@ patch_xcode_project()
       fi
    fi
 
+   local projectdir
+   local projectname
+
+   projectdir="`dirname -- "${project}"`"
    projectname="`basename -- "${project}"`"
 
    # mod_pbxproj can only do Debug/Release/All...
@@ -244,20 +249,15 @@ Release"
    local library_search_paths
    local framework_search_paths
 
-   #  figure out a way to make this nicer
-   local absolute
-   local absolute2
+   # grab values from master if needed
+   DEPENDENCIES_DIR="`mulle-bootstrap flags dependencies`"
+   ADDICTIONS_DIR="`mulle-bootstrap flags addictions`"
 
-   absolute="`absolutepath "${project}"`"
-   absolute="`dirname -- "${absolute}"`"
+   relpath="`symlink_relpath "${DEPENDENCIES_DIR}" "${projectdir}"`"
+   dependencies_dir='$(PROJECT_DIR)'/"${relpath}"
 
-   absolute2="`pwd -P`/${DEPENDENCIES_DIR}"
-   dependencies_dir='$(PROJECT_DIR)'/"${DEPENDENCIES_DIR}"
-#   dependencies_dir='$(PROJECT_DIR)'/"${relative_subdir}'"
-
-   absolute2="`pwd -P`/${ADDICTIONS_DIR}"
-   addictions_dir='$(PROJECT_DIR)'/"${ADDICTIONS_DIR}"
-#   addictions_dir='$(PROJECT_DIR)/'"${relative_subdir}"
+   relpath="`symlink_relpath "${ADDICTIONS_DIR}" "${projectdir}"`"
+   addictions_dir='$(PROJECT_DIR)'/"${relpath}"
 
    header_search_paths=""
    if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]

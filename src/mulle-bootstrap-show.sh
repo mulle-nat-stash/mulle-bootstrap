@@ -406,5 +406,10 @@ show_main()
    done
 
    _common_show "$@"
+
+   if [ "${SHOW_RAW}" != "YES" -a ! -d "${BOOTSTRAP_DIR}".auto ]
+   then
+      log_warning "Nothing to show yet. Maybe use --raw option ?"
+   fi
 }
 

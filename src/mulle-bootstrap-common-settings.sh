@@ -84,8 +84,11 @@ build_complete_environment()
 
       *)
          # get number of cores, use 50% more for make -j
-         CORES="`get_core_count`"
-         CORES="`expr $CORES + $CORES / 2`"
+         if [ -z "${CORES}" ]
+         then
+            CORES="`get_core_count`"
+            CORES="`expr $CORES + $CORES / 2`"
+         fi
 
          BUILD_PWD_OPTIONS="-P"
          BUILDPATH="$PATH"
@@ -104,8 +107,8 @@ common_settings_initialize()
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
    # experimentally, these could reside outside the project folder but never tested
-   CLONESBUILD_SUBDIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
-   BUILDLOGS_SUBDIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_SUBDIR}/.logs"`"
+   CLONESBUILD_DIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
+   BUILDLOGS_DIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_DIR}/.logs"`"
 
    # all of these must reside in the project folder
    # used to be configurable, but what's the point really ? just slows us down
@@ -118,8 +121,8 @@ common_settings_initialize()
    # ADDICTIONS_DIR="`read_sane_config_path_setting "addictions_dir" "addictions"`"
    # STASHES_DEFAULT_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
 
-   [ -z "${CLONESBUILD_SUBDIR}" ]  && internal_fail "variable CLONESBUILD_SUBDIR is empty"
-   [ -z "${BUILDLOGS_SUBDIR}" ]    && internal_fail "variable BUILDLOGS_SUBDIR is empty"
+   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "variable CLONESBUILD_DIR is empty"
+   [ -z "${BUILDLOGS_DIR}" ]    && internal_fail "variable BUILDLOGS_DIR is empty"
 #   [ -z "${DEPENDENCIES_DIR}" ]    && internal_fail "variable DEPENDENCIES_DIR is empty"
 #   [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "variable ADDICTIONS_DIR is empty"
 #   [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "variable STASHES_DEFAULT_DIR is empty"

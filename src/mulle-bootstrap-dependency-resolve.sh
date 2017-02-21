@@ -173,6 +173,8 @@ dependency_resolve()
    local map="$1"
    local name="$2"
 
+   log_debug ":dependency_resolve:"
+
    RESOLVED_DEPENDENCIES=
    UNRESOLVED_DEPENDENCIES=
 

@@ -17,10 +17,7 @@ Setting Name            |  Description
 `brews`                 | Homebrew formulae to install
 `repositories`          | Repositories to clone, specify the URLs
 `embedded_repositories` | Repositories to embed, specify the URLs
-`taps`                  | Homebrew taps to install
 `tarballs`              | Tarballs to install (currently filesystem only)
-`build_ignore`          | Repositories not to build
-
 
 
 > None of these settings are required, they are used to control the
@@ -69,10 +66,8 @@ Setting Name                     |  Description                               | 
 Root Scripts
 ==========================
 
-`bin/pre-fetch.sh`
-`bin/post-fetch.sh`
-`bin/pre-update.sh`
-`bin/post-update.sh`
+`bin/pre-build.sh`
+`bin/post-build.sh`
 `bin/pre-tag.sh`
 `bin/post-tag.sh`
 
@@ -103,7 +98,8 @@ Setting Name                      |  Description                                
 Setting Name                      |  Description                                  | Default
 ----------------------------------|-----------------------------------------------|--------------
 `absolute_symlinks`               | Use absolute symlinks instead of relatives    | NO
-`symlink_forbidden`               | mulle-bootstrap will not attempt to symlink   | NO (ignored on MINGW)
+`embedded_symlinks`               | mulle-bootstrap will attempt to symlink regular repositories       | NO (ignored on MINGW)
+`symlinks`                        | mulle-bootstrap will attempt to symlink embedded repositories       | NO (ignored on MINGW)
 `update_gitignore`                | add cleanable directories to .gitignore       | YES
 `check_usr_local_include`         | do not fetch, if a system header of same      |
                                   | is present in `/usr/local/include`            | NO

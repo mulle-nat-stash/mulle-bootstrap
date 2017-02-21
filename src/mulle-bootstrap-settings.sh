@@ -175,7 +175,7 @@ _read_setting()
       return 2   # it's grep :)
    fi
 
-   if [ "${MULLE_FLAG_LOG_VERBOSE}" = "YES"  ]
+   if [ "${MULLE_FLAG_LOG_VERBOSE}" = "YES" -o "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
    then
       local name
 
@@ -183,14 +183,15 @@ _read_setting()
       apath="`absolutepath "${apath}"`"
 
       # make some boring names less prominent
-      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES"  -o \
-           "${name}" = "repositories" -o \
-           "${name}" = "repositories.tmp" -o \
-           "${name}" = "build_order" -o \
-           "${name}" = "versions" -o \
-           "${name}" = "embedded_repositories" -o \
-           "${name}" = "MULLE_REPOSITORIES" -o \
-           "${name}" = "MULLE_NAT_REPOSITORIES"  ]
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ] ||
+         [ "${name}" != "repositories" -a \
+           "${name}" != "repositories.tmp" -a \
+           "${name}" != "build_order" -a \
+           "${name}" != "versions" -a \
+           "${name}" != "embedded_repositories" -a \
+           "${name}" != "MULLE_REPOSITORIES" -a \
+           "${name}" != "MULLE_NAT_REPOSITORIES" \
+         ]
       then
          log_printf "${C_SETTING}%b${C_RESET}\n" "Setting ${C_MAGENTA}${name}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${C_BOLD}${value}${C_SETTING}"
       fi
@@ -291,6 +292,7 @@ list_environment_settings()
 {
    local line
    local key
+   local envkey
    local value
 
    env | while read line
@@ -303,7 +305,10 @@ list_environment_settings()
 
       if [ ! -z "${key}" -a ! -z "${value}" ]
       then
-         echo "${key}=${value}"
+         envkey="`echo "${line}" | \
+            sed -n 's/^\(MULLE_BOOTSTRAP_[^=]*\)=.*/\1/p'`"
+
+         echo "${key}=\"${value}\" (${envkey})"
       fi
    done
 }
@@ -346,7 +351,6 @@ list_dir_settings()
    local directory="$1"
 
    local filename
-   local name
    local key
    local value
 
@@ -356,11 +360,11 @@ list_dir_settings()
    do
       IFS="${DEFAULT_IFS}"
 
-      name="`basename -- "${filename}"`"
-      value="`_read_setting "${directory}"`"
+      key="`basename -- "${filename}"`"
+      value="`_read_setting "${directory}/${key}"`"
       if [ ! -z "${value}" ]
       then
-         echo "${key}=${value}"
+         echo "${key}=\"${value}\""
       fi
    done
 
@@ -699,10 +703,10 @@ ${keys3}
 #
 _config_list()
 {
-   log_info "Environment:"
+   log_info "environment:"
    list_environment_settings | sed 's/^/   /'
 
-   log_info ".bootstrap.local/config:"
+   log_info ".bootstrap.local/config ($PWD):"
    list_local_settings | sed 's/^/   /'
 
    log_info "~/.mulle-bootstrap:"

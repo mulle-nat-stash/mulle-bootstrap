@@ -172,6 +172,8 @@ check_version()
 # figure out if we need to run refresh
 build_needed()
 {
+   log_debug ":build_needed:"
+
    [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
 
    if [ ! -f "${REPOS_DIR}/.bootstrap_build_done" ]
@@ -192,15 +194,9 @@ build_needed()
 
 fetch_needed()
 {
-   [ -z "${REPOS_DIR}" ]     && internal_fail "REPOS_DIR undefined"
-   [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "BOOTSTRAP_DIR undefined"
+   log_debug ":fetch_needed:"
 
-   # doppelt gemoppelt
-   # if [ ! -f "${BOOTSTRAP_DIR}.auto/build_order" ]
-   # then
-   #    log_fluff "Need fetch because \"${BOOTSTRAP_DIR}.auto/build_order\" does not exist."
-   #    return 0
-   # fi
+   [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
 
    if [ ! -f "${REPOS_DIR}/.bootstrap_fetch_done" ]
    then
@@ -208,17 +204,39 @@ fetch_needed()
       return 0
    fi
 
-   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_DIR}" ]
+   local bootstrapdir="${BOOTSTRAP_DIR}"
+
+   [ -z "${bootstrapdir}" ] && internal_fail "BOOTSTRAP_DIR undefined"
+
+   if [ "${BOOTSTRAP_DIR}" -ot "${BOOTSTRAP_DIR}.local" ]
    then
-      log_fluff "Need fetch because \"${BOOTSTRAP_DIR}\" is modified"
+      bootstrapdir="${BOOTSTRAP_DIR}.local"
+   fi
+
+   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${bootstrapdir}" ]
+   then
+      log_fluff "Need fetch because \"${bootstrapdir}\" is modified"
       return 0
    fi
 
-   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${BOOTSTRAP_DIR}.local" ]
-   then
-      log_fluff "Need fetch because \"${BOOTSTRAP_DIR}.local\" is modified"
-      return 0
-   fi
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+
+   local stashdir
+
+   IFS="
+"
+   for stashdir in `all_repository_stashes ${REPOS_DIR}`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if [ "${bootstrapdir}" -ot "${stashdir}/${BOOTSTRAP_DIR}" ]
+      then
+         log_fluff "Need fetch because \"${stashdir}/${BOOTSTRAP_DIR}\" is modified"
+         return 0
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
 
    return 1
 }
@@ -309,7 +327,7 @@ _expanded_variables()
    then
       if [ -z "${default}" ]
       then
-         log_warning "\$\{${key}\} expanded to the empty string"
+         log_warning "\${${key}} expanded to the empty string."
       else
          log_setting "Root setting for ${C_MAGENTA}${key}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
          value="${default}"
