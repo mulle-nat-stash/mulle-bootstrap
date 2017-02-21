@@ -186,6 +186,11 @@ all_repository_stashes()
 }
 
 
+all_embedded_repository_stashes()
+{
+   _all_repository_stashes "${EMBEDDED_REPOS_DIR}"
+}
+
 
 #
 # Walkers
@@ -194,29 +199,27 @@ all_repository_stashes()
 #
 walk_check()
 {
-   local name="$1" ; shift
-   local stashdir="$1"; shift
-   local permissions="$1"; shift
+   local stashdir="$1"
+   local permissions="$2"
 
    local match
 
-   if [ $# -ne 0 ]
+   if is_minion_bootstrap_project "${stashdir}"
    then
-      # cat is for -e
-      match="`echo "$@" | fgrep -s -x "${name}"`"
-      if [ "${match}" = "${name}" ]
+      match="`echo "${permissions}" | fgrep -s -x "minion"`"
+      if [ -z "${match}" ]
       then
+         log_verbose "\"${stashdir}\" is a minion, skipped"
          return 1
       fi
    fi
 
    if [ -L "${stashdir}" ]
    then
-      # cat is for -e
-      match="`echo "${permissions}" | fgrep -s -x "symlink"`"
-      if [ -z "${match}" ]
+      # this not being in permissions makes things easier
+      if [ "${MULLE_FLAG_FOLLOW_SYMLINKS}" != "YES" ]
       then
-         log_verbose "${stashdir} is a symlink, skipped"
+         log_verbose "\"${stashdir}\" is a symlink, skipped"
          return 1
       fi
    else
@@ -243,9 +246,9 @@ walk_check()
 _walk_repositories()
 {
    local clones="$1"; shift
-   local callback="$1";shift
-   local permissions="$1";shift
-   local reposdir="$1";shift
+   local callback="$1"; shift
+   local permissions="$1"; shift
+   local reposdir="$1"; shift
 
    [ -z "${callback}" ]  && internal_fail "callback is empty"
 
@@ -263,9 +266,11 @@ _walk_repositories()
    do
       IFS="${DEFAULT_IFS}"
 
+      [ -z "${clone}" ] && continue
+
       parse_clone "${clone}"
 
-      if ! walk_check "${name}" "${stashdir}" "${permissions}" "$@"
+      if ! walk_check "${stashdir}" "${permissions}"
       then
          continue
       fi
@@ -276,14 +281,111 @@ _walk_repositories()
                   "${branch}" \
                   "${scm}" \
                   "${tag}" \
-                  "${stashdir}"
+                  "${stashdir}" \
+                  "$@"
    done
 
    IFS="${DEFAULT_IFS}"
 }
 
 
-walk_repositories()
+_get_all_repos_clones()
+{
+   local reposdir="$1"
+
+   if ! dir_has_files "${reposdir}" "f"
+   then
+      return
+   fi
+
+   local i
+
+   for i in "${reposdir}"/*
+   do
+      head -1 "$i"
+   done
+}
+
+
+
+_deep_walk_repos_trampoline()
+{
+   log_debug ":_deep_walk_repos_trampoline:" "$@"
+
+   local reposdir="$1"; shift  # ususally .bootstrap.repos
+   local name="$1"; shift      # name of the clone
+   local url="$1"; shift       # URL of the clone
+   local branch="$1"; shift    # branch of the clone
+   local scm="$1"; shift       # scm to use for this clone
+   local tag="$1"; shift       # tag to checkout of the clone
+   local stashdir="$1"; shift  # stashdir of this clone (absolute or relative to $PWD)
+
+   local callback="$1"; shift
+   local permissions="$1"; shift
+
+   (
+      local embedded_clones
+      local filepath
+      local reposdir
+
+      reposdir="${REPOS_DIR}/.deep/${name}.d"
+
+      # sigh have to use read_setting here
+      embedded_clones="`_get_all_repos_clones "${reposdir}"`"
+
+      PARENT_REPOSITORY_NAME="${name}"
+      PARENT_CLONE="${clone}"
+      STASHES_DEFAULT_DIR=""
+      STASHES_ROOT_DIR="${stashdir}"
+
+      _walk_repositories "${embedded_clones}" \
+                         "${callback}" \
+                         "${permissions}" \
+                         "${reposdir}" \
+                         "$@"
+   ) || exit 1
+}
+
+
+_deep_walk_auto_trampoline()
+{
+   log_debug ":_deep_walk_auto_trampoline:" "$@"
+
+   local reposdir="$1"; shift  # ususally .bootstrap.repos
+   local name="$1"; shift      # name of the clone
+   local url="$1"; shift       # URL of the clone
+   local branch="$1"; shift    # branch of the clone
+   local scm="$1"; shift       # scm to use for this clone
+   local tag="$1"; shift       # tag to checkout of the clone
+   local stashdir="$1"; shift  # stashdir of this clone (absolute or relative to $PWD)
+
+   local callback="$1"; shift
+   local permissions="$1"; shift
+
+   (
+      local embedded_clones
+      local filepath
+      local reposdir
+
+      reposdir="${REPOS_DIR}/.deep/${name}.d"
+      filepath="${BOOTSTRAP_DIR}.auto/.deep/${name}.d/embedded_repositories"
+      # sigh have to use read_setting here
+      embedded_clones="`read_setting "${filepath}"`"
+
+      PARENT_REPOSITORY_NAME="${name}"
+      PARENT_CLONE="${clone}"
+      STASHES_DEFAULT_DIR=""
+      STASHES_ROOT_DIR="${stashdir}"
+      _walk_repositories "${embedded_clones}" \
+                         "${callback}" \
+                         "${permissions}" \
+                         "${reposdir}" \
+                         "$@"
+   ) || exit 1
+}
+
+
+walk_auto_repositories()
 {
    local settingname="$1";shift
 
@@ -294,22 +396,78 @@ walk_repositories()
 }
 
 
-_walk_deep_embedded_repositories()
+walk_repos_repositories()
 {
-   local clones="$1"; shift
-   local callback="$1" ; shift
-   local permissions="$1" ; shift
+   local reposdir="$1";shift
+   local callback="$1";shift
+   local permissions="$1";shift
 
-   # rest are repository names or empty if all
-   local match
+   local clones
 
-   # parse_clone
-   local name
+   clones="`_get_all_repos_clones "${reposdir}"`"
+   _walk_repositories "${clones}" \
+                      "${callback}" \
+                      "${permissions}" \
+                      "${reposdir}" \
+                      "$@"
+}
+
+
+walk_deep_embedded_auto_repositories()
+{
+   local callback="$1";shift
+   local permissions="$1";shift
+
+   local clones
+
+   clones="`read_root_setting "repositories"`"
+   _walk_repositories "${clones}" \
+                      _deep_walk_auto_trampoline \
+                      "${permissions}" \
+                      "${REPOS_DIR}" \
+                      "${callback}" \
+                      "${permissions}" \
+                      "$@"
+}
+
+
+
+walk_deep_embedded_repos_repositories()
+{
+   local callback="$1";shift
+   local permissions="$1";shift
+
+   local clones
+
+   clones="`_get_all_repos_clones "${REPOS_DIR}"`"
+   _walk_repositories "${clones}" \
+                      _deep_walk_repos_trampoline \
+                      "${permissions}" \
+                      "${REPOS_DIR}" \
+                      "${callback}" \
+                      "${permissions}" \
+                      "$@"
+}
+
+
+#
+# walk over clones just give raw values
+# no checks
+#
+walk_raw_clones()
+{
+   local clones=$1; shift
+   local callback=$1; shift
+
    local url
+   local dstdir
    local branch
    local scm
    local tag
-   local stashdir
+
+   log_debug "Walking raw \"${clones}\" with \"${callback}\""
+
+   [ -z "${callback}" ] && internal_fail "callback missing"
 
    IFS="
 "
@@ -317,42 +475,19 @@ _walk_deep_embedded_repositories()
    do
       IFS="${DEFAULT_IFS}"
 
-      parse_clone "${clone}"
+      parse_raw_clone "${clone}"
 
-      if ! walk_check "${name}" "${stashdir}" "${permissions}" "$@"
-      then
-         continue
-      fi
-
-      # now grab embedded of that
-      (
-         local embedded_clones
-         local filepath
-
-         filepath="${BOOTSTRAP_DIR}.auto/.deep/${name}.d/embedded_repositories"
-         # sigh have to use read_setting here
-         embedded_clones="`read_setting "${filepath}"`"
-
-         PARENT_REPOSITORY_NAME="${name}"
-         PARENT_CLONE="${clone}"
-         STASHES_DEFAULT_DIR=""
-         STASHES_ROOT_DIR="${stashdir}"
-         reposdir="${REPOS_DIR}/.deep/${name}.d"
-         _walk_repositories "${embedded_clones}" "${callback}" "${permissions}" "${reposdir}"
-      ) || exit 1
+      "${callback}" "${url}" \
+                    "${dstdir}" \
+                    "${branch}" \
+                    "${scm}" \
+                    "${tag}" \
+                    "$@"
    done
 
    IFS="${DEFAULT_IFS}"
 }
 
-
-walk_deep_embedded_repositories()
-{
-   local clones
-
-   clones="`read_root_setting "repositories"`"
-   _walk_deep_embedded_repositories "${clones}" "$@"
-}
 
 
 # deal with stuff like
@@ -590,81 +725,6 @@ read_repository_file()
 }
 
 
-#
-# walk over clones just give raw values
-#
-walk_raw_clones()
-{
-   local clones=$1; shift
-   local callback=$1; shift
-
-   local url
-   local dstdir
-   local branch
-   local scm
-   local tag
-
-   log_debug "Walking raw \"${clones}\" with \"${callback}\""
-
-   IFS="
-"
-   for clone in ${clones}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      parse_raw_clone "${clone}"
-
-      "${callback}" "${url}" \
-                    "${dstdir}" \
-                    "${branch}" \
-                    "${scm}" \
-                    "${tag}" \
-                    "$@"
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
-
-walk_clones()
-{
-   local clones=$1; shift
-   local callback=$1; shift
-   local reposdir=$1; shift
-
-   [ -z "${callback}" ] && internal_fail "parameter error"
-
-   local name
-   local url
-   local branch
-   local scm
-   local tag
-   local stashdir
-   local clone
-
-   log_debug "Walking \"${clones}\" with \"${callback}\""
-
-   IFS="
-"
-   for clone in ${clones}
-   do
-      IFS="${DEFAULT_IFS}"
-
-      parse_clone "${clone}"
-
-      "${callback}" "${reposdir}" \
-                    "${name}" \
-                    "${url}" \
-                    "${branch}" \
-                    "${scm}" \
-                    "${tag}" \
-                    "${stashdir}" \
-                    "$@"
-   done
-
-   IFS="${DEFAULT_IFS}"
-}
-
 
 ensure_reposdir_directory()
 {
@@ -833,6 +893,8 @@ sort_repository_file()
    local clone
 
    [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
+
+   log_info "Resolving dependencies..."
 
    log_debug ":sort_repository_file:"
 

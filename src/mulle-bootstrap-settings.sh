@@ -287,6 +287,28 @@ _read_environment_setting()
 }
 
 
+list_environment_settings()
+{
+   local line
+   local key
+   local value
+
+   env | while read line
+   do
+      key="`echo "${line}" | \
+            sed -n 's/^MULLE_BOOTSTRAP_\([^=]*\)=.*/\1/p' | \
+            tr '[:upper:]' '[:lower:]'`"
+      value="`echo "${line}" | \
+            sed -n 's/^MULLE_BOOTSTRAP_[^=]*=\(.*\)/\1/p'`"
+
+      if [ ! -z "${key}" -a ! -z "${value}" ]
+      then
+         echo "${key}=${value}"
+      fi
+   done
+}
+
+
 _read_home_setting()
 {
    local name
@@ -316,6 +338,45 @@ _read_home_setting()
    warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
 
    echo "$value"
+}
+
+
+list_dir_settings()
+{
+   local directory="$1"
+
+   local filename
+   local name
+   local key
+   local value
+
+   IFS="
+"
+   for filename in `ls -1 "${directory}" 2> /dev/null`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      name="`basename -- "${filename}"`"
+      value="`_read_setting "${directory}"`"
+      if [ ! -z "${value}" ]
+      then
+         echo "${key}=${value}"
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+list_local_settings()
+{
+   list_dir_settings "${BOOTSTRAP_DIR}.local/config"
+}
+
+
+list_home_settings()
+{
+   list_dir_settings "${HOME}/.mulle-bootstrap"
 }
 
 
@@ -636,6 +697,19 @@ ${keys3}
 # "config" interface sorta like git config
 # obviously need to "vet" the keys sometime
 #
+_config_list()
+{
+   log_info "Environment:"
+   list_environment_settings | sed 's/^/   /'
+
+   log_info ".bootstrap.local/config:"
+   list_local_settings | sed 's/^/   /'
+
+   log_info "~/.mulle-bootstrap:"
+   list_home_settings | sed 's/^/   /'
+}
+
+
 _config_read()
 {
    read_config_setting "$1"
@@ -704,6 +778,10 @@ config_main()
             command="delete"
          ;;
 
+         -l|--list)
+            command="list"
+         ;;
+
          -n|--off|--no|--NO)
             command="write"
             value=
@@ -727,17 +805,29 @@ config_main()
       shift
    done
 
-   name="$1"
-   [ -z "${name}" ] && config_usage
-   shift
+   case "${command}" in
+      read|write|delete)
+         name="$1"
+         [ -z "${name}" ] && config_usage
+         shift
+      ;;
+   esac
+
+
+   case "${command}" in
+      read)
+         if [ $# -ne 0 ]
+         then
+            command="write"
+            value="$1"
+            shift
+         fi
+      ;;
+   esac
 
    if [ $# -ne 0 ]
    then
-      [ "${command}" != "read" ] && "config_usage"
-
-      command="write"
-      value="$1"
-      shift
+      config_usage
    fi
 
    case "${command}" in
@@ -751,6 +841,10 @@ config_main()
          then
             echo "${value}"
          fi
+      ;;
+
+      list)
+         _config_list
       ;;
 
       delete)

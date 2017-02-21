@@ -111,11 +111,14 @@ add_path()
 
 add_path_if_exists()
 {
+   local line="$1"
+   local path="$2"
+
    if [ -e "${path}" ]
    then
       add_path "$@"
    else
-      echo "$1"
+      echo "${line}"
    fi
 }
 
@@ -192,11 +195,12 @@ fetch_needed()
    [ -z "${REPOS_DIR}" ]     && internal_fail "REPOS_DIR undefined"
    [ -z "${BOOTSTRAP_DIR}" ] && internal_fail "BOOTSTRAP_DIR undefined"
 
-   if [ ! -f "${BOOTSTRAP_DIR}.local/build_order" ]
-   then
-      log_fluff "Need fetch because \"${BOOTSTRAP_DIR}.local/build_order\" does not exist."
-      return 0
-   fi
+   # doppelt gemoppelt
+   # if [ ! -f "${BOOTSTRAP_DIR}.auto/build_order" ]
+   # then
+   #    log_fluff "Need fetch because \"${BOOTSTRAP_DIR}.auto/build_order\" does not exist."
+   #    return 0
+   # fi
 
    if [ ! -f "${REPOS_DIR}/.bootstrap_fetch_done" ]
    then
@@ -226,9 +230,8 @@ set_fetch_needed()
 {
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
-   remove_file_if_present "${BOOTSTRAP_DIR}.local/build_order"
-   remove_file_if_present "${BOOTSTRAP_DIR}.local/.bootstrap_fetch_started"
-   remove_file_if_present "${BOOTSTRAP_DIR}.local/.bootstrap_fetch_done"
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_started"
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
 }
 
 
@@ -236,8 +239,8 @@ set_build_needed()
 {
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
-   remove_file_if_present "${BOOTSTRAP_DIR}.local/.bootstrap_build_started"
-   remove_file_if_present "${BOOTSTRAP_DIR}.local/.bootstrap_build_done"
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_build_started"
+   remove_file_if_present "${REPOS_DIR}/.bootstrap_build_done"
 }
 
 

@@ -203,17 +203,19 @@ is_yes()
 
 add_cmake_path_if_exists()
 {
-   local line
-   local path
+   local line="$1"
+   local path="$2"
 
-   line="$1"
-   path="$2"
-
-   if [ -z "${line}" -o ! -e "${line}" ]
+   if [ ! -e "${path}" ]
    then
-      echo "${path}"
+      echo "${line}"
    else
-      echo "${line};${path}"
+      if [ -z "${line}" ]
+      then
+         echo "${path}"
+      else
+         echo "${line};${path}"
+      fi
    fi
 }
 
@@ -235,13 +237,24 @@ add_cmake_path()
 }
 
 
+add_word()
+{
+   local line="$1"
+   local word="$2"
+
+   if [ -z "${line}" ]
+   then
+      echo "${word}"
+   else
+      echo "${line} ${word}"
+   fi
+}
+
+
 add_line()
 {
-   local lines
-   local line
-
-   lines="$1"
-   line="$2"
+   local lines="$1"
+   local line="$2"
 
    if [ -z "${lines}" ]
    then

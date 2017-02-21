@@ -809,7 +809,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
 
-      prefixbuild="`add_cmake_path_if_exists "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+      prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+
       dependenciesdir="`add_cmake_path_if_exists "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
       addictionsdir="`add_cmake_path_if_exists "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
 
@@ -865,6 +866,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       for path in ${native_includelines}
       do
          IFS="${DEFAULT_IFS}"
+         path="$(sed 's/ /\\ /g' <<< "${path}")"
          other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
          other_cxxflags="`concat "${other_cxxflags}" "${includeprefix}${path}"`"
       done
@@ -873,6 +875,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       for path in ${native_librarylines}
       do
          IFS="${DEFAULT_IFS}"
+         path="$(sed 's/ /\\ /g' <<< "${path}")"
          other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
@@ -880,6 +883,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       for path in ${native_frameworklines}
       do
          IFS="${DEFAULT_IFS}"
+         path="$(sed 's/ /\\ /g' <<< "${path}")"
          other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
          other_cxxflags="`concat "${other_cxxflags}" "${frameworkprefix}${path}"`"
          other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
@@ -902,20 +906,47 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       oldpath="$PATH"
       PATH="${BUILDPATH}"
 
+      local cmake_flags
+
+      cmake_flags="-DCMAKE_C_FLAGS='${other_cflags}' \
+-DCMAKE_CXX_FLAGS='${other_cxxflags}' \
+-DCMAKE_EXE_LINKER_FLAGS='${other_ldflags}' \
+-DCMAKE_SHARED_LINKER_FLAGS='${other_ldflags}'"
+
+      local cmake_dirs
+
+      if [ ! -z "${dependenciesdir}" ]
+      then
+         cmake_dirs="-DDEPENDENCIES_DIR='${dependenciesdir}'"
+      fi
+
+      if [ ! -z "${addictionsdir}" ]
+      then
+         cmake_dirs="`add_word "${cmake_dirs}" "-DADDICTIONS_DIR='${addictionsdir}'"`"
+      fi
+
+      if [ ! -z "${includelines}" ]
+      then
+         cmake_dirs="`add_word "${cmake_dirs}" "-DCMAKE_INCLUDE_PATH='${includelines}'"`"
+      fi
+
+      if [ ! -z "${librarylines}" ]
+      then
+         cmake_dirs="`add_word "${cmake_dirs}" "-DCMAKE_LIBRARY_PATH='${librarylines}'"`"
+      fi
+
+      if [ ! -z "${frameworklines}" ]
+      then
+         cmake_dirs="`add_word "${cmake_dirs}" "-DCMAKE_FRAMEWORK_PATH='${frameworklines}'"`"
+      fi
+
       logging_redirect_eval_exekutor "${logfile1}" "'${CMAKE}'" \
 -G "'${CMAKE_GENERATOR}'" \
 "-DMULLE_BOOTSTRAP_VERSION=${MULLE_BOOTSTRAP_VERSION}" \
 "-DCMAKE_BUILD_TYPE='${mapped}'" \
-"-DDEPENDENCIES_DIR='${dependenciesdir}'" \
-"-DADDICTIONS_DIR='${addictionsdir}'" \
 "-DCMAKE_INSTALL_PREFIX:PATH='${prefixbuild}'"  \
-"-DCMAKE_INCLUDE_PATH='${includelines}'" \
-"-DCMAKE_LIBRARY_PATH='${librarylines}'" \
-"-DCMAKE_FRAMEWORK_PATH='${frameworklines}'" \
-"-DCMAKE_C_FLAGS='${other_cflags}'" \
-"-DCMAKE_CXX_FLAGS='${other_cxxflags}'" \
-"-DCMAKE_EXE_LINKER_FLAGS='${other_ldflags}'" \
-"-DCMAKE_SHARED_LINKER_FLAGS='${other_ldflags}'" \
+"${cmake_dirs}" \
+"${cmake_flags}" \
 "${sdkparameter}" \
 "${c_compiler_line}" \
 "${cxx_compiler_line}" \
@@ -1096,7 +1127,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local addictionsdir
       #local linker
 
-      prefixbuild="`add_path_if_exists "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
       dependenciesdir="`add_path_if_exists "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
       addictionsdir="`add_path_if_exists "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
 
@@ -2242,8 +2273,9 @@ build_main()
             OPTION_ADD_USR_LOCAL=YES
          ;;
 
-         # fetch options, are just ignored
-         -i|--ignore-branch|-fc|--force-checkout|-nr|--no-recursion|-e|--embedded-only|-es|--embedded-symlink|-u|--update-symlinks)
+         # TODO: outdated!
+         # fetch options, are just ignored (need to update this!)
+         -i|--ignore-branch|-fc|--force-checkout|-nr|--no-recursion|-e|--embedded-only|-es|--embedded-symlink|-u|--follow-symlinks)
             :
          ;;
 

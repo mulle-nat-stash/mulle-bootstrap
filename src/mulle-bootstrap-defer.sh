@@ -60,6 +60,8 @@ EOF
 
 defer_main()
 {
+   local OPTION_FORCE="NO"
+
    log_debug ":defer_main:"
 
    while [ $# -ne 0 ]
@@ -67,6 +69,10 @@ defer_main()
       case "$1" in
          -h|-help|--help)
             defer_usage
+         ;;
+
+         --force)
+            OPTION_FORCE=YES
          ;;
 
          -*)
@@ -83,6 +89,8 @@ defer_main()
    done
 
    [ -z "${MULLE_BOOTSTRAP_PROJECT_SH}" ] && . mulle-bootstrap-project.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ]           && . mulle-bootstrap-clean.sh
 
    unpostpone_trace
 
@@ -96,8 +104,12 @@ defer_main()
    then
       masterpath="`get_master_of_minion_bootstrap_project "${minionpath}"`"
       [ ! -z "${masterpath}" ]  || internal_fail "is_minion file empty"
-      log_info "Master \"${masterpath}\" already owns \"${minionpath}\""
-      return
+      log_warning "Master \"${masterpath}\" already owns \"${minionpath}\""
+
+      if [ "${OPTION_FORCE}" = "NO" ]
+      then
+         return
+      fi
    fi
 
    masterpath="${1:-..}"
@@ -108,6 +120,16 @@ defer_main()
       fail "Master \"${masterpath}\" not found"
    fi
 
+   if [ -L "${masterpath}" ]
+   then
+      log_warning "Mater \"${masterpath}\" is a symlink. Don't overcomplicate it."
+   fi
+
+   if [ -L "${minionpath}" ]
+   then
+      log_warning "Minion \"${minionpath}\" is a symlink. Don't overcomplicate it."
+   fi
+
    if ! can_be_master_bootstrap_project "${masterpath}"
    then
       fail "\"${masterpath}\" contains a .bootstrap folder. It can't be used as a master"
@@ -115,25 +137,26 @@ defer_main()
 
    if master_owns_minion_bootstrap_project "${masterpath}" "${minionpath}"
    then
-      internal_fail "Master \"${masterpath}\" already owns \"${minionpath}\", but it was not detected before"
+      if [ "${OPTION_FORCE}" = "NO" ]
+      then
+         internal_fail "Master \"${masterpath}\" already owns \"${minionpath}\", but it was not detected before"
+      fi
+      log_warning "Master \"${masterpath}\" already owns \"${minionpath}\", but it was not detected before"
    fi
-
-   log_info "Deferring to \"${masterpath}\""
-
-   make_master_bootstrap_project "${masterpath}"
-   make_minion_bootstrap_project "${minionpath}" "${masterpath}"
-
-   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ]           && . mulle-bootstrap-clean.sh
 
    #
    # dist clean ourselves
    #
    log_info "Cleaning minion before deferral"
 
-   clean_execute "dist"
+   ( clean_execute "dist" )
 
+
+   log_info "Deferring \"${minionpath}\" to \"${masterpath}\""
+
+   make_master_bootstrap_project "${masterpath}"
    master_add_minion_bootstrap_project "${masterpath}" "${minionpath}"
+   make_minion_bootstrap_project "${minionpath}" "${masterpath}"
 
    #
    # clean the master, because cmake doesn't like old paths
@@ -147,11 +170,17 @@ emancipate_main()
 {
    log_debug ":emancipate_main:"
 
+   local OPTION_FORCE="NO"
+
    while [ $# -ne 0 ]
    do
       case "$1" in
          -h|-help|--help)
             defer_usage
+         ;;
+
+         --force)
+            OPTION_FORCE=YES
          ;;
 
          -*)
@@ -168,6 +197,8 @@ emancipate_main()
    done
 
    [ -z "${MULLE_BOOTSTRAP_PROJECT_SH}" ] && . mulle-bootstrap-project.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ] && . mulle-bootstrap-clean.sh
 
    unpostpone_trace
 
@@ -180,8 +211,12 @@ emancipate_main()
    minionpath="`absolutepath "${minionpath}"`"
    if ! is_minion_bootstrap_project "${minionpath}"
    then
-      log_info "Project \"${minionpath}\" does not defer to a master and is already emancipated"
-      return
+      log_warning "Project \"${minionpath}\" does not defer to a master and is already emancipated"
+
+      if [ "${OPTION_FORCE}" = "NO" ]
+      then
+         return
+      fi
    fi
 
    masterpath="`get_master_of_minion_bootstrap_project \"${minionpath}\"`"
@@ -200,16 +235,13 @@ emancipate_main()
       fail "\"${masterpath}\" is not a master project"
    fi
 
-   log_info "Emancipating from \"${masterpath}\""
+   log_info "Cleaning master before emancipation"
+   ( clean_execute "output" )  # not really critical if fails
+
+   log_info "Emancipating \"${minionpath}\" from \"${masterpath}\""
    master_remove_minion_bootstrap_project "${masterpath}" "${minionpath}"
 
-   log_info "Cleaning master before emancipation"
-   clean_execute "output"
-
    emancipate_minion_bootstrap_project "${minionpath}"
-
-   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ] && . mulle-bootstrap-clean.sh
 
    #
    # dist clean ourselves

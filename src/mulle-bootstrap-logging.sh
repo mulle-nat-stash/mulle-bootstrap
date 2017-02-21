@@ -105,7 +105,14 @@ log_debug()
 {
    if [ "${MULLE_FLAG_LOG_DEBUG}" = "YES"  ]
    then
-      log_printf "${C_BR_RED}%b${C_RESET}\n" "$*"
+      case "${UNAME}" in
+         linux)
+            log_printf "${C_BR_RED}$(date "+%s.%N") %b${C_RESET}\n" "$*"
+         ;;
+         *)
+            log_printf "${C_BR_RED}$(date "+%s") %b${C_RESET}\n" "$*"
+         ;;
+      esac
    fi
 }
 
@@ -125,11 +132,10 @@ log_trace2()
 #
 # some common fail log functions
 #
-fail()
-{
-   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}:" "$@"
 
-   local i=0
+stacktrace()
+{
+   local i=1
    local line
 
    while line="`caller $i`"
@@ -137,7 +143,11 @@ fail()
       log_info "$i: #${line}"
       ((i++))
    done
+}
 
+
+_bail()
+{
    # should kill process group...
    kill 0
 
@@ -155,9 +165,18 @@ fail()
 }
 
 
+fail()
+{
+   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}:" "$@"
+   _bail
+}
+
+
 internal_fail()
 {
-   fail "${C_RED}*** internal error: ${C_BR_RED}$*"
+   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}:" "${C_RED}*** internal error: ${C_BR_RED}$*"
+   stacktrace
+   _bail
 }
 
 
@@ -217,7 +236,7 @@ logging_initialize()
             C_FAINT="\033[2m"
 
             C_RESET_BOLD="${C_RESET}${C_BOLD}"
-            trap 'printf "${C_RESET} >&2 ; exit 1"' TERM INT
+            trap 'printf "${C_RESET}" >&2 ; exit 1' TERM INT
             ;;
       esac
    fi

@@ -32,6 +32,92 @@
 MULLE_BOOTSTRAP_CLEAN_SH="included"
 
 
+_collect_stashdir()
+{
+   log_debug ":_collect_stashdir:" "$*"
+
+   # local reposdir="$1"  # ususally .bootstrap.repos
+   # local name="$2"      # name of the clone
+   # local url="$3"       # URL of the clone
+   # local branch="$4"    # branch of the clone
+   # local scm="$5"       # scm to use for this clone
+   # local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   is_minion_bootstrap_project "${stashdir}" && return
+
+   local stashparentdir
+
+   stashparentdir="`dirname -- "${stashdir}"`"
+
+   [ "${stashparentdir}" = "${STASHES_DEFAULT_DIR}" ] && return
+
+   echo "${stashdir}"
+}
+
+
+#
+# MEMO don't walk via .bootstrap.auto here, use information from
+# .bootstrap.repos
+#
+print_stashdir_repositories()
+{
+   local permissions
+
+   permissions=""
+   walk_repos_repositories "${REPOS_DIR}" \
+                           "_collect_stashdir" \
+                           "${permissions}"
+}
+
+
+print_embedded_stashdir_repositories()
+{
+   local permissions
+
+   permissions=""
+   walk_repos_repositories "${EMBEDDED_REPOS_DIR}" \
+                            "_collect_stashdir" \
+                            "${permissions}"
+}
+
+
+print_stashdir_deep_embedded_repositories()
+{
+   local permissions
+
+   permissions="minion"
+   walk_deep_embedded_repos_repositories "_collect_stashdir" \
+                                         "${permissions}"
+}
+
+
+_collect_embedded_stashdir()
+{
+   # local reposdir="$1"  # ususally .bootstrap.repos
+   # local name="$2"      # name of the clone
+   # local url="$3"       # URL of the clone
+   # local branch="$4"    # branch of the clone
+   # local scm="$5"       # scm to use for this clone
+   # local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   stashparentdir="`dirname -- "${stashdir}"`"
+
+   [ "${stashparentdir}" = "${STASHES_DEFAULT_DIR}" ] && return
+   echo "${stashdir}"
+}
+
+
+print_stashdir_embedded_repositories()
+{
+   walk_auto_repositories "embedded_repositories" \
+                     "_collect_embedded_stashdir" \
+                     "" \
+                     "${EMBEDDED_REPOS_DIR}"
+}
+
+
 setup_clean_environment()
 {
    [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
@@ -41,7 +127,7 @@ setup_clean_environment()
 
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
-   BUILD_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
+   OUTPUT_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
 
    BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCIES_DIR}/tmp"`"
@@ -49,13 +135,33 @@ ${DEPENDENCIES_DIR}/tmp"`"
    INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
 ${STASHES_DEFAULT_DIR}
 .bootstrap.auto"`"
-   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" "${REPOS_DIR}
+   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" \
+"${REPOS_DIR}
 ${ADDICTIONS_DIR}
 ${STASHES_DEFAULT_DIR}
-.bootstrap.auto"`"
-   EMBEDDED="`stashes_of_embedded_repositories "${REPOS_DIR}"`"
+${BOOTSTRAP_DIR}.auto"`"
 
-   DIST_CLEANABLE_SUBDIRS="`add_line "${EMBEDDED}" "${DIST_CLEANABLE_SUBDIRS}"`"
+   # scrub old stuff
+   if [ -d ".repos" ]
+   then
+      DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" ".repos"`"
+   fi
+
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+
+   #
+   # as a master we don't throw the minions out
+   #
+   local stashes
+
+   stashes="`print_stashdir_repositories`"
+   DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
+
+   stashes="`print_stashdir_embedded_repositories`"
+   DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
+
+   stashes="`print_stashdir_deep_embedded_repositories`"
+   DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
 }
 
 
@@ -70,31 +176,23 @@ EOF
    setup_clean_environment
 
    cat <<EOF >&2
-   build   : useful to remove intermediate build files. it cleans
----
-${BUILD_CLEANABLE_SUBDIRS}
-${BUILD_CLEANABLE_FILES}
----
+   build : remove intermediate build files to conserve space. It deletes
+`echo "${BUILD_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
 
-   output  : useful to rebuild. It cleans
----
-${BUILD_CLEANABLE_SUBDIRS}
-${BUILD_CLEANABLE_FILES}
+   output : useful to rebuild. It deletes
+`echo "${BUILD_CLEANABLE_SUBDIRS}
+${OUTPUT_CLEANABLE_FILES}
+${OUTPUT_CLEANABLE_SUBDIRS}"  | sort| sed '/^$/d' | sed -e 's/^/      /'`
+
+   install : keep only addictions and dependencies
+`echo "${BUILD_CLEANABLE_SUBDIRS}
+${OUTPUT_CLEANABLE_FILES}
+${INSTALL_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
+
+   dist : remove all clones, dependencies, addictions. It deletes
+`echo "${BUILD_CLEANABLE_SUBDIRS}
 ${OUTPUT_CLEANABLE_SUBDIRS}
----
-
-   install : useful if you know, you don't want to rebuild.
----
-${BUILD_CLEANABLE_SUBDIRS}
-${INSTALL_CLEANABLE_SUBDIRS}
----
-
-   dist    : remove all clones, dependencies, addictions. It cleans
----
-${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_SUBDIRS}
-${DIST_CLEANABLE_SUBDIRS}
----
+${DIST_CLEANABLE_SUBDIRS}"    | sort | sed '/^$/d' | sed -e 's/^/      /'`
 EOF
 
    exit 1
@@ -127,17 +225,13 @@ clean_asserted_file()
 }
 
 
-
 clean_parent_folders_if_empty()
 {
-   local dir
-   local stop
+   local dir="$1"
+   local stop="$2"
 
    if [ "${CLEAN_EMPTY_PARENTS}" = "YES" ]
    then
-      dir="$1"
-      stop="$2"
-
       local parent
 
       parent="${dir}"
@@ -163,9 +257,7 @@ clean_parent_folders_if_empty()
 
 clean_files()
 {
-   local files
-
-   files="$1"
+   local files="$1"
 
    local file
 
@@ -182,13 +274,10 @@ clean_files()
 }
 
 
+
 clean_directories()
 {
-   local directories
-   local flag
-
-   directories="$1"
-   flag="$2"
+   local directories="$1"
 
    local directory
 
@@ -200,93 +289,9 @@ clean_directories()
 
       clean_asserted_folder "${directory}"
       clean_parent_folders_if_empty "${directory}" "${PWD}"
-      flag="YES"
    done
+
    IFS="${DEFAULT_IFS}"
-
-   echo "$flag"
-}
-
-
-
-_collect_stashdir()
-{
-   # local reposdir="$1"  # ususally .bootstrap.repos
-   # local name="$2"      # name of the clone
-   # local url="$3"       # URL of the clone
-   # local branch="$4"    # branch of the clone
-   # local scm="$5"       # scm to use for this clone
-   # local tag="$6"       # tag to checkout of the clone
-   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
-
-   is_minion_bootstrap_project "${stashdir}" && return
-
-   local stashparentdir
-
-   stashparentdir="`dirname -- "${stashdir}"`"
-
-   [ "${stashparentdir}" = "${STASHES_DEFAULT_DIR}" ] && return
-
-   echo "${stashdir}"
-}
-
-
-print_stashdir_repositories()
-{
-   walk_repositories "repositories" \
-                     "_collect_stashdir" \
-                     "" \
-                     "${REPOS_DIR}"
-}
-
-
-print_stashdir_embedded_repositories()
-{
-   walk_repositories "embedded_repositories" \
-                     "_collect_stashdir" \
-                     "" \
-                     "${EMBEDDED_REPOS_DIR}"
-}
-
-
-#
-# dist cleaning is dangerous
-#
-_dist_clean()
-{
-   # dependencies already done before
-
-   DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" \
-"${REPOS_DIR}
-${ADDICTIONS_DIR}
-${STASHES_DEFAULT_DIR}
-${BOOTSTRAP_DIR}.auto"`"
-
-   # scrub old stuff
-   if [ -d ".repos" ]
-   then
-      DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" ".repos"`"
-   else
-      [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
-
-      #
-      # as a master we don't throw the minions out
-      #
-      if ! is_master_bootstrap_project
-      then
-         local stashes
-
-         stashes="`print_stashdir_repositories`"
-         DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
-
-         stashes="`print_stashdir_embedded_repositories`"
-         DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
-      fi
-   fi
-
-   clean_directories "${DIST_CLEANABLE_SUBDIRS}" "${flag}"
-
-   clean_files "${DIST_CLEANABLE_FILES}"
 }
 
 
@@ -297,37 +302,30 @@ ${BOOTSTRAP_DIR}.auto"`"
 # to have other tools provide stuff besides /include and /lib
 # and sometimes  projects install other stuff into /share
 #
-_clean_execute()
+clean_execute()
 {
    local style="$1"
-
-   local flag
 
    [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
    [ -z "${CLONESBUILD_SUBDIR}" ]  && internal_fail "CLONESBUILD_SUBDIR is empty"
    [ -z "${ADDICTIONS_DIR}"   ]    && internal_fail "ADDICTIONS_DIR is empty"
    [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "STASHES_DEFAULT_DIR is empty"
 
-   flag=
-   CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
-
+   setup_clean_environment
 
    case "${style}" in
       build)
          BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCIES_DIR}/tmp"`"
-         BUILD_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
-         clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"
-         clean_files "${BUILD_CLEANABLE_FILES}"
+         clean_directories "${BUILD_CLEANABLE_SUBDIRS}"
          return
       ;;
 
       dist|output|install)
          BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_SUBDIR}
 ${DEPENDENCIES_DIR}/tmp"`"
-         BUILD_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
-         flag="`clean_directories "${BUILD_CLEANABLE_SUBDIRS}" "${flag}"`"
-         clean_files "${BUILD_CLEANABLE_FILES}"
+
+         clean_directories "${BUILD_CLEANABLE_SUBDIRS}"
       ;;
 
       *)
@@ -338,14 +336,16 @@ ${DEPENDENCIES_DIR}/tmp"`"
    case "${style}" in
       output)
          OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
-         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"
+
+         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}"
          clean_files "${OUTPUT_CLEANABLE_FILES}"
          return
       ;;
 
       dist)
          OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
-         flag="`clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}" "${flag}"`"
+
+         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}"
          clean_files "${OUTPUT_CLEANABLE_FILES}"
       ;;
    esac
@@ -354,29 +354,17 @@ ${DEPENDENCIES_DIR}/tmp"`"
       install)
          INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
 .bootstrap.auto"`"
-         clean_directories "${INSTALL_CLEANABLE_SUBDIRS}" "${flag}"
-         clean_files "${INSTALL_CLEANABLE_FILES}"
+
+         clean_directories "${INSTALL_CLEANABLE_SUBDIRS}"
          return
       ;;
    esac
 
    case "${style}" in
       dist)
-         _dist_clean
+         clean_directories "${DIST_CLEANABLE_SUBDIRS}"
       ;;
    esac
-}
-
-
-clean_execute()
-{
-   local flag
-
-   flag="`_clean_execute "$@"`"
-   if [ "$flag" = "NO" ]
-   then
-      log_info "Nothing configured to clean"
-   fi
 }
 
 
@@ -391,6 +379,7 @@ clean_main()
 
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ]    && . mulle-bootstrap-repositories.sh
 
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
 

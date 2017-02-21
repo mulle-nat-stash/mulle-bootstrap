@@ -65,7 +65,7 @@ usage:
 
       --allow-symlinks    :  allow symlinking instead of cloning
       --embedded-symlinks :  allow embedded symlinks (very experimental)
-      --update-symlinks   :  follow symlinks when updating (not recommended)
+      --follow-symlinks   :  follow symlinks when updating (not recommended)
       --no-caches         :  don't use caches. Useful to counter flag -y
       --no-symlinks       :  don't create symlinks. Useful to counter flag -y
 
@@ -649,16 +649,11 @@ _update_operation_walk_repositories()
 
    local permissions
 
-   permissions=""
-   if [ "${OPTION_ALLOW_UPDATING_SYMLINKS}" = "YES" ]
-   then
-      permissions="`add_line "${permissions}" "symlink"`"
-   fi
-
-   walk_repositories "repositories"  \
-                     "${operation}" \
-                     "${permissions}" \
-                     "${REPOS_DIR}"
+   permissions="minion"
+   walk_auto_repositories "repositories"  \
+                          "${operation}" \
+                          "${permissions}" \
+                          "${REPOS_DIR}"
 }
 
 
@@ -668,12 +663,7 @@ _update_operation_walk_embedded_repositories()
 
    local permissions
 
-   permissions=""
-   if [ "${OPTION_ALLOW_UPDATING_SYMLINKS}" = "YES" ]
-   then
-      permissions="`add_line "${permissions}" "symlink"`"
-   fi
-
+   permissions="minion"
    #
    # embedded repositories can't be symlinked by default
    # embedded repositories are by default not put into
@@ -684,31 +674,27 @@ _update_operation_walk_embedded_repositories()
       STASHES_DEFAULT_DIR=""
       OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
 
-      walk_repositories "embedded_repositories"  \
-                        "${operation}" \
-                        "${permissions}" \
-                        "${EMBEDDED_REPOS_DIR}"
+      walk_auto_repositories "embedded_repositories"  \
+                             "${operation}" \
+                             "${permissions}" \
+                             "${EMBEDDED_REPOS_DIR}"
    ) || exit 1
 }
 
 
-_update_operation_walk_deep_embedded_repositories()
+_update_operation_walk_deep_embedded_auto_repositories()
 {
    local operation="$1"
 
    local permissions
 
-   permissions=""
-   if [ "${OPTION_ALLOW_UPDATING_SYMLINKS}" = "YES" ]
-   then
-      permissions="`add_line "${permissions}" "symlink"`"
-   fi
+   permissions="minion"
 
    (
       OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
 
-      walk_deep_embedded_repositories "${operation}" \
-                                      "${permissions}"
+      walk_deep_embedded_auto_repositories "${operation}" \
+                                           "${permissions}"
    ) || exit 1
 }
 
@@ -730,7 +716,7 @@ update_embedded_repositories()
 
 update_deep_embedded_repositories()
 {
-   _update_operation_walk_deep_embedded_repositories "update_repository"
+   _update_operation_walk_deep_embedded_auto_repositories "update_repository"
 }
 
 
@@ -751,7 +737,7 @@ upgrade_embedded_repositories()
 
 upgrade_deep_embedded_repositories()
 {
-   _update_operation_walk_deep_embedded_repositories "upgrade_repository"
+   _update_operation_walk_deep_embedded_auto_repositories "upgrade_repository"
 }
 
 
@@ -1183,13 +1169,8 @@ fetch_once_deep_embedded_repositories()
 {
    log_debug "fetch_once_deep_embedded_repositories"
 
-   permissions=""
-   if [ "${OPTION_ALLOW_UPDATING_SYMLINKS}" = "YES" ]
-   then
-      permissions="`add_line "${permissions}" "symlink"`"
-   fi
-
-   walk_repositories "repositories"  \
+   permissions="minion"
+   walk_auto_repositories "repositories"  \
                      "_fetch_once_deep_repository" \
                      "${permissions}" \
                      "${REPOS_DIR}" > /dev/null
@@ -1282,6 +1263,8 @@ fetch_loop()
 
    bootstrap_auto_create
 
+   log_info "Checking repositories..."
+
    fetch_once_embedded_repositories
 
    if [ "${OPTION_EMBEDDED_ONLY}" = "NO" ]
@@ -1359,7 +1342,7 @@ _common_main()
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
    local OPTION_CHECK_USR_LOCAL_INCLUDE="NO"
-   local OPTION_ALLOW_UPDATING_SYMLINKS="NO"
+   local MULLE_FLAG_FOLLOW_SYMLINKS="NO"
    local OPTION_ALLOW_CREATING_SYMLINKS="NO"
    local OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
    local OPTION_ALLOW_SEARCH_CACHES="NO"
@@ -1399,7 +1382,7 @@ _common_main()
    case "${UNAME}" in
       mingw)
          OPTION_ALLOW_CREATING_SYMLINKS="NO"
-         OPTION_ALLOW_UPDATING_SYMLINKS="NO"
+         MULLE_FLAG_FOLLOW_SYMLINKS="NO"
       ;;
 
       *)
@@ -1432,9 +1415,9 @@ _common_main()
             OPTION_EMBEDDED_ONLY="YES"
          ;;
 
-         # update symlinks, dangerous!
-         --update-symlinks)
-            OPTION_ALLOW_UPDATING_SYMLINKS="YES"
+         # update symlinks, dangerous (duplicate to flags for laziness reasons)
+         --follow-symlinks)
+            MULLE_FLAG_FOLLOW_SYMLINKS="YES"
          ;;
 
          # create symlinks instead of clones for repositories
@@ -1442,7 +1425,12 @@ _common_main()
             OPTION_ALLOW_CREATING_SYMLINKS="YES"
          ;;
 
+         #
          # create symlinks instead of clones for embedded_repositories
+         # and deep embedded_repositories. If the clones are symlinked
+         # this will be ignored, except if follow-symlinks is
+         # active. --follow-symlinks is really not safe!
+         #
          --embedded-symlink-creation|--embedded-symlinks)
             OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="YES"
          ;;
@@ -1453,11 +1441,12 @@ _common_main()
          ;;
 
          --no-symlink-creation|--no-symlinks)
-            OPTION_ALLOW_UPDATING_SYMLINKS="NO"
+            MULLE_FLAG_FOLLOW_SYMLINKS="NO"
             OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
             OPTION_ALLOW_CREATING_SYMLINKS="NO"
          ;;
 
+         # TODO: outdated!
          # build options with no parameters
          -K|--clean|-k|--no-clean|--use-prefix-libraries|--debug|--release)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
@@ -1468,6 +1457,7 @@ _common_main()
          ;;
 
          # build options with one parameter
+         # TODO: outdated!
          -j|--cores|-c|--configuration|--prefix)
             if [ -z "${MULLE_BOOTSTRAP_WILL_BUILD}" ]
             then

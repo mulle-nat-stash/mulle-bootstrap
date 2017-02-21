@@ -92,26 +92,36 @@ _status_repository()
 
 status_repositories()
 {
-   walk_repositories "repositories"  \
+   local permissions
+
+   permissions="minion"
+
+   walk_auto_repositories "repositories"  \
                      "_status_repository" \
-                     "" \
+                     "${permissions}" \
                      "${REPOS_DIR}"
 }
 
 
 status_embedded_repositories()
 {
-   walk_repositories "embedded_repositories"  \
+   local permissions
+
+   permissions="minion"
+   walk_auto_repositories "embedded_repositories"  \
                      "_status_repository" \
-                     "" \
+                     "${permissions}" \
                      "${EMBEDDED_REPOS_DIR}"
 }
 
 
 status_deep_embedded_repositories()
 {
-   walk_deep_embedded_repositories "_status_repository" \
-                                    ""
+   local permissions
+
+   permissions="minion"
+   walk_deep_embedded_auto_repositories "_status_repository" \
+                                   "${permissions}"
 }
 
 
@@ -173,7 +183,7 @@ status_main()
 {
    log_debug ":status_main:"
 
-   local OPTION_ALLOW_FOLLOWING_SYMLINKS="YES"
+   local MULLE_FLAG_FOLLOW_SYMLINKS="YES"
    local OPTION_EMBEDDED_ONLY="NO"
    local SKIP_EMBEDDED="YES"
    local SHOW_BREWS="YES"
@@ -212,7 +222,7 @@ status_main()
          ;;
 
          -nfs|--no-follow-symlinks)
-            OPTION_ALLOW_FOLLOWING_SYMLINKS="NO"
+            MULLE_FLAG_FOLLOW_SYMLINKS="NO"
          ;;
 
          -l|--list)

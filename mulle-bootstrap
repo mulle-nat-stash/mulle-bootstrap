@@ -549,6 +549,7 @@ bootstrap_main()
 
    # technical flags
    local MULLE_FLAG_EXECUTOR_DRY_RUN="NO"
+   local MULLE_FLAG_FOLLOW_SYMLINKS="YES"
    local MULLE_FLAG_LOG_DEBUG="NO"
    local MULLE_FLAG_LOG_EXECUTOR="NO"
    local MULLE_FLAG_LOG_EXECUTOR="NO"
@@ -580,6 +581,11 @@ bootstrap_main()
 
          -y|--prefer-local)
             MULLE_FLAG_ANSWER="YES"
+         ;;
+
+         # used persistently throughout so it's global
+         --follow-symlinks)
+            MULLE_FLAG_FOLLOW_SYMLINKS="YES"
          ;;
 
          -f|--force-fetch)

@@ -195,7 +195,7 @@ show_raw_repositories()
 
       SHOW_PREFIX="${SHOW_PREFIX}   "
       clones="`read_raw_setting "repositories"`"
-      walk_raw_clones "show_raw_repository" "${clones}"
+      walk_raw_clones "${clones}" "show_raw_repository"
    )
 }
 
@@ -207,36 +207,48 @@ show_raw_embedded_repositories()
 
       SHOW_PREFIX="${SHOW_PREFIX}   "
       clones="`read_raw_setting "embedded_repositories"`"
-      walk_raw_clones "show_raw_repository" "${clones}"
+      walk_raw_clones "${clones}" "show_raw_repository"
    )
 }
 
 
 show_repositories()
 {
+   local permissions
 
+   permissions="missing
+minion"
    SHOW_PREFIX="${SHOW_PREFIX}   " \
-      walk_repositories "repositories"  \
-                        "show_repository" \
-                        "missing" \
-                        "${REPOS_DIR}"
+      walk_auto_repositories "repositories"  \
+                             "show_repository" \
+                             "${permissions}" \
+                             "${REPOS_DIR}"
 }
 
 
 show_embedded_repositories()
 {
+   local permissions
+
+   permissions="missing
+minion"
    SHOW_PREFIX="${SHOW_PREFIX}   " \
-      walk_repositories "embedded_repositories"  \
-                        "show_repository" \
-                        "missing" \
-                        "${EMBEDDED_REPOS_DIR}"
+      walk_auto_repositories "embedded_repositories"  \
+                             "show_repository" \
+                             "${permissions}" \
+                             "${EMBEDDED_REPOS_DIR}"
 }
 
 
 show_deep_embedded_repositories()
 {
+   local permissions
+
+   permissions="missing
+minion"
    SHOW_PREFIX="${SHOW_PREFIX}   " \
-      walk_deep_embedded_repositories "show_repository" "missing"
+      walk_deep_embedded_auto_repositories "show_repository" \
+                                           "${permissions}"
 }
 
 
@@ -333,6 +345,7 @@ show_main()
    local SHOW_RAW="NO"
    local SHOW_DEEP="NO"
    local SHOW_HEADER="YES"
+   local MULLE_FLAG_FOLLOW_SYMLINKS="YES"
 
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_FETCH_SH}" ]        && . mulle-bootstrap-fetch.sh
@@ -348,7 +361,7 @@ show_main()
    do
       case "$1" in
          -h|-help|--help)
-            status_usage
+            show_usage
          ;;
 
          -b|--show-brews)
@@ -375,9 +388,13 @@ show_main()
             SHOW_HEADER="NO"
          ;;
 
+         -nfs|--no-follow-symlinks)
+            MULLE_FLAG_FOLLOW_SYMLINKS="NO"
+         ;;
+
          -*)
             log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown status option $1"
-            status_usage
+            show_usage
          ;;
 
          *)

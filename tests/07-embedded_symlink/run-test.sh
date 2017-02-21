@@ -149,7 +149,7 @@ echo "--| 4 |--------------------------------"
 
 (
    cd c ;
-   run_mulle_bootstrap "$@" -y fetch --update-symlinks
+   run_mulle_bootstrap "$@" -y fetch --follow-symlinks
 
    [ ! -L stashes/b ]     && fail "failed to symlink b" ;
    [ ! -d stashes/b/src/a ] && fail "removed src/a, though it shouldn't know about it" ;

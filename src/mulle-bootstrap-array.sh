@@ -35,27 +35,28 @@ MULLE_BOOTSTRAP_ARRAY_SH="included"
 # array contents can contain any characters except newline
 array_value_check()
 {
+   local value="$1"
+
    local n
 
-   n=`echo "$1" | wc -l  | awk '{ print $1}'`
-   [ "$n" -eq 0 ] && internal_fail "empty value"
-   [ "$n" -ne 1 ] && internal_fail "value \"$1\" has linebreaks"
+   n=`echo "${value}" | wc -l  | awk '{ print $1}'`
 
-   echo "$1"
+   [ "$n" -eq 0 ] && internal_fail "empty value"
+   [ "$n" -ne 1 ] && internal_fail "value \"${value}\" has linebreaks"
+
+   echo "${value}"
 }
 
 
 array_index_check()
 {
-   local array
-   local i
-
-   array="$1"
-   i="$2"
+   local array="$1"
+   local i="$2"
 
    [ -z "$i" ] && internal_fail "empty index"
 
    local n
+
    n=`array_count "${array}"`
 
    [ "$i" -ge "$n" ] && internal_fail "index ${i} out of bounds ${n}"
@@ -66,11 +67,11 @@ array_index_check()
 
 array_add()
 {
-   local array
-   local value
+   local array="$1"
+   local value="$2"
 
-   array="$1"
-   value="`array_value_check "$2"`"
+# DEBUG code
+#   value="`array_value_check "${value}"`"
 
    if [ -z "${array}" ]
    then
@@ -84,9 +85,7 @@ ${value}"
 
 array_count()
 {
-   local array
-
-   array="$1"
+   local array="$1"
 
    if [ -z "${array}" ]
    then
@@ -94,92 +93,86 @@ array_count()
       return
    fi
 
-   local n
-
-   n=`echo "${array}" | wc -l | awk '{ print $1 }'`
-   echo "$n"
+   echo "${array}" | wc -l | awk '{ print $1 }'
 }
 
 
 array_get()
 {
-   local array
-   local i
+   local array="$1"
+   local i="$2"
 
-   array="$1"
-   i="`array_index_check "${array}" "$2"`"
-   i="`expr "$i" + 1`"
+# DEBUG code
+#   n="`array_count "${array}"`"
+#   [ "$i" -ge "$n" ] && internal_fail "index ${i} out of bounds ${n}"
 
-   echo "${array}" | head "-$i" | tail -1
+   ((i++))
+   sed -n "${i}p" <<< "${array}"
 }
 
 
 array_get_last()
 {
-   local array
+   local array="$1"
 
-   array="$1"
-
-   echo "${array}" | tail -1
+   tail -1 <<< "${array}"
 }
 
 
 array_insert()
 {
-   local array
-   local value
-   local i
+   local array="$1"
+   local i="$2"
+   local value="$3"
 
-   array="$1"
-   i="$2"
-   value="`array_value_check "$3"`"
+   value="`array_value_check "${value}"`"
 
    local head_count
    local tail_count
-   local n
 
-   [ -z "${i}" ] && internal_fail "empty index"
-
-   n="`array_count "${array}"`"
-   [ "$i" -gt "$n" ] && internal_fail "index ${i} out of bounds ${n}"
+# DEBUG code
+#   [ -z "${i}" ] && internal_fail "empty index"
+#
+#   local n
+#
+#   n="`array_count "${array}"`"
+#   [ "$i" -gt "$n" ] && internal_fail "index ${i} out of bounds ${n}"
 
    head_count="$i"
-   tail_count="`expr "$n" - "$i"`"
+   tail_count="$((n-$i))"
 
    if [ "${head_count}" -ne 0 ]
    then
-      echo "${array}" | head "-${head_count}"
+      head "-${head_count}" <<< "${array}"
    fi
 
    echo "${value}"
 
    if [ "${tail_count}" -ne 0 ]
    then
-      echo "${array}" | tail "-${tail_count}"
+      tail "-${tail_count}" <<< "${array}"
    fi
 }
 
 
 array_remove()
 {
-   local array
-   local value
+   local array="$1"
+   local value="$2"
 
-   array="$1"
-   value="`array_value_check "$2"`"
+# DEBUG code
+#   value="`array_value_check "${value}"`"
 
    if [ ! -z "${array}" ]
    then
-       echo "${array}" | fgrep -v -x "${value}"
+       fgrep -v -x "${value}" <<< "${array}"
    fi
 }
 
 
 array_remove_last()
 {
-   local array
-
-   array="$1"
+   local array="$1"
 
    local n
 
@@ -194,7 +187,7 @@ array_remove_last()
       ;;
 
       *)
-         n="`expr "$n" - 1`"
+         n="$((n-1))"
       ;;
    esac
 
@@ -246,13 +239,13 @@ _assoc_array_key_check()
 
 _assoc_array_add()
 {
-   local array
-   local key
-   local value
+   local array="$1"
+   local key="$2"
+   local value="$3"
 
-   array="$1"
-   key="`_assoc_array_key_check "$2"`"
-   value="`array_value_check "$3"`"
+# DEBUG code
+#   key="`_assoc_array_key_check "$2"`"
+#   value="`array_value_check "$3"`"
 
    local line
 
@@ -274,8 +267,9 @@ _assoc_array_remove()
 
    if [ ! -z "${array}" ]
    then
-       key="`_assoc_array_key_check "${key}"`"
-       echo "${array}" | grep -v "^${key}="
+# DEBUG code
+#       key="`_assoc_array_key_check "${key}"`"
+      grep -v "^${key}=" <<< "${array}"
    fi
 }
 
@@ -285,9 +279,11 @@ assoc_array_get()
    local array="$1"
    local key="$2"
 
-   key="`_assoc_array_key_check "${key}"`"
+# DEBUG code
+#   key="`_assoc_array_key_check "${key}"`"
 
-   echo "${array}" | grep "^${key}=" | sed -n 's/^[^=]*=\(.*\)$/\1/p'
+   grep "^${key}=" <<< "${array}" \
+      | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
 
 
@@ -295,7 +291,8 @@ assoc_array_get_last()
 {
    local array="$1"
 
-   echo "${array}" | tail -1 | sed -n 's/^[^=]*=\(.*\)$/\1/p'
+   tail -1 <<< "${array}" \
+      | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
 
 
@@ -303,7 +300,7 @@ assoc_array_all_keys()
 {
    local array="$1"
 
-   echo "${array}" | sed -n 's/^\([^=]*\)=.*$/\1/p'
+   sed -n 's/^\([^=]*\)=.*$/\1/p' <<< "${array}"
 }
 
 
@@ -311,20 +308,15 @@ assoc_array_all_values()
 {
    local array="$1"
 
-   echo "${array}" | sed -n 's/^[^=]*=\(.*\)$/\1/p'
+   sed -n 's/^[^=]*=\(.*\)$/\1/p' <<< "${array}"
 }
 
 
 assoc_array_set()
 {
-   local array
-   local key
-   local value
-   local old_value
-
-   array="$1"
-   key="$2"
-   value="$3"
+   local array="$1"
+   local key="$2"
+   local value="$3"
 
    if [ -z "${value}" ]
    then

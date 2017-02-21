@@ -393,6 +393,8 @@ _bootstrap_create_build_folders()
    local has_settings
    local has_overrides
 
+   log_debug ":_bootstrap_create_build_folders:"
+
    [ -d "${BOOTSTRAP_DIR}.auto/settings" ]
    has_settings=$?
 
@@ -482,6 +484,8 @@ _bootstrap_create_build_folders()
 
 bootstrap_auto_final()
 {
+   log_debug ":bootstrap_auto_final begin:"
+
    exekutor [ -d "${BOOTSTRAP_DIR}.auto" ] || internal_fail "${BOOTSTRAP_DIR}.auto does not exist"
 
    log_fluff "Analysing dependencies of repositories"
@@ -533,6 +537,8 @@ bootstrap_auto_final()
 
    clonenames="`read_root_setting "build_order"`"
    _bootstrap_create_build_folders "${clonenames}" "${REPOS_DIR}"
+
+   log_debug ":bootstrap_auto_final end:"
 }
 
 
