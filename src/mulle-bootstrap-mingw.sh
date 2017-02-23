@@ -75,7 +75,7 @@ mingw_mangle_compiler()
 
    compiler="$1"
    case "${compiler}" in
-      mulle-clang|clang)
+      *clang) # mulle-clang|clang
          compiler="${compiler}-cl"
       ;;
 

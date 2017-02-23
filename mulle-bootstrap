@@ -543,7 +543,7 @@ bootstrap_main()
    local ps4string
 
    local MULLE_FLAG_ANSWER="ASK"
-   local MULLE_FLAG_DIRTY_HARRY="YES"
+   local MULLE_FLAG_MAGNUM_FORCE="NO"
    local MULLE_FLAG_IGNORE_GRAVEYARD="NO"
    local MULLE_FLAG_VERBOSE_BUILD="NO"
 
@@ -589,7 +589,7 @@ bootstrap_main()
          ;;
 
          -f|--force-fetch)
-            MULLE_FLAG_DIRTY_HARRY="NO"
+            MULLE_FLAG_MAGNUM_FORCE="YES"
          ;;
 
          -ig|--ignore-graveyard)
@@ -633,7 +633,7 @@ bootstrap_main()
    #
    command="${1:-bootstrap}"
 
-   if [ "${MULLE_FLAG_DIRTY_HARRY}" = "NO" ]
+   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "YES" ]
    then
       set_fetch_needed
       set_build_needed
@@ -648,7 +648,7 @@ bootstrap_main()
          *)
             case "${command}" in
                bootstrap|nomagic|build|dist|clean|dist-clean|fetch|install|syteminstall|upgrade|update|setup-xcode|show|status|xcode|tag)
-                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here, can't continue"
+                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($PWD), can't continue"
                ;;
             esac
          ;;
@@ -659,7 +659,7 @@ bootstrap_main()
          return 1
       fi
 
-      if [ "${MULLE_FLAG_DIRTY_HARRY}" = "YES" ]
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
       then
          case "${command}" in
             clean|dist-clean|init|status|show|config|setting)
@@ -900,7 +900,7 @@ brew_main()
          *)
             case "${command}" in
                dist|clean|dist-clean|install|upgrade|update|setup-xcode|xcode)
-                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here, can't continue"
+                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($PWD), can't continue"
                ;;
             esac
          ;;

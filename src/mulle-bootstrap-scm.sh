@@ -135,7 +135,7 @@ git_get_branch()
 
 git_checkout()
 {
-   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+   [ $# -ge 7 ] || internal_fail "git_checkout: parameters missing"
 
    local reposdir="$1" ; shift
    local name="$1"; shift
@@ -186,7 +186,7 @@ git_checkout()
 
 git_clone()
 {
-   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+   [ $# -ge 7 ] || internal_fail "git_clone: parameters missing"
 
    local reposdir="$1" ; shift
    local name="$1"; shift
@@ -244,14 +244,14 @@ git_fetch()
 
    (
       exekutor cd "${stashdir}" &&
-      exekutor git ${GITFLAGS} fetch $* ${GITOPTIONS}  >&2
+      exekutor git ${GITFLAGS} fetch "$@" ${GITOPTIONS}  >&2
    ) || fail "git fetch of \"${stashdir}\" failed"
 }
 
 
 git_pull()
 {
-   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+   [ $# -ge 7 ] || internal_fail "git_pull: parameters missing"
 
    local reposdir="$1" ; shift
    local name="$1"; shift
@@ -298,7 +298,7 @@ git_status()
 
 svn_checkout()
 {
-   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+   [ $# -ge 7 ] || internal_fail "svn_checkout: parameters missing"
 
    local reposdir="$1" ; shift
    local name="$1"; shift
@@ -332,7 +332,7 @@ svn_checkout()
 
 svn_update()
 {
-   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+   [ $# -ge 7 ] || internal_fail "svn_update: parameters missing"
 
    local reposdir="$1" ; shift
    local name="$1"; shift
@@ -369,7 +369,7 @@ svn_update()
 
 svn_status()
 {
-   [ $# -ge 7 ] || internal_fail "git_fetch: parameters missing"
+   [ $# -ge 7 ] || internal_fail "svn_status: parameters missing"
 
    local reposdir="$1" ; shift
    local name="$1"; shift
@@ -390,8 +390,6 @@ svn_status()
       exekutor svn status ${options} ${SVNOPTIONS}  >&2
    ) || fail "svn update of \"${stashdir}\" failed"
 }
-
-
 
 
 append_dir_to_gitignore_if_needed()
@@ -469,7 +467,6 @@ append_dir_to_gitignore_if_needed()
 }
 
 
-
 git_main()
 {
    log_debug "::: git :::"
@@ -523,6 +520,212 @@ run_git()
 
    IFS="${DEFAULT_IFS}"
 }
+
+
+_validate_download()
+{
+   local filename="$1"
+   local options="$2"
+
+   local checksum
+   local expected
+
+   case "${options}" in
+      *shasum256*)
+         case "${UNAME}" in
+            mingw)
+               log_fluff "mingw does not support shasum" # or does it ?
+            ;;
+
+            *)
+               log_verbose "Validating ${C_MAGENTA}${C_BOLD}${filename}${C_INFO} ..."
+
+
+               expected="`echo "${options}" | sed -n 's/shasum256=\([a-f0-9]*\).*/\1/p'`"
+               checksum="`shasum -a 256 -p "${filename}" | awk '{ print $1 }'`"
+               if [ "${expected}" != "${checksum}" ]
+               then
+                  fail "${filename} sha256 is ${checksum}, not ${expected} as expected"
+               fi
+            ;;
+         esac
+      ;;
+   esac
+}
+
+
+_single_directory_in_directory()
+{
+   local count
+   local filename
+
+   filename="`ls -1 "${tmpdir}"`"
+
+   count="`echo "$filename}" | wc -l`"
+   if [ $count -ne 1 ]
+   then
+      return
+   fi
+
+   echo "${tmpdir}/${filename}"
+}
+
+
+_move_stuff()
+{
+   local tmpdir="$1"
+   local stashdir="$2"
+   local archivename="$3"
+   local name="$4"
+
+   local src
+   local toremove
+
+   toremove="${tmpdir}"
+   src="${tmpdir}/${archivename}"
+   if [ ! -d "${src}" ]
+   then
+      src="${tmpdir}/${name}"
+      if [ ! -d "${src}" ]
+      then
+         src="`_single_directory_in_directory "${tmpdir}"`"
+         if [ -z "${src}" ]
+         then
+            src="${tmpdir}"
+            toremove=""
+         fi
+      fi
+   fi
+
+   exekutor mv "${src}" "${stashdir}"
+
+   if [ ! -z "${toremove}" ]
+   then
+      rmdir_safer "${toremove}"
+   fi
+}
+
+#
+# What we do is
+# a) download the package using curl
+# b) create a temporary directory, extract into it
+# c) move it into place
+#
+
+tar_unpack()
+{
+   [ $# -ge 7 ] || internal_fail "tar_unpack: parameters missing"
+
+#   local reposdir="$1"
+   local name="$2"
+   local url="$3"
+#   local branch="$4"
+#   local scm="$5"
+#   local tag="$6"
+   local stashdir="$7"
+
+   local tmpdir
+   local archive
+   local download
+   local options
+   local archivename
+
+   download="`basename "${url}"`"
+   archive="${download}"
+
+   # remove .tar (or .zip et friends)
+   archivename="`extension_less_basename "${download}"`"
+   case "${archivename}" in
+      *.tar)
+         archivename="`extension_less_basename "${archivename}"`"
+      ;;
+   esac
+
+   tmpdir="`mktemp -d "${name}.tmp"`"
+   (
+      cd "${tmpdir}" || exit 1
+
+      log_info "Downloading ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
+
+      exekutor curl -O -L ${CURLOPTIONS} "${url}" || exit 1
+      _validate_download "${download}" "${SCM_OPTIONS}" || exit 1
+
+      case "${url}" in
+         *.zip)
+            exekutor unzip "${download}" || exit 1
+            archive="`basename "${download}" .zip`"
+            exekutor rm "${download}" || exit 1
+         ;;
+      esac
+
+      case "${UNAME}" in
+         darwin)
+         ;;
+
+         *)
+            case "${url}" in
+               *.gz)
+                  options="-z"
+               ;;
+
+               *.bz2)
+                  options="-j"
+               ;;
+
+               *.x)
+                  options="-J"
+               ;;
+            esac
+         ;;
+      esac
+
+      log_verbose "Extracting ${C_MAGENTA}${C_BOLD}${archive}${C_INFO} ..."
+
+      exekutor tar xf ${TAROPTIONS} ${options} "${archive}" || exit 1
+      exekutor rm "${archive}" || exit 1
+   ) || exit 1
+
+   _move_stuff "${tmpdir}" "${stashdir}" "${archivename}" "${name}"
+}
+
+
+zip_unpack()
+{
+   [ $# -ge 7 ] || internal_fail "zip_unpack: parameters missing"
+
+#   local reposdir="$1"
+   local name="$2"
+   local url="$3"
+#   local branch="$4"
+#   local scm="$5"
+#   local tag="$6"
+   local stashdir="$7"
+
+   local tmpdir
+   local download
+   local archivename
+
+   download="`basename --  "${url}"`"
+   archivename="`extension_less_basename "${download}"`"
+
+   tmpdir="`mktemp -d "${name}.tmp"`"
+   (
+      cd "${tmpdir}" || exit 1
+
+      log_info "Downloading ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
+
+      exekutor curl -O -L ${CURLOPTIONS} "${url}" || exit 1
+      _validate_download "${download}" "${SCM_OPTIONS}" || exit 1
+
+      log_verbose "Extracting ${C_MAGENTA}${C_BOLD}${download}${C_INFO} ..."
+
+      exekutor unzip "${download}" || exit 1
+      exekutor rm "${download}" || exit 1
+   ) || exit 1
+
+   _move_stuff "${tmpdir}" "${stashdir}" "${archivename}" "${name}"
+}
+
 
 
 scm_initialize()

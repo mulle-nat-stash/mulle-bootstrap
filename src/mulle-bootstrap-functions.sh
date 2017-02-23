@@ -334,6 +334,9 @@ path_depth()
 }
 
 
+#
+# cuts off last extension only
+#
 extension_less_basename()
 {
    local  file

@@ -153,6 +153,8 @@ _bury_zombie()
 
    if [ -d "${stashdir}" ]
    then
+      is_minion_bootstrap_project "${stashdir}" && internal_fail "Would bury minion \"${stashdir}\" which is wrong"
+
       _bury_stash "${reposdir}" "${name}" "${stashdir}"
 
       exekutor rm ${COPYMOVEFLAGS} "${zombie}" >&2

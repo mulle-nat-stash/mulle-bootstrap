@@ -266,7 +266,7 @@ NO is safe, but you often say YES here."
 }
 
 
-_search_for_repository_in_cache()
+_search_for_git_repository_in_cache()
 {
    local directory
    local name
@@ -294,16 +294,6 @@ _search_for_repository_in_cache()
       fi
    fi
 
-   found="${directory}/${name}"
-   log_fluff "Looking for \"${found}\""
-   if [ -d "${found}" ]
-   then
-      log_fluff "Found \"${name}\" in \"${directory}\""
-
-      echo "${found}"
-      return
-   fi
-
    found="${directory}/${name}.git"
    log_fluff "Looking for \"${found}\""
    if [ -d "${found}" ]
@@ -313,10 +303,20 @@ _search_for_repository_in_cache()
       echo "${found}"
       return
    fi
+
+   found="${directory}/${name}"
+   log_fluff "Looking for \"${found}\""
+   if [ -d "${found}" ]
+   then
+      log_fluff "Found \"${name}\" in \"${directory}\""
+
+      echo "${found}"
+      return
+   fi
 }
 
 
-search_for_repository_in_caches()
+search_for_git_repository_in_caches()
 {
    local found
    local directory
@@ -326,7 +326,7 @@ search_for_repository_in_caches()
    do
       IFS="${DEFAULT_IFS}"
 
-      found="`_search_for_repository_in_cache "${directory}" "$@"`" || exit 1
+      found="`_search_for_git_repository_in_cache "${directory}" "$@"`" || exit 1
       if [ ! -z "${found}" ]
       then
          symlink_relpath "${found}" "${ROOT_DIR}"
@@ -335,6 +335,66 @@ search_for_repository_in_caches()
    done
 
    IFS="${DEFAULT_IFS}"
+   return 1
+}
+
+
+_search_for_archive_in_caches()
+{
+   local directory="$1"
+   local name="$2"
+   local filename="$3"
+
+   [ $# -ne 3 ] && internal_fail "fail"
+
+   local found
+
+   found="${directory}/${name}-${filename}"
+   log_fluff "Looking for \"${found}\""
+   if [ -d "${found}" ]
+   then
+      log_fluff "Found \"${name}\" in \"${directory}\" as \"${found}\""
+
+      echo "${found}"
+      return
+   fi
+
+   found="${directory}/${filename}"
+   log_fluff "Looking for \"${found}\""
+   if [ -d "${found}" ]
+   then
+      log_fluff "Found \"${name}\" in \"${directory}\" as \"${found}\""
+
+      echo "${found}"
+      return
+   fi
+}
+
+
+search_for_archive_in_caches()
+{
+   local name="$1"
+   local filename="$2"
+
+   local found
+   local directory
+
+   IFS=":"
+   for directory in ${CACHES_PATH}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      found="`_search_for_archive_in_caches "${directory}" "${name}" "${filename}"`" || exit 1
+      if [ ! -z "${found}" ]
+      then
+         found="`absolutepath "${found}"`"
+         echo "file:///${found}"
+         return
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
+   return 1
 }
 
 
@@ -352,6 +412,33 @@ mkdir_stashparent_if_missing()
       *)
          mkdir_if_missing "${stashparent}"
          echo "${stashparent}"
+      ;;
+   esac
+}
+
+
+get_cache_item()
+{
+   local reposdir="$1"  # ususally .bootstrap.repos
+   local name="$2"      # name of the clone, extensionless
+   local url="$3"       # URL of the clone
+   local branch="$4"    # branch of the clone
+   local scm="$5"       # scm to use for this clone
+   local tag="$6"       # tag to checkout of the clone
+   local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
+   if [ "${OPTION_ALLOW_SEARCH_CACHES}" = "NO" ]
+   then
+      return
+   fi
+
+   case "${scm}" in
+      git*)
+         search_for_git_repository_in_caches "${name}" "${branch}"
+      ;;
+
+      tar*|zip*)
+         search_for_archive_in_caches "${name}" "`basename -- "${url}"`"
       ;;
    esac
 }
@@ -375,12 +462,19 @@ clone_or_symlink()
    local scmflagsdefault
 
    case "${scm}" in
-      git)
+      git*)
          operation="git_clone"
-         scmflagsdefault="--recursive"
       ;;
 
-      svn)
+      zip*)
+         operation="zip_unpack"
+      ;;
+
+      tar*)
+         operation="tar_unpack"
+      ;;
+
+      svn*)
          operation="svn_checkout"
       ;;
 
@@ -388,6 +482,19 @@ clone_or_symlink()
          fail "Unknown scm system ${scm}"
       ;;
    esac
+
+   local SCM_OPTIONS
+
+   #
+   # later: make it so tar?shasum256=djhdjhdfdh
+   # and check that the archive is correct
+   #
+   extra="`echo "${scm}" | sed -n 's/^[^?]*\?\(.*\)/\1/p'`"
+   if [ ! -z "{extra}" ]
+   then
+      log_fluff "Parsed SCM_OPTIONS as \"${extra}\""
+      SCM_OPTIONS="${extra}"
+   fi
 
    local stashparent
 
@@ -420,28 +527,31 @@ clone_or_symlink()
       ;;
 
       *)
-         if [ "${OPTION_ALLOW_SEARCH_CACHES}" = "YES" ]
+         found="`get_cache_item "${reposdir}" \
+                                "${name}" \
+                                "${url}" \
+                                "${branch}" \
+                                "${scm}" \
+                                "${tag}" \
+                                "${stashdir}"`"
+
+         if [ ! -z "${found}" ]
          then
-            found="`search_for_repository_in_caches "${name}" "${branch}"`"
-            if [ -z "${found}" ]
-            then
-               found="`search_for_repository_in_caches "${name}.git" "${branch}"`"
-            fi
-
-            if [ ! -z "${found}" ]
-            then
-               user_say_yes "There is a \"${found}\" folder in the repository cache.
+            user_say_yes "There is \"${found}\" in the cache.
 (\"${PWD}\"). Use it ?"
-               if [ $? -eq 0 ]
-               then
-                  url="${found}"
+            if [ $? -eq 0 ]
+            then
+               url="${found}"
 
-                  ask_symlink_it "${url}"
-                  if [ $? -eq 0 ]
-                  then
-                     operation=link_command
-                  fi
-               fi
+               case "${scm}" in
+                  git)
+                     ask_symlink_it "${url}"
+                     if [ $? -eq 0 ]
+                     then
+                        operation=link_command
+                     fi
+                  ;;
+               esac
             fi
          fi
       ;;
@@ -453,7 +563,7 @@ clone_or_symlink()
                   "${branch}" \
                   "${scm}" \
                   "${tag}" \
-                  "${stashdir}"
+                  "${stashdir}" || exit 1
 
    if [ "${DONT_WARN_SCRIPTS}" != "YES" ]
    then
@@ -1363,7 +1473,7 @@ _common_main()
    #
    # "repository" caches can and usually are outside the project folder
    # this can be multiple paths!
-   CACHES_PATH="`read_config_setting "cashes_path" "${CACHES_PATH}"`"
+   CACHES_PATH="`read_config_setting "caches_path" "${CACHES_PATH}"`"
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OVERRIDE_BRANCH="`read_config_setting "override_branch"`"

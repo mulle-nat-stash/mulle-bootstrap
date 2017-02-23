@@ -60,8 +60,6 @@ EOF
 
 defer_main()
 {
-   local OPTION_FORCE="NO"
-
    log_debug ":defer_main:"
 
    while [ $# -ne 0 ]
@@ -69,10 +67,6 @@ defer_main()
       case "$1" in
          -h|-help|--help)
             defer_usage
-         ;;
-
-         --force)
-            OPTION_FORCE=YES
          ;;
 
          -*)
@@ -106,7 +100,7 @@ defer_main()
       [ ! -z "${masterpath}" ]  || internal_fail "is_minion file empty"
       log_warning "Master \"${masterpath}\" already owns \"${minionpath}\""
 
-      if [ "${OPTION_FORCE}" = "NO" ]
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
       then
          return
       fi
@@ -137,11 +131,12 @@ defer_main()
 
    if master_owns_minion_bootstrap_project "${masterpath}" "${minionpath}"
    then
-      if [ "${OPTION_FORCE}" = "NO" ]
-      then
-         internal_fail "Master \"${masterpath}\" already owns \"${minionpath}\", but it was not detected before"
-      fi
       log_warning "Master \"${masterpath}\" already owns \"${minionpath}\", but it was not detected before"
+
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
+      then
+         return
+      fi
    fi
 
    #
@@ -170,17 +165,11 @@ emancipate_main()
 {
    log_debug ":emancipate_main:"
 
-   local OPTION_FORCE="NO"
-
    while [ $# -ne 0 ]
    do
       case "$1" in
          -h|-help|--help)
             defer_usage
-         ;;
-
-         --force)
-            OPTION_FORCE=YES
          ;;
 
          -*)
@@ -213,7 +202,7 @@ emancipate_main()
    then
       log_warning "Project \"${minionpath}\" does not defer to a master and is already emancipated"
 
-      if [ "${OPTION_FORCE}" = "NO" ]
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
       then
          return
       fi
@@ -232,13 +221,18 @@ emancipate_main()
 
    if ! is_master_bootstrap_project "${masterpath}"
    then
-      fail "\"${masterpath}\" is not a master project"
+      log_warning "\"${masterpath}\" is not a master project"
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
+      then
+         return
+      fi
+   else
+      log_info "Cleaning master before emancipation"
+      ( clean_execute "output" )  # not really critical if fails
    fi
 
-   log_info "Cleaning master before emancipation"
-   ( clean_execute "output" )  # not really critical if fails
-
    log_info "Emancipating \"${minionpath}\" from \"${masterpath}\""
+
    master_remove_minion_bootstrap_project "${masterpath}" "${minionpath}"
 
    emancipate_minion_bootstrap_project "${minionpath}"

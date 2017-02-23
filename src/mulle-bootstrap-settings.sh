@@ -35,7 +35,15 @@ config_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap config <name> [value]
+   mulle-bootstrap config [options] [name] [value]
+
+   Options:
+      -l   : list config values
+      -d   : delete config setting
+
+   Use:
+      mulle-bootstrap config <name> to read
+      mulle-bootstrap config <name> <value> to write
 EOF
   exit 1
 }
@@ -48,6 +56,7 @@ usage:
 EOF
   exit 1
 }
+
 
 setting_usage()
 {
@@ -326,20 +335,11 @@ _read_home_setting()
 
    [ -z "$name" ] && internal_fail "empty name in _read_home_setting"
 
-   if [ "${MULLE_FLAG_LOG_SETTINGS}" = "YES" ]
-   then
-      log_trace2 "Looking for setting \"${name}\" in \"~/.mulle-bootstrap/${name}\""
-   fi
-
    if ! value="`_read_setting "${HOME}/.mulle-bootstrap/${name}"`"
    then
       return 2
    fi
 
-   if [ "${MULLE_FLAG_LOG_SETTINGS}" = "YES" ]
-   then
-      log_trace "Setting ${C_MAGENTA}${C_BOLD}${name}${C_TRACE} found in \"~/.mulle-bootstrap/${name}\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
-   fi
    warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
 
    echo "$value"

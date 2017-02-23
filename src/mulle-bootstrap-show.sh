@@ -126,16 +126,7 @@ show_repository()
 
    if [ "${SHOW_SCM}" = "YES" ]
    then
-      printf "  ["
-
-      case "${scm}" in
-         ""|"git")
-            printf "git"
-         ;;
-         *)
-            printf "${scm}"
-         ;;
-      esac
+      printf "  [${scm}"
 
       if [ ! -z "${tag}" -o ! -z "${branch}" ]
       then

@@ -192,35 +192,6 @@ all_embedded_repository_stashes()
 }
 
 
-# all_minion_stashdirs()
-# {
-#    local reposdir="$1"
-
-#    [ -z "${reposdir}" ] && internal_fail "repos is empty"
-
-#    local name
-#    local stash
-
-#    IFS="
-# "
-#    for name in `ls -1 "${reposdir}/" 2> /dev/null`
-#    do
-#       IFS="${DEFAULT_IFS}"
-
-#       stash="`stash_of_repository "${reposdir}" "${name}"`"
-#       if [ ! -z "${stash}" ]
-#       then
-#          if is_minion_bootstrap_project "${stash}"
-#          then
-#             echo "${stash}"
-#          fi
-#       fi
-#    done
-
-#    IFS="${DEFAULT_IFS}"
-# }
-
-
 #
 # Walkers
 #
@@ -526,7 +497,7 @@ walk_raw_clones()
 #
 _canonical_clone_name()
 {
-   local  url
+   local url
    local name
 
    url="$1"
@@ -537,10 +508,20 @@ _canonical_clone_name()
       ;;
    esac
 
-   name="`extension_less_basename "$url"`"
+   # github/gitlist urls (hacquish)
+   # cut off last two path components
+   case "$url" in
+      */archive/*.gz|*/archive/*.zip|*/tarball/*|*/zipball/*)
+         url="`dirname -- "${url}"`"
+         url="`dirname -- "${url}"`"
+      ;;
+   esac
+
+   name="`basename -- "${url}"`"
+   name="`echo "${name%%.*}"`"
 
    case "${name}" in
-      .*)
+      .*|"")
          fail "clone name can't start with a '.'"
       ;;
    esac
@@ -1037,6 +1018,7 @@ mulle_repositories_initialize()
 
    log_debug ":mulle_repositories_initialize:"
 
+   [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ]           && . mulle-bootstrap-array.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]       && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
