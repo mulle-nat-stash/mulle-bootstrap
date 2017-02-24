@@ -351,7 +351,7 @@ _search_for_archive_in_caches()
 
    found="${directory}/${name}-${filename}"
    log_fluff "Looking for \"${found}\""
-   if [ -d "${found}" ]
+   if [ -f "${found}" ]
    then
       log_fluff "Found \"${name}\" in \"${directory}\" as \"${found}\""
 
@@ -361,7 +361,7 @@ _search_for_archive_in_caches()
 
    found="${directory}/${filename}"
    log_fluff "Looking for \"${found}\""
-   if [ -d "${found}" ]
+   if [ -f "${found}" ]
    then
       log_fluff "Found \"${name}\" in \"${directory}\" as \"${found}\""
 
@@ -911,20 +911,13 @@ required_action_for_clone()
 
    if [ "${scm}" != "${newscm}" ]
    then
-      log_fluff "SCM has changed from \"${scm}\" to \"${newscm}\", need to refetch"
-      echo "remove
+      if ! [ "${scm}" = "symlink" -a "${newscm}" = "git" ]
+      then
+         log_fluff "SCM has changed from \"${scm}\" to \"${newscm}\", need to refetch"
+         echo "remove
 clone"
-      return
-   fi
-
-   #
-   # if scm is not git, don't try to be clever
-   #
-   if [ ! -z "${scm}" ] && [ "${scm}" != "git" -a "${scm}" != "symlink" ]
-   then
-      echo "remove
-clone"
-      return
+         return
+      fi
    fi
 
    if [ "${stashdir}" != "${newstashdir}" ]
@@ -958,6 +951,9 @@ clone"
       fi
    fi
 
+   #
+   # if scm is not git, don't try to be clever
+   #
    if [ "${scm}" = "symlink" ]
    then
       if [ -e "${newstashdir}" ]

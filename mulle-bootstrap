@@ -108,9 +108,10 @@ usage: mulle-bootstrap [flags] [command] [options]
                -a (clone preferred) -y (local copy/symlink preferred)
    -f        : force operation
    -n        : do nothing creative or destructive
+   --no-defer: do not defer to master, if project is a minion
    -v        : -v to be more verbose (-vv or -vvv for more verbosity)
    -V        : verbose build
-   -DKEY=VAL : define local key/value C style
+   -DKEY=VAL : define local expansion key/value C style
 EOF
 
    bootstrap_technical_option_usage
@@ -499,13 +500,21 @@ bootstrap_should_defer_to_master()
    # and some commands (like fetch and clean) are executed locally AND in the
    # master
    #
+
    if ! is_minion_bootstrap_project
    then
       return 1
    fi
 
+   if [ "${MULLE_FLAG_DONT_DEFER}" = "YES" ]
+   then
+      log_verbose "Minion executes locally by request"
+      return 1
+   fi
+
    if [ "${MULLE_BOOTSTRAP_DONT_DEFER}" = "YES" ]
    then
+      log_fluff "Minion executes locally by environment"
       return 1
    fi
 
@@ -518,6 +527,23 @@ bootstrap_should_defer_to_master()
    case "${command}" in
       git|setup-xcode|xcode|tag|version|defer|emancipate|uname|library-path)
          log_verbose "Minion executes locally"
+      ;;
+
+      show)
+         log_verbose "Minion executes partially locally"
+
+         [ -z "${MULLE_BOOTSTRAP_SHOW_SH}" ] && . mulle-bootstrap-show.sh
+
+         (
+            [ $# -eq 0 ] || shift
+            show_main_header_only "$@"
+         ) || exit 1
+
+         log_info "Minion defers to master \"$masterpath\""
+         log_info ""
+
+         cd "${masterpath}" || fail "master is missing"
+         return 0  # this leads to  main deferring later on (but cd is set!)
       ;;
 
       refer|dist-clean)
@@ -554,6 +580,7 @@ bootstrap_main()
    local MULLE_FLAG_LOG_EXECUTOR="NO"
    local MULLE_FLAG_LOG_EXECUTOR="NO"
    local MULLE_FLAG_LOG_FLUFF="NO"
+   local MULLE_FLAG_DONT_DEFER="NO"
    local MULLE_FLAG_LOG_SCRIPTS="NO"
    local MULLE_FLAG_LOG_SETTINGS="NO"
    local MULLE_FLAG_LOG_VERBOSE="NO"
@@ -583,6 +610,10 @@ bootstrap_main()
             MULLE_FLAG_ANSWER="YES"
          ;;
 
+         --no-defer)
+            MULLE_FLAG_DONT_DEFER="YES"
+         ;;
+
          # used persistently throughout so it's global
          --follow-symlinks)
             MULLE_FLAG_FOLLOW_SYMLINKS="YES"
@@ -592,7 +623,7 @@ bootstrap_main()
             MULLE_FLAG_MAGNUM_FORCE="YES"
          ;;
 
-         -ig|--ignore-graveyard)
+         --ignore-graveyard)
             MULLE_FLAG_IGNORE_GRAVEYARD="YES"
          ;;
 
@@ -771,7 +802,7 @@ bootstrap_main()
       ;;
 
       show)
-         . mulle-bootstrap-show.sh
+         [ -z "${MULLE_BOOTSTRAP_SHOW_SH}" ] && . mulle-bootstrap-show.sh
 
          show_main "$@" || exit 1
       ;;

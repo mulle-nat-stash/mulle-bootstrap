@@ -35,24 +35,33 @@ config_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap config [options] [name] [value]
+   mulle-bootstrap config [options] [key] [value]
 
    Options:
-      -l   : list config values
       -d   : delete config setting
+      -l   : list config values
 
    Use:
-      mulle-bootstrap config <name> to read
-      mulle-bootstrap config <name> <value> to write
+      mulle-bootstrap config <key> to read
+      mulle-bootstrap config <key> <value> to write
 EOF
   exit 1
 }
+
 
 expansion_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap expansion <name> [value]
+   mulle-bootstrap expansion [options] <key> [value]
+
+   Options:
+      -d   : delete setting
+      -g   : use global .bootstrap folder instead of local
+
+   Use:
+      mulle-bootstrap expansion <key> to read
+      mulle-bootstrap expansion <key> <value> to write
 EOF
   exit 1
 }
@@ -62,7 +71,18 @@ setting_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap setting [-r <repository>] <name>
+   mulle-bootstrap setting [options] <key> [value]
+
+   Options:
+      -a   : append value to setting
+      -d   : delete setting
+      -g   : use global .bootstrap folder instead of local
+      -p   : show current setting value
+      -r   : specify repository for build setting
+
+   Use:
+      mulle-bootstrap setting <key> to read settings
+      mulle-bootstrap setting <key> <value> to write settings
 EOF
   exit 1
 }
@@ -80,20 +100,93 @@ warn_user_setting()
    fi
 }
 
+KNOWN_CONFIG_KEYS="\
+absolute_symlinks
+addictions_dir
+brew_permissions
+build_dir
+build_log_dir
+build_preferences
+caches_path
+check_usr_local_include
+clean_before_build
+clean_dependencies_before_build
+clean_empty_parent_folders
+clean_folders
+configurations
+create_default_files
+create_example_files
+dependencies_dir
+dist_clean_folders
+dont_warn_scripts
+editor
+embedded_symlinks
+framework_dir_name
+header_dir_name
+install_clean_folders
+install_symlinks
+library_dir_name
+mangle_minwg_compiler
+no_warn_local_setting
+open_${mainfile}_file
+output_clean_folders
+override_branch
+stashes_dir
+symlinks
+warn_environment_setting
+warn_user_setting
+xcodebuild
+"
+
+KNOWN_ROOT_SETTING_KEYS="\
+brews
+embedded_repositories
+repositories
+version
+"
+
+KNOWN_BUILD_SETTING_KEYS="\
+WARNING_CFLAGS
+CMAKEFLAGS
+GCC_PREPROCESSOR_DEFINITIONS
+LD
+OTHER_CFLAGS
+OTHER_CXXFLAGS
+OTHER_LDFLAGS
+build_preferences
+cmake
+cmake_generator
+cmake_keep_builddir
+configurations
+configure_flags
+dispense_headers_path
+dispense_other_path
+fallback-configuration
+final
+make
+sdks
+xcconfig
+xcode_project
+xcode_proper_skip_install
+xcode_schemes
+xcode_targets
+xcodebuild
+"
+
 
 warn_environment_setting()
 {
-   local name
+   local key
 
-   name="$1"
+   key="$1"
    if [ "$MULLE_BOOTSTRAP_WARN_ENVIRONMENT_SETTINGS" = "YES" ]
    then
       # don't trace some boring ones
-      if [ "${name}" != "MULLE_FLAG_ANSWER" -a \
-           "${name}" != "MULLE_FLAG_LOG_VERBOSE" -a \
-           "${name}" != "MULLE_TRACE" ]
+      if [ "${key}" != "MULLE_FLAG_ANSWER" -a \
+           "${key}" != "MULLE_FLAG_LOG_VERBOSE" -a \
+           "${key}" != "MULLE_TRACE" ]
       then
-         log_warning "Using environment variable \"${name}\""
+         log_warning "Using environment variable \"${key}\""
       fi
    fi
 }
@@ -152,7 +245,7 @@ _read_setting()
          yesno="not "
       fi
 
-      log_trace2 "Looking for setting in \"${apath}\" (pwd=$PWD) : ${yesno}found"
+      log_trace2 "Looking for setting-file \"${apath}\" (pwd=$PWD) : ${yesno}found"
    fi
 
    if [ "${READ_SETTING_RETURNS_PATH}" = "YES" ]
@@ -164,10 +257,10 @@ _read_setting()
 
       if [ "$MULLE_FLAG_LOG_VERBOSE" = "YES"  ]
       then
-         local name
+         local key
 
-         name="`basename -- "${apath}"`"
-         log_setting "${C_MAGENTA}${name}${C_SETTING} found as \"${apath}\""
+         key="`basename -- "${apath}"`"
+         log_setting "${C_MAGENTA}${key}${C_SETTING} found as \"${apath}\""
       fi
 
       echo "${apath}"
@@ -186,23 +279,23 @@ _read_setting()
 
    if [ "${MULLE_FLAG_LOG_VERBOSE}" = "YES" -o "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
    then
-      local name
+      local key
 
-      name="`basename -- "${apath}"`"
+      key="`basename -- "${apath}"`"
       apath="`absolutepath "${apath}"`"
 
       # make some boring names less prominent
       if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ] ||
-         [ "${name}" != "repositories" -a \
-           "${name}" != "repositories.tmp" -a \
-           "${name}" != "build_order" -a \
-           "${name}" != "versions" -a \
-           "${name}" != "embedded_repositories" -a \
-           "${name}" != "MULLE_REPOSITORIES" -a \
-           "${name}" != "MULLE_NAT_REPOSITORIES" \
+         [ "${key}" != "repositories" -a \
+           "${key}" != "repositories.tmp" -a \
+           "${key}" != "build_order" -a \
+           "${key}" != "versions" -a \
+           "${key}" != "embedded_repositories" -a \
+           "${key}" != "MULLE_REPOSITORIES" -a \
+           "${key}" != "MULLE_NAT_REPOSITORIES" \
          ]
       then
-         log_printf "${C_SETTING}%b${C_RESET}\n" "Setting ${C_MAGENTA}${name}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${C_BOLD}${value}${C_SETTING}"
+         log_printf "${C_SETTING}%b${C_RESET}\n" "Setting ${C_MAGENTA}${key}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${C_BOLD}${value}${C_SETTING}"
       fi
    fi
 
@@ -218,16 +311,16 @@ read_setting()
 
 read_raw_setting()
 {
-   local name="$1"
+   local key="$1"
 
    [ $# -ne 1 ]     && internal_fail "parameterization error"
-   [ -z "${name}" ] && internal_fail "empty name in read_raw_setting"
+   [ -z "${key}" ] && internal_fail "empty key in read_raw_setting"
 
-   if _read_setting "${BOOTSTRAP_DIR}.local/${name}"
+   if _read_setting "${BOOTSTRAP_DIR}.local/${key}"
    then
       return
    fi
-   _read_setting "${BOOTSTRAP_DIR}/${name}"
+   _read_setting "${BOOTSTRAP_DIR}/${key}"
 }
 
 #
@@ -235,10 +328,10 @@ read_raw_setting()
 #
 _read_bootstrap_setting()
 {
-   local name="$1"
+   local key="$1"
 
    [ $# -ne 1 ]     && internal_fail "parameterization error"
-   [ -z "${name}" ] && internal_fail "empty name in _read_bootstrap_setting"
+   [ -z "${key}" ] && internal_fail "empty key in _read_bootstrap_setting"
 
    local value
 
@@ -252,7 +345,7 @@ _read_bootstrap_setting()
       suffix=".auto"
    fi
 
-   _read_setting "${BOOTSTRAP_DIR}${suffix}/${name}"
+   _read_setting "${BOOTSTRAP_DIR}${suffix}/${key}"
 }
 
 
@@ -262,21 +355,21 @@ _read_bootstrap_setting()
 #
 _read_environment_setting()
 {
-   local name
+   local key
    local value
    local envname
 
    [ $# -ne 1  ] && internal_fail "parameterization error"
 
-   name="$1"
+   key="$1"
 
-   [ -z "$name" ] && internal_fail "empty name in _read_environment_setting"
+   [ -z "${key}" ] && internal_fail "empty key in _read_environment_setting"
 
-   envname="MULLE_BOOTSTRAP_`echo "${name}" | tr '[:lower:]' '[:upper:]'`"
+   envname="MULLE_BOOTSTRAP_`echo "${key}" | tr '[:lower:]' '[:upper:]'`"
 
    if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
    then
-      log_trace2 "Looking for setting \"${name}\" as environment variable \"${envname}\""
+      log_trace2 "Looking for setting \"${key}\" as environment variable \"${envname}\""
    fi
 
    value="`printenv "${envname}"`"
@@ -287,7 +380,7 @@ _read_environment_setting()
 
    if [ "${MULLE_FLAG_LOG_SETTINGS}" = "YES" ]
    then
-      log_trace "Setting ${C_MAGENTA}${C_BOLD}${name}${C_TRACE} found in environment variable \"${envname}\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
+      log_trace "Setting ${C_MAGENTA}${C_BOLD}${key}${C_TRACE} found in environment variable \"${envname}\" as ${C_MAGENTA}${C_BOLD}${value}${C_TRACE}"
    fi
 
    warn_environment_setting "${envname}"
@@ -325,22 +418,22 @@ list_environment_settings()
 
 _read_home_setting()
 {
-   local name
+   local key
    local value
    local default
 
    [ $# -ne 1  ] && internal_fail "parameterization error"
 
-   name="$1"
+   key="$1"
 
-   [ -z "$name" ] && internal_fail "empty name in _read_home_setting"
+   [ -z "${key}" ] && internal_fail "empty key in _read_home_setting"
 
-   if ! value="`_read_setting "${HOME}/.mulle-bootstrap/${name}"`"
+   if ! value="`_read_setting "${HOME}/.mulle-bootstrap/${key}"`"
    then
       return 2
    fi
 
-   warn_user_setting "${HOME}/.mulle-bootstrap/${name}"
+   warn_user_setting "${HOME}/.mulle-bootstrap/${key}"
 
    echo "$value"
 }
@@ -395,32 +488,32 @@ read_config_setting()
       set +x
    fi
 
-   local name
+   local key
    local default
 
    [ $# -lt 1 -o $# -gt 2 ] && internal_fail "parameterization error"
 
-   name="$1"
+   key="$1"
    default="$2"
 
-   [ -z "$name" ] && internal_fail "empty name in read_config_setting"
+   [ -z "${key}" ] && internal_fail "empty key in read_config_setting"
 
    #
-   # always lowercase config names
+   # always lowercase config keys
    #
-   name=`echo "${name}" | tr '[:upper:]' '[:lower:]'`
+   key=`echo "${key}" | tr '[:upper:]' '[:lower:]'`
 
    local value
 
-   if ! value="`_read_environment_setting "${name}"`"
+   if ! value="`_read_environment_setting "${key}"`"
    then
-      if ! value="`_read_setting "${BOOTSTRAP_DIR}.local/config/${name}"`"
+      if ! value="`_read_setting "${BOOTSTRAP_DIR}.local/config/${key}"`"
       then
-         if ! value="`_read_home_setting "${name}"`"
+         if ! value="`_read_home_setting "${key}"`"
          then
             if [ ! -z "${default}" ]
             then
-               log_setting "Setting ${C_MAGENTA}${name}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
+               log_setting "Setting ${C_MAGENTA}${key}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
                value="${default}"
             fi
          fi
@@ -447,27 +540,27 @@ read_build_setting()
       set +x
    fi
 
-   local name
+   local key
    local default
    local package
 
    [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
 
    package="$1"
-   name="$2"
+   key="$2"
    default="$3"
 
-   [ -z "$name" ] && internal_fail "empty parameter in read_config_setting"
+   [ -z "${key}" ] && internal_fail "empty parameter in read_config_setting"
 
    local value
 
-   value="`_read_bootstrap_setting "${package}.build/${name}"`"
+   value="`_read_bootstrap_setting "${package}.build/${key}"`"
    if [ $? -ne 0 ]
    then
       if [ ! -z "${default}" ]
       then
          log_setting "Build Setting ${C_MAGENTA}${package}${C_SETTING} \
-for ${C_MAGENTA}${name}${C_SETTING} \
+for ${C_MAGENTA}${key}${C_SETTING} \
 set to default ${C_MAGENTA}${default}${C_SETTING}"
       fi
       value="${default}"
@@ -493,22 +586,22 @@ read_root_setting()
    fi
 
    local default
-   local name
+   local key
 
-   name="$1"
+   key="$1"
    default="$2"
 
-   [ -z "$name" ] && internal_fail "empty name in read_root_setting"
+   [ -z "${key}" ] && internal_fail "empty key in read_root_setting"
 
    local value
    local rval
 
-   value="`_read_bootstrap_setting "${name}"`"
+   value="`_read_bootstrap_setting "${key}"`"
    if [ $? -ne 0 ]
    then
       if [ ! -z "${default}" ]
       then
-         log_setting "Root setting for ${C_MAGENTA}${name}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
+         log_setting "Root setting for ${C_MAGENTA}${key}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
       fi
       value="${default}"
    fi
@@ -523,7 +616,6 @@ read_root_setting()
 #
 #   return $?
 }
-
 
 
 ####
@@ -564,14 +656,14 @@ read_yes_no_config_setting()
 
 read_sane_config_path_setting()
 {
-   local name
+   local key
    local value
    local default
 
-   name="$1"
+   key="$1"
    default="$2"
 
-   value="`read_config_setting "${name}" "${default}"`"
+   value="`read_config_setting "${key}" "${default}"`"
    if [ $? -eq 0 ]
    then
       assert_sane_subdir_path "${value}"
@@ -620,7 +712,7 @@ _merge_settings_in_front()
 {
    local settings1="$1"
    local settings2="$2"
-   local name="$3"
+   local key="$3"
 
    local result
 
@@ -673,7 +765,6 @@ merge_settings_in_front()
 ###
 #
 #
-
 all_build_flag_keys()
 {
    local package
@@ -697,9 +788,145 @@ ${keys3}
    return 0
 }
 
+
 #
-# "config" interface sorta like git config
-# obviously need to "vet" the keys sometime
+# setting ops
+#
+_setting_list()
+{
+   fail "Not yet implemented"
+}
+
+
+_chosen_bootstrapdir()
+{
+   local option="$1"
+
+   if [ "${option}" = "YES" ]
+   then
+      echo "${BOOTSTRAP_DIR}"
+   else
+      echo "${BOOTSTRAP_DIR}.local"
+   fi
+}
+
+
+_chosen_setting_directory()
+{
+   local repository="$1"
+   local option="$2"
+
+   local bootstrapdir
+
+   if [ "${option}" = "YES" ]
+   then
+      bootstrapdir="${BOOTSTRAP_DIR}"
+      if [ ! -z "${repository}" ]
+      then
+         echo "${bootstrapdir}/${repository}.build"
+      else
+         echo "${bootstrapdir}"
+      fi
+   else
+      bootstrapdir="${BOOTSTRAP_DIR}.local"
+      if [ ! -z "${3}" ]
+      then
+         echo "${bootstrapdir}/${repository}.build"
+      else
+         echo "${bootstrapdir}/settings/"
+      fi
+   fi
+}
+
+
+_setting_read()
+{
+   local key="$1"
+   local repository="$2"
+
+   local bootstrapdir
+   local directory
+
+   if [ "${OPTION_PROCESSED_READ}" = "NO" ]
+   then
+      bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+      directory="`_chosen_setting_directory "${repository}" "${OPTION_GLOBAL}"`"
+      _read_setting "${directory}/${name}"
+
+      return
+   fi
+
+   if [ -z "${repository}" ]
+   then
+      read_root_setting "$1"
+   else
+      read_build_setting "${repository}" "{key}"
+   fi
+}
+
+
+_setting_write()
+{
+   local key="$1"
+   local value="$2"
+   local repository="$3"
+
+   local bootstrapdir
+   local directory
+
+   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+   directory="`_chosen_setting_directory "${repository}" "${OPTION_GLOBAL}"`"
+
+   mkdir_if_missing "${directory}"
+
+   local filename
+
+   filename="${directory}/${key}"
+   redirect_exekutor "${filename}" echo "${value}"
+   exekutor touch "${bootstrapdir}"
+}
+
+
+_setting_append()
+{
+   local key="$1"
+   local value="$2"
+   local repository="$3"
+
+   local bootstrapdir
+   local directory
+
+   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+   directory="`_chosen_setting_directory "${repository}" "${OPTION_GLOBAL}"`"
+
+   mkdir_if_missing "${directory}"
+
+   local filename
+
+   filename="${directory}/${key}"
+   redirect_append_exekutor "${filename}" echo "${value}"
+   exekutor touch "${bootstrapdir}"
+}
+
+
+_setting_delete()
+{
+   local bootstrapdir
+   local directory
+
+   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+   directory="`_chosen_setting_directory "${repository}" "${OPTION_GLOBAL}"`"
+
+   local filename
+
+   filename="${directory}/${key}"
+   remove_file_if_present "${filename}"
+   exekutor touch "${bootstrapdir}" 2> /dev/null
+}
+
+
+#
+# config ops
 #
 _config_list()
 {
@@ -716,7 +943,15 @@ _config_list()
 
 _config_read()
 {
-   read_config_setting "$1"
+   local key="$1"
+
+   read_config_setting "${key}"
+}
+
+
+_config_append()
+{
+   fail "Not yet implemented"
 }
 
 
@@ -739,43 +974,120 @@ _config_delete()
 }
 
 
+#
+# expansion ops
+#
 _expansion_read()
 {
-   read_root_setting "$1"
+   local key="$1"
+
+   local bootstrapdir
+
+   if [ "${OPTION_PROCESSED_READ}" = "NO" ]
+   then
+      bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+      _read_setting "${bootstrapdir}/${key}"
+
+      return
+   fi
+
+   read_root_setting "${key}"
 }
 
 
 _expansion_write()
 {
-   mkdir_if_missing "${BOOTSTRAP_DIR}.local"
+   local bootstrapdir
 
-   exekutor echo "$2" > "${BOOTSTRAP_DIR}.local/$1"
+   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+   mkdir_if_missing "${bootstrapdir}"
+
+   redirect_exekutor "${bootstrapdir}/$1" echo "$2"
+   exekutor touch "${bootstrapdir}"
+}
+
+
+_expansion_append()
+{
+   fail "Not yet implemented"
 }
 
 
 _expansion_delete()
 {
-   if [ -f "${BOOTSTRAP_DIR}.local/$1" ]
-   then
-      exekutor rm "${BOOTSTRAP_DIR}.local/$1"  >&2
-   fi
+   local bootstrapdir
+
+   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+
+   remove_file_if_present "${bootstrapdir}/$1"
+   exekutor touch "${bootstrapdir}"
 }
 
 
-
-config_main()
+_expansion_list()
 {
-   local name
+   fail "Not yet implemented"
+}
+
+
+_generic_main()
+{
+   local type="$1" ; shift
+   local known_keys_1="$1"; shift
+   local known_keys_2="$1"; shift
+
+   local OPTION_APPEND="NO"
+   local OPTION_GLOBAL="NO"
+   local OPTION_PROCESSED_READ="NO"
+   local key
    local value
    local command
+   local repository
 
    command="read"
 
    while [ $# -ne 0 ]
    do
+      case "${type}" in
+         setting|expansion)
+            case "$1" in
+               -g|--global)
+                  OPTION_GLOBAL="YES"
+                  shift
+                  continue
+               ;;
+
+               -p|--processed)
+                  OPTION_PROCESSED_READ="YES"
+                  shift
+                  continue
+               ;;
+            esac
+         ;;
+      esac
+
+      case "${type}" in
+         setting)
+            case "$1" in
+               -r|--repository)
+                  [ $# -ne 0 ] || fail "repository name missing"
+                  repository="$1"
+                  shift
+                  continue
+               ;;
+            esac
+         ;;
+      esac
+
       case "$1" in
          -h|-help|--help)
-            config_usage
+            ${type}_usage
+         ;;
+
+         -a|--append)
+            OPTION_APPEND="YES"
+            shift
+            continue
          ;;
 
          -d|--delete)
@@ -788,7 +1100,7 @@ config_main()
 
          -n|--off|--no|--NO)
             command="write"
-            value=
+            value="NO"
          ;;
 
          -y|--on|--yes|--YES)
@@ -811,12 +1123,26 @@ config_main()
 
    case "${command}" in
       read|write|delete)
-         name="$1"
-         [ -z "${name}" ] && config_usage
+         key="$1"
+         [ -z "${key}" ] && ${type}_usage
          shift
+
+         if [ ! -z "${known_keys_1}" ]
+         then
+            local match
+
+            match="`echo "${known_keys_1}" | fgrep -s -x "${key}"`"
+            if [ -z "${match}" ]
+            then
+               match="`echo "${known_keys_2}" | fgrep -s -x "${key}"`"
+               if [ -z "${match}" ]
+               then
+                  log_warning "${key} is not a known key. Maybe OK, maybe not."
+               fi
+            fi
+         fi
       ;;
    esac
-
 
    case "${command}" in
       read)
@@ -825,189 +1151,61 @@ config_main()
             command="write"
             value="$1"
             shift
+
+            if [ "${value}" = "-" ]
+            then
+               value="`cat`"
+            fi
          fi
       ;;
    esac
 
    if [ $# -ne 0 ]
    then
-      config_usage
+      ${type}_usage
    fi
 
    case "${command}" in
       read)
-         value="`"_config_read" "${name}"`"
-         if [ -z "${value}" ]
-         then
-            value="`eval echo "$"${name}`"
-         fi
-         if [ ! -z "${value}" ]
-         then
-            echo "${value}"
-         fi
+         _${type}_read "${key}" "${repository}"
       ;;
 
       list)
-         _config_list
+         _${type}_list "${repository}"
       ;;
 
       delete)
-         _config_delete "${name}"
+         _${type}_delete "${key}" "${repository}"
       ;;
 
       write)
-         _config_write "${name}" "${value}"
+         if [ "${OPTION_APPEND}" = "YES" ]
+         then
+            _${type}_append "${key}" "${value}" "${repository}"
+         else
+            _${type}_write "${key}" "${value}" "${repository}"
+         fi
       ;;
    esac
+}
+
+
+config_main()
+{
+   _generic_main "config" "${KNOWN_CONFIG_KEYS}" "" "$@"
 }
 
 
 expansion_main()
 {
-   local name
-   local value
-   local command
-
-   command="read"
-
-   while [ $# -ne 0 ]
-   do
-      case "$1" in
-         -h|-help|--help)
-            expansion_usage
-         ;;
-
-         -d|--delete)
-            command="delete"
-         ;;
-
-         -n|--off|--no|--NO)
-            command="write"
-            value=
-         ;;
-
-         -y|--on|--yes|--YES)
-            command="write"
-            value="YES"
-         ;;
-
-         -*)
-            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
-            expansion_usage
-         ;;
-
-         *)
-            break
-         ;;
-      esac
-
-      shift
-   done
-
-   name="`echo "${1}" | tr '[a-z]' '[A-Z]'`"
-   [ -z "${name}" ] && expansion_usage
-   shift
-
-   if [ $# -ne 0 ]
-   then
-      [ "${command}" != "read" ] && "${prefix}_usage"
-
-      command="write"
-      value="$1"
-      shift
-   fi
-
-   case "${command}" in
-      read)
-         value="`"_expansion_read" "${name}"`"
-         if [ -z "${value}" ]
-         then
-            value="`eval echo "$"${name}`"
-         fi
-         if [ ! -z "${value}" ]
-         then
-            echo "${value}"
-         fi
-      ;;
-
-      delete)
-         _expansion_delete "${name}"
-      ;;
-
-      write)
-         _expansion_write "${name}" "${value}"
-      ;;
-   esac
+   _generic_main "expansion" "${KNOWN_EXPANSION_KEYS}" "" "$@"
 }
-
 
 
 setting_main()
 {
-   local name
-   local value
-   local command
-   local repository
-   local expansion
-
-   command="read"
-
-   while [ $# -ne 0 ]
-   do
-      case "$1" in
-         -h|-help|--help)
-            config_usage
-         ;;
-
-         -r|--repository)
-            shift
-            [ $# -ne 0 ] || fail "repository name missing"
-            repository="$1"
-         ;;
-
-         -*)
-            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
-            config_usage
-         ;;
-
-         *)
-            break
-         ;;
-      esac
-
-      shift
-   done
-
-   name="$1"
-   [ $# -ne 0 ] && shift
-
-   if [ -z "${name}" -o $# -ne 0 ]
-   then
-      setting_usage
-   fi
-
-   case "${command}" in
-      read)
-         if [ -z "${repository}" ]
-         then
-            value="`read_root_setting "$name"`"
-         else
-            value="`read_build_setting "${repository}" "$name"`"
-         fi
-
-         if [ -z "${value}" ]
-         then
-            value="`eval echo "$"${name}`"
-         fi
-
-         if [ ! -z "${value}" ]
-         then
-            echo "${value}"
-         fi
-      ;;
-   esac
+   _generic_main "setting" "${KNOWN_ROOT_SETTING_KEYS}" "${KNOWN_BUILD_SETTING_KEYS}" "$@"
 }
-
 
 #
 # read some config stuff now

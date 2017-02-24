@@ -67,10 +67,10 @@ _show_path()
          :
       fi
    else
-      printf "${C_FAINT}"
+      printf "%b" "${C_FAINT}"
    fi
 
-   printf "${filepath}${C_RESET}"
+   printf "%b" "${filepath}${C_RESET}"
 }
 
 
@@ -85,7 +85,7 @@ show_path()
 
       redirect="`readlink "${filepath}"`"
       directory="`dirname -- "${filepath}"`"
-      printf "${filepath} -> `( cd "${directory}" ; _show_path "${redirect}" )`"
+      printf "%b"  "${filepath} -> `( cd "${directory}" ; _show_path "${redirect}" )`"
    else
       _show_path "${filepath}"
    fi
@@ -102,23 +102,23 @@ show_repository()
    local tag="$6"       # tag to checkout of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
 
-   printf "${SHOW_PREFIX}${C_MAGENTA}"
+   printf "%b"  "${SHOW_PREFIX}${C_MAGENTA}"
    if is_minion_bootstrap_project "${stashdir}"
    then
-      printf "${C_BOLD}"
+      printf "%b" "${C_BOLD}"
    fi
 
 
    if [ "${PARENT_REPOSITORY_NAME}" ]
    then
-      printf "${PARENT_REPOSITORY_NAME}/"
+      printf "%b"  "${PARENT_REPOSITORY_NAME}/"
    fi
 
-   printf "${name}${C_RESET}"
+   printf "%b" "${name}${C_RESET}"
 
    if [ "${SHOW_URL}" = "YES" ]
    then
-      printf " (${url})"
+      printf "%b"  " (${url})"
    fi
 
    printf ": "
@@ -126,14 +126,14 @@ show_repository()
 
    if [ "${SHOW_SCM}" = "YES" ]
    then
-      printf "  [${scm}"
+      printf "%b"  "  [${scm}"
 
       if [ ! -z "${tag}" -o ! -z "${branch}" ]
       then
-         printf ": ${branch}"
+         printf "%b"  ": ${branch}"
          if [ ! -z "${tag}" ]
          then
-            printf ";${tag}"
+            printf "%b"  ";${tag}"
          fi
       fi
 
@@ -159,11 +159,11 @@ show_raw_repository()
    stashdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
 
    (
-      printf "${SHOW_PREFIX}${url}"
-      printf ";${dstdir}"
-      printf ";${branch}"
-      printf ";${scm}"
-      printf ";${tag}"
+      printf "%b" "${SHOW_PREFIX}${url}"
+      printf "%b" ";${dstdir}"
+      printf "%b" ";${branch}"
+      printf "%b" ";${scm}"
+      printf "%b" ";${tag}"
       printf "\n"
    ) | sed 's/;*$//'
 
@@ -209,11 +209,13 @@ show_repositories()
 
    permissions="missing
 minion"
-   SHOW_PREFIX="${SHOW_PREFIX}   " \
+   (
+      SHOW_PREFIX="${SHOW_PREFIX}   " \
       walk_auto_repositories "repositories"  \
                              "show_repository" \
                              "${permissions}" \
                              "${REPOS_DIR}"
+   )
 }
 
 
@@ -223,11 +225,13 @@ show_embedded_repositories()
 
    permissions="missing
 minion"
-   SHOW_PREFIX="${SHOW_PREFIX}   " \
+   (
+      SHOW_PREFIX="${SHOW_PREFIX}   " \
       walk_auto_repositories "embedded_repositories"  \
                              "show_repository" \
                              "${permissions}" \
                              "${EMBEDDED_REPOS_DIR}"
+   )
 }
 
 
@@ -237,9 +241,11 @@ show_deep_embedded_repositories()
 
    permissions="missing
 minion"
-   SHOW_PREFIX="${SHOW_PREFIX}   " \
-      walk_deep_embedded_auto_repositories "show_repository" \
-                                           "${permissions}"
+   (
+      SHOW_PREFIX="${SHOW_PREFIX}   " \
+         walk_deep_embedded_auto_repositories "show_repository" \
+                                              "${permissions}"
+   )
 }
 
 
@@ -247,7 +253,7 @@ show_brew()
 {
    local formula="$1"  # ususally .bootstrap.repos
 
-   printf "${SHOW_PREFIX}${formula}\n"
+   printf "%b" "${SHOW_PREFIX}${formula}\n"
 }
 
 
@@ -265,25 +271,46 @@ show_brews()
 }
 
 
-_common_show()
+_header_show()
 {
    if [ "${SHOW_HEADER}" = "YES" ]
    then
       log_info "${SHOW_PREFIX}Project:"
-      printf "${SHOW_PREFIX}   "
-      printf "${C_INFO}Directory${C_RESET}: "
+      printf "%b" "${SHOW_PREFIX}   "
+      printf "%b" "${C_INFO}Directory${C_RESET}: "
       printf "%s\n" "${PWD}"
 
-      # minions won't see this ever
-      printf "${SHOW_PREFIX}   "
-      printf "${C_INFO}Master${C_RESET}: "
+      printf "%b" "${SHOW_PREFIX}   "
+      printf "%b" "${C_INFO}Master${C_RESET}: "
       if is_master_bootstrap_project
       then
          printf "YES\n"
       else
          printf "NO\n"
       fi
+
+      printf "%b" "${SHOW_PREFIX}   "
+      printf "%b" "${C_INFO}Minion${C_RESET}: "
+      if is_minion_bootstrap_project
+      then
+         printf "YES\n"
+      else
+         printf "NO\n"
+      fi
       log_info ""
+   fi
+}
+
+
+_common_show()
+{
+   local header_only="$1" ; shift
+
+   _header_show
+
+   if [ "${header_only}" = "YES" ]
+   then
+      return
    fi
 
    if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
@@ -324,8 +351,10 @@ _common_show()
 }
 
 
-show_main()
+_show_main()
 {
+   local header_only="$1" ; shift
+
    log_debug ":show_main:"
 
    local ROOT_DIR="`pwd -P`"
@@ -396,11 +425,28 @@ show_main()
       shift
    done
 
-   _common_show "$@"
+   [ $# -ne 0 ] && show_usage
 
-   if [ "${SHOW_RAW}" != "YES" -a ! -d "${BOOTSTRAP_DIR}".auto ]
+   _common_show "${header_only}" "$@"
+
+   if [ "${header_only}" != "YES" -a \
+        "${SHOW_RAW}" != "YES" -a \
+        ! -d "${BOOTSTRAP_DIR}".auto ]
    then
       log_warning "Nothing to show yet. Maybe use --raw option ?"
    fi
 }
+
+
+show_main()
+{
+   _show_main "NO" "$@"
+}
+
+
+show_main_header_only()
+{
+   _show_main "YES" "$@"
+}
+
 

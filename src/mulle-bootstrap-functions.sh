@@ -207,11 +207,9 @@ add_cmake_path_if_exists()
 
 add_cmake_path()
 {
-   local line
-   local path
+   local line="$1"
+   local path="$2"
 
-   line="$1"
-   path="$2"
 
    if [ -z "${line}" ]
    then
@@ -271,9 +269,7 @@ unescape_linefeeds()
 #
 expand_environment_variables()
 {
-    local string
-
-    string="$1"
+    local string="$1"
 
     local key
     local value
@@ -299,7 +295,8 @@ expand_environment_variables()
           return
        fi
     fi
-    echo "$1"
+
+    echo "${string}"
 }
 
 
@@ -314,10 +311,10 @@ expand_environment_variables()
 #
 path_depth()
 {
-   local name
+   local name="$1"
+
    local depth
 
-   name="$1"
    depth=0
 
    if [ ! -z "${name}" ]
@@ -339,10 +336,10 @@ path_depth()
 #
 extension_less_basename()
 {
-   local  file
+   local  filename
 
-   file="`basename -- "$1"`"
-   echo "${file%.*}"
+   filename="`basename -- "$1"`"
+   echo "${filename%.*}"
 }
 
 
@@ -390,10 +387,10 @@ path_concat()
 _prepend_path_if_relative()
 {
    case "$2" in
-      /* )
+      /*)
          echo "$2"
          ;;
-      * )
+      *)
          echo "$1/$2"
          ;;
    esac
@@ -539,11 +536,8 @@ _relative_path_between()
 #
 relative_path_between()
 {
-   local  a
-   local  b
-
-   a="$1"
-   b="$2"
+   local  a="$1"
+   local  b="$2"
 
    # the function can't do mixed paths
 
@@ -607,11 +601,10 @@ relative_path_between()
 #
 compute_relative()
 {
+   local name="$1"
+
    local depth
    local relative
-   local name
-
-   name="$1"
 
    depth="`path_depth "${name}"`"
    if [ "${depth}" -gt 1 ]
@@ -635,11 +628,8 @@ compute_relative()
 
 remove_absolute_path_prefix_up_to()
 {
-   local s
-   local prefix
-
-   s="$1"
-   prefix="$2"
+   local s="$1"
+   local prefix="$2"
 
    if [ "`basename -- "${s}"`" = "${prefix}" ]
    then
@@ -1075,28 +1065,14 @@ prepend_to_search_path_if_missing()
 }
 
 
-make_executable_search_path()
-{
-   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
-   then
-      set +x
-   fi
-
-   _make_executable_search_path "$@"
-
-   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
-   then
-      set -x
-   fi
-}
-
-
 # ####################################################################
 #                        Files and Directories
 # ####################################################################
 #
 mkdir_if_missing()
 {
+   [ -z "$1" ] && internal_fail "empty path"
+
    if [ ! -d "$1" ]
    then
       log_fluff "Creating \"$1\" ($PWD)"
@@ -1107,12 +1083,14 @@ mkdir_if_missing()
 
 dir_is_empty()
 {
-   local empty
+   [ -z "$1" ] && internal_fail "empty path"
 
    if [ ! -d "$1" ]
    then
       return 2
    fi
+
+   local empty
 
    empty="`ls -A "$1" 2> /dev/null`"
    [ "$empty" = "" ]
@@ -1121,6 +1099,8 @@ dir_is_empty()
 
 rmdir_safer()
 {
+   [ -z "$1" ] && internal_fail "empty path"
+
    if [ -d "$1" ]
    then
       assert_sane_path "$1"
@@ -1132,6 +1112,8 @@ rmdir_safer()
 
 rmdir_if_empty()
 {
+   [ -z "$1" ] && internal_fail "empty path"
+
    if dir_is_empty "$1"
    then
       exekutor rmdir "$1"  >&2 || fail "failed to remove $1"
@@ -1141,10 +1123,12 @@ rmdir_if_empty()
 
 create_file_if_missing()
 {
-   local dir
+   [ -z "$1" ] && internal_fail "empty path"
 
    if [ ! -f "$1" ]
    then
+      local dir
+
       dir="`dirname "$1"`"
       if [ ! -z "${dir}" ]
       then
@@ -1156,6 +1140,18 @@ create_file_if_missing()
    fi
 }
 
+
+remove_file_if_present()
+{
+   [ -z "$1" ] && internal_fail "empty path"
+
+   if [ -e "$1" ]
+   then
+      log_fluff "Removing \"$1\""
+      exekutor chmod u+w "$1"  >&2 || fail "Failed to make $1 writable"
+      exekutor rm -f "$1"  >&2 || fail "failed to remove \"$1\""
+   fi
+}
 
 #
 # the target of the symlink must exist
@@ -1193,17 +1189,6 @@ create_symlink()
 
    log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} as \"${url}\" ..."
    exekutor ln -s -f "${url}" "${stashdir}"  >&2 || fail "failed to setup symlink \"${stashdir}\" (to \"${url}\")"
-}
-
-
-remove_file_if_present()
-{
-   if [ -e "$1" ]
-   then
-      log_fluff "Removing \"$1\""
-      exekutor chmod u+w "$1"  >&2 || fail "Failed to make $1 writable"
-      exekutor rm -f "$1"  >&2 || fail "failed to remove \"$1\""
-   fi
 }
 
 

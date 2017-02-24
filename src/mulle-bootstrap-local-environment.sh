@@ -198,9 +198,12 @@ fetch_needed()
 
    [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
 
-   if [ ! -f "${REPOS_DIR}/.bootstrap_fetch_done" ]
+   local  referencefile
+
+   referencefile="${REPOS_DIR}/.bootstrap_fetch_done"
+   if [ ! -f "${referencefile}" ]
    then
-      log_fluff "Need fetch because \"${REPOS_DIR}/.bootstrap_fetch_done\" does not exist."
+      log_fluff "Need fetch because \"${referencefile}\" does not exist."
       return 0
    fi
 
@@ -213,7 +216,7 @@ fetch_needed()
       bootstrapdir="${BOOTSTRAP_DIR}.local"
    fi
 
-   if [ "${REPOS_DIR}/.bootstrap_fetch_done" -ot "${bootstrapdir}" ]
+   if [ "${referencefile}" -ot "${bootstrapdir}" ]
    then
       log_fluff "Need fetch because \"${bootstrapdir}\" is modified"
       return 0
@@ -229,7 +232,7 @@ fetch_needed()
    do
       IFS="${DEFAULT_IFS}"
 
-      if [ "${bootstrapdir}" -ot "${stashdir}/${BOOTSTRAP_DIR}" ]
+      if [ "${referencefile}" -ot "${stashdir}/${BOOTSTRAP_DIR}" ]
       then
          log_fluff "Need fetch because \"${stashdir}/${BOOTSTRAP_DIR}\" is modified"
          return 0
