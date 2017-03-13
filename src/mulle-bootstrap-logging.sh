@@ -182,6 +182,7 @@ internal_fail()
 
 #
 # here because often needed :-/
+# this puts a space between items
 #
 concat()
 {

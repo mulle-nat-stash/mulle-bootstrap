@@ -105,6 +105,13 @@ _bootstrap_auto_copy()
             )
          ;;
 
+         minions)
+            if [ "${is_local}" = "YES" ]
+            then
+               exekutor cp -a ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
+            fi
+         ;;
+
          *)
             #
             # root settings get the benefit of expansion
@@ -204,7 +211,6 @@ _bootstrap_merge_expanded_settings_in_front()
 }
 
 
-
 _bootstrap_merge_repository_files()
 {
    local srcfile="$1"
@@ -269,7 +275,7 @@ _bootstrap_auto_merge_root_settings()
       # "repositories" files gets special treatment
       # "embedded_repositories" is not merged though
       case "${settingname}" in
-         "embedded_repositories")
+         "embedded_repositories"|"minions")
             continue  # done by caller
          ;;
 
@@ -306,15 +312,16 @@ _bootstrap_auto_merge_root_settings()
 }
 
 
-_bootstrap_auto_embedded_copy()
+
+_bootstrap_auto_special_copy()
 {
+   local key="$1"; shift
+
    local name="$1"
    local directory="$2"
    local filepath="$3"
 
    local dst
-
-   log_debug ":_bootstrap_auto_embedded_copy:"
 
    dst="${BOOTSTRAP_DIR}.auto/.deep/${name}.d"
 
@@ -327,13 +334,21 @@ _bootstrap_auto_embedded_copy()
    local clones
    local dstfilepath
 
-   dstfilepath="${dst}/embedded_repositories"
+   dstfilepath="${dst}/${key}"
 
    (
       STASHES_DEFAULT_DIR=""
       STASHES_ROOT_DIR="${directory}"
       _bootstrap_merge_repository_files "${filepath}" "${dstfilepath}" "NO"
    )
+}
+
+
+_bootstrap_auto_embedded_copy()
+{
+   log_debug ":_bootstrap_auto_embedded_copy:"
+
+   _bootstrap_auto_special_copy "embedded_repositories" "$@"
 }
 
 
@@ -355,6 +370,8 @@ bootstrap_auto_update()
       then
          _bootstrap_auto_embedded_copy "${name}" "${stashdir}" "${src}"
       fi
+
+      # don't copy minions
 
       src="${stashdir}/${BOOTSTRAP_DIR}/bin"
       if [ -d "${src}" ]
@@ -500,12 +517,13 @@ bootstrap_auto_final()
    # add stuff from bootstrap folder
    # don't copy config if exists (it could be malicious)
    #
-   # __parse_expanded_clone
    local name
    local url
    local branch
    local scm
    local tag
+   local stashdir
+
    local clone
    local order
    local clones
@@ -554,6 +572,7 @@ repositories
 '
 
    NON_MERGABLE_SETTINGS='embedded_repositories
+minions
 version
 '
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh

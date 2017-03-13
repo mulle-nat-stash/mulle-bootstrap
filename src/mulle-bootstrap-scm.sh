@@ -641,9 +641,10 @@ tar_unpack()
       ;;
    esac
 
-   tmpdir="`mktemp -d "${name}.tmp"`"
+   rmdir_safer "${name}.tmp"
+   tmpdir="`exekutor mktemp -d "${name}.tmp"`" || exit 1
    (
-      cd "${tmpdir}" || exit 1
+      exekutor cd "${tmpdir}" || exit 1
 
       log_info "Downloading ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
 
@@ -708,9 +709,10 @@ zip_unpack()
    download="`basename --  "${url}"`"
    archivename="`extension_less_basename "${download}"`"
 
-   tmpdir="`mktemp -d "${name}.tmp"`"
+   rmdir_safer "${name}.tmp"
+   tmpdir="`exekutor mktemp -d "${name}.tmp"`" || exit 1
    (
-      cd "${tmpdir}" || exit 1
+      exekutor cd "${tmpdir}" || exit 1
 
       log_info "Downloading ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
 

@@ -32,13 +32,12 @@ MULLE_BOOTSTRAP_GCC_SH="included"
 
 gcc_sdk_parameter()
 {
-   local sdk
+   local sdk="$1"
 
-   sdk="$1"
-
-   local sdkpath
    if [ "${UNAME}" = "darwin" ]
    then
+      local sdkpath
+
       if [ "${sdk}" = "Default" ]
       then
          sdkpath="`xcrun --show-sdk-path`"
@@ -58,15 +57,21 @@ gcc_sdk_parameter()
 # OTHER_CFLAGS
 # WARNING_CFLAGS
 # GCC_PREPROCESSOR_DEFINITIONS
+gcc_cppflags_value()
+{
+   local name="$1"
+
+   read_build_setting "${name}" "OTHER_CPPFLAGS"
+}
+
 
 gcc_cflags_value()
 {
+   local name="$1"
+
    local value
    local result
-   local name
    local i
-
-   name="$1"
 
    result="`read_build_setting "${name}" "OTHER_CFLAGS"`"
    value="`read_build_setting "${name}"  "WARNING_CFLAGS"`"
@@ -82,11 +87,11 @@ gcc_cflags_value()
 
 gcc_cxxflags_value()
 {
+   local name="$1"
+
    local value
    local result
    local name
-
-   name="$1"
 
    result="`read_build_setting "${name}" "OTHER_CXXFLAGS"`"
    value="`gcc_cflags_value "${name}"`"
@@ -98,13 +103,9 @@ gcc_cxxflags_value()
 
 gcc_ldflags_value()
 {
-   local result
-   local name
+   local name="$1"
 
-   name="$1"
-   result="`read_build_setting "${name}" "OTHER_LDFLAGS"`"
-
-   echo "${result}"
+   read_build_setting "${name}" "OTHER_LDFLAGS"
 }
 
 
@@ -112,5 +113,6 @@ gcc_initialize()
 {
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 }
+
 
 gcc_initialize

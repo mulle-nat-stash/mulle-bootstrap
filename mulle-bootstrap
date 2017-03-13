@@ -122,9 +122,10 @@ EOF
    bootstrap     : does install and build recursively [default]
    build         : builds fetched repositories
    clean         : cleans mulle-bootstrap produced files.
+   defer         : join a master mulle-bootstrap project
+   emancipate    : emancipate from a master mulle-bootstrap project
+   flags         : produces CFLAGS for cc invocation and more
    init          : initializes a bootstrap project
-   install       : fetches required repositories recursively. Use it after
-                   updating the repositories and embedded_repositories files.
    update        : updates repositories (fetch).
    upgrade       : updates and checks out repositories (pull).
    show          : show repositories and brews
@@ -156,7 +157,7 @@ EOF
 
 ensure_consistency()
 {
-   if [ -f "${REPOS_DIR}/.bootstrap_fetch_started" ]
+   if dirty_harry
    then
       log_error "A previous fetch or update was incomplete.
 Suggested resolution (in $PWD):
@@ -755,7 +756,6 @@ bootstrap_main()
          expansion_main "$@" || exit 1
       ;;
 
-
       flags)
          . mulle-bootstrap-flags.sh
 
@@ -1068,7 +1068,7 @@ MULLE_EXECUTABLE_PID="$$"
 export MULLE_EXECUTABLE_PID
 
 
-bootstrap_init
+bootstrap_init "$@" # needs params
 
 main()
 {

@@ -92,6 +92,26 @@ show_path()
 }
 
 
+show_minion()
+{
+   local name="$1"  # ususally .bootstrap.repos
+
+   printf "%b"  "${SHOW_PREFIX}${C_MAGENTA}${C_BOLD}"
+
+   if [ "${PARENT_REPOSITORY_NAME}" ]
+   then
+      printf "%b"  "${PARENT_REPOSITORY_NAME}/"
+   fi
+
+   printf "%b" "${name}${C_RESET}"
+
+   printf ": "
+   show_path "${name}"
+
+   printf "\n"
+}
+
+
 show_repository()
 {
    local reposdir="$1"  # ususally .bootstrap.repos
@@ -199,6 +219,34 @@ show_raw_embedded_repositories()
       SHOW_PREFIX="${SHOW_PREFIX}   "
       clones="`read_raw_setting "embedded_repositories"`"
       walk_raw_clones "${clones}" "show_raw_repository"
+   )
+}
+
+
+show_raw_minions()
+{
+   (
+      local minions
+      local minion
+
+      SHOW_PREFIX="${SHOW_PREFIX}   "
+      minions="`read_raw_setting "minions"`"
+
+      IFS="
+"
+      for minion in ${minions}
+      do
+          printf "%b%b\n" "${SHOW_PREFIX}" "${minion}"
+      done
+   )
+}
+
+show_minions()
+{
+   (
+      SHOW_PREFIX="${SHOW_PREFIX}   " \
+      walk_root_setting "minions"  \
+                        "show_minion"
    )
 }
 
@@ -313,8 +361,18 @@ _common_show()
       return
    fi
 
+
    if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
    then
+      log_info "${SHOW_PREFIX}Minions:"
+      if [ "${SHOW_RAW}" = "YES" ]
+      then
+         show_raw_minions
+      else
+         show_minions
+      fi
+      log_info ""
+
       log_info "${SHOW_PREFIX}Repositories:"
       if [ "${SHOW_RAW}" = "YES" ]
       then

@@ -902,9 +902,25 @@ _setting_append()
    mkdir_if_missing "${directory}"
 
    local filename
+   local before
 
    filename="${directory}/${key}"
-   redirect_append_exekutor "${filename}" echo "${value}"
+   before="`_read_setting "${filename}"`"
+
+   case "${key}" in
+      embedded_repositories|repositories)
+         redirect_exekutor "${filename}" merge_repository_file "${before}" "${value}"
+      ;;
+
+      brews|tarballs)
+         redirect_append_exekutor "${filename}" _merge_settings_in_front "${before}" "${value}"
+      ;;
+
+      *)
+         redirect_append_exekutor "${filename}" echo "${value}"
+      ;;
+   esac
+
    exekutor touch "${bootstrapdir}"
 }
 

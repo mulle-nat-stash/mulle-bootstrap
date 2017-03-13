@@ -153,13 +153,15 @@ _bury_zombie()
 
    if [ -d "${stashdir}" ]
    then
-      is_minion_bootstrap_project "${stashdir}" && internal_fail "Would bury minion \"${stashdir}\" which is wrong"
+      if ! is_minion_bootstrap_project "${stashdir}"
+      then
+         _bury_stash "${reposdir}" "${name}" "${stashdir}"
 
-      _bury_stash "${reposdir}" "${name}" "${stashdir}"
-
-      exekutor rm ${COPYMOVEFLAGS} "${zombie}" >&2
-      exekutor rm ${COPYMOVEFLAGS} "${reposdir}/${name}" >&2
-
+         exekutor rm ${COPYMOVEFLAGS} "${zombie}" >&2
+         exekutor rm ${COPYMOVEFLAGS} "${reposdir}/${name}" >&2
+      else
+         log_fluff "Do not bury minion \"${stashdir}\""
+      fi
    else
       log_fluff "Zombie \"${stashdir}\" vanished or never existed ($PWD)"
    fi

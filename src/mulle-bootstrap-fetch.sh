@@ -320,17 +320,29 @@ search_for_git_repository_in_caches()
 {
    local found
    local directory
+   local realdir
+   local curdir
 
+   curdir="`pwd -P`"
    IFS=":"
    for directory in ${CACHES_PATH}
    do
       IFS="${DEFAULT_IFS}"
 
-      found="`_search_for_git_repository_in_cache "${directory}" "$@"`" || exit 1
-      if [ ! -z "${found}" ]
+      realdir="`realpath "${directory}"`"
+      if [ ! -z "${realdir}" ]
       then
-         symlink_relpath "${found}" "${ROOT_DIR}"
-         return
+         if [ "${realdir}" = "${curdir}" ]
+         then
+            fail "config setting \"caches_path\" mistakenly contains \"${directory}\", which is the current directory"
+         fi
+
+         found="`_search_for_git_repository_in_cache "${realdir}" "$@"`" || exit 1
+         if [ ! -z "${found}" ]
+         then
+            symlink_relpath "${found}" "${ROOT_DIR}"
+            return
+         fi
       fi
    done
 
@@ -900,13 +912,6 @@ required_action_for_clone()
 
    parse_clone "${clone}"
 
-   if is_minion_bootstrap_project "${stashdir}"
-   then
-      log_fluff "\"${stashdir}\" is a minion. Ignoring possible differences."
-      echo "ignore"
-      return
-   fi
-
    log_debug "Change: \"${clone}\" -> \"${newclone}\""
 
    if [ "${scm}" != "${newscm}" ]
@@ -914,8 +919,14 @@ required_action_for_clone()
       if ! [ "${scm}" = "symlink" -a "${newscm}" = "git" ]
       then
          log_fluff "SCM has changed from \"${scm}\" to \"${newscm}\", need to refetch"
-         echo "remove
-clone"
+
+         if [ "${scm}" != "minion" ]
+         then
+            log_fluff "Not removing \"${stashdir}\" because it's a minion"
+            echo "remove"
+         fi
+
+         echo "clone"
          return
       fi
    fi
@@ -924,13 +935,13 @@ clone"
    then
       if [ -e "${newstashdir}" ]
       then
-         log_fluff "Destination already exists. Remove old."
+         log_fluff "Destination \"${newstashdir}\" already exists. Remove old."
          echo "remove"
 
-         # hacque ?
+         # detect unlucky hacque
          if is_minion_bootstrap_project "${newstashdir}"
          then
-            return
+            fail "\"${stashdir}\" was renamed to minion \"${newstashdir}\""
          fi
       else
          log_fluff "Destination has changed from \"${stashdir}\" to \"${newstashdir}\", need to move"
@@ -1021,6 +1032,36 @@ get_old_stashdir()
 }
 
 
+work_minions()
+{
+   local minions="$1"
+
+   local minion
+
+   log_debug "Exploit \"${minions}\""
+
+   IFS="
+"
+   for minion in ${minions}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if [ -z "${minion}" ]
+      then
+         continue
+      fi
+
+      log_debug "${C_INFO}Doing ${minion}..."
+
+      [ ! -d "${minion}" ] && fail "Minion \"${minion}\" is gone"
+
+      bootstrap_auto_update "${minion}" "${minion}"
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
 work_clones()
 {
    local reposdir="$1"
@@ -1083,120 +1124,137 @@ work_clones()
       stashdir="${dstdir}"
       [ -z "${stashdir}" ] && internal_fail "empty stashdir"
 
-      actionitems="`required_action_for_clone "${clone}" \
-                                              "${reposdir}" \
-                                              "${name}" \
-                                              "${url}" \
-                                              "${branch}" \
-                                              "${scm}" \
-                                              "${tag}" \
-                                              "${stashdir}"`" || exit 1
+      case "${name}" in
+         http:*|https:*)
+            internal_fail "failed name: ${name}"
+      esac
 
-      log_debug "${C_INFO}Actions for \"${name}\": ${actionitems:-none}"
+      case "${stashdir}" in
+         http:*|https:*)
+            internal_fail "failed stashdir: ${stashdir}"
+      esac
 
-      IFS="
-"
-      for item in ${actionitems}
-      do
-         IFS="${DEFAULT_IFS}"
-
+      if is_minion_bootstrap_project "${name}"
+      then
+         log_fluff "Is a minion, ignoring possible changes"
+         clone="`echo "${name};${name};${branch};minion;${tag}" | sed 's/;*$//'`"
          remember="YES"
+      else
+         actionitems="`required_action_for_clone "${clone}" \
+                                                 "${reposdir}" \
+                                                 "${name}" \
+                                                 "${url}" \
+                                                 "${branch}" \
+                                                 "${scm}" \
+                                                 "${tag}" \
+                                                 "${stashdir}"`" || exit 1
 
-         case "${item}" in
-            "checkout")
-               checkout_repository "${reposdir}" \
+         log_debug "${C_INFO}Actions for \"${name}\": ${actionitems:-none}"
+
+         IFS="
+"
+         for item in ${actionitems}
+         do
+            IFS="${DEFAULT_IFS}"
+
+            remember="YES"
+
+            case "${item}" in
+               "checkout")
+                  checkout_repository "${reposdir}" \
+                                      "${name}" \
+                                      "${url}" \
+                                      "${branch}" \
+                                      "${scm}" \
+                                      "${tag}" \
+                                      "${stashdir}"
+               ;;
+
+               "clone")
+                  clone_repository "${reposdir}" \
                                    "${name}" \
                                    "${url}" \
                                    "${branch}" \
                                    "${scm}" \
                                    "${tag}" \
                                    "${stashdir}"
-            ;;
 
-            "clone")
-               clone_repository "${reposdir}" \
-                                "${name}" \
-                                "${url}" \
-                                "${branch}" \
-                                "${scm}" \
-                                "${tag}" \
-                                "${stashdir}"
+                  case "$?" in
+                     1)
+                        # skipped
+                        continue
+                     ;;
+                     2)
+                        # if we used a symlink, we want to memorize that
+                        scm="symlink"
+                     ;;
+                  esac
+               ;;
 
-               case "$?" in
-                  1)
-                     # skipped
-                     continue
-                  ;;
-                  2)
-                     # if we used a symlink, we want to memorize that
-                     scm="symlink"
-                  ;;
-               esac
-            ;;
+               "ignore")
+                  remember="NO"
+               ;;
 
-            "ignore")
-               remember="NO"
-            ;;
+               move*)
+                  oldstashdir="${item:5}"
 
-            move*)
-               oldstashdir="${item:5}"
+                  log_info "Moving ${repotype}stash ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"${oldstashdir}\" to \"${stashdir}\""
 
-               log_info "Moving ${repotype}stash ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"${oldstashdir}\" to \"${stashdir}\""
+                  if ! exekutor mv ${COPYMOVEFLAGS} "${oldstashdir}" "${stashdir}"  >&2
+                  then
+                     fail "Move failed!"
+                  fi
+               ;;
 
-               if ! exekutor mv ${COPYMOVEFLAGS} "${oldstashdir}" "${stashdir}"  >&2
-               then
-                  fail "Move failed!"
-               fi
-            ;;
+               "upgrade")
+                  upgrade_repository "${reposdir}" \
+                                     "${name}" \
+                                     "${url}" \
+                                     "${branch}" \
+                                     "${scm}" \
+                                     "${tag}" \
+                                     "${stashdir}" > /dev/null
+               ;;
 
-            "upgrade")
-               upgrade_repository "${reposdir}" \
-                                  "${name}" \
-                                  "${url}" \
-                                  "${branch}" \
-                                  "${scm}" \
-                                  "${tag}" \
-                                  "${stashdir}" > /dev/null
-            ;;
+               remove*)
+                  oldstashdir="${item:7}"
+                  if [ -z "${oldstashdir}" ]
+                  then
+                     oldstashdir="`get_old_stashdir "${reposdir}" "${name}"`"
+                  fi
 
-            remove*)
-               oldstashdir="${item:7}"
-               if [ -z "${oldstashdir}" ]
-               then
-                  oldstashdir="`get_old_stashdir "${reposdir}" "${name}"`"
-               fi
+                  log_info "Removing old ${repotype}stash ${C_MAGENTA}${C_BOLD}${oldstashdir}${C_INFO}"
 
-               log_info "Removing old ${repotype}stash ${C_MAGENTA}${C_BOLD}${oldstashdir}${C_INFO}"
+                  rmdir_safer "${oldstashdir}"
+               ;;
 
-               rmdir_safer "${oldstashdir}"
-            ;;
+               "set-remote")
+                  log_info "Changing ${repotype}remote to \"${url}\""
 
-            "set-remote")
-               log_info "Changing ${repotype}remote to \"${url}\""
+                  local remote
 
-               local remote
+                  remote="`git_get_default_remote "${stashdir}"`"
+                  if [ -z "${remote}" ]
+                  then
+                     fail "Could not figure out a remote for \"$PWD/${stashdir}\""
+                  fi
+                  git_set_url "${stashdir}" "${remote}" "${url}"
+               ;;
 
-               remote="`git_get_default_remote "${stashdir}"`"
-               if [ -z "${remote}" ]
-               then
-                  fail "Could not figure out a remote for \"$PWD/${stashdir}\""
-               fi
-               git_set_url "${stashdir}" "${remote}" "${url}"
-            ;;
+               *)
+                  internal_fail "Unknown action item \"${item}\""
+               ;;
+            esac
+         done
 
-            *)
-               internal_fail "Unknown action item \"${item}\""
-            ;;
-         esac
-      done
+         if [ "${autoupdate}" = "YES" ]
+         then
+            bootstrap_auto_update "${name}" "${stashdir}"
+         fi
 
-      if [ "${autoupdate}" = "YES" ]
-      then
-         bootstrap_auto_update "${name}" "${stashdir}"
+         # create clone as it is now
+         clone="`echo "${url};${dstdir};${branch};${scm};${tag}" | sed 's/;*$//'`"
       fi
-
-      # create clone as it is now
-      clone="`echo "${url};${dstdir};${branch};${scm};${tag}" | sed 's/;*$//'`"
 
       #
       # always remember, what we have now (except if its a minion)
@@ -1287,6 +1345,15 @@ fetch_once_deep_embedded_repositories()
 }
 
 
+extract_minion_precis()
+{
+   local minions
+
+   minions="`read_root_setting minions`"
+   work_minions "${minions}"
+}
+
+
 fetch_loop_repositories()
 {
    local loops
@@ -1372,6 +1439,10 @@ fetch_loop()
    assume_stashes_are_zombies
 
    bootstrap_auto_create
+
+   log_info "Extracting minions' precis..."
+
+   extract_minion_precis
 
    log_info "Checking repositories..."
 

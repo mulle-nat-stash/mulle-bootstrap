@@ -144,6 +144,19 @@ status_brews()
 
 _common_status()
 {
+   if dirty_harry
+   then
+      log_info "Dirty Harry"
+   fi
+   if fetch_needed
+   then
+      log_info "Fetch needed"
+   fi
+   if build_needed
+   then
+      log_info "Build needed"
+   fi
+
    if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       local MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
@@ -208,11 +221,6 @@ status_main()
             status_usage
          ;;
 
-         -e|--embedded-only)
-            OPTION_EMBEDDED_ONLY="YES"
-            SKIP_EMBEDDED="NO"
-         ;;
-
          -a|--all)
             SKIP_EMBEDDED="NO"
          ;;
@@ -221,20 +229,25 @@ status_main()
             SHOW_BREWS="YES"
          ;;
 
-         -nfs|--no-follow-symlinks)
-            MULLE_FLAG_FOLLOW_SYMLINKS="NO"
+         -e|--embedded-only)
+            OPTION_EMBEDDED_ONLY="YES"
+            SKIP_EMBEDDED="NO"
          ;;
 
          -l|--list)
             STATUS_LIST="YES"
          ;;
 
-         -s|--scm)
-            STATUS_SCM="YES"
-         ;;
-
          -nf|--no-fetch)
             STATUS_FETCH="NO"
+         ;;
+
+         -nfs|--no-follow-symlinks)
+            MULLE_FLAG_FOLLOW_SYMLINKS="NO"
+         ;;
+
+         -s|--scm)
+            STATUS_SCM="YES"
          ;;
 
          -*)

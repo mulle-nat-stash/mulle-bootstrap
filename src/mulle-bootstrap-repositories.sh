@@ -233,7 +233,7 @@ walk_check()
          match="`echo "${permissions}" | fgrep -s -x "missing"`"
          if [ -z "${match}" ]
          then
-            log_info "Repository expected in \"${stashdir}\" is not yet fetched, skipped"
+            log_verbose "Repository expected in \"${stashdir}\" is not yet fetched, skipped"
             return 1
          fi
       fi
@@ -490,6 +490,32 @@ walk_raw_clones()
 }
 
 
+walk_root_setting()
+{
+   local name=$1; shift
+   local callback=$1; shift
+
+   [ -z "${callback}" ] && internal_fail "callback missing"
+
+   local lines
+
+   lines="`read_root_setting "${name}"`"
+
+   log_debug "Walking setting \"${name}\" with \"${callback}\""
+
+   IFS="
+"
+   for line in ${lines}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      "${callback}" "${line}" "$@"
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
 # deal with stuff like
 # foo
 # https://www./foo.git
@@ -594,13 +620,18 @@ computed_stashdir()
    local name="$2"
    local dstdir="$3"
 
-   if [ -z "${dstdir}" ]
+   name="`_canonical_clone_name "${url}"`"
+   if is_minion_bootstrap_project "${name}"
    then
-      name="`_canonical_clone_name "${url}"`"
-      dstdir="`path_concat "${STASHES_DEFAULT_DIR}" "${name}"`"
+      dstdir="${name}"
+   else
+      if [ -z "${dstdir}" ]
+      then
+         dstdir="`path_concat "${STASHES_DEFAULT_DIR}" "${name}"`"
+      fi
+      dstdir="`path_concat "${STASHES_ROOT_DIR}" "${dstdir}"`"
    fi
 
-   dstdir="`path_concat "${STASHES_ROOT_DIR}" "${dstdir}"`"
    path_relative_to_root_dir "${dstdir}"
 }
 

@@ -48,8 +48,8 @@ usage:
       addictions     : output "addictions" path
       binpath        : output paths for binaries
       cflags         : output CFLAGS for gcc, clang and friends
-      cmake-flags    : output cmake flag definitions
-      cmake-paths    : output cmake paths definitions
+      cmakeflags     : output cmake flag definitions
+      cmakepaths     : output cmake paths definitions
       cxxflags       : output CXXFLAGS
       dependencies   : output "dependencies" path
       environment*   : output CFLAGS, CXXFLAGS, LDFLAGS (default)
@@ -639,11 +639,11 @@ flags_main()
             result="`add_line "${result}" "${values}"`"
          ;;
 
-         "cmake-flags")
+         "cmakeflags")
             result="`_flags_do_cmake_flags "${result}"`"
          ;;
 
-         "cmake-paths")
+         "cmakepaths")
             result="`_flags_do_cmake_paths "${result}"`"
          ;;
 

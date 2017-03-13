@@ -50,6 +50,10 @@ user_say_yes()
             return 0
          ;;
 
+         TRACE)
+            set -x
+         ;;
+
          [Nn][Oo][Nn][Ee])
             MULLE_FLAG_ANSWER="NONE"
             return 1
@@ -170,6 +174,14 @@ check_version()
 
 
 # figure out if we need to run refresh
+dirty_harry()
+{
+   log_debug ":dirty_harry:"
+
+   [ -f "${REPOS_DIR}/.bootstrap_fetch_started" ]
+}
+
+
 build_needed()
 {
    log_debug ":build_needed:"
@@ -178,13 +190,13 @@ build_needed()
 
    if [ ! -f "${REPOS_DIR}/.bootstrap_build_done" ]
    then
-      log_fluff "Need build because \"${REPOS_DIR}/.bootstrap_build_done\" does not exist."
+      log_verbose "Need build because \"${REPOS_DIR}/.bootstrap_build_done\" does not exist."
       return 0
    fi
 
    if [ "${REPOS_DIR}/.bootstrap_build_done" -ot "${REPOS_DIR}/.bootstrap_fetch_done" ]
    then
-      log_fluff "Need build because \"${REPOS_DIR}/.bootstrap_fetch_done\" is younger"
+      log_verbose "Need build because \"${REPOS_DIR}/.bootstrap_fetch_done\" is younger"
       return 0
    fi
 
@@ -203,7 +215,7 @@ fetch_needed()
    referencefile="${REPOS_DIR}/.bootstrap_fetch_done"
    if [ ! -f "${referencefile}" ]
    then
-      log_fluff "Need fetch because \"${referencefile}\" does not exist."
+      log_verbose "Need fetch because \"${referencefile}\" does not exist."
       return 0
    fi
 
@@ -218,7 +230,7 @@ fetch_needed()
 
    if [ "${referencefile}" -ot "${bootstrapdir}" ]
    then
-      log_fluff "Need fetch because \"${bootstrapdir}\" is modified"
+      log_verbose "Need fetch because \"${bootstrapdir}\" is modified"
       return 0
    fi
 
@@ -234,7 +246,7 @@ fetch_needed()
 
       if [ "${referencefile}" -ot "${stashdir}/${BOOTSTRAP_DIR}" ]
       then
-         log_fluff "Need fetch because \"${stashdir}/${BOOTSTRAP_DIR}\" is modified"
+         log_verbose "Need fetch because \"${stashdir}/${BOOTSTRAP_DIR}\" is modified"
          return 0
       fi
    done

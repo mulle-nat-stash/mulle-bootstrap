@@ -333,7 +333,7 @@ determine_suffix()
    sdk="$2"
 
    [ ! -z "$configuration" ] || fail "configuration must not be empty"
-   [ ! -z "$sdk" ] || fail "sdk must not be empty"
+   [ ! -z "$sdk" ]           || fail "sdk must not be empty"
 
    suffix="${configuration}"
    if [ "${sdk}" != "Default" ]
@@ -634,54 +634,22 @@ tools_environment()
 }
 
 
-#
-# remove old builddir, create a new one
-# depending on configuration cmake with flags
-# build stuff into dependencies
-# TODO: cache commandline in a file $ and emit instead of rebuilding it every time
-#
-build_cmake()
+_build_flags()
 {
-   local configuration
-   local srcdir
-   local builddir
-   local name
-   local sdk
+   local configuration="$1"
+   local srcdir="$2"
+   local builddir="$3"
+   local name="$4"
+   local sdk="$5"
 
-   configuration="$1"
-   srcdir="$2"
-   builddir="$3"
-   name="$4"
-   sdk="$5"
-
-   enforce_build_sanity "${builddir}"
-
-   if [ -z "${CMAKE}" ]
-   then
-      fail "No cmake available"
-   fi
-   if [ -z "${MAKE}" ]
-   then
-      fail "No make available"
-   fi
-
-   log_info "Let ${C_RESET_BOLD}cmake${C_INFO} do a \
-${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
-${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
-${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
-
-   local sdkparameter
-   local suffix
    local mapped
    local fallback
-   local localcmakeflags
+   local suffix
 
    fallback="`echo "${OPTION_CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
    mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
-   localcmakeflags="`read_build_setting "${name}" "CMAKEFLAGS"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
-   sdkparameter="`cmake_sdk_parameter "${sdk}"`"
 
    local mappedsubdir
    local fallbacksubdir
@@ -691,393 +659,24 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
    fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
 
-   local c_compiler_line
-   local cxx_compiler_line
-
-   if [ ! -z "${C_COMPILER}" ]
-   then
-      c_compiler_line="-DCMAKE_C_COMPILER='${C_COMPILER}'"
-   fi
-   if [ ! -z "${CXX_COMPILER}" ]
-   then
-      cxx_compiler_line="-DCMAKE_CXX_COMPILER='${CXX_COMPILER}'"
-   fi
-
-   # linker="`read_build_setting "${name}" "LD"`"
-
+   local other_cppflags
    local other_cflags
    local other_cxxflags
    local other_ldflags
 
+   other_cppflags="`gcc_cppflags_value "${name}"`"
    other_cflags="`gcc_cflags_value "${name}"`"
    other_cxxflags="`gcc_cxxflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
-   local logfile1
-   local logfile2
+   (
+      local nativewd
+      local owd
 
-   mkdir_if_missing "${BUILDLOGS_DIR}"
+      owd="${PWD}"
+      nativewd="`pwd ${BUILD_PWD_OPTIONS}`"
 
-   logfile1="`build_log_name "cmake" "${name}" "${configuration}" "${sdk}"`"
-   logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
-
-   local local_make_flags
-
-   if [ ! -z "${CORES}" ]
-   then
-      local_make_flags="-j ${CORES}"
-   fi
-
-   local owd
-   local nativewd
-
-   owd="${PWD}"
-   nativewd="`pwd ${BUILD_PWD_OPTIONS}`"
-
-#   cmake_keep_builddir="`read_build_setting "${name}" "cmake_keep_builddir" "YES"`"
-#   if [ "${cmake_keep_builddir}" != "YES" ]
-#   then
-#      rmdir_safer "${builddir}"
-#   fi
-   mkdir_if_missing "${builddir}"
-   exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
-
-      # DONT READ CONFIG SETTING IN THIS INDENT
-      set -f
-
-      if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
-      then
-         logfile1="`tty`"
-         logfile2="$logfile1"
-      fi
-      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
-      then
-         logfile1="/dev/null"
-         logfile2="/dev/null"
-      fi
-
-      log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
-
-      local frameworklines
-      local librarylines
-      local includelines
-
-      frameworklines=
-      librarylines=
-      includelines=
-
-      if [ ! -z "${suffixsubdir}" ]
-      then
-         frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/${LIBRARY_DIR_NAME}"`"
-      fi
-
-      if [ ! -z "${mappedsubdir}" -a "${mappedsubdir}" != "${suffixsubdir}" ]
-      then
-         frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}"`"
-      fi
-
-      if [ ! -z "${fallbacksubdir}" -a "${fallbacksubdir}" != "${suffixsubdir}" -a "${fallbacksubdir}" != "${mappedsubdir}" ]
-      then
-         frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}"`"
-         librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}"`"
-      fi
-
-      includelines="`add_cmake_path_if_exists "${includelines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}"`"
-      includelines="`add_cmake_path_if_exists "${includelines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`"
-
-      librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${LIBRARY_DIR_NAME}"`"
-      librarylines="`add_cmake_path_if_exists "${librarylines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}"`"
-
-      frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}/${FRAMEWORK_DIR_NAME}"`"
-      frameworklines="`add_cmake_path_if_exists "${frameworklines}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}/${FRAMEWORK_DIR_NAME}"`"
-
-      if [ "${OPTION_ADD_USR_LOCAL}" = "YES" ]
-      then
-         includelines="`add_cmake_path_if_exists "${includelines}" "${USR_LOCAL_INCLUDE}"`"
-         librarylines="`add_cmake_path_if_exists "${librarylines}" "${USR_LOCAL_LIB}"`"
-      fi
-
-      local relative_srcdir
-      local prefixbuild
-      local dependenciesdir
-      local addictionsdir
-#      local cmakemodulepath
-
-      relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
-
-      prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
-
-      dependenciesdir="`add_cmake_path_if_exists "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
-      addictionsdir="`add_cmake_path_if_exists "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
-
-#      cmakemodulepath="\${CMAKE_MODULE_PATH}"
-#      if [ ! -z "${CMAKE_MODULE_PATH}" ]
-#      then
-#         cmakemodulepath="${CMAKE_MODULE_PATH}${PATH_SEPARATOR}${cmakemodulepath}"   # prepend
-#      fi
-
-      local native_includelines
-      local native_librarylines
-      local native_frameworklines
-
-      native_includelines="${includelines}"
-      native_librarylines="${librarylines}"
-      native_frameworklines="${frameworklines}"
-
-      local frameworkprefix
-      local libraryprefix
-      local includeprefix
-
-      frameworkprefix=
-      libraryprefix="-L"
-      includeprefix="-I"
-
-      case "${UNAME}" in
-         darwin)
-            frameworkprefix="-F"
-         ;;
-
-         mingw)
-            relative_srcdir="`echo "${relative_srcdir}" | tr '/' '\\'  2> /dev/null`"
-            native_includelines="`echo "${native_includelines}" | tr '/' '\\'  2> /dev/null`"
-            native_librarylines="`echo "${native_librarylines}" | tr '/' '\\'  2> /dev/null`"
-            libraryprefix="/LIBPATH:"
-            includeprefix="/I"
-            frameworklines=
-            native_frameworklines=
-         ;;
-
-         *)
-            frameworklines=
-            native_frameworklines=
-         ;;
-      esac
-
-      # assemble -I /I and -L /LIBPATH:
-
-
-      # cmake separator
-      [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
-      IFS=";"
-      for path in ${native_includelines}
-      do
-         IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
-         other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
-         other_cxxflags="`concat "${other_cxxflags}" "${includeprefix}${path}"`"
-      done
-
-      IFS=";"
-      for path in ${native_librarylines}
-      do
-         IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
-         other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
-      done
-
-      IFS=";"
-      for path in ${native_frameworklines}
-      do
-         IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
-         other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
-         other_cxxflags="`concat "${other_cxxflags}" "${frameworkprefix}${path}"`"
-         other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
-      done
-
-      IFS=";"
-      if [ "${MULLE_FLAG_VERBOSE_BUILD}" = "YES" ]
-      then
-         IFS="${DEFAULT_IFS}"
-         local_make_flags="${local_make_flags} VERBOSE=1"
-      fi
-
-      IFS="${DEFAULT_IFS}"
-
-      local oldpath
-      local rval
-
-      [ -z "${BUILDPATH}" ] && internal_fail "BUILDPATH not set"
-
-      oldpath="$PATH"
-      PATH="${BUILDPATH}"
-
-      local cmake_flags
-
-      cmake_flags="-DCMAKE_C_FLAGS='${other_cflags}' \
--DCMAKE_CXX_FLAGS='${other_cxxflags}' \
--DCMAKE_EXE_LINKER_FLAGS='${other_ldflags}' \
--DCMAKE_SHARED_LINKER_FLAGS='${other_ldflags}'"
-
-      local cmake_dirs
-
-      if [ ! -z "${dependenciesdir}" ]
-      then
-         cmake_dirs="-DDEPENDENCIES_DIR='${dependenciesdir}'"
-      fi
-
-      if [ ! -z "${addictionsdir}" ]
-      then
-         cmake_dirs="`add_word "${cmake_dirs}" "-DADDICTIONS_DIR='${addictionsdir}'"`"
-      fi
-
-      if [ ! -z "${includelines}" ]
-      then
-         cmake_dirs="`add_word "${cmake_dirs}" "-DCMAKE_INCLUDE_PATH='${includelines}'"`"
-      fi
-
-      if [ ! -z "${librarylines}" ]
-      then
-         cmake_dirs="`add_word "${cmake_dirs}" "-DCMAKE_LIBRARY_PATH='${librarylines}'"`"
-      fi
-
-      if [ ! -z "${frameworklines}" ]
-      then
-         cmake_dirs="`add_word "${cmake_dirs}" "-DCMAKE_FRAMEWORK_PATH='${frameworklines}'"`"
-      fi
-
-      logging_redirect_eval_exekutor "${logfile1}" "'${CMAKE}'" \
--G "'${CMAKE_GENERATOR}'" \
-"-DMULLE_BOOTSTRAP_VERSION=${MULLE_BOOTSTRAP_VERSION}" \
-"-DCMAKE_BUILD_TYPE='${mapped}'" \
-"-DCMAKE_INSTALL_PREFIX:PATH='${prefixbuild}'"  \
-"${cmake_dirs}" \
-"${cmake_flags}" \
-"${sdkparameter}" \
-"${c_compiler_line}" \
-"${cxx_compiler_line}" \
-"${localcmakeflags}" \
-"${CMAKE_FLAGS}" \
-"'${relative_srcdir}'"
-      rval=$?
-
-      if [ $rval -ne 0 ]
-      then
-         PATH="${oldpath}"
-         build_fail "${logfile1}" "cmake"
-      fi
-
-      logging_redirekt_exekutor "${logfile2}" "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install
-      rval=$?
-
-      PATH="${oldpath}"
-      [ $rval -ne 0 ] && build_fail "${logfile2}" "make"
-
-      set +f
-
-   exekutor cd "${owd}"
-
-   local depend_subdir
-
-   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
-   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" || internal_fail "collect failed silently"
-}
-
-
-#
-# remove old builddir, create a new one
-# depending on configuration cmake with flags
-# build stuff into dependencies
-#
-#
-build_configure()
-{
-   local configuration
-   local srcdir
-   local builddir
-   local name
-   local sdk
-
-   configuration="$1"
-   srcdir="$2"
-   builddir="$3"
-   name="$4"
-   sdk="$5"
-
-   if [ -z "${MAKE}" ]
-   then
-      fail "No make available"
-   fi
-
-   enforce_build_sanity "${builddir}"
-
-   log_info "Let ${C_RESET_BOLD}configure${C_INFO} do a \
-${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
-${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
-${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
-
-   local sdkpath
-   local fallback
-   local mapped
-   local suffix
-   local fallback
-   local configureflags
-
-   fallback="`echo "${OPTION_CONFIGURATIONS}" | tail -1`"
-   fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
-
-   configureflags="`read_build_setting "${name}" "configure_flags"`"
-
-   mapped="`read_build_setting "${name}" "configure-${configuration}.map" "${configuration}"`"
-   suffix="`determine_suffix "${configuration}" "${sdk}"`"
-   sdkpath="`gcc_sdk_parameter "${sdk}"`"
-   sdkpath="`echo "${sdkpath}" | sed -e 's/ /\\ /g'`"
-
-   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
-
-   local mappedsubdir
-   local fallbacksubdir
-   local suffixsubdir
-
-   mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
-   suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
-   fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
-
-   local other_cflags
-   local other_cxxflags
-   local other_ldflags
-
-   other_cflags="`gcc_cflags_value "${name}"`"
-   other_cxxflags="`gcc_cxxflags_value "${name}"`"
-   other_ldflags="`gcc_ldflags_value "${name}"`"
-
-   local logfile1
-   local logfile2
-
-   mkdir_if_missing "${BUILDLOGS_DIR}"
-
-   logfile1="`build_log_name "configure" "${name}" "${configuration}" "${sdk}"`"
-   logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
-
-   local owd
-   local nativewd
-
-   owd="${PWD}"
-   nativewd="`pwd ${BUILD_PWD_OPTIONS}`"
-
-   mkdir_if_missing "${builddir}"
-   exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
-
-      # DONT READ CONFIG SETTING IN THIS INDENT
-       set -f
-
-      logfile1="${owd}/${logfile1}"
-      logfile2="${owd}/${logfile2}"
-
-      if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
-      then
-         logfile1="`tty`"
-         logfile2="$logfile1"
-      fi
-      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
-      then
-         logfile1="/dev/null"
-         logfile2="/dev/null"
-      fi
-
-      log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
+      cd "${builddir}"
 
       local frameworklines
       local librarylines
@@ -1120,53 +719,440 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          librarylines="`add_path_if_exists "${librarylines}" "${USR_LOCAL_LIB}"`"
       fi
 
-      local prefixbuild
-      local dependenciesdir
-      local addictionsdir
-      #local linker
 
-      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
-      dependenciesdir="`add_path_if_exists "${dependenciesdir}" "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"`"
-      addictionsdir="`add_path_if_exists "${addictionsdir}" "${nativewd}/${REFERENCE_ADDICTIONS_DIR}"`"
+   #      cmakemodulepath="\${CMAKE_MODULE_PATH}"
+   #      if [ ! -z "${CMAKE_MODULE_PATH}" ]
+   #      then
+   #         cmakemodulepath="${CMAKE_MODULE_PATH}${PATH_SEPARATOR}${cmakemodulepath}"   # prepend
+   #      fi
+
+      local native_includelines
+      local native_librarylines
+      local native_frameworklines
+
+      native_includelines="${includelines}"
+      native_librarylines="${librarylines}"
+      native_frameworklines="${frameworklines}"
+
+      local frameworkprefix
+      local libraryprefix
+      local includeprefix
+
+      frameworkprefix=
+      libraryprefix="-L"
+      includeprefix="-I"
 
       case "${UNAME}" in
          darwin)
-            other_cflags="`concat "${other_cflags}" "-isysroot ${sdkpath}"`"
-            other_ldflags="`concat "${other_ldflags}" "-isysroot ${sdkpath}"`"
+            frameworkprefix="-F"
+         ;;
+
+         mingw)
+            native_includelines="`echo "${native_includelines}" | tr '/' '\\'  2> /dev/null`"
+            native_librarylines="`echo "${native_librarylines}" | tr '/' '\\'  2> /dev/null`"
+            libraryprefix="/LIBPATH:"
+            includeprefix="/I"
+            frameworklines=
+            native_frameworklines=
          ;;
 
          *)
             frameworklines=
+            native_frameworklines=
          ;;
       esac
 
-      # assemble -I /I and -L /LIBPATH:
-
-
+      # cmake separator
+      [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
       IFS="${PATH_SEPARATOR}"
-      for path in ${includelines}
+      for path in ${native_includelines}
       do
          IFS="${DEFAULT_IFS}"
-         other_cflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
+         path="$(sed 's/ /\\ /g' <<< "${path}")"
+         other_cppflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
       done
 
       IFS="${PATH_SEPARATOR}"
-      for path in ${librarylines}
+      for path in ${native_librarylines}
       do
          IFS="${DEFAULT_IFS}"
+         path="$(sed 's/ /\\ /g' <<< "${path}")"
          other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
       IFS="${PATH_SEPARATOR}"
-      for path in ${frameworklines}
+      for path in ${native_frameworklines}
       do
          IFS="${DEFAULT_IFS}"
-         other_cflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
+         path="$(sed 's/ /\\ /g' <<< "${path}")"
+         other_cppflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
          other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
-
-      other_cxxflags"`concat "${other_cflags}" "${other_cxxflags}"`"
       IFS="${DEFAULT_IFS}"
+
+      #
+      # the output one line each
+      #
+      echo "${other_cppflags}"
+      echo "${other_cflags}"
+      echo "${other_cxxflags}"
+      echo "${other_ldflags}"
+   )
+}
+
+
+build_unix_flags()
+{
+   _build_flags "$@"
+}
+
+
+build_cmake_flags()
+{
+   (
+      PATH_SEPARATOR=";"
+      _build_flags "$@"
+   )
+}
+
+#
+# remove old builddir, create a new one
+# depending on configuration cmake with flags
+# build stuff into dependencies
+# TODO: cache commandline in a file $ and emit instead of rebuilding it every time
+#
+build_cmake()
+{
+   local configuration="$1"
+   local srcdir="$2"
+   local builddir="$3"
+   local name="$4"
+   local sdk="$5"
+
+   enforce_build_sanity "${builddir}"
+
+   if [ -z "${CMAKE}" ]
+   then
+      fail "No cmake available"
+   fi
+   if [ -z "${MAKE}" ]
+   then
+      fail "No make available"
+   fi
+
+   log_info "Let ${C_RESET_BOLD}cmake${C_INFO} do a \
+${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
+${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
+${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
+
+   local sdkparameter
+   local local_cmake_flags
+   local local_make_flags
+
+   local_cmake_flags="`read_build_setting "${name}" "CMAKEFLAGS"`"
+   sdkparameter="`cmake_sdk_parameter "${sdk}"`"
+
+   if [ ! -z "${CORES}" ]
+   then
+      local_make_flags="-j ${CORES}"
+   fi
+
+   local c_compiler_line
+   local cxx_compiler_line
+
+   if [ ! -z "${C_COMPILER}" ]
+   then
+      c_compiler_line="-DCMAKE_C_COMPILER='${C_COMPILER}'"
+   fi
+   if [ ! -z "${CXX_COMPILER}" ]
+   then
+      cxx_compiler_line="-DCMAKE_CXX_COMPILER='${CXX_COMPILER}'"
+   fi
+
+   # linker="`read_build_setting "${name}" "LD"`"
+
+   # need this now
+   mkdir_if_missing "${builddir}"
+
+   local flaglines
+
+   flaglines="`build_cmake_flags "$@"`"
+
+   local other_cppflags
+   local other_cflags
+   local other_cxxflags
+   local other_ldflags
+
+   other_cppflags="`echo "${flaglines}" | sed -n '1p'`"
+   other_cflags="`echo "${flaglines}"   | sed -n '2p'`"
+   other_cxxflags="`echo "${flaglines}" | sed -n '3p'`"
+   other_ldflags="`echo "${flaglines}"  | sed -n '4p'`"
+
+   # CMAKE_CPP_FLAGS does not exist in cmake
+
+   other_cflags="`concat "${other_cppflags}" "${other_cflags}"`"
+   other_cxxflags="`concat "${other_cppflags}" "${other_cxxflags}"`"
+
+   local logfile1
+   local logfile2
+
+   mkdir_if_missing "${BUILDLOGS_DIR}"
+
+   logfile1="`build_log_name "cmake" "${name}" "${configuration}" "${sdk}"`"
+   logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
+
+#   cmake_keep_builddir="`read_build_setting "${name}" "cmake_keep_builddir" "YES"`"
+#   if [ "${cmake_keep_builddir}" != "YES" ]
+#   then
+#      rmdir_safer "${builddir}"
+#   fi
+   (
+      local owd
+      local nativewd
+
+      owd="${PWD}"
+      nativewd="`pwd ${BUILD_PWD_OPTIONS}`"
+
+      exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
+
+      # DONT READ CONFIG SETTING IN THIS INDENT
+      set -f
+
+      if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
+      then
+         logfile1="`tty`"
+         logfile2="$logfile1"
+      fi
+      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
+      then
+         logfile1="/dev/null"
+         logfile2="/dev/null"
+      fi
+
+      log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
+
+      if [ "${MULLE_FLAG_VERBOSE_BUILD}" = "YES" ]
+      then
+         local_make_flags="${local_make_flags} VERBOSE=1"
+      fi
+
+      local oldpath
+      local rval
+
+      [ -z "${BUILDPATH}" ] && internal_fail "BUILDPATH not set"
+
+      oldpath="$PATH"
+      PATH="${BUILDPATH}"
+
+      local prefixbuild
+
+      prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+
+      local cmake_flags
+
+      cmake_flags="-DCMAKE_C_FLAGS='${other_cflags}' \
+-DCMAKE_CXX_FLAGS='${other_cxxflags}' \
+-DCMAKE_EXE_LINKER_FLAGS='${other_ldflags}' \
+-DCMAKE_SHARED_LINKER_FLAGS='${other_ldflags}'"
+
+      local cmake_dirs
+
+      local dependenciesdir
+      local addictionsdir
+
+      dependenciesdir="${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"
+      addictionsdir="${nativewd}/${REFERENCE_ADDICTIONS_DIR}"
+
+      if [ ! -z "${dependenciesdir}" ]
+      then
+         cmake_dirs="-DDEPENDENCIES_DIR='${dependenciesdir}'"
+      fi
+
+      if [ ! -z "${addictionsdir}" ]
+      then
+         cmake_dirs="`concat "${cmake_dirs}" "-DADDICTIONS_DIR='${addictionsdir}'"`"
+      fi
+
+      if [ ! -z "${includelines}" ]
+      then
+         cmake_dirs="`concat "${cmake_dirs}" "-DCMAKE_INCLUDE_PATH='${includelines}'"`"
+      fi
+
+      if [ ! -z "${librarylines}" ]
+      then
+         cmake_dirs="`concat "${cmake_dirs}" "-DCMAKE_LIBRARY_PATH='${librarylines}'"`"
+      fi
+
+      if [ ! -z "${frameworklines}" ]
+      then
+         cmake_dirs="`concat "${cmake_dirs}" "-DCMAKE_FRAMEWORK_PATH='${frameworklines}'"`"
+      fi
+
+      local relative_srcdir
+
+      relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
+      case "${UNAME}" in
+         mingw)
+            relative_srcdir="`echo "${relative_srcdir}" | tr '/' '\\'  2> /dev/null`"
+      esac
+
+      logging_redirect_eval_exekutor "${logfile1}" "'${CMAKE}'" \
+-G "'${CMAKE_GENERATOR}'" \
+"-DMULLE_BOOTSTRAP_VERSION=${MULLE_BOOTSTRAP_VERSION}" \
+"-DCMAKE_BUILD_TYPE='${mapped}'" \
+"-DCMAKE_INSTALL_PREFIX:PATH='${prefixbuild}'"  \
+"${cmake_dirs}" \
+"${cmake_flags}" \
+"${sdkparameter}" \
+"${c_compiler_line}" \
+"${cxx_compiler_line}" \
+"${local_cmake_flags}" \
+"${CMAKE_FLAGS}" \
+"'${relative_srcdir}'"
+      rval=$?
+
+      if [ $rval -ne 0 ]
+      then
+         PATH="${oldpath}"
+         build_fail "${logfile1}" "cmake"
+      fi
+
+      logging_redirekt_exekutor "${logfile2}" "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install
+      rval=$?
+
+      PATH="${oldpath}"
+      [ $rval -ne 0 ] && build_fail "${logfile2}" "make"
+
+      set +f
+
+   ) || exit 1
+
+   local depend_subdir
+
+   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
+   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" || internal_fail "collect failed silently"
+}
+
+
+#
+# remove old builddir, create a new one
+# depending on configuration cmake with flags
+# build stuff into dependencies
+#
+#
+build_configure()
+{
+   local configuration
+   local srcdir
+   local builddir
+   local name
+   local sdk
+
+   configuration="$1"
+   srcdir="$2"
+   builddir="$3"
+   name="$4"
+   sdk="$5"
+
+   if [ -z "${MAKE}" ]
+   then
+      fail "No make available"
+   fi
+
+   enforce_build_sanity "${builddir}"
+
+   log_info "Let ${C_RESET_BOLD}configure${C_INFO} do a \
+${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
+${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
+${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
+
+   local configureflags
+
+   configureflags="`read_build_setting "${name}" "configure_flags"`"
+
+#   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
+
+   local c_compiler_line
+   local cxx_compiler_line
+
+   if [ ! -z "${C_COMPILER}" ]
+   then
+      c_compiler_line="CC='${C_COMPILER}'"
+   fi
+   if [ ! -z "${CXX_COMPILER}" ]
+   then
+      cxx_compiler_line="CXX='${CXX_COMPILER}'"
+   fi
+
+   mkdir_if_missing "${builddir}"
+
+   local flags
+
+   flags="`build_unix_flags "$@"`"
+
+   local other_cppflags
+   local other_cflags
+   local other_cxxflags
+   local other_ldflags
+
+   other_cppflags="`echo "${flags}" | sed -n '1p'`"
+   other_cflags="`echo "${flags}"   | sed -n '2p'`"
+   other_cxxflags="`echo "${flags}" | sed -n '3p'`"
+   other_ldflags="`echo "${flags}"  | sed -n '4p'`"
+
+   local sdkpath
+
+   sdkpath="`gcc_sdk_parameter "${sdk}"`"
+   sdkpath="`echo "${sdkpath}" | sed -e 's/ /\\ /g'`"
+
+   if [ ! -z "${sdkpath}" ]
+   then
+      other_cppflags="`concat "-isysroot ${sdkpath}" "${other_cppflags}"`"
+      other_ldflags="`concat "-isysroot ${sdkpath}" "${other_ldflags}"`"
+   fi
+
+   local logfile1
+   local logfile2
+
+   mkdir_if_missing "${BUILDLOGS_DIR}"
+
+   logfile1="`build_log_name "configure" "${name}" "${configuration}" "${sdk}"`"
+   logfile2="`build_log_name "make" "${name}" "${configuration}" "${sdk}"`"
+
+   (
+      local owd
+      local nativewd
+
+      owd="${PWD}"
+      nativewd="`pwd ${BUILD_PWD_OPTIONS}`"
+
+      exekutor cd "${builddir}" || fail "failed to enter ${builddir}"
+
+      # DONT READ CONFIG SETTING IN THIS INDENT
+      set -f
+
+      if [ "$MULLE_FLAG_VERBOSE_BUILD" = "YES" ]
+      then
+         logfile1="`tty`"
+         logfile2="$logfile1"
+      fi
+      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
+      then
+         logfile1="/dev/null"
+         logfile2="/dev/null"
+      fi
+
+      log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
+
+      local dependenciesdir
+      local addictionsdir
+
+      dependenciesdir="${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"
+      addictionsdir="${nativewd}/${REFERENCE_ADDICTIONS_DIR}"
+
+      local prefixbuild
+
+      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
 
       local oldpath
       local rval
@@ -1174,18 +1160,35 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       oldpath="$PATH"
       PATH="${BUILDPATH}"
 
+      local tool_flags
+
+      if [ ! -z "${other_cppflags}" ]
+      then
+         tool_flags="`concat "${tool_flags}" "CPPFLAGS='${other_cppflags}'"`"
+      fi
+      if [ ! -z "${other_cflags}" ]
+      then
+         tool_flags="`concat "${tool_flags}" "CFLAGS='${other_cflags}'"`"
+      fi
+      if [ ! -z "${other_cxxflags}" ]
+      then
+         tool_flags="`concat "${tool_flags}" "CXXFLAGS='${other_cxxflags}'"`"
+      fi
+      if [ ! -z "${other_ldflags}" ]
+      then
+         tool_flags="`concat "${tool_flags}" "LDFLAGS='${other_ldflags}'"`"
+      fi
+
       # use absolute paths for configure, safer (and easier to read IMO)
-      logging_eval_redirekt_exekutor "${logfile1}" \
+      logging_redirect_eval_exekutor "${logfile1}" \
          DEPENDENCIES_DIR="'${dependenciesdir}'" \
          ADDICTIONS_DIR="'${addictionsdir}'" \
-         CC="'${C_COMPILER:-${CC}}'" \
-         CXX="'${CXX_COMPILER:-${CXX}}'" \
-         CFLAGS="'${other_cflags}'" \
-         CXXFLAGS="'${other_cxxflags}'" \
-         LDFLAGS="'${other_ldflags}'" \
+         "${c_compiler_line}" \
+         "${cxx_compiler_line}" \
+         "${tool_flags}" \
          "'${owd}/${srcdir}/configure'" \
-            "${configureflags}" \
-             --prefix "'${prefixbuild}'"
+         "${configureflags}" \
+         --prefix "'${prefixbuild}'"
       rval=$?
 
       if [ $rval -ne 0 ]
@@ -1203,7 +1206,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       PATH="${oldpath}"
       set +f
 
-   exekutor cd "${owd}"
+   ) || exit 1
 
    local depend_subdir
 
@@ -1395,7 +1398,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       sdk=
    fi
 
-   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
+#   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
 
    local mappedsubdir
    local fallbacksubdir
@@ -2141,7 +2144,7 @@ build_stashes()
                log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                :
             else
-               fail "Unknown repo ${name}"
+               fail "Unknown repo \"${name}\""
             fi
          fi
       done
@@ -2316,8 +2319,11 @@ build_main()
          rmdir_safer "${DEPENDENCIES_DIR}"
       fi
    else
-      log_fluff "Unprotecting \"${DEPENDENCIES_DIR}\" (as this is a partial build)."
-      exekutor chmod -R u+w "${DEPENDENCIES_DIR}"
+      if [ -d "${DEPENDENCIES_DIR}" ]
+      then
+         log_fluff "Unprotecting \"${DEPENDENCIES_DIR}\" (as this is a partial build)."
+         exekutor chmod -R u+w "${DEPENDENCIES_DIR}"
+      fi
    fi
 
    # if present then we didnt't want to clean and we do nothing special

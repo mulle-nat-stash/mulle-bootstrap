@@ -95,8 +95,6 @@ get_master_of_minion_bootstrap_project()
 {
    local  minionpath="${1:-.}"
 
-   is_minion_bootstrap_project "${minionpath}" ||  internal_fail "must be minion"
-
    egrep -s -v '^#|^[ ]*$' "${minionpath}/${BOOTSTRAP_DIR}.local/is_minion"
    :
 }
@@ -108,11 +106,11 @@ master_owns_minion_bootstrap_project()
    local minionpath="${1:-.}" ; shift
 
    minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
-   if [ ! -f "${masterpath}/${BOOTSTRAP_DIR}.local/repositories" ]
+   if [ ! -f "${masterpath}/${BOOTSTRAP_DIR}.local/minions" ]
    then
       return 1
    fi
-   fgrep -q -s -x "${minionpath}" "${masterpath}/${BOOTSTRAP_DIR}.local/repositories"
+   fgrep -q -s -x "${minionpath}" "${masterpath}/${BOOTSTRAP_DIR}.local/minions"
 }
 
 
@@ -151,7 +149,8 @@ master_add_minion_bootstrap_project()
    mkdir_if_missing "${masterpath}/${BOOTSTRAP_DIR}.local"
 
    minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
-   redirect_append_exekutor "${masterpath}/${BOOTSTRAP_DIR}.local/repositories" echo "${minionpath};${minionpath}"
+   redirect_append_exekutor "${masterpath}/${BOOTSTRAP_DIR}.local/minions" \
+      echo "${minionpath}"
 
    #
    # copy over environment files
@@ -175,11 +174,11 @@ master_remove_minion_bootstrap_project()
 
    minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
    unregex="`sed -e 's/[]\/()$*.^|[]/\\&/g' <<< "${minionpath}"`"
-   filepath="${masterpath}/${BOOTSTRAP_DIR}.local/repositories"
+   filepath="${masterpath}/${BOOTSTRAP_DIR}.local/minions"
 
    if [ -f "${filepath}" ]
    then
-      exekutor sed -i "" -e "/^${unregex}\;/d" "${filepath}"
+      exekutor sed -i "" -e "/^${unregex}$/d" "${filepath}"
 
       if [ -z "`read_setting "${filepath}"`" ]
       then

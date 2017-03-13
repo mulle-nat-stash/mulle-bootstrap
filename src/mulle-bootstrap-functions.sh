@@ -62,7 +62,7 @@ eval_exekutor()
 }
 
 
-redirect_append_eval_exekutor()
+_redirect_append_eval_exekutor()
 {
    local output="$1"; shift
 
@@ -87,8 +87,11 @@ logging_redirect_eval_exekutor()
 {
    local output="$1"; shift
 
-   echo "==>" "$@" > "${output}" # to stdout
-   redirect_append_eval_exekutor "${output}" "$@"
+   # overwrite
+   echo "==>" "$*" > "${output}" # to stdout
+
+   # append
+   _redirect_append_eval_exekutor "${output}" "$@"
 }
 
 
@@ -216,20 +219,6 @@ add_cmake_path()
       echo "${path}"
    else
       echo "${line};${path}"
-   fi
-}
-
-
-add_word()
-{
-   local line="$1"
-   local word="$2"
-
-   if [ -z "${line}" ]
-   then
-      echo "${word}"
-   else
-      echo "${line} ${word}"
    fi
 }
 
@@ -713,6 +702,7 @@ combined_escaped_search_path_if_exists()
 
    echo "${combinedpath}"
 }
+
 
 combined_escaped_search_path()
 {
@@ -1261,7 +1251,10 @@ find_xcodeproj()
    local match
    local new_depth
 
-   for i in `find . -name "*.xcodeproj" -print`
+   #
+   # don't go too deep in search
+   #
+   for i in `find . -depth 2 -name "*.xcodeproj" -print`
    do
       match=`basename -- "${i}" .xcodeproj`
       if [ "$match" = "$expect" ]
