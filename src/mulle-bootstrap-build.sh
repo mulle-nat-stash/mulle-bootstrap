@@ -1763,7 +1763,7 @@ build_xcodebuild_schemes_or_target()
 
    if [ "${targets}" = "" -a "${schemes}" = "" ]
    then
-      log_fluff "Building project \"${project}\"..."
+      log_fluff "Building project \"${project}\" ..."
       build_xcodebuild "$@"
    fi
 }

@@ -783,6 +783,16 @@ local_environment_initialize()
          USR_LOCAL_INCLUDE=/usr/local/include
       ;;
    esac
+
+   #
+   # default archive
+   #
+   case "${UNAME}" in
+      darwin)
+         DEFAULT_ARCHIVE_CACHE="${HOME}/Library/Caches/mulle-bootstrap/archives"
+      ;;
+   esac
+
 }
 
 

@@ -1282,7 +1282,7 @@ work_clones()
       if [ "${remember}" = "YES" ]
       then
          # branch could be overwritten
-         log_debug "${C_INFO}Remembering ${clone}..."
+         log_debug "${C_INFO}Remembering ${clone} ..."
 
          remember_stash_of_repository "${clone}" \
                                       "${reposdir}" \
@@ -1520,14 +1520,14 @@ fetch_loop()
 
    if is_master_bootstrap_project
    then
-     log_info "Extracting minions' precis..."
+     log_info "Extracting minions' precis ..."
 
       extract_minion_precis
 
       fetch_once_minions_embedded_repositories
    fi
 
-   log_info "Checking repositories..."
+   log_info "Checking repositories ..."
 
    fetch_once_embedded_repositories
 

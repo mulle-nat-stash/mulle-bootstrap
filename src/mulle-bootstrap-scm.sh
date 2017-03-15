@@ -608,9 +608,48 @@ _move_stuff()
 #
 # What we do is
 # a) download the package using curl
-# b) create a temporary directory, extract into it
-# c) move it into place
+# b) optionally copy it into a cache for next time
+# c) create a temporary directory, extract into it
+# d) move it into place
 #
+_tar_download()
+{
+   local download="$1"
+
+   local archive_cache
+   local cachable_path
+   local cached_archive
+
+   archive_cache="`read_config_setting "archive_cache" "${DEFAULT_ARCHIVE_CACHE}"`"
+
+   if [ ! -z "${archive_cache}" -a "${archive_cache}" != "NO" ]
+   then
+      cachable_path="${archive_cache}/${download}"
+      if [ -e "${cachable_path}" ]
+      then
+         cached_archive="${cachable_path}"
+      fi
+   fi
+
+   if [ ! -z "${cached_archive}" ] && [ -f "${cached_archive}" ]
+   then
+      log_info "Using cached \"${cached_archive}\" for ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
+      exekutor ln -s "${cached_archive}" || fail "failed to symlink \"${cached_archive}\""
+      cachable_path=""
+   else
+      exekutor curl -O -L ${CURLOPTIONS} "${url}" || fail "failed to download \"${url}\""
+   fi
+
+   _validate_download "${download}" "${SCM_OPTIONS}" || exit 1
+
+   if [ ! -z "${cachable_path}" ]
+   then
+      log_info "Saving \"${download}\" to archive cache \"${archive_cache}\" ..."
+      mkdir_if_missing "${archive_cache}" || fail "failed to create archive cache \"${archive_cache}\""
+      exekutor cp "${download}" "${cachable_path}" || fail "failed to copy \"${download}\" to cache \"${archive_cache}\""
+   fi
+}
+
 
 tar_unpack()
 {
@@ -646,10 +685,7 @@ tar_unpack()
    (
       exekutor cd "${tmpdir}" || exit 1
 
-      log_info "Downloading ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
-
-      exekutor curl -O -L ${CURLOPTIONS} "${url}" || exit 1
-      _validate_download "${download}" "${SCM_OPTIONS}" || exit 1
+      _tar_download "${download}" || exit 1
 
       case "${url}" in
          *.zip)
