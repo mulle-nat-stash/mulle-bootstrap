@@ -41,7 +41,7 @@ usage:
    Options:
 EOF
 
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       cat <<EOF >&2
       -b : show brews
@@ -361,8 +361,7 @@ _common_show()
       return
    fi
 
-
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       log_info "${SHOW_PREFIX}Minions:"
       if [ "${SHOW_RAW}" = "YES" ]
@@ -390,7 +389,6 @@ _common_show()
       else
          show_embedded_repositories
       fi
-
 
       if [ "${SHOW_RAW}" = "NO" -a "${SHOW_DEEP}" = "YES" ]
       then
@@ -430,7 +428,7 @@ _show_main()
    [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]          && . mulle-bootstrap-scm.sh
    [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ]         && . mulle-bootstrap-brew.sh
 
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       SHOW_BREWS="NO"
    fi
@@ -442,11 +440,11 @@ _show_main()
             show_usage
          ;;
 
-         -b|--show-brews)
+         -b|--brews)
             SHOW_BREWS="YES"
          ;;
 
-         -d|--show-deep)
+         -d|--deep)
             SHOW_DEEP="YES"
          ;;
 
@@ -454,11 +452,11 @@ _show_main()
             SHOW_RAW="YES"
          ;;
 
-         -s|--show-scm)
+         -s|--scm)
             SHOW_SCM="YES"
          ;;
 
-         -u|--show-url)
+         -u|--url)
             SHOW_URL="YES"
          ;;
 
@@ -506,5 +504,3 @@ show_main_header_only()
 {
    _show_main "YES" "$@"
 }
-
-

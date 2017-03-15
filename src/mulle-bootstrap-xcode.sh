@@ -223,7 +223,7 @@ Release"
    then
       flag="add"
 
-      if [ $terse -ne 0 -a "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+      if [ $terse -ne 0 -a "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
       then
          #         012345678901234567890123456789012345678901234567890123456789
          log_info "Settings will be added to ${C_MAGENTA}${projectname}${C_RESET}."
@@ -260,7 +260,7 @@ Release"
    addictions_dir='$(PROJECT_DIR)'/"${relpath}"
 
    header_search_paths=""
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       header_search_paths="`concat "${header_search_paths}" '$(DEPENDENCIES_DIR)/'"${HEADER_DIR_NAME}"`"
    fi
@@ -272,7 +272,7 @@ Release"
    default=`echo "${configurations}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//'`
 
    library_search_paths=""
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       library_search_paths="`concat "${library_search_paths}" '$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/'"${LIBRARY_DIR_NAME}"`"
       library_search_paths="`concat "${library_search_paths}" '$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)/'"${LIBRARY_DIR_NAME}"`"
@@ -283,7 +283,7 @@ Release"
    library_search_paths="`concat "${library_search_paths}" '$(inherited)'`"
 
    framework_search_paths=""
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       framework_search_paths="`concat "${framework_search_paths}" '$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/'"${FRAMEWORK_DIR_NAME}"`"
       framework_search_paths="`concat "${framework_search_paths}" '$(DEPENDENCIES_DIR)/$(LIBRARY_CONFIGURATION)/'"${FRAMEWORK_DIR_NAME}"`"
@@ -297,7 +297,7 @@ Release"
 
    if [ "$COMMAND" = "add" ]
    then
-      if [ $terse -ne 0 -a "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+      if [ $terse -ne 0 -a "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
       then
          local mapped
          local i
@@ -309,7 +309,7 @@ Release"
          printf "${C_RESET_BOLD}Common.xcconfig:${C_RESET}\n"
          printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
          echo "ADDICTIONS_DIR=${addictions_dir}"
-         if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+         if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
          then
             echo "DEPENDENCIES_DIR=${dependencies_dir}"
          fi
@@ -357,7 +357,7 @@ Release"
 
    if [ "$COMMAND" = "add" ]
    then
-      if [ $terse -ne 0 -a "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+      if [ $terse -ne 0 -a "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
       then
          #     012345678901234567890123456789012345678901234567890123456789
          printf "${C_RESET_BOLD}${C_CYAN}\n" >&2

@@ -115,7 +115,7 @@ dispense_headers()
 
          # this fails with more nested header set ups, need to fix!
 
-         log_fluff "Copying \"${src}\" to \"${dst}\""
+         log_fluff "Copying headers from \"${src}\" to \"${dst}\""
          exekutor cp -Ra ${COPYMOVEFLAGS} "${src}"/* "${dst}" >&2 || exit 1
 
          rmdir_safer "${src}"
@@ -160,7 +160,7 @@ dispense_binaries()
       then
          dst="${REFERENCE_DEPENDENCIES_DIR}${depend_subdir}${subpath}"
 
-         log_fluff "Copying \"${src}\" to \"${dst}\""
+         log_fluff "Copying binaries from \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
             exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}" >&2
@@ -641,14 +641,13 @@ _build_flags()
    local builddir="$3"
    local name="$4"
    local sdk="$5"
+   local mapped="$6"
 
-   local mapped
    local fallback
    local suffix
 
    fallback="`echo "${OPTION_CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
-   mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
    suffix="`determine_suffix "${configuration}" "${sdk}"`"
 
    local mappedsubdir
@@ -658,16 +657,6 @@ _build_flags()
    mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
    suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
    fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
-
-   local other_cppflags
-   local other_cflags
-   local other_cxxflags
-   local other_ldflags
-
-   other_cppflags="`gcc_cppflags_value "${name}"`"
-   other_cflags="`gcc_cflags_value "${name}"`"
-   other_cxxflags="`gcc_cxxflags_value "${name}"`"
-   other_ldflags="`gcc_ldflags_value "${name}"`"
 
    (
       local nativewd
@@ -762,6 +751,10 @@ _build_flags()
          ;;
       esac
 
+      local cppflags
+      local ldflags
+      local path
+
       # cmake separator
       [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
       IFS="${PATH_SEPARATOR}"
@@ -769,7 +762,7 @@ _build_flags()
       do
          IFS="${DEFAULT_IFS}"
          path="$(sed 's/ /\\ /g' <<< "${path}")"
-         other_cppflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
+         cppflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
       done
 
       IFS="${PATH_SEPARATOR}"
@@ -777,7 +770,7 @@ _build_flags()
       do
          IFS="${DEFAULT_IFS}"
          path="$(sed 's/ /\\ /g' <<< "${path}")"
-         other_ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
+         ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
       IFS="${PATH_SEPARATOR}"
@@ -786,17 +779,21 @@ _build_flags()
          IFS="${DEFAULT_IFS}"
          path="$(sed 's/ /\\ /g' <<< "${path}")"
          other_cppflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
-         other_ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
+         ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done
       IFS="${DEFAULT_IFS}"
 
       #
       # the output one line each
       #
-      echo "${other_cppflags}"
-      echo "${other_cflags}"
-      echo "${other_cxxflags}"
-      echo "${other_ldflags}"
+      echo "${cppflags}"
+      echo "${ldflags}"
+      echo "${native_includelines}"
+      echo "${native_librarylines}"
+      echo "${native_frameworklines}"
+      echo "${includelines}"
+      echo "${librarylines}"
+      echo "${frameworklines}"
    )
 }
 
@@ -874,24 +871,68 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    # need this now
    mkdir_if_missing "${builddir}"
 
-   local flaglines
-
-   flaglines="`build_cmake_flags "$@"`"
-
-   local other_cppflags
    local other_cflags
    local other_cxxflags
+   local other_cppflags
    local other_ldflags
 
-   other_cppflags="`echo "${flaglines}" | sed -n '1p'`"
-   other_cflags="`echo "${flaglines}"   | sed -n '2p'`"
-   other_cxxflags="`echo "${flaglines}" | sed -n '3p'`"
-   other_ldflags="`echo "${flaglines}"  | sed -n '4p'`"
+   other_cflags="`gcc_cflags_value "${name}"`"
+   other_cxxflags="`gcc_cxxflags_value "${name}"`"
+   other_cppflags="`gcc_cppflags_value "${name}"`"
+   other_ldflags="`gcc_ldflags_value "${name}"`"
+
+   local flaglines
+   local mapped
+
+   mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
+   flaglines="`build_cmake_flags "$@" "${mapped}"`"
+
+   local cppflags
+   local ldflags
+   local includelines
+   local librarylines
+   local frameworklines
+
+   cppflags="`echo "${flaglines}"   | sed -n '1p'`"
+   ldflags="`echo "${flaglines}"    | sed -n '2p'`"
+   includelines="`echo "${flags}"   | sed -n '6p'`"
+   librarylines="`echo "${flags}"   | sed -n '7p'`"
+   frameworklines="`echo "${flags}" | sed -n '8p'`"
 
    # CMAKE_CPP_FLAGS does not exist in cmake
+   # so merge into CFLAGS and CXXFLAGS
 
-   other_cflags="`concat "${other_cppflags}" "${other_cflags}"`"
-   other_cxxflags="`concat "${other_cppflags}" "${other_cxxflags}"`"
+   if [ -z "${cppflags}" ]
+   then
+      other_cppflags="`concat "${other_cppflags}" "${cppflags}"`"
+   fi
+
+   if [ -z "${other_cppflags}" ]
+   then
+      other_cflags="`concat "${other_cflags}" "${other_cppflags}"`"
+      other_cxxflags="`concat "${other_cxxflags}" "${other_cppflags}"`"
+   fi
+
+   if [ -z "${ldflags}" ]
+   then
+      other_ldflags="`concat "${other_ldflags}" "${ldflags}"`"
+   fi
+
+   local cmake_flags
+
+   if [ ! -z "${other_cflags}" ]
+   then
+      cmake_flags="`concat "${cmake_flags}" "-DCMAKE_C_FLAGS='${other_cflags}'"`"
+   fi
+   if [ ! -z "${other_cxxflags}" ]
+   then
+      cmake_flags="`concat "${cmake_flags}" "-DCMAKE_CXX_FLAGS='${other_cxxflags}'"`"
+   fi
+   if [ ! -z "${other_ldflags}" ]
+   then
+      cmake_flags="`concat "${cmake_flags}" "-DCMAKE_SHARED_LINKER_FLAGS='${other_ldflags}'"`"
+      cmake_flags="`concat "${cmake_flags}" "-DCMAKE_EXE_LINKER_FLAGS='${other_ldflags}'"`"
+   fi
 
    local logfile1
    local logfile2
@@ -948,13 +989,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
 
-      local cmake_flags
-
-      cmake_flags="-DCMAKE_C_FLAGS='${other_cflags}' \
--DCMAKE_CXX_FLAGS='${other_cxxflags}' \
--DCMAKE_EXE_LINKER_FLAGS='${other_ldflags}' \
--DCMAKE_SHARED_LINKER_FLAGS='${other_ldflags}'"
-
       local cmake_dirs
 
       local dependenciesdir
@@ -998,12 +1032,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       logging_redirect_eval_exekutor "${logfile1}" "'${CMAKE}'" \
 -G "'${CMAKE_GENERATOR}'" \
-"-DMULLE_BOOTSTRAP_VERSION=${MULLE_BOOTSTRAP_VERSION}" \
+"-DMULLE_EXECUTABLE_VERSION=${MULLE_EXECUTABLE_VERSION}" \
 "-DCMAKE_BUILD_TYPE='${mapped}'" \
 "-DCMAKE_INSTALL_PREFIX:PATH='${prefixbuild}'"  \
+"${sdkparameter}" \
 "${cmake_dirs}" \
 "${cmake_flags}" \
-"${sdkparameter}" \
 "${c_compiler_line}" \
 "${cxx_compiler_line}" \
 "${local_cmake_flags}" \
@@ -1066,9 +1100,9 @@ ${C_MAGENTA}${C_BOLD}${configuration}${C_INFO} build of \
 ${C_MAGENTA}${C_BOLD}${name}${C_INFO} for SDK \
 ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
-   local configureflags
+   local configure_flags
 
-   configureflags="`read_build_setting "${name}" "configure_flags"`"
+   configure_flags="`read_build_setting "${name}" "configure_flags"`"
 
 #   create_dummy_dirs_against_warnings "${mapped}" "${suffix}"
 
@@ -1086,19 +1120,40 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    mkdir_if_missing "${builddir}"
 
-   local flags
-
-   flags="`build_unix_flags "$@"`"
-
-   local other_cppflags
    local other_cflags
    local other_cxxflags
+   local other_cppflags
    local other_ldflags
 
-   other_cppflags="`echo "${flags}" | sed -n '1p'`"
-   other_cflags="`echo "${flags}"   | sed -n '2p'`"
-   other_cxxflags="`echo "${flags}" | sed -n '3p'`"
-   other_ldflags="`echo "${flags}"  | sed -n '4p'`"
+   other_cflags="`gcc_cflags_value "${name}"`"
+   other_cxxflags="`gcc_cxxflags_value "${name}"`"
+   other_cppflags="`gcc_cppflags_value "${name}"`"
+   other_ldflags="`gcc_ldflags_value "${name}"`"
+
+   local flags
+   local mapped
+
+   mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
+   flags="`build_unix_flags "$@" "${mapped}"`"
+
+   local cppflags
+   local ldflags
+
+   cppflags="`echo "${flags}" | sed -n '1p'`"
+   ldflags="`echo "${flags}"  | sed -n '2p'`"
+
+   # CMAKE_CPP_FLAGS does not exist in cmake
+   # so merge into CFLAGS and CXXFLAGS
+
+   if [ -z "${cppflags}" ]
+   then
+      other_cppflags="`concat "${other_cppflags}" "${cppflags}"`"
+   fi
+
+   if [ -z "${ldflags}" ]
+   then
+      other_ldflags="`concat "${other_ldflags}" "${ldflags}"`"
+   fi
 
    local sdkpath
 
@@ -1109,6 +1164,25 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    then
       other_cppflags="`concat "-isysroot ${sdkpath}" "${other_cppflags}"`"
       other_ldflags="`concat "-isysroot ${sdkpath}" "${other_ldflags}"`"
+   fi
+
+   local env_flags
+
+   if [ ! -z "${other_cppflags}" ]
+   then
+      env_flags="`concat "${cmake_flags}" "CPPFLAGS='${other_cppflags}'"`"
+   fi
+   if [ ! -z "${other_cflags}" ]
+   then
+      env_flags="`concat "${cmake_flags}" "CFLAGS='${other_cflags}'"`"
+   fi
+   if [ ! -z "${other_cxxflags}" ]
+   then
+      env_flags="`concat "${cmake_flags}" "CXXFLAGS='${other_cxxflags}'"`"
+   fi
+   if [ ! -z "${other_ldflags}" ]
+   then
+      env_flags="`concat "${cmake_flags}" "LDFLAGS='${other_ldflags}'"`"
    fi
 
    local logfile1
@@ -1160,34 +1234,15 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       oldpath="$PATH"
       PATH="${BUILDPATH}"
 
-      local tool_flags
-
-      if [ ! -z "${other_cppflags}" ]
-      then
-         tool_flags="`concat "${tool_flags}" "CPPFLAGS='${other_cppflags}'"`"
-      fi
-      if [ ! -z "${other_cflags}" ]
-      then
-         tool_flags="`concat "${tool_flags}" "CFLAGS='${other_cflags}'"`"
-      fi
-      if [ ! -z "${other_cxxflags}" ]
-      then
-         tool_flags="`concat "${tool_flags}" "CXXFLAGS='${other_cxxflags}'"`"
-      fi
-      if [ ! -z "${other_ldflags}" ]
-      then
-         tool_flags="`concat "${tool_flags}" "LDFLAGS='${other_ldflags}'"`"
-      fi
-
-      # use absolute paths for configure, safer (and easier to read IMO)
+       # use absolute paths for configure, safer (and easier to read IMO)
       logging_redirect_eval_exekutor "${logfile1}" \
          DEPENDENCIES_DIR="'${dependenciesdir}'" \
          ADDICTIONS_DIR="'${addictionsdir}'" \
          "${c_compiler_line}" \
          "${cxx_compiler_line}" \
-         "${tool_flags}" \
+         "${env_flags}" \
          "'${owd}/${srcdir}/configure'" \
-         "${configureflags}" \
+         "${configure_flags}" \
          --prefix "'${prefixbuild}'"
       rval=$?
 

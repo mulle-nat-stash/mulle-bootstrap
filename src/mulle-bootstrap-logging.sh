@@ -167,14 +167,14 @@ _bail()
 
 fail()
 {
-   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}:" "$@"
+   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX} Error: $*"
    _bail
 }
 
 
 internal_fail()
 {
-   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}:" "${C_RED}*** internal error: ${C_BR_RED}$*"
+   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX} *** Internal Error: ${C_BR_RED}$*"
    stacktrace
    _bail
 }

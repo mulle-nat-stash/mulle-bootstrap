@@ -31,6 +31,336 @@
 #
 MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH="included"
 
+
+## option parsing common
+
+#
+# variables called flag. because they are indirectly set by flags
+#
+bootstrap_dump_env()
+{
+   log_trace "FULL trace started"
+   log_trace "ARGS:${C_TRACE2} ${MULLE_ARGUMENTS}"
+   log_trace "PWD :${C_TRACE2} `pwd -P`"
+   log_trace "ENV :${C_TRACE2} `env | sort`"
+   log_trace "LS  :${C_TRACE2} `ls -a1F`"
+}
+
+
+bootstrap_setup_trace()
+{
+   case "${1}" in
+      VERBOSE)
+         MULLE_FLAG_LOG_VERBOSE="YES"
+      ;;
+
+      FLUFF)
+         MULLE_FLAG_LOG_FLUFF="YES"
+         MULLE_FLAG_LOG_VERBOSE="YES"
+         MULLE_FLAG_LOG_EXECUTOR="YES"
+      ;;
+
+      TRACE)
+         MULLE_FLAG_LOG_SETTINGS="YES"
+         MULLE_FLAG_LOG_EXECUTOR="YES"
+         MULLE_FLAG_LOG_FLUFF="YES"
+         MULLE_FLAG_LOG_VERBOSE="YES"
+         bootstrap_dump_env
+      ;;
+
+      1848)
+         MULLE_FLAG_LOG_SETTINGS="YES"
+         MULLE_FLAG_LOG_FLUFF="YES"
+         MULLE_FLAG_LOG_VERBOSE="YES"
+         MULLE_FLAG_VERBOSE_BUILD="YES"
+
+         bootstrap_dump_env
+
+         if [ "${MULLE_TRACE_POSTPONE}" = "NO" ]
+         then
+            log_trace "1848 trace (set -x) started"
+            set -x
+            PS4="+ ${ps4string} + "
+         fi
+      ;;
+   esac
+}
+
+
+bootstrap_technical_option_usage()
+{
+   if [ ! -z "${MULLE_TRACE}" ]
+   then
+      cat <<EOF
+   -lc       : cache search log output
+   -ld       : additional debug output
+   -le       : external command execution log output
+   -lm       : extended dependency analysis output
+   -ls       : extended settings log output
+   -t        : enable shell trace
+   -tpwd     : emit shortened PWD during trace
+   -tr       : also trace resolver
+   -ts       : also trace settings
+   -s        : be silent
+
+   [Check source for more options]
+EOF
+   fi
+}
+
+
+bootstrap_technical_flags()
+{
+   case "$1" in
+      -n|--dry-run)
+         MULLE_FLAG_EXECUTOR_DRY_RUN="YES"
+      ;;
+
+      -lc|--log-cache)
+         MULLE_FLAG_LOG_CACHE="YES"
+      ;;
+
+      -ld|--log-debug)
+         MULLE_FLAG_LOG_DEBUG="YES"
+      ;;
+
+      -le|--log-execution)
+         MULLE_FLAG_LOG_EXECUTOR="YES"
+      ;;
+
+      -lm|--log-merge)
+         MULLE_FLAG_MERGE_LOG="YES"
+      ;;
+
+      -ls|--log-settings)
+         MULLE_FLAG_LOG_SETTINGS="YES"
+      ;;
+
+      -lsc|--log-script-calls)
+         MULLE_FLAG_LOG_SCRIPTS="YES"
+      ;;
+
+      -t|--trace)
+         MULLE_TRACE="1848"
+         COPYMOVEFLAGS="-v"
+         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
+         MULLE_TRACE_PATHS_FLIP_X="YES"
+         MULLE_TRACE_RESOLVER_FLIP_X="YES"
+         MULLE_TRACE_SETTINGS_FLIP_X="YES"
+         ps4string='${BASH_SOURCE[1]##*/}:${LINENO}'
+      ;;
+
+      -tf|--trace-filepaths)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         MULLE_TRACE_PATHS_FLIP_X="NO"
+      ;;
+
+      -tfpwd|--trace-full-pwd)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \"\w\"'
+      ;;
+
+      -tp|--trace-profile)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         case "${UNAME}" in
+            linux)
+               ps4string='$(date "+%s.%N (${BASH_SOURCE[1]##*/}:${LINENO})")'
+            ;;
+            *)
+               ps4string='$(date "+%s (${BASH_SOURCE[1]##*/}:${LINENO})")'
+            ;;
+         esac
+      ;;
+
+      -tpo|--trace-postpone)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         MULLE_TRACE_POSTPONE="YES"
+      ;;
+
+      -tpwd|--trace-pwd)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \".../\W\"'
+      ;;
+
+      -tr|--trace-resolver)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         MULLE_TRACE_RESOLVER_FLIP_X="NO"
+      ;;
+
+      -ts|--trace-settings)
+         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
+         MULLE_TRACE_SETTINGS_FLIP_X="NO"
+      ;;
+
+      -tx|--trace-options)
+         set -x
+      ;;
+
+      -v|--verbose)
+        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -v after -t invalidates -t"
+
+         MULLE_TRACE="VERBOSE"
+         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
+      ;;
+
+      -vv|--very-verbose)
+        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vv after -t invalidates -t"
+
+         MULLE_TRACE="FLUFF"
+         COPYMOVEFLAGS="-v"
+         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
+      ;;
+
+      -vvv|--very-verbose-with-settings)
+        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vvv after -t invalidates -t"
+
+         MULLE_TRACE="TRACE"
+         COPYMOVEFLAGS="-v"
+         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
+      ;;
+
+      -s|--silent)
+         MULLE_TRACE=
+         MULLE_FLAG_LOG_TERSE="YES"
+         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
+      ;;
+
+      *)
+         return 1
+      ;;
+   esac
+
+   return 0
+}
+
+
+bootstrap_define_expansion()
+{
+   local keyvalue
+
+   keyvalue="$1"
+
+   is_bootstrap_project || fail "This is not a mulle-bootstrap project"
+
+   if [ -z "${keyvalue}" ]
+   then
+      fail "Missing key, directly after -D"
+      mulle_bootstrap_usage
+   fi
+
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+
+   local key
+   local value
+
+   key="`echo "${keyvalue}" | cut -d= -f1 | tr '[a-z]' '[A-Z]'`"
+   if [ -z "${key}" ]
+   then
+      key="${keyvalue}"
+      value="YES"
+   else
+      value="`echo "${keyvalue}" | cut -d= -f2-`"
+   fi
+
+   local path
+
+   path="${BOOTSTRAP_DIR}.local/${key}"
+   mkdir_if_missing "`dirname -- "${path}"`"
+   redirect_exekutor "${path}" echo "# commandline argument -D${keyvalue}
+${value}"
+}
+
+
+bootstrap_ensure_consistency()
+{
+   if dirty_harry
+   then
+      log_error "A previous fetch or update was incomplete.
+Suggested resolution (in $PWD):
+    ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
+    ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
+
+Or do you feel lucky ? Then try again with
+   ${C_RESET_BOLD}mulle-bootstrap -f ${MULLE_ARGUMENTS}${C_ERROR}
+But you've gotta ask yourself one question: Do I feel lucky ?
+Well, do ya, punk?"
+      exit 1
+   fi
+}
+
+
+bootstrap_should_defer_to_master()
+{
+   local command="$1"
+
+   #
+   # if we have a.bootstrap.local/is_minion file then
+   # some commands can't run, and some commands are re-executed in master
+   # and some commands (like fetch and clean) are executed locally AND in the
+   # master
+   #
+
+   if ! is_minion_bootstrap_project
+   then
+      return 1
+   fi
+
+   if [ "${MULLE_FLAG_DONT_DEFER}" = "YES" ]
+   then
+      log_verbose "Minion executes locally by request"
+      return 1
+   fi
+
+   if [ "${MULLE_BOOTSTRAP_DONT_DEFER}" = "YES" ]
+   then
+      log_fluff "Minion executes locally by environment"
+      return 1
+   fi
+
+   local masterpath
+
+   . mulle-bootstrap-project.sh
+
+   masterpath="`get_master_of_minion_bootstrap_project`"
+
+   case "${command}" in
+      git|setup-xcode|xcode|tag|version|defer|emancipate|uname|library-path)
+         log_verbose "Minion executes locally"
+      ;;
+
+      show)
+         log_verbose "Minion executes partially locally"
+
+         [ -z "${MULLE_BOOTSTRAP_SHOW_SH}" ] && . mulle-bootstrap-show.sh
+
+         (
+            [ $# -eq 0 ] || shift
+            show_main_header_only "$@"
+         ) || exit 1
+
+         log_info "Minion defers to master \"$masterpath\""
+         log_info ""
+
+         cd "${masterpath}" || fail "master is missing"
+         return 0  # this leads to  main deferring later on (but cd is set!)
+      ;;
+
+      refer|dist-clean)
+         fail "This is a minion bootstrap project.\n \
+${MULLE_EXECUTABLE} ${command}t is not possible."
+      ;;
+
+      *)
+         log_verbose "Minion defers to master \"$masterpath\" for execution"
+
+         cd "${masterpath}" || fail "master is missing"
+         return 0  # this leads to  main deferring later on (but cd is set!)
+      ;;
+   esac
+
+   return 1
+}
+
 # returns 0 if said yes
 user_say_yes()
 {
@@ -41,7 +371,7 @@ user_say_yes()
    while :
    do
       case "$x" in
-         [Aa][Ll][Ll])
+         [Aa][Ll][Ll])  # doesn't work when executed in subshell
             MULLE_FLAG_ANSWER="YES"
             return 0
          ;;
@@ -284,12 +614,12 @@ assert_mulle_bootstrap_version()
    # has to be read before .auto is setup
    version="`read_raw_setting "version"`"
 
-   if check_version "$version" "${MULLE_BOOTSTRAP_VERSION_MAJOR}" "${MULLE_BOOTSTRAP_VERSION_MINOR}"
+   if check_version "$version" "${MULLE_EXECUTABLE_VERSION_MAJOR}" "${MULLE_EXECUTABLE_VERSION_MINOR}"
    then
       return
    fi
 
-   fail "This ${BOOTSTRAP_DIR} requires mulle-bootstrap version ${version} at least, you have ${MULLE_BOOTSTRAP_VERSION}"
+   fail "This ${BOOTSTRAP_DIR} requires mulle-bootstrap version ${version} at least, you have ${MULLE_EXECUTABLE_VERSION}"
 }
 
 

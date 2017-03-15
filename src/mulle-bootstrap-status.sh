@@ -142,22 +142,33 @@ status_brews()
 }
 
 
-_common_status()
+_quick_status()
 {
    if dirty_harry
    then
       log_info "Dirty Harry"
-   fi
-   if fetch_needed
-   then
-      log_info "Fetch needed"
-   fi
-   if build_needed
-   then
-      log_info "Build needed"
+      return 3
+   else
+      if fetch_needed
+      then
+         log_info "Fetch needed"
+         return 2
+      else
+         if build_needed
+         then
+            log_info "Build needed"
+            return 1
+         fi
+      fi
    fi
 
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   return 0
+}
+
+
+_common_status()
+{
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       local MULLE_BOOTSTRAP_SETTINGS_NO_AUTO
 
@@ -185,7 +196,7 @@ _common_status()
       fi
    fi
 
-   if [ "${SHOW_BREWS}" = "YES"  ]
+   if [ "${STATUS_BREWS}" = "YES"  ]
    then
       status_brews
    fi
@@ -199,7 +210,8 @@ status_main()
    local MULLE_FLAG_FOLLOW_SYMLINKS="YES"
    local OPTION_EMBEDDED_ONLY="NO"
    local SKIP_EMBEDDED="YES"
-   local SHOW_BREWS="YES"
+   local STATUS_BREWS="YES"
+   local STATUS_CONDENSED="NO"
    local STATUS_SCM="NO"
    local STATUS_FETCH="YES"
    local STATUS_LIST="NO"
@@ -209,9 +221,9 @@ status_main()
    [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]          && . mulle-bootstrap-scm.sh
    [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ]         && . mulle-bootstrap-brew.sh
 
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
-      SHOW_BREWS="NO"
+      STATUS_BREWS="NO"
    fi
 
    while [ $# -ne 0 ]
@@ -225,8 +237,12 @@ status_main()
             SKIP_EMBEDDED="NO"
          ;;
 
-         -b|--show-brews)
-            SHOW_BREWS="YES"
+         -b|--brews)
+            STATUS_BREWS="YES"
+         ;;
+
+         -c|--condensed)
+            STATUS_CONDENSED="YES"
          ;;
 
          -e|--embedded-only)
@@ -263,6 +279,19 @@ status_main()
       shift
    done
 
-   _common_status "$@"
+   local rval
+
+   _quick_status "$@"
+   rval="$?"
+
+   if [ "${MULLE_FLAG_LOG_TERSE}" = "YES" ]
+   then
+      return "$rval"
+   fi
+
+   if [ "${STATUS_CONDENSED}" = "NO" ]
+   then
+      _common_status "$@"
+   fi
 }
 

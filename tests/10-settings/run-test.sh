@@ -112,6 +112,10 @@ fail()
 
 BOOTSTRAP_FLAGS="$@"
 
+MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
+export MULLE_BOOTSTRAP_CACHES_PATH
+
+
 setup
 
 (

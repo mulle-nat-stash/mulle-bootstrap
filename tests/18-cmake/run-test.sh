@@ -1,4 +1,4 @@
-#! /bin/sh -x
+#! /bin/sh
 
 clear_test_dirs()
 {
@@ -36,6 +36,8 @@ run_mulle_bootstrap()
 #
 setup()
 {
+   clear_test_dirs main
+
    mkdir -p main/a
    mkdir -p main/b
 
@@ -56,9 +58,16 @@ EOF
       cat <<EOF > CMakeLists.txt
 project( a)
 
+find_library( B_LIBRARY NAMES b)
+
 add_executable( a
 a.c
 )
+
+target_link_libraries( a
+${B_LIBRARY}
+)
+
 EOF
    )
 
@@ -85,6 +94,9 @@ add_library( b
 b.c
 b.h
 )
+
+install( TARGETS b DESTINATION "lib")
+install( FILES b.h DESTINATION "include/b")
 EOF
    )
 }
@@ -96,7 +108,13 @@ fail()
    exit 1
 }
 
+
+
 BOOTSTRAP_FLAGS="$@"
+
+MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
+export MULLE_BOOTSTRAP_CACHES_PATH
+
 
 cmake > /dev/null 2>&1
 if [ $? -eq 127 ]
@@ -108,11 +126,9 @@ fi
 setup || exit 1
 
 (
-   ( cd main/a; run_mulle_bootstrap ${BOOTSTRAP_FLAGS} defer ) || exit 1
-   ( cd main/b; run_mulle_bootstrap ${BOOTSTRAP_FLAGS} defer ) || exit 1
-   ( cd main; run_mulle_bootstrap ${BOOTSTRAP_FLAGS} ) || exit 1
+   ( cd main/a; run_mulle_bootstrap defer ) || exit 1
+   ( cd main/b; run_mulle_bootstrap defer ) || exit 1
+   ( cd main;   run_mulle_bootstrap ${BOOTSTRAP_FLAGS} ) || exit 1
 )
 
-
 echo "succeeded" >&2
-

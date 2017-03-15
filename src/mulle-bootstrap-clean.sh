@@ -112,16 +112,16 @@ _collect_embedded_stashdir()
 print_stashdir_embedded_repositories()
 {
    walk_auto_repositories "embedded_repositories" \
-                     "_collect_embedded_stashdir" \
-                     "" \
-                     "${EMBEDDED_REPOS_DIR}"
+                          "_collect_embedded_stashdir" \
+                          "" \
+                          "${EMBEDDED_REPOS_DIR}"
 }
 
 
 setup_clean_environment()
 {
    [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
-   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "CLONESBUILD_DIR is empty"
+   [ -z "${CLONESBUILD_DIR}" ]     && internal_fail "CLONESBUILD_DIR is empty"
    [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "ADDICTIONS_DIR is empty"
    [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "STASHES_DEFAULT_DIR is empty"
 
@@ -274,7 +274,6 @@ clean_files()
 }
 
 
-
 clean_directories()
 {
    local directories="$1"
@@ -369,6 +368,23 @@ ${DEPENDENCIES_DIR}/tmp"`"
 
 
 #
+# clean embedded repositories out of minion
+#
+clean_minion()
+{
+   local minion="$1"
+
+   local directories
+
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+
+   directories="`_all_repository_stashes "${REPOS_DIR}/.deep/${minion}.d"`"
+   clean_directories "${directories}"
+   clean_directories "${REPOS_DIR}/.deep/${minion}.d"
+}
+
+
+#
 # don't rename these settings anymore, the consequences can be catastrophic
 # for users of previous versions.
 # Also don't change the search paths for read_sane_config_path_setting
@@ -376,6 +392,8 @@ ${DEPENDENCIES_DIR}/tmp"`"
 clean_main()
 {
    log_debug "::: clean :::"
+
+   local MINION_NAME
 
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
@@ -388,6 +406,14 @@ clean_main()
       case "$1" in
          -h|-help|--help)
             clean_usage
+         ;;
+
+
+         -m|--minion)
+            shift
+            [ $# -ne 0 ] || clean_usage
+
+            MINION_NAME="${1}"
          ;;
 
          -*)
@@ -409,7 +435,13 @@ clean_main()
 
    case "${style}" in
       "output"|"dist"|"build"|"install")
-         clean_execute "${style}"
+
+         if [ -z "${MINION_NAME}" ]
+         then
+            clean_execute "${style}"
+         else
+            clean_minion "${MINION_NAME}"
+         fi
       ;;
 
       help)

@@ -85,6 +85,9 @@ BOOTSTRAP_FLAGS="$@"
 #
 echo "mulle-bootstrap: `mulle-bootstrap version`(`mulle-bootstrap library-path`)" >&2
 
+MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
+export MULLE_BOOTSTRAP_CACHES_PATH
+
 clear_test_dirs a b c
 setup_test_dirs
 (

@@ -125,6 +125,9 @@ test_inherit()
    rm -rf a b c  2> /dev/null
 }
 
+MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
+export MULLE_BOOTSTRAP_CACHES_PATH
+
 
 test_override
 

@@ -25,7 +25,7 @@ fi
 
 fail()
 {
-   printf "${C_BR_RED}$*${C_RESET}\n" >&2
+   printf "${C_BR_RED}Error: $*${C_RESET}\n" >&2
    exit 1
 }
 

@@ -47,12 +47,11 @@ usage:
    Types:
       addictions     : output "addictions" path
       binpath        : output paths for binaries
-      cflags         : output CFLAGS for gcc, clang and friends
+      cppflags       : output CPPFLAGS
       cmakeflags     : output cmake flag definitions
       cmakepaths     : output cmake paths definitions
-      cxxflags       : output CXXFLAGS
       dependencies   : output "dependencies" path
-      environment*   : output CFLAGS, CXXFLAGS, LDFLAGS (default)
+      environment*   : output CPPFLAGS, LDFLAGS (default)
       frameworkpath  : output framework search paths PATH style
       headerpath     : output framework search paths PATH style
       ldflags        : output LDFLAGS
@@ -179,7 +178,7 @@ _flags_emit_option()
 }
 
 
-_flags_cflags_value()
+_flags_cppflags_value()
 {
    if [ "${OPTION_WITH_HEADERPATHS}" = "YES" ]
    then
@@ -204,12 +203,6 @@ _flags_cflags_value()
          _flags_emit_option "-F" "${ADDICTIONS_DIR}/Frameworks"
       fi
    fi
-}
-
-
-_flags_cxxflags_value()
-{
-   _flags_cflags_value "$@"
 }
 
 
@@ -370,18 +363,13 @@ _flags_do_cmake_flags()
    local values
    local line
 
-   values="`_flags_cflags_value`"
+   values="`_flags_cppflags_value`"
    if [ ! -z "${values}" ]
    then
       values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
       line="-DCMAKE_C_FLAGS=\"${values}\""
       result="`add_line "${result}" "${line}"`"
-   fi
 
-   values="`_flags_cxxflags_value`"
-   if [ ! -z "${values}" ]
-   then
-      values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
       line="-DCMAKE_CXX_FLAGS=\"${values}\""
       result="`add_line "${result}" "${line}"`"
    fi
@@ -460,19 +448,11 @@ _flags_do_environment()
    local values
    local line
 
-   values="`_flags_cflags_value`"
+   values="`_flags_cppflags_value`"
    if [ ! -z "${values}" ]
    then
       values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-      line="CFLAGS=\"${values}\""
-      result="`add_line "${result}" "${line}"`"
-   fi
-
-   values="`_flags_cxxflags_value`"
-   if [ ! -z "${values}" ]
-   then
-      values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-      line="CXXFLAGS=\"${values}\""
+      line="CPPFLAGS=\"${values}\""
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -523,7 +503,7 @@ flags_main()
       ;;
    esac
 
-   if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       OPTION_WITH_DEPENDENCIES="YES"
    fi
@@ -634,7 +614,7 @@ flags_main()
             result="`add_line "${result}" "${values}"`"
          ;;
 
-         "cflags"|"cxxflags"|"ldflags"|"binpath"|"frameworkpath"|"headerpath"|"librarypath")
+         "cppflags"|"ldflags"|"binpath"|"frameworkpath"|"headerpath"|"librarypath")
             values="`_flags_${type}_value`"
             result="`add_line "${result}" "${values}"`"
          ;;

@@ -41,8 +41,8 @@ setup_test_case()
 
    mkdir -p main/a/.bootstrap
    mkdir -p main/b/.bootstrap
-   mkdir -p main/c
-   mkdir -p main/d
+   mkdir -p main/c/.bootstrap
+   mkdir -p main/d/.bootstrap
 
    echo "a" > main/a/identity
    echo "b" > main/b/identity
@@ -83,7 +83,11 @@ assert_a()
 test_a()
 {
    (
+      MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`/main"
+      export MULLE_BOOTSTRAP_CACHES_PATH
+
       cd main/a ;
+
       run_mulle_bootstrap "$@" -y fetch
       assert_a
    ) || fail "setup"
@@ -121,10 +125,12 @@ assert_b()
 
 test_b()
 {
-   ( cd main/a ; run_mulle_bootstrap "$@" defer )
-   ( cd main/b ; run_mulle_bootstrap "$@" defer )
-   ( cd main/c ; run_mulle_bootstrap "$@" defer )
-   ( cd main/d ; run_mulle_bootstrap "$@" defer )
+   (
+      ( cd main/a ; run_mulle_bootstrap "$@" defer )
+      ( cd main/b ; run_mulle_bootstrap "$@" defer )
+      ( cd main/c ; run_mulle_bootstrap "$@" defer )
+      ( cd main/d ; run_mulle_bootstrap "$@" defer )
+   )
 
    (
       cd main ;

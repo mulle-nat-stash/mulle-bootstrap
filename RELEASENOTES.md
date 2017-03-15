@@ -41,7 +41,7 @@ patch anymore. It's also convenient for the test scripts
 
 ## 2.6.0
 
-* mulle-bootstrap announces itself to cmake with -DMULLE_BOOTSTRAP_VERSION
+* mulle-bootstrap announces itself to cmake with -DMULLE_EXECUTABLE_VERSION
 
 ### 2.5.2
 

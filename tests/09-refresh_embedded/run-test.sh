@@ -94,6 +94,9 @@ fail()
 
 BOOTSTRAP_FLAGS="$@"
 
+MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
+export MULLE_BOOTSTRAP_CACHES_PATH
+
 
 echo "" >&2
 echo "" >&2

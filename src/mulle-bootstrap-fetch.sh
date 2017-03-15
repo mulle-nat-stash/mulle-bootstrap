@@ -209,13 +209,13 @@ can_symlink_it()
 
    if [ "${OPTION_ALLOW_CREATING_SYMLINKS}" != "YES" ]
    then
-      log_trace "Can't symlink it, because forbidden"
+      log_fluff "Can't symlink it, because forbidden"
       return 1
    fi
 
    case "${UNAME}" in
       minwgw)
-         log_trace "Can't symlink it, because symlinking is unavailable on this platform"
+         log_fluff "Can't symlink it, because symlinking is unavailable on this platform"
          return 1
       ;;
    esac
@@ -280,6 +280,11 @@ _search_for_git_repository_in_cache()
 
    local found
 
+   if [ "${MULLE_FLAG_LOG_CACHE}" = "YES" ]
+   then
+      log_trace "Checking cache path \"${directory}\""
+   fi
+
    if [ ! -z "${branch}" ]
    then
       found="${directory}/${name}.${branch}"
@@ -323,6 +328,11 @@ search_for_git_repository_in_caches()
    local realdir
    local curdir
 
+   if [ "${MULLE_FLAG_LOG_CACHE}" = "YES" -a -z "${CACHES_PATH}" ]
+   then
+      log_trace "CACHES_PATH is empty"
+   fi
+
    curdir="`pwd -P`"
    IFS=":"
    for directory in ${CACHES_PATH}
@@ -342,6 +352,11 @@ search_for_git_repository_in_caches()
          then
             symlink_relpath "${found}" "${ROOT_DIR}"
             return
+         fi
+      else
+         if [ "${MULLE_FLAG_LOG_CACHE}" = "YES" ]
+         then
+            log_trace2 "Cache path \"${realdir}\" does not exist"
          fi
       fi
    done
@@ -441,6 +456,7 @@ get_cache_item()
 
    if [ "${OPTION_ALLOW_SEARCH_CACHES}" = "NO" ]
    then
+      log_fluff "Not searching caches because --no-caches"
       return
    fi
 
@@ -451,6 +467,10 @@ get_cache_item()
 
       tar*|zip*)
          search_for_archive_in_caches "${name}" "`basename -- "${url}"`"
+      ;;
+
+      *)
+         log_fluff "Not searching caches because scm is \"${scm}\""
       ;;
    esac
 }
@@ -465,6 +485,7 @@ clone_or_symlink()
    local scm="$5"       # scm to use for this clone
    local tag="$6"       # tag to checkout of the clone
    local stashdir="$7"  # stashdir of this clone (absolute or relative to $PWD)
+
 
    assert_sane_parameters "empty reposdir is ok"
 
@@ -564,6 +585,7 @@ clone_or_symlink()
                      fi
                   ;;
                esac
+               log_info "Using cached item \"${found}\""
             fi
          fi
       ;;
@@ -633,7 +655,7 @@ Suggested fix:
             return 1
          fi
       fi
-      _bury_stash "${reposdir}" "${name}" "${stashdir}"
+      bury_stash "${reposdir}" "${name}" "${stashdir}"
    fi
 
    clone_or_symlink "$@"   # pass thru rval
@@ -1032,13 +1054,13 @@ get_old_stashdir()
 }
 
 
-work_minions()
+auto_update_minions()
 {
    local minions="$1"
 
    local minion
 
-   log_debug "Exploit \"${minions}\""
+   log_debug ":auto_update_minions: (${minions})"
 
    IFS="
 "
@@ -1051,7 +1073,7 @@ work_minions()
          continue
       fi
 
-      log_debug "${C_INFO}Doing ${minion}..."
+      log_debug "${C_INFO}Updating minion \"${minion}\" ..."
 
       [ ! -d "${minion}" ] && fail "Minion \"${minion}\" is gone"
 
@@ -1114,7 +1136,7 @@ work_clones()
          continue
       fi
 
-      log_debug "${C_INFO}Doing ${clone}..."
+      log_debug "${C_INFO}Doing clone \"${clone}\" ..."
 
       __REFRESHED__="`add_line "${__REFRESHED__}" "${clone}"`"
 
@@ -1213,7 +1235,7 @@ work_clones()
                                      "${branch}" \
                                      "${scm}" \
                                      "${tag}" \
-                                     "${stashdir}" > /dev/null
+                                     "${stashdir}"
                ;;
 
                remove*)
@@ -1223,9 +1245,7 @@ work_clones()
                      oldstashdir="`get_old_stashdir "${reposdir}" "${name}"`"
                   fi
 
-                  log_info "Removing old ${repotype}stash ${C_MAGENTA}${C_BOLD}${oldstashdir}${C_INFO}"
-
-                  rmdir_safer "${oldstashdir}"
+                  bury_stash "${reposdir}" "${name}" "${oldstashdir}"
                ;;
 
                "set-remote")
@@ -1292,11 +1312,67 @@ fetch_once_embedded_repositories()
 
       clones="`read_root_setting "embedded_repositories"`" ;
       work_clones "${EMBEDDED_REPOS_DIR}" "${clones}" "NO"
-   ) > /dev/null || exit 1
+   ) || exit 1
 }
 
 
-_fetch_once_deep_repository()
+#
+#
+#
+fetch_once_minions_embedded_repositories()
+{
+   log_debug "fetch_once_minions_embedded_repositories"
+
+   local minions
+
+   minions="`read_root_setting minions`"
+
+   local minion
+
+   IFS="
+"
+   for minion in ${minions}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if [ -z "${minion}" ]
+      then
+         continue
+      fi
+
+      log_debug "${C_INFO}Doing minion \"${minion}\" ..."
+
+      local autodir
+
+      autodir="${BOOTSTRAP_DIR}.auto/.deep/${minion}.d"
+
+      if [ ! -d "${autodir}" ]
+      then
+         log_fluff "${autodir} not present, so done"
+         continue
+      fi
+
+      local autodir
+
+      reposdir="${REPOS_DIR}/.deep/${minion}.d"
+
+      (
+         STASHES_DEFAULT_DIR=""
+         STASHES_ROOT_DIR=""
+         OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
+
+         local clones
+
+         clones="`read_setting "${autodir}/embedded_repositories"`" ;
+         work_clones "${reposdir}" "${clones}" "NO"
+      ) || exit 1
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+_fetch_once_deep_embedded_repository()
 {
    local reposdir="$1"  # ususally .bootstrap.repos
    local name="$2"      # name of the clone
@@ -1333,15 +1409,17 @@ _fetch_once_deep_repository()
 }
 
 
+# but not minions
 fetch_once_deep_embedded_repositories()
 {
    log_debug "fetch_once_deep_embedded_repositories"
 
-   permissions="minion"
+   local permissions
+
    walk_auto_repositories "repositories"  \
-                     "_fetch_once_deep_repository" \
-                     "${permissions}" \
-                     "${REPOS_DIR}" > /dev/null
+                          "_fetch_once_deep_embedded_repository" \
+                          "${permissions}" \
+                          "${REPOS_DIR}"
 }
 
 
@@ -1350,7 +1428,7 @@ extract_minion_precis()
    local minions
 
    minions="`read_root_setting minions`"
-   work_minions "${minions}"
+   auto_update_minions "${minions}"
 }
 
 
@@ -1391,7 +1469,7 @@ fetch_loop_repositories()
 
       __REFRESHED__=""
 
-      work_clones "${REPOS_DIR}" "${before}" "YES" > /dev/null
+      work_clones "${REPOS_DIR}" "${before}" "YES"
 
       __IGNORE__="`add_line "${__IGNORE__}" "${__REFRESHED__}"`"
 
@@ -1440,9 +1518,14 @@ fetch_loop()
 
    bootstrap_auto_create
 
-   log_info "Extracting minions' precis..."
+   if is_master_bootstrap_project
+   then
+     log_info "Extracting minions' precis..."
 
-   extract_minion_precis
+      extract_minion_precis
+
+      fetch_once_minions_embedded_repositories
+   fi
 
    log_info "Checking repositories..."
 
@@ -1490,11 +1573,11 @@ _common_update()
       ;;
    esac
 
-   update_embedded_repositories > /dev/null
+   update_embedded_repositories
    [ "${OPTION_EMBEDDED_ONLY}" = "YES" ] && return
 
-   update_repositories "$@" > /dev/null
-   update_deep_embedded_repositories > /dev/null
+   update_repositories "$@"
+   update_deep_embedded_repositories
 }
 
 
@@ -1536,11 +1619,11 @@ _common_main()
 
    #
    # where we look for symlink sources
-   # user can set also seT via environment "CACHES_PATH"
+   # user can set also set via environment "MULLE_BOOTSTRAP_CACHES_PATH"
    #
    # "repository" caches can and usually are outside the project folder
    # this can be multiple paths!
-   CACHES_PATH="`read_config_setting "caches_path" "${CACHES_PATH}"`"
+   CACHES_PATH="`read_config_setting "caches_path" "${MULLE_BOOTSTRAP_CACHES_PATH}"`"
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OVERRIDE_BRANCH="`read_config_setting "override_branch"`"

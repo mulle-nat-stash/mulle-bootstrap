@@ -55,6 +55,8 @@ create_demo_repo()
 ##
 ## Setup test environment
 ##
+MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
+export MULLE_BOOTSTRAP_CACHES_PATH
 
 rm -rf a b c d e f g h main 2> /dev/null
 
@@ -80,7 +82,7 @@ d
 EOF
    git add .bootstrap/embedded_repositories
    git commit -m "embedded added"
-)
+) || fail "a setup"
 
 # one project depends on "a": another unknown
 (
@@ -91,7 +93,7 @@ h
 EOF
    git add .bootstrap/repositories
    git commit -m "repository added"
-)
+) || fail "b setup"
 
 # one project depends on "a": another known
 (
@@ -102,10 +104,10 @@ a
 EOF
    git add .bootstrap/repositories
    git commit -m "repository added"
-)
+) || fail "c setup"
 
 
-mkdir "main"
+mkdir "main" || fail "mkdir"
 cd "main"
 
 mkdir .bootstrap

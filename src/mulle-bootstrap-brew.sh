@@ -161,7 +161,7 @@ find_brews()
    brews="`read_root_setting "brews" | sort | sort -u`"
    if [ ! -z "${brews}" ]
    then
-      if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" != "mulle-bootstrap" ]
+      if [ "${MULLE_EXECUTABLE}" != "mulle-bootstrap" ]
       then
          log_info "Setting read from .bootstrap.auto folder. \
 You might want to use mulle-bootstrap instead of mulle-brew."

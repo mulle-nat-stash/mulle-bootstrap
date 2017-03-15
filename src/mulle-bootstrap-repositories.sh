@@ -192,6 +192,36 @@ all_embedded_repository_stashes()
 }
 
 
+_get_all_repos_headers()
+{
+   local reposdir="$1"
+
+   if ! dir_has_files "${reposdir}" "f"
+   then
+      return
+   fi
+
+   local i
+
+   for i in "${reposdir}"/*
+   do
+      head -1 "$i"
+   done
+}
+
+
+_get_all_repos_minions()
+{
+   _get_all_repos_headers "$@" | egrep '^[^;]*;[^;]*;[^;]*;minion'
+}
+
+
+_get_all_repos_clones()
+{
+   _get_all_repos_headers "$@" | egrep -v '^[^;]*;[^;]*;[^;]*;minion'
+}
+
+
 #
 # Walkers
 #
@@ -243,6 +273,56 @@ walk_check()
 }
 
 
+_walk_minions()
+{
+   local minions="$1"; shift
+   local callback="$1"; shift
+   local permissions="$1"; shift
+   local reposdir="$1"; shift
+
+   [ -z "${callback}" ]  && internal_fail "callback is empty"
+
+   # parse_clone
+   local name
+   local url
+   local branch
+   local scm
+   local tag
+   local stashdir
+
+   permissions="`add_line "${permissions}" "minions"`"
+
+   IFS="
+"
+   for minion in ${minions}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      [ -z "${minion}" ] && continue
+
+      name="${minion}"
+      url="${minion}"
+      stashdir="${minion}"
+
+      if ! walk_check "${stashdir}" "${permissions}"
+      then
+         continue
+      fi
+
+      ${callback} "${reposdir}" \
+                  "${name}" \
+                  "${url}" \
+                  "${branch}" \
+                  "${scm}" \
+                  "${tag}" \
+                  "${stashdir}" \
+                  "$@"
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
 _walk_repositories()
 {
    local clones="$1"; shift
@@ -288,23 +368,6 @@ _walk_repositories()
    IFS="${DEFAULT_IFS}"
 }
 
-
-_get_all_repos_clones()
-{
-   local reposdir="$1"
-
-   if ! dir_has_files "${reposdir}" "f"
-   then
-      return
-   fi
-
-   local i
-
-   for i in "${reposdir}"/*
-   do
-      head -1 "$i"
-   done
-}
 
 
 _deep_walk_repos_trampoline()
@@ -386,6 +449,15 @@ _deep_walk_auto_trampoline()
 }
 
 
+walk_auto_minions()
+{
+   local minions
+
+   minions="`read_root_setting "minions"`"
+   _walk_minions "${minions}" "$@"
+}
+
+
 walk_auto_repositories()
 {
    local settingname="$1";shift
@@ -394,6 +466,23 @@ walk_auto_repositories()
 
    clones="`read_root_setting "${settingname}"`"
    _walk_repositories "${clones}" "$@"
+}
+
+
+walk_repos_minions()
+{
+   local reposdir="$1";shift
+   local callback="$1";shift
+   local permissions="$1";shift
+
+   local minions
+
+   minions="`_get_all_repos_minions "${reposdir}"`"
+   _walk_minions "${clones}" \
+                 "${callback}" \
+                 "${permissions}" \
+                 "${reposdir}" \
+                 "$@"
 }
 
 
@@ -414,6 +503,24 @@ walk_repos_repositories()
 }
 
 
+walk_deep_embedded_auto_minions()
+{
+   local callback="$1";shift
+   local permissions="$1";shift
+
+   local minions
+
+   minions="`read_root_setting "minions"`"
+   _walk_minions "${minions}" \
+                 _deep_walk_auto_trampoline \
+                 "${permissions}" \
+                 "${REPOS_DIR}" \
+                 "${callback}" \
+                 "${permissions}" \
+                 "$@"
+}
+
+
 walk_deep_embedded_auto_repositories()
 {
    local callback="$1";shift
@@ -431,6 +538,23 @@ walk_deep_embedded_auto_repositories()
                       "$@"
 }
 
+
+walk_deep_embedded_repos_minions()
+{
+   local callback="$1";shift
+   local permissions="$1";shift
+
+   local minions
+
+   minions="`_get_all_repos_minions "${REPOS_DIR}"`"
+   _walk_repositories "${minions}" \
+                      _deep_walk_repos_trampoline \
+                      "${permissions}" \
+                      "${REPOS_DIR}" \
+                      "${callback}" \
+                      "${permissions}" \
+                      "$@"
+}
 
 
 walk_deep_embedded_repos_repositories()

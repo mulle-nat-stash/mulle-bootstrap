@@ -43,69 +43,59 @@ MULLE_BOOTSTRAP_FUNCTIONS_VERSION="3.0"
 # ####################################################################
 # Execution
 #
-eval_exekutor()
+
+eval_trace()
 {
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
+      local arrow
+
+      if [ "${PPID}" -ne "${MULLE_EXECUTABLE_PID}" ]
+      then
+         arrow="=[${PPID}]=>"
+      else
+         arrow="==>"
+      fi
+
       if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
       then
-         echo "==>" "$@" >&2
+         echo "${arrow}" "$@" >&2
       else
-         echo "==>" "$@" > "${MULLE_EXECUTOR_LOG_DEVICE}"
+         echo "${arrow}" "$@" > "${MULLE_EXECUTOR_LOG_DEVICE}"
       fi
-   fi
-
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
-   then
-      ( eval "$@" )
    fi
 }
 
 
-_redirect_append_eval_exekutor()
+eval_trace_output()
 {
    local output="$1"; shift
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
+      local arrow
+
+      if [ "${PPID}" -ne "${MULLE_EXECUTABLE_PID}" ]
+      then
+         arrow="=[${PPID}]=>"
+      else
+         arrow="==>"
+      fi
+
       if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
       then
-         echo "==>" "$@" ">>" "${output}" >&2
+         echo "${arrow}" "$@" ">" "${output}" >&2
       else
-         echo "==>" "$@" ">>" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
+         echo "${arrow}" "$@" ">" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
       fi
    fi
-
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
-   then
-      ( eval "$@" ) >> "${output}"
-   fi
 }
 
-
-logging_redirect_eval_exekutor()
-{
-   local output="$1"; shift
-
-   # overwrite
-   echo "==>" "$*" > "${output}" # to stdout
-
-   # append
-   _redirect_append_eval_exekutor "${output}" "$@"
-}
 
 
 exekutor()
 {
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
-   then
-      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
-      then
-         echo "==>" "$@" >&2
-      else
-         echo "==>" "$@" > "${MULLE_EXECUTOR_LOG_DEVICE}"
-      fi
-   fi
+   eval_trace "$@"
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
@@ -114,19 +104,22 @@ exekutor()
 }
 
 
+eval_exekutor()
+{
+   eval_trace "$@"
+
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
+   then
+      ( eval "$@" )
+   fi
+}
+
+
 redirect_exekutor()
 {
    local output="$1"; shift
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
-   then
-      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
-      then
-         echo "==>" "$@" ">" "${output}" >&2
-      else
-         echo "==>" "$@" ">" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
-      fi
-   fi
+   eval_trace_output "${output}" "$@"
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
@@ -139,15 +132,7 @@ redirect_append_exekutor()
 {
    local output="$1"; shift
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
-   then
-      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
-      then
-         echo "==>" "$@" ">" "${output}" >&2
-      else
-         echo "==>" "$@" ">" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
-      fi
-   fi
+   eval_trace_output "${output}" "$@"
 
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
    then
@@ -156,13 +141,60 @@ redirect_append_exekutor()
 }
 
 
+_redirect_append_eval_exekutor()
+{
+   local output="$1"; shift
+
+   eval_trace_output "${output}" "$@"
+
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
+   then
+      ( eval "$@" ) >> "${output}"
+   fi
+}
+
+#
+# output eval trace also into logfile
+#
 logging_redirekt_exekutor()
 {
    local output="$1"; shift
 
-   echo "==>" "$@" > "${output}"
+   local arrow
+
+   if [ "${PPID}" -ne "${MULLE_EXECUTABLE_PID}" ]
+   then
+      arrow="=[${PPID}]=>"
+   else
+      arrow="==>"
+   fi
+
+   echo "${arrow}" "$@" > "${output}"
+
    redirect_append_exekutor "${output}" "$@"
 }
+
+
+logging_redirect_eval_exekutor()
+{
+   local output="$1"; shift
+
+   # overwrite
+   local arrow
+
+   if [ "${PPID}" -ne "${MULLE_EXECUTABLE_PID}" ]
+   then
+      arrow="=[${PPID}]=>"
+   else
+      arrow="==>"
+   fi
+
+   echo "${arrow}" "$*" > "${output}" # to stdout
+
+   # append
+   _redirect_append_eval_exekutor "${output}" "$@"
+}
+
 
 
 # ####################################################################

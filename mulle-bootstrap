@@ -28,11 +28,11 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
-MULLE_BOOTSTRAP_VERSION_MAJOR=3
-MULLE_BOOTSTRAP_VERSION_MINOR=0
-MULLE_BOOTSTRAP_VERSION_PATCH=0
+MULLE_EXECUTABLE_VERSION_MAJOR=3
+MULLE_EXECUTABLE_VERSION_MINOR=0
+MULLE_EXECUTABLE_VERSION_PATCH=0
 
-MULLE_BOOTSTRAP_VERSION="${MULLE_BOOTSTRAP_VERSION_MAJOR}.${MULLE_BOOTSTRAP_VERSION_MINOR}.${MULLE_BOOTSTRAP_VERSION_PATCH}"
+MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
 #
 # This is the main user interface to mulle-bootstrap
@@ -44,59 +44,6 @@ trap_fail()
    exit 1
 }
 
-
-bootstrap_technical_option_usage()
-{
-   if [ ! -z "${MULLE_TRACE}" ]
-   then
-      cat <<EOF
-   -ld       : additional debug output
-   -le       : external command execution log output
-   -lm       : extended dependency analysis output
-   -ls       : extended settings log output
-   -t        : enable shell trace
-   -tpwd     : emit shortened PWD during trace
-   -tr       : also trace resolver
-   -ts       : also trace settings
-   -s        : be silent
-
-   [Check source for more options]
-EOF
-   fi
-}
-
-
-mulle_brew_usage()
-{
-   cat <<EOF
-usage: mulle-brew [flags] [command] [options]
- Flags:
-   -n        : do nothing creative or destructive
-   -v        : -v to be more verbose (-vv or -vvv for more verbosity)
-EOF
-
-   bootstrap_technical_option_usage
-
-   cat <<EOF
-
- Commands:
-   install   : fetches brews
-   update    : update brew
-   upgrade   : upgrade brew fomulae
-   init      : initializes a bootstrap project
-
- Options are command specific. Use mulle-brew <command> -h for help.
-EOF
-
-   if [ "${UNAME}" = 'darwin' ]
-   then
-      cat <<EOF
-   xcode     : setup xcodeproj settings
-EOF
-   fi
-
-   exit 1
-}
 
 
 mulle_bootstrap_usage()
@@ -152,61 +99,6 @@ EOF
    fi
 
    exit 1
-}
-
-
-ensure_consistency()
-{
-   if dirty_harry
-   then
-      log_error "A previous fetch or update was incomplete.
-Suggested resolution (in $PWD):
-    ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
-    ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
-
-Or do you feel lucky ? Then try again with
-   ${C_RESET_BOLD}mulle-bootstrap -f ${MULLE_BOOTSTRAP_ARGUMENTS}${C_ERROR}
-But you've gotta ask yourself one question: Do I feel lucky ?
-Well, do ya, punk?"
-      exit 1
-   fi
-}
-
-
-define_expansion()
-{
-   local keyvalue
-
-   keyvalue="$1"
-
-   is_bootstrap_project || fail "This is not a mulle-bootstrap project"
-
-   if [ -z "${keyvalue}" ]
-   then
-      fail "Missing key, directly after -D"
-      mulle_bootstrap_usage
-   fi
-
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
-
-   local key
-   local value
-
-   key="`echo "${keyvalue}" | cut -d= -f1 | tr '[a-z]' '[A-Z]'`"
-   if [ -z "${key}" ]
-   then
-      key="${keyvalue}"
-      value="YES"
-   else
-      value="`echo "${keyvalue}" | cut -d= -f2-`"
-   fi
-
-   local path
-
-   path="${BOOTSTRAP_DIR}.local/${key}"
-   mkdir_if_missing "`dirname -- "${path}"`"
-   redirect_exekutor "${path}" echo "# commandline argument -D${keyvalue}
-${value}"
 }
 
 
@@ -271,16 +163,6 @@ bootstrap_libexec_path()
 }
 
 
-bootstrap_dump_env()
-{
-   log_trace "FULL trace started"
-   log_trace "ARGS:${C_TRACE2} ${MULLE_BOOTSTRAP_ARGUMENTS}"
-   log_trace "PWD :${C_TRACE2} `pwd -P`"
-   log_trace "ENV :${C_TRACE2} `env | sort`"
-   log_trace "LS  :${C_TRACE2} `ls -a1F`"
-}
-
-
 bootstrap_init()
 {
    local libexecpath
@@ -311,7 +193,7 @@ bootstrap_init()
       ;;
 
       version)
-         echo "${MULLE_BOOTSTRAP_VERSION}"
+         echo "${MULLE_EXECUTABLE_VERSION}"
          exit 0
       ;;
    esac
@@ -331,239 +213,6 @@ bootstrap_init()
 }
 
 
-#
-# variables called flag. because they are indirectly set by flags
-#
-bootstrap_setup_trace()
-{
-   case "${1}" in
-      VERBOSE)
-         MULLE_FLAG_LOG_VERBOSE="YES"
-      ;;
-
-      FLUFF)
-         MULLE_FLAG_LOG_FLUFF="YES"
-         MULLE_FLAG_LOG_VERBOSE="YES"
-         MULLE_FLAG_LOG_EXECUTOR="YES"
-      ;;
-
-      TRACE)
-         MULLE_FLAG_LOG_SETTINGS="YES"
-         MULLE_FLAG_LOG_EXECUTOR="YES"
-         MULLE_FLAG_LOG_FLUFF="YES"
-         MULLE_FLAG_LOG_VERBOSE="YES"
-         bootstrap_dump_env
-      ;;
-
-      1848)
-         MULLE_FLAG_LOG_SETTINGS="YES"
-         MULLE_FLAG_LOG_FLUFF="YES"
-         MULLE_FLAG_LOG_VERBOSE="YES"
-         MULLE_FLAG_VERBOSE_BUILD="YES"
-
-         bootstrap_dump_env
-
-         if [ "${MULLE_TRACE_POSTPONE}" = "NO" ]
-         then
-            log_trace "1848 trace (set -x) started"
-            set -x
-            PS4="+ ${ps4string} + "
-         fi
-      ;;
-   esac
-}
-
-
-bootstrap_technical_flags()
-{
-   case "$1" in
-      -n|--dry-run)
-         MULLE_FLAG_EXECUTOR_DRY_RUN="YES"
-      ;;
-
-      -ld|--log-debug)
-         MULLE_FLAG_LOG_DEBUG="YES"
-      ;;
-
-      -le|--log-execution)
-         MULLE_FLAG_LOG_EXECUTOR="YES"
-      ;;
-
-      -lm|--log-merge)
-         MULLE_FLAG_MERGE_LOG="YES"
-      ;;
-
-      -ls|--log-settings)
-         MULLE_FLAG_LOG_SETTINGS="YES"
-      ;;
-
-      -lsc|--log-script-calls)
-         MULLE_FLAG_LOG_SCRIPTS="YES"
-      ;;
-
-      -t|--trace)
-         MULLE_TRACE="1848"
-         COPYMOVEFLAGS="-v"
-         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
-         MULLE_TRACE_PATHS_FLIP_X="YES"
-         MULLE_TRACE_RESOLVER_FLIP_X="YES"
-         MULLE_TRACE_SETTINGS_FLIP_X="YES"
-         ps4string='${BASH_SOURCE[1]##*/}:${LINENO}'
-      ;;
-
-      -tf|--trace-filepaths)
-         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_TRACE_PATHS_FLIP_X="NO"
-      ;;
-
-      -tfpwd|--trace-full-pwd)
-         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \"\w\"'
-      ;;
-
-      -tp|--trace-profile)
-         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         case "${UNAME}" in
-            linux)
-               ps4string='$(date "+%s.%N (${BASH_SOURCE[1]##*/}:${LINENO})")'
-            ;;
-            *)
-               ps4string='$(date "+%s (${BASH_SOURCE[1]##*/}:${LINENO})")'
-            ;;
-         esac
-      ;;
-
-      -tpo|--trace-postpone)
-         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_TRACE_POSTPONE="YES"
-      ;;
-
-      -tpwd|--trace-pwd)
-         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         ps4string='${BASH_SOURCE[1]##*/}:${LINENO} \".../\W\"'
-      ;;
-
-      -tr|--trace-resolver)
-         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_TRACE_RESOLVER_FLIP_X="NO"
-      ;;
-
-      -ts|--trace-settings)
-         [ "${MULLE_TRACE}" = "1848" ] || fail "option \"$1\" must be specified after -t"
-         MULLE_TRACE_SETTINGS_FLIP_X="NO"
-      ;;
-
-      -v|--verbose)
-        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -v after -t invalidates -t"
-
-         MULLE_TRACE="VERBOSE"
-         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
-      ;;
-
-      -vv|--very-verbose)
-        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vv after -t invalidates -t"
-
-         MULLE_TRACE="FLUFF"
-         COPYMOVEFLAGS="-v"
-         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
-      ;;
-
-      -vvv|--very-verbose-with-settings)
-        [ "${MULLE_TRACE}" = "1848" ] && log_warning "${MULLE_EXECUTABLE_FAIL_PREFIX}: -vvv after -t invalidates -t"
-
-         MULLE_TRACE="TRACE"
-         COPYMOVEFLAGS="-v"
-         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
-      ;;
-
-      -s|--silent)
-         MULLE_TRACE=
-         MULLE_FLAG_LOG_TERSE="YES"
-         GITOPTIONS="`concat "${GITOPTIONS}" "-v"`"
-      ;;
-
-      *)
-         return 1
-      ;;
-   esac
-
-   return 0
-}
-
-
-bootstrap_should_defer_to_master()
-{
-   local command="$1"
-
-   #
-   # if we have a.bootstrap.local/is_minion file then
-   # some commands can't run, and some commands are re-executed in master
-   # and some commands (like fetch and clean) are executed locally AND in the
-   # master
-   #
-
-   if ! is_minion_bootstrap_project
-   then
-      return 1
-   fi
-
-   if [ "${MULLE_FLAG_DONT_DEFER}" = "YES" ]
-   then
-      log_verbose "Minion executes locally by request"
-      return 1
-   fi
-
-   if [ "${MULLE_BOOTSTRAP_DONT_DEFER}" = "YES" ]
-   then
-      log_fluff "Minion executes locally by environment"
-      return 1
-   fi
-
-   local masterpath
-
-   . mulle-bootstrap-project.sh
-
-   masterpath="`get_master_of_minion_bootstrap_project`"
-
-   case "${command}" in
-      git|setup-xcode|xcode|tag|version|defer|emancipate|uname|library-path)
-         log_verbose "Minion executes locally"
-      ;;
-
-      show)
-         log_verbose "Minion executes partially locally"
-
-         [ -z "${MULLE_BOOTSTRAP_SHOW_SH}" ] && . mulle-bootstrap-show.sh
-
-         (
-            [ $# -eq 0 ] || shift
-            show_main_header_only "$@"
-         ) || exit 1
-
-         log_info "Minion defers to master \"$masterpath\""
-         log_info ""
-
-         cd "${masterpath}" || fail "master is missing"
-         return 0  # this leads to  main deferring later on (but cd is set!)
-      ;;
-
-      refer|dist-clean)
-         fail "This is a minion bootstrap project.\n \
-${MULLE_BOOTSTRAP_EXECUTABLE} ${command}t is not possible."
-      ;;
-
-      *)
-         log_verbose "Minion defers to master \"$masterpath\" for execution"
-
-         cd "${masterpath}" || fail "master is missing"
-         return 0  # this leads to  main deferring later on (but cd is set!)
-      ;;
-   esac
-
-   return 1
-}
-
-
 bootstrap_main()
 {
    local command
@@ -577,6 +226,7 @@ bootstrap_main()
    # technical flags
    local MULLE_FLAG_EXECUTOR_DRY_RUN="NO"
    local MULLE_FLAG_FOLLOW_SYMLINKS="YES"
+   local MULLE_FLAG_LOG_CACHE="NO"
    local MULLE_FLAG_LOG_DEBUG="NO"
    local MULLE_FLAG_LOG_EXECUTOR="NO"
    local MULLE_FLAG_LOG_EXECUTOR="NO"
@@ -634,7 +284,7 @@ bootstrap_main()
 
          -D*)  # just like C
             # define key values (by putting them into .bootstrap.local)
-            define_expansion "`echo "$1" | sed s'/^-D[ ]*//'`"
+            bootstrap_define_expansion "`echo "$1" | sed s'/^-D[ ]*//'`"
          ;;
 
          -V|--verbose-build)
@@ -679,8 +329,8 @@ bootstrap_main()
 
          *)
             case "${command}" in
-               bootstrap|nomagic|build|dist|clean|dist-clean|fetch|install|syteminstall|upgrade|update|setup-xcode|show|status|xcode|tag)
-                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($PWD), can't continue"
+               bootstrap|build|clean|defer|dist|dist-clean|emancipate|fetch|install|syteminstall|upgrade|update|setup-xcode|show|status|tag|xcode)
+                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here (${C_RESET_BOLD}$PWD${C_ERROR})"
                ;;
             esac
          ;;
@@ -698,13 +348,13 @@ bootstrap_main()
             ;;
 
             *)
-               ensure_consistency
+               bootstrap_ensure_consistency
             ;;
          esac
       fi
    fi
 
-   MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE} ${command}"
+   MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_EXECUTABLE} ${command}"
    [ $# -eq 0 ] || shift
 
    MULLE_EXECUTABLE_OPTIONS="$@"
@@ -810,7 +460,12 @@ bootstrap_main()
       status)
          . mulle-bootstrap-status.sh
 
-         status_main "$@" || exit 1
+         local rval
+
+         status_main "$@"
+         rval="$?"
+
+         [ "$rval" -eq 0 ] || exit $rval
       ;;
 
       tag)
@@ -837,7 +492,7 @@ bootstrap_main()
       ;;
 
       version)
-         echo "${MULLE_BOOTSTRAP_VERSION}"
+         echo "${MULLE_EXECUTABLE_VERSION}"
          return 0
       ;;
 
@@ -856,241 +511,28 @@ bootstrap_main()
 }
 
 
-brew_main()
-{
-   local command
-   local ps4string
-
-   # technical flags
-   local MULLE_FLAG_EXECUTOR_DRY_RUN="NO"
-   local MULLE_FLAG_LOG_DEBUG="NO"
-   local MULLE_FLAG_LOG_EXECUTOR="NO"
-   local MULLE_FLAG_LOG_EXECUTOR="NO"
-   local MULLE_FLAG_LOG_FLUFF="NO"
-   local MULLE_FLAG_LOG_SCRIPTS="NO"
-   local MULLE_FLAG_LOG_SETTINGS="NO"
-   local MULLE_FLAG_LOG_VERBOSE="NO"
-   local MULLE_FLAG_MERGE_LOG="NO"
-   local MULLE_TRACE_PATHS_FLIP_X="NO"
-   local MULLE_TRACE_POSTPONE="NO"
-   local MULLE_TRACE_RESOLVER_FLIP_X="NO"
-   local MULLE_TRACE_SETTINGS_FLIP_X="NO"
-
-   #
-   # simple option handling
-   #
-   while [ $# -ne 0 ]
-   do
-      if bootstrap_technical_flags "$1"
-      then
-         shift
-         continue
-      fi
-
-      case "$1" in
-         -h|--help)
-            mulle_brew_usage
-         ;;
-
-         -*)
-            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option \"$1\""
-            mulle_brew_usage
-         ;;
-
-         *)
-            break
-         ;;
-      esac
-
-      shift
-   done
-
-   bootstrap_setup_trace "${MULLE_TRACE}"
-
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" ]
-   then
-      log_trace "Dry run is active."
-   fi
-
-   # source in environment now
-
-   local_environment_main
-
-   #
-   # some commands only run when we have a .bootstrap folder
-   #
-   command="${1:-install}"
-   [ $# -eq 0 ] || shift
-
-   if [ ! -d "${BOOTSTRAP_DIR}" -a ! -d "${BOOTSTRAP_DIR}.local" ]
-   then
-      case "$1" in
-         -h|--help)
-         ;;
-
-         *)
-            case "${command}" in
-               dist|clean|dist-clean|install|upgrade|update|setup-xcode|xcode)
-                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($PWD), can't continue"
-               ;;
-            esac
-         ;;
-      esac
-   else
-      if bootstrap_should_defer_to_master "$@"
-      then
-         return 1
-      fi
-   fi
-
-   MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE} ${command}"
-   MULLE_EXECUTABLE_OPTIONS="$@"
-
-   case "${command}" in
-      build)
-         . mulle-bootstrap-build.sh
-
-         build_main "$@" || exit 1
-      ;;
-
-      clean)
-         . mulle-bootstrap-clean.sh
-
-         clean_main "$@" || exit 1
-      ;;
-
-      config)
-         . mulle-bootstrap-settings.sh
-
-         config_main "$@" || exit 1
-      ;;
-
-      dist)
-         . mulle-bootstrap-clean.sh
-
-         clean_main "dist" || exit 1
-      ;;
-
-      defer)
-         . mulle-bootstrap-defer.sh
-
-         defer_main "$@" || exit 1
-      ;;
-
-      emancipate)
-         . mulle-bootstrap-defer.sh
-
-         emancipate_main "$@" || exit 1
-      ;;
-
-      flags)
-         . mulle-bootstrap-flags.sh
-
-         flags_main "$@" || exit 1
-      ;;
-
-      help)
-         mulle_brew_usage "$@" || exit 1
-      ;;
-
-      init)
-         . mulle-bootstrap-init.sh
-
-         init_main "$@" || exit 1
-      ;;
-
-      install|fetch)
-         . mulle-bootstrap-brew.sh
-
-         brew_install_main "$@" || exit 1
-      ;;
-
-      library-path)
-         echo "$PATH" | tr ':' '\012' | head -1
-         return 0
-      ;;
-
-      setting)
-         . mulle-bootstrap-settings.sh
-
-         setting_main "$@" || exit 1
-      ;;
-
-      show)
-         . mulle-bootstrap-show.sh
-
-         show_main "$@" || exit 1
-      ;;
-
-      uname)
-         echo "${UNAME}"
-         exit 0
-      ;;
-
-      update)
-         . mulle-bootstrap-brew.sh
-
-         brew_update_main "$@" || exit 1
-      ;;
-
-      upgrade)
-         . mulle-bootstrap-brew.sh
-
-         brew_upgrade_main "$@" || exit 1
-      ;;
-
-      version)
-         echo "${MULLE_BOOTSTRAP_VERSION}"
-         return 0
-      ;;
-
-      xcode|setup-xcode)
-         . mulle-bootstrap-xcode.sh
-
-         MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap xcode"
-         xcode_main "$@" || exit 1
-      ;;
-
-      *)
-         log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown command \"${command}\""
-         mulle_bootstrap_usage
-      ;;
-   esac
-}
 
 #
 # service both names
 #
-MULLE_BOOTSTRAP_EXECUTABLE="`basename -- "$0"`"
-MULLE_BOOTSTRAP_ARGUMENTS="$@"
-MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_BOOTSTRAP_EXECUTABLE}"
+MULLE_EXECUTABLE="`basename -- "$0"`"
+MULLE_ARGUMENTS="$@"
+MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_EXECUTABLE}"
 MULLE_EXECUTABLE_PID="$$"
 export MULLE_EXECUTABLE_PID
 
 
 bootstrap_init "$@" # needs params
 
+
 main()
 {
-   case "${MULLE_BOOTSTRAP_EXECUTABLE}" in
-      "mulle-brew")
-         if ! brew_main "$@"
-         then
-            # just do it again, but cd has been set differently
-            main "$@" # is array
-            exit $?
-         fi
-      ;;
-
-      "mulle-bootstrap")
-         if ! bootstrap_main "$@"
-         then
-            # just do it again, but cd has been set differently
-            main "$@"
-            exit $?
-         fi
-      ;;
-   esac
+   if ! bootstrap_main "$@"
+   then
+      # just do it again, but cd has been set differently
+      main "$@"
+      exit $?
+   fi
 }
 
 main "$@"

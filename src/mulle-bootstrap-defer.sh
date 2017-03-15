@@ -48,7 +48,7 @@ defer_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap defer <master>
+   mulle-bootstrap defer
 
    Share and defer builds to master. The master will be used
    to fetch dependencies and build them. Use mulle-bootstrap flags
@@ -82,7 +82,9 @@ defer_main()
       shift
    done
 
-   [ -z "${MULLE_BOOTSTRAP_PROJECT_SH}" ] && . mulle-bootstrap-project.sh
+   [ $# -eq 0 ] || defer_usage
+
+   [ -z "${MULLE_BOOTSTRAP_PROJECT_SH}" ]         && . mulle-bootstrap-project.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
    [ -z "${MULLE_BOOTSTRAP_CLEAN_SH}" ]           && . mulle-bootstrap-clean.sh
 
@@ -106,7 +108,7 @@ defer_main()
       fi
    fi
 
-   masterpath="${1:-..}"
+   masterpath=".."
    masterpath="`absolutepath "${masterpath}"`"
 
    if [ ! -d "${masterpath}" ]
@@ -227,8 +229,15 @@ emancipate_main()
          return
       fi
    else
+      log_info "Cleaning minion before emancipation"
+
+      local name
+
+      name="`basename -- "${minionpath}"`"
+      ( mulle-bootstrap clean --minion "${name}" )
+
       log_info "Cleaning master before emancipation"
-      ( clean_execute "output" )  # not really critical if fails
+      ( mulle-bootstrap clean output )
    fi
 
    log_info "Emancipating \"${minionpath}\" from \"${masterpath}\""
@@ -241,6 +250,7 @@ emancipate_main()
    # dist clean ourselves
    #
    log_info "Cleaning ex-minion after emancipation"
+
    clean_execute "dist"
 }
 

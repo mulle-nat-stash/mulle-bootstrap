@@ -48,7 +48,8 @@ setup_test_case()
       cd repos/a ;
       git init ;
       echo "VfL Bochum 1848" > README.md ;
-      git add README.md ;
+      echo "#empty" > .bootstrap/repositories
+      git add README.md .bootstrap/repositories
       git commit -m "bla bla"
    ) || exit 1
 
@@ -66,13 +67,13 @@ test_a()
 
    (
       cd master/a ;
-      run_mulle_bootstrap "$@" -y defer ..
+      run_mulle_bootstrap "$@" -y defer
    )
 
    local content
 
-   content="`cat master/.bootstrap.local/repositories`"
-   [ "${content}" = "a;a" ] ||  fail "wrong repositories"
+   content="`cat master/.bootstrap.local/minions`"
+   [ "${content}" = "a" ] ||  fail "wrong minions"
 
    content="`cat master/a/.bootstrap.local/is_minion`"
    [ "${content}" = ".." ] ||  fail "wrong is_minion"
@@ -101,6 +102,9 @@ test_a()
 # not that much of a test
 #
 echo "mulle-bootstrap: `mulle-bootstrap version`(`mulle-bootstrap library-path`)" >&2
+
+MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
+export MULLE_BOOTSTRAP_CACHES_PATH
 
 setup_test_case
 test_a "$@"

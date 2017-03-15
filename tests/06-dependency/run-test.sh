@@ -102,6 +102,9 @@ test()
 
 BOOTSTRAP_FLAGS="$@"
 
+MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
+export MULLE_BOOTSTRAP_CACHES_PATH
+
 #
 # not that much of a test
 #

@@ -156,7 +156,7 @@ init_main()
 
    redirect_exekutor "${BOOTSTRAP_DIR}/version" cat <<EOF
 # required mulle-bootstrap version
-${MULLE_BOOTSTRAP_VERSION_MAJOR}.0.0
+${MULLE_EXECUTABLE_VERSION_MAJOR}.0.0
 EOF
 
    if [ "${OPTION_CREATE_DEFAULT_FILES}" = "YES" ]
@@ -172,7 +172,7 @@ EOF
 
       init_add_brews
 
-      if [ "${MULLE_BOOTSTRAP_EXECUTABLE}" = "mulle-bootstrap" ]
+      if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
       then
          mainfile="repositories"
          _init_add_repositories "repositories"

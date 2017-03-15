@@ -109,7 +109,7 @@ mark_stash_as_alive()
 #
 #
 
-_bury_stash()
+bury_stash()
 {
    local reposdir="$1"
    local name="$2"
@@ -155,7 +155,7 @@ _bury_zombie()
    then
       if ! is_minion_bootstrap_project "${stashdir}"
       then
-         _bury_stash "${reposdir}" "${name}" "${stashdir}"
+         bury_stash "${reposdir}" "${name}" "${stashdir}"
 
          exekutor rm ${COPYMOVEFLAGS} "${zombie}" >&2
          exekutor rm ${COPYMOVEFLAGS} "${reposdir}/${name}" >&2

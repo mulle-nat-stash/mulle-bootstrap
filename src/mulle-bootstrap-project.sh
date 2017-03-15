@@ -185,7 +185,9 @@ master_remove_minion_bootstrap_project()
          remove_file_if_present "${filepath}"
 
          # not be master anymore if last one is gone ?
-         # remove_file_if_present "${masterpath}/${BOOTSTRAP_DIR}.local/is_master"
+         remove_file_if_present "${masterpath}/${BOOTSTRAP_DIR}.local/is_master"
+         rmdir_if_empty "${masterpath}/${BOOTSTRAP_DIR}.local"
+         return
       fi
    fi
 
