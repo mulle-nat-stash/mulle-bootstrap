@@ -2123,6 +2123,10 @@ build_if_alive()
       if [ "$xdone" = "" ]
       then
          build_wrapper "${name}" "${stashdir}"
+
+         # memorize what we build
+         redirect_append_exekutor "${REPOS_DIR}/.build_done" echo "${name}"
+
          BUILT="${name}
 ${BUILT}"
       else
@@ -2160,6 +2164,11 @@ build_stashes()
 
    if [ "$#" -eq 0 ]
    then
+      #
+      # don't redo builds (if no names are specified)
+      #
+
+      BUILT="`read_setting "${REPOS_DIR}/.build_done"`"
       stashnames="`read_root_setting "build_order"`"
       if [ ! -z "${stashnames}" ]
       then
@@ -2362,34 +2371,35 @@ build_main()
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_build_done"
-   create_file_if_missing "${REPOS_DIR}/.bootstrap_build_started"
 
-   if [ $# -eq 0 ]
+   #
+   #
+   #
+   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "YES" ]
    then
-      log_fluff "Setting up dependencies directory as \"${DEPENDENCIES_DIR}\""
-      clean="`read_config_setting "clean_dependencies_before_build" "YES"`"
-      if [ "${clean}" = "YES" ]
-      then
-         rmdir_safer "${DEPENDENCIES_DIR}"
-      fi
-   else
-      if [ -d "${DEPENDENCIES_DIR}" ]
-      then
-         log_fluff "Unprotecting \"${DEPENDENCIES_DIR}\" (as this is a partial build)."
-         exekutor chmod -R u+w "${DEPENDENCIES_DIR}"
-      fi
+      remove_file_if_present "${REPOS_DIR}/.build_done"
    fi
 
-   # if present then we didnt't want to clean and we do nothing special
-   if [ ! -d "${DEPENDENCIES_DIR}" ]
+   if [ ! -f "${REPOS_DIR}/.build_done" ]
    then
-      install_tars "$@"
-   else
+      _create_file_if_missing "${REPOS_DIR}/.build_done"
+
+      log_fluff "Cleaning dependencies directory as \"${DEPENDENCIES_DIR}\""
+      rmdir_safer "${DEPENDENCIES_DIR}"
+   fi
+
+   # parameter ? partial build!
+
+   if [ -d "${DEPENDENCIES_DIR}" ]
+   then
+      log_fluff "Unprotecting \"${DEPENDENCIES_DIR}\" (as this is a partial build)."
+      exekutor chmod -R u+w "${DEPENDENCIES_DIR}"
       if have_tars
       then
          log_warning "Tars have not been installed, as \"${DEPENDENCIES_DIR}\" already exists."
       fi
+   else
+      install_tars "$@"
    fi
 
    build_stashes "$@"
@@ -2400,9 +2410,6 @@ build_main()
    else
       log_fluff "No dependencies have been generated"
    fi
-
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_build_started"
-   create_file_if_missing "${REPOS_DIR}/.bootstrap_build_done"
 
    log_debug "::: build end :::"
 }

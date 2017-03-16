@@ -518,15 +518,25 @@ build_needed()
 
    [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
 
-   if [ ! -f "${REPOS_DIR}/.bootstrap_build_done" ]
+   if [ ! -f "${REPOS_DIR}/build_done" ]
    then
-      log_verbose "Need build because \"${REPOS_DIR}/.bootstrap_build_done\" does not exist."
+      log_verbose "Need build because \"${REPOS_DIR}/.build_done\" does not exist."
       return 0
    fi
 
-   if [ "${REPOS_DIR}/.bootstrap_build_done" -ot "${REPOS_DIR}/.bootstrap_fetch_done" ]
+   local progress
+   local complete
+
+   #
+   # sort  and unique, because people can redo builds manually
+   # which will add duplicate lines
+   #
+   progress="`read_setting "${REPOS_DIR}/.build_done" | sort | sort -u`"
+   complete="`read_root_setting "build_order" | sort`"
+
+   if [ "${progress}" != "${complete}" ]
    then
-      log_verbose "Need build because \"${REPOS_DIR}/.bootstrap_fetch_done\" is younger"
+      log_verbose "Need build because \"${REPOS_DIR}/build_done\" is different to \"build_order\""
       return 0
    fi
 

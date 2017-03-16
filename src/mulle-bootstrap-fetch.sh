@@ -238,34 +238,6 @@ can_symlink_it()
 }
 
 
-ask_symlink_it()
-{
-   local  directory
-
-   directory="$1"
-
-   if ! can_symlink_it "${directory}"
-   then
-      return 1
-   fi
-
-   #
-   # check if checked out
-   #
-   local prompt
-
-   prompt="Should ${directory} be symlinked instead of cloned ?
-NO is safe, but you often say YES here."
-
-   if [ ! -z "${tag}" ]
-   then
-      prompt="${prompt} (Since tag ${tag} is set, NO is more reasonable)"
-   fi
-
-   user_say_yes "$prompt"
-}
-
-
 _search_for_git_repository_in_cache()
 {
    local directory
@@ -546,7 +518,7 @@ clone_or_symlink()
 
    case "${url}" in
       /*)
-         if ask_symlink_it "${url}"
+         if can_symlink_it "${directory}"
          then
             operation=link_command
          fi
@@ -570,23 +542,26 @@ clone_or_symlink()
 
          if [ ! -z "${found}" ]
          then
-            user_say_yes "There is \"${found}\" in the cache.
-(\"${PWD}\"). Use it ?"
-            if [ $? -eq 0 ]
-            then
-               url="${found}"
+            url="${found}"
 
-               case "${scm}" in
-                  git)
-                     ask_symlink_it "${url}"
-                     if [ $? -eq 0 ]
-                     then
-                        operation=link_command
-                     fi
-                  ;;
-               esac
-               log_info "Using cached item \"${found}\""
-            fi
+            case "${scm}" in
+               git)
+                  if can_symlink_it "${url}"
+                  then
+                     operation=link_command
+                  fi
+               ;;
+            esac
+
+            case "${operation}" in
+               link_command)
+                 log_info "Using symlink to cached item \"${found}\""
+               ;;
+
+               *)
+                 log_info "Using cached item \"${found}\""
+               ;;
+            esac
          fi
       ;;
    esac
@@ -1793,6 +1768,7 @@ _common_main()
       ;;
    esac
 
+   remove_file_if_present "${REPOS_DIR}/.build_done"
    remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
    create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_started"
 

@@ -1143,23 +1143,38 @@ rmdir_if_empty()
 }
 
 
+_create_file_if_missing()
+{
+   local path="$1" ; shift
+
+   [ -z "${path}" ] && internal_fail "empty path"
+
+   if [ -f "${path}" ]
+   then
+      return
+   fi
+
+   local directory
+
+   directory="`dirname "${path}"`"
+   if [ ! -z "${directory}" ]
+   then
+      mkdir_if_missing "${directory}"
+   fi
+
+   log_fluff "Creating \"${path}\""
+   if [ -z "$*" ]
+   then
+      redirect_exekutor "${path}" echo "$*" || fail "failed to create \"{path}\""
+   else
+      exekutor touch "${path}"  || fail "failed to create \"${path}\""
+   fi
+}
+
+
 create_file_if_missing()
 {
-   [ -z "$1" ] && internal_fail "empty path"
-
-   if [ ! -f "$1" ]
-   then
-      local dir
-
-      dir="`dirname "$1"`"
-      if [ ! -z "${dir}" ]
-      then
-         mkdir_if_missing "${dir}"
-      fi
-
-      log_fluff "Creating \"$1\""
-      redirect_exekutor "$1" echo "# intentionally blank file" || fail "failed to create \"$1\""
-   fi
+  _create_file_if_missing "$1" "# intentionally blank file"
 }
 
 
