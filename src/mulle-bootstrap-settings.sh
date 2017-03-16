@@ -108,6 +108,7 @@ build_dir
 build_log_dir
 build_preferences
 caches_path
+clone_cache
 check_usr_local_include
 clean_before_build
 clean_dependencies_before_build

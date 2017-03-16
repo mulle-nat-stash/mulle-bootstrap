@@ -72,12 +72,12 @@ fetch_brew_if_needed()
    case "${UNAME}" in
       darwin)
          log_info "Installing OS X brew"
-         exekutor git clone https://github.com/Homebrew/brew.git "${ADDICTIONS_DIR}"
+         _git_clone https://github.com/Homebrew/brew.git "${ADDICTIONS_DIR}"
       ;;
 
       linux)
          log_info "Installing Linux brew"
-         exekutor git clone https://github.com/Linuxbrew/brew.git "${ADDICTIONS_DIR}"
+         _git_clone https://github.com/Linuxbrew/brew.git "${ADDICTIONS_DIR}"
        ;;
 
       *)
@@ -88,6 +88,14 @@ fetch_brew_if_needed()
    if [ ! -x "${BREW}" ]
    then
       fail "brew was not successfully installed (PATH=$PATH)"
+   fi
+
+   #
+   # if brew is from clone cache update it
+   #
+   if [ ! -z "${CLONE_CACHE}" ]
+   then
+      "${BREW}" update
    fi
 
    return 1

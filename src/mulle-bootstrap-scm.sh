@@ -184,17 +184,13 @@ git_checkout()
 }
 
 
-git_clone()
+_git_clone()
 {
-   [ $# -ge 7 ] || internal_fail "git_clone: parameters missing"
+   [ $# -ge 2 ] || internal_fail "_git_clone: parameters missing"
 
-   local reposdir="$1" ; shift
-   local name="$1"; shift
    local url="$1"; shift
-   local branch="$1"; shift
-   local scm="$1"; shift
-   local tag="$1"; shift
    local stashdir="$1"; shift
+   local branch="$1"; [ $# -ne 0 ] && shift
 
    [ ! -z "${url}" ]      || internal_fail "url is empty"
    [ ! -z "${stashdir}" ] || internal_fail "stashdir is empty"
@@ -210,6 +206,24 @@ git_clone()
       log_info "Cloning ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
    fi
 
+   local dstdir
+
+   dstdir="${stashdir}"
+
+   # "remote urls" go through caches
+   case "${url}" in
+      file:*|/*|~*|.*)
+      ;;
+
+      *:*)
+         if [ ! -z "${CLONE_CACHE}" ]
+         then
+            mkdir_if_missing "${CLONE_CACHE}"
+            dstdir="${CLONE_CACHE}/`basename ${url}`" # try to keep it global
+         fi
+      ;;
+   esac
+
 #
 # callers responsibility
 #
@@ -218,13 +232,39 @@ git_clone()
 #    parent="`dirname -- "${stashdir}"`"
 #   mkdir_if_missing "${parent}"
 
-   exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${stashdir}"  >&2 \
-    || fail "git clone of \"${url}\" into \"${stashdir}\" failed"
+   if [ ! -d "${dstdir}" ]
+   then
+      exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${dstdir}"  >&2 \
+         || fail "git clone of \"${url}\" into \"${dstdir}\" failed"
+   fi
+
+   if [ ! -z "${CLONE_CACHE}" -a "${stashdir}" != "${CLONE_CACHE}" ]
+   then
+      exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${dstdir}" "${stashdir}"  >&2 \
+      || fail "git clone of \"${dstdir}\" into \"${stashdir}\" failed"
+   fi
 
    if [ ! -z "${tag}" ]
    then
       git_checkout "$@"
    fi
+}
+
+
+
+git_clone()
+{
+   [ $# -ge 7 ] || internal_fail "git_clone: parameters missing"
+
+   local reposdir="$1" ; shift
+   local name="$1"; shift
+   local url="$1"; shift
+   local branch="$1"; shift
+   local scm="$1"; shift
+   local tag="$1"; shift
+   local stashdir="$1"; shift
+
+   _git_clone "${url}" "${stashdir}" "${branch}" "$@"
 }
 
 

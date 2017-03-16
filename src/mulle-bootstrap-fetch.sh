@@ -311,25 +311,26 @@ search_for_git_repository_in_caches()
    do
       IFS="${DEFAULT_IFS}"
 
-      realdir="`realpath "${directory}"`"
-      if [ ! -z "${realdir}" ]
+      if [ ! -d "${directory}" ]
       then
-         if [ "${realdir}" = "${curdir}" ]
-         then
-            fail "config setting \"caches_path\" mistakenly contains \"${directory}\", which is the current directory"
-         fi
-
-         found="`_search_for_git_repository_in_cache "${realdir}" "$@"`" || exit 1
-         if [ ! -z "${found}" ]
-         then
-            symlink_relpath "${found}" "${ROOT_DIR}"
-            return
-         fi
-      else
          if [ "${MULLE_FLAG_LOG_CACHE}" = "YES" ]
          then
             log_trace2 "Cache path \"${realdir}\" does not exist"
          fi
+         continue
+      fi
+
+      realdir="`realpath "${directory}"`"
+      if [ "${realdir}" = "${curdir}" ]
+      then
+         fail "config setting \"caches_path\" mistakenly contains \"${directory}\", which is the current directory"
+      fi
+
+      found="`_search_for_git_repository_in_cache "${realdir}" "$@"`" || exit 1
+      if [ ! -z "${found}" ]
+      then
+         symlink_relpath "${found}" "${ROOT_DIR}"
+         return
       fi
    done
 
@@ -1591,6 +1592,7 @@ _common_main()
 
    local ROOT_DIR="`pwd -P`"
    local CACHES_PATH
+   local CLONE_CACHE
 
    #
    # where we look for symlink sources
@@ -1599,6 +1601,10 @@ _common_main()
    # "repository" caches can and usually are outside the project folder
    # this can be multiple paths!
    CACHES_PATH="`read_config_setting "caches_path" "${MULLE_BOOTSTRAP_CACHES_PATH}"`"
+
+   # stuff clones get intermediate saved too, default empty
+   CLONE_CACHE="`read_config_setting "clone_cache"`"
+   CACHES_PATH="`add_path "${CACHES_PATH}" "${CLONE_CACHE}"`"
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OVERRIDE_BRANCH="`read_config_setting "override_branch"`"

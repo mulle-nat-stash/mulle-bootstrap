@@ -2371,7 +2371,6 @@ build_main()
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
 
-
    #
    #
    #
@@ -2409,6 +2408,8 @@ build_main()
       write_protect_directory "${DEPENDENCIES_DIR}"
    else
       log_fluff "No dependencies have been generated"
+
+      remove_file_if_present "${REPOS_DIR}/.build_done"
    fi
 
    log_debug "::: build end :::"

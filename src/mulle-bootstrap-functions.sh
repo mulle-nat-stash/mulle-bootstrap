@@ -1163,7 +1163,7 @@ _create_file_if_missing()
    fi
 
    log_fluff "Creating \"${path}\""
-   if [ -z "$*" ]
+   if [ ! -z "$*" ]
    then
       redirect_exekutor "${path}" echo "$*" || fail "failed to create \"{path}\""
    else
