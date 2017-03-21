@@ -404,39 +404,6 @@ path_concat()
 }
 
 
-#
-# stolen from:
-# http://stackoverflow.com/questions/1055671/how-can-i-get-the-behavior-of-gnus-readlink-f-on-a-mac
-# ----
-#
-_prepend_path_if_relative()
-{
-   case "$2" in
-      /*)
-         echo "$2"
-         ;;
-      *)
-         echo "$1/$2"
-         ;;
-   esac
-}
-
-
-resolve_symlinks()
-{
-   local dir_context
-   local linkpath
-
-   if linkpath="`readlink "$1"`"
-   then
-      dir_context=`dirname -- "$1"`
-      resolve_symlinks "`_prepend_path_if_relative "${dir_context}" "${linkpath}"`"
-   else
-      echo "$1"
-   fi
-}
-
-
 _canonicalize_dir_path()
 {
    (

@@ -30,7 +30,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=0
-MULLE_EXECUTABLE_VERSION_PATCH=0
+MULLE_EXECUTABLE_VERSION_PATCH=1
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -139,15 +139,50 @@ _bootstrap_main()
 }
 
 
+#
+# stolen from:
+# http://stackoverflow.com/questions/1055671/how-can-i-get-the-behavior-of-gnus-readlink-f-on-a-mac
+# ----
+#
+_prepend_path_if_relative()
+{
+   case "$2" in
+      /*)
+         echo "$2"
+         ;;
+      *)
+         echo "$1/$2"
+         ;;
+   esac
+}
+
+
+resolve_symlinks()
+{
+   local dir_context
+   local linkpath
+
+   if linkpath="`readlink "$1"`"
+   then
+      dir_context=`dirname -- "$1"`
+      resolve_symlinks "`_prepend_path_if_relative "${dir_context}" "${linkpath}"`"
+   else
+      echo "$1"
+   fi
+}
+
+
 bootstrap_libexec_path()
 {
+   local path="$1"
+
    local exedir
    local exedirpath
    local prefix
    local libexecpath
 
-   exedir="`dirname "$1"`"
-   exedirpath="`( cd "${exedir}" ; pwd -P )`" || fail "failed to get pwd"
+   path="`resolve_symlinks "${path}"`"
+   exedirpath="`dirname "${path}"`"
    prefix="`dirname "${exedirpath}"`"
    libexecpath="${prefix}/libexec/mulle-bootstrap"
 
@@ -170,7 +205,7 @@ bootstrap_init()
    libexecpath="`bootstrap_libexec_path "$0"`"
    if [ -z "${libexecpath}" ]
    then
-      echo "could not find libexec for mulle-bootstrap" >&2
+      echo "Fatal Error: Could not find libexec for mulle-bootstrap" >&2
       exit 1
    fi
 
