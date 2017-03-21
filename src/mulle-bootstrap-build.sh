@@ -404,13 +404,11 @@ build_fail()
 
 build_log_name()
 {
-   local tool
-   local name
+   local tool="$1"; shift
+   local name="$1"; shift
 
-   tool="$1"
-   [ $# -eq 0 ] || shift
-   name="$1"
-   [ $# -eq 0 ] || shift
+   [ -z "${tool}" ] && internal_fail "tool missing"
+   [ -z "${name}" ] && internal_fail "name missing"
 
    local logfile
 
@@ -1032,7 +1030,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       logging_redirect_eval_exekutor "${logfile1}" "'${CMAKE}'" \
 -G "'${CMAKE_GENERATOR}'" \
-"-DMULLE_EXECUTABLE_VERSION=${MULLE_EXECUTABLE_VERSION}" \
+"-DMULLE_BOOTSTRAP_VERSION=${MULLE_EXECUTABLE_VERSION}" \
 "-DCMAKE_BUILD_TYPE='${mapped}'" \
 "-DCMAKE_INSTALL_PREFIX:PATH='${prefixbuild}'"  \
 "${sdkparameter}" \
@@ -1405,7 +1403,9 @@ build_xcodebuild()
 
    enforce_build_sanity "${builddir}"
 
-   toolname=`read_config_setting "xcodebuild" "xcodebuild"`
+   local toolname
+
+   toolname="`read_config_setting "xcodebuild" "xcodebuild"`"
 
    local info
 
@@ -1473,8 +1473,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       skip_install="SKIP_INSTALL=NO"
    fi
 
-   local toolname
-
    #
    # xctool needs schemes, these are often autocreated, which xctool cant do
    # xcodebuild can just use a target
@@ -1482,7 +1480,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    #
    if [ "${toolname}" = "xctool"  -a "${schemename}" = ""  ]
    then
-      if [ "$targetname" != "" ]
+      if [ ! -z "$targetname" ]
       then
          schemename="${targetname}"
          targetname=
@@ -1511,7 +1509,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local owd
    local command
 
-   if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" != "" ]
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" ]
    then
       command=-showBuildSettings
    else
@@ -1910,18 +1908,21 @@ build_with_configuration_sdk_preferences()
                return 0
             else
                [ ! -e "${script}" ] || fail "script ${script} is not executable"
+               log_fluff "There is no build script in \"`build_setting_path "${name}" "bin/build.sh"`\""
             fi
          ;;
 
          xcodebuild)
             if [ ! -z "${XCODEBUILD}" ]
             then
-               project=`(cd "${srcdir}" ; find_xcodeproj "${name}")`
+               project="`(cd "${srcdir}" ; find_xcodeproj "${name}")`"
 
-               if [ ! -z "$project" ]
+               if [ ! -z "${project}" ]
                then
                   build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" "${project}"  || exit 1
                   return 0
+               else
+                  log_fluff "There is no Xcode project in \"${srcdir}\""
                fi
             fi
          ;;
@@ -1941,6 +1942,8 @@ build_with_configuration_sdk_preferences()
                   build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
                   return 0
                fi
+            else
+               log_fluff "There is no configure script in \"${srcdir}\""
             fi
          ;;
 
@@ -1954,6 +1957,8 @@ build_with_configuration_sdk_preferences()
                   build_cmake "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
                   return 0
                fi
+            else
+               log_fluff "There is no CMakeLists.txt file in \"${srcdir}\""
             fi
          ;;
 
@@ -2125,7 +2130,7 @@ build_if_alive()
          build_wrapper "${name}" "${stashdir}"
 
          # memorize what we build
-         redirect_append_exekutor "${REPOS_DIR}/.build_done" echo "${name}"
+         merge_line_into_file "${REPOS_DIR}/.build_done" "${name}"
 
          BUILT="${name}
 ${BUILT}"
@@ -2223,7 +2228,7 @@ build_stashes()
 have_tars()
 {
    tarballs=`read_root_setting "tarballs"`
-   [ "${tarballs}" != "" ]
+   [ ! -z "${tarballs}" ]
 }
 
 

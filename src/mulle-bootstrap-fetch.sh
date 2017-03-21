@@ -114,7 +114,7 @@ check_tars()
    log_fluff "Looking for tarballs"
 
    tarballs="`read_root_setting "tarballs" | sort | sort -u`"
-   if [ "${tarballs}" != "" ]
+   if [ ! -z "${tarballs}" ]
    then
       [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
       IFS="
@@ -182,7 +182,10 @@ link_command()
    local absolute
 
    absolute="`read_config_setting "absolute_symlinks" "NO"`"
-   exekutor create_symlink "${url}" "${stashdir}" "${absolute}"
+   if ! exekutor create_symlink "${url}" "${stashdir}" "${absolute}"
+   then
+      return 1
+   fi
 
    local branchlabel
 
@@ -496,7 +499,7 @@ clone_or_symlink()
    # and check that the archive is correct
    #
    extra="`echo "${scm}" | sed -n 's/^[^?]*\?\(.*\)/\1/p'`"
-   if [ ! -z "{extra}" ]
+   if [ ! -z "${extra}" ]
    then
       log_fluff "Parsed SCM_OPTIONS as \"${extra}\""
       SCM_OPTIONS="${extra}"
@@ -567,13 +570,38 @@ clone_or_symlink()
       ;;
    esac
 
-   "${operation}" "${reposdir}" \
-                  "${name}" \
-                  "${url}" \
-                  "${branch}" \
-                  "${scm}" \
-                  "${tag}" \
-                  "${stashdir}" || exit 1
+   local rval
+
+   if ! "${operation}" "${reposdir}" \
+                       "${name}" \
+                       "${url}" \
+                       "${branch}" \
+                       "${scm}" \
+                       "${tag}" \
+                       "${stashdir}"
+   then
+      #
+      # check if clone is an optional install component
+      # it is if it doesn't show up in "required"
+      # required is built by mulle-bootstrap usually
+      # you specify optionals, by specifying the required
+      # clones and leaving the optional out
+      #
+      local required
+
+      required="`read_root_setting "required"`"
+      [ -z "${required}" ] && internal_fail "required missing"
+
+      if ! echo "${required}" | fgrep -s -q -x "${name}" > /dev/null
+      then
+         log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is missing, but it's not required."
+
+         merge_line_into_file "${REPOS_DIR}/.missing" "${name}"
+         return 1  # means just skip
+      fi
+
+      return  # means exit
+   fi
 
    if [ "${DONT_WARN_SCRIPTS}" != "YES" ]
    then
@@ -1185,6 +1213,10 @@ work_clones()
                      2)
                         # if we used a symlink, we want to memorize that
                         scm="symlink"
+                     ;;
+
+                     3)
+                        exit 1
                      ;;
                   esac
                ;;

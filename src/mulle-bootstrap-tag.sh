@@ -88,7 +88,7 @@ git_must_be_clean()
    local clean
 
    clean=`git status -s`
-   if [ "${clean}" != "" ]
+   if [ ! -z "${clean}" ]
    then
       log_error "Repository \"$name\" is not ready to be tagged yet."
       if [ "${MULLE_FLAG_LOG_TERSE}" != "YES" ]

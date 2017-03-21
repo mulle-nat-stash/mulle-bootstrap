@@ -39,6 +39,7 @@ usage:
 
    Options:
       -d   : delete config setting
+      -g   : use ~/.mulle-bootstrap folder instead of .bootstrap-local
       -l   : list config values
 
    Use:
@@ -231,7 +232,7 @@ _read_setting()
 {
    local apath="$1"
 
-   [ ! -z "${apath}" ] || fail "no path given to read_setting"
+   [ ! -z "${apath}" ] || internal_fail "no path given to read_setting"
 
    local value
 
@@ -314,7 +315,7 @@ read_raw_setting()
 {
    local key="$1"
 
-   [ $# -ne 1 ]     && internal_fail "parameterization error"
+   [ $# -ne 1 ]    && internal_fail "parameterization error"
    [ -z "${key}" ] && internal_fail "empty key in read_raw_setting"
 
    if _read_setting "${BOOTSTRAP_DIR}.local/${key}"
@@ -324,6 +325,25 @@ read_raw_setting()
    _read_setting "${BOOTSTRAP_DIR}/${key}"
 }
 
+
+_bootstrap_setting_path()
+{
+   local key="$1"
+
+   #
+   # to access unmerged data (needed for embedded repos)
+   #
+   if [ "${MULLE_BOOTSTRAP_SETTINGS_NO_AUTO}" = "YES" ]
+   then
+      suffix=""
+   else
+      suffix=".auto"
+   fi
+
+   echo "${BOOTSTRAP_DIR}${suffix}/${key}"
+}
+
+
 #
 # this has to be flexible, because fetch and build settings read differently
 #
@@ -331,7 +351,7 @@ _read_bootstrap_setting()
 {
    local key="$1"
 
-   [ $# -ne 1 ]     && internal_fail "parameterization error"
+   [ $# -ne 1 ]    && internal_fail "parameterization error"
    [ -z "${key}" ] && internal_fail "empty key in _read_bootstrap_setting"
 
    local value
@@ -530,6 +550,15 @@ read_config_setting()
 }
 
 
+build_setting_path()
+{
+   local package="$1"
+   local key="$2"
+
+   _bootstrap_setting_path "${package}.build/${key}"
+}
+
+
 #
 # values in "overrides" override those inherited by repositories
 # values in "settings" are overriden by those inherited by repositories
@@ -541,15 +570,11 @@ read_build_setting()
       set +x
    fi
 
-   local key
-   local default
-   local package
-
    [ $# -lt 2 -o $# -gt 3 ] && internal_fail "parameterization error"
 
-   package="$1"
-   key="$2"
-   default="$3"
+   local package="$1"
+   local key="$2"
+   local default="$3"
 
    [ -z "${key}" ] && internal_fail "empty parameter in read_config_setting"
 
@@ -634,6 +659,8 @@ find_build_setting_file()
 }
 
 
+
+
 ####
 # Functions building on read_ functions
 #
@@ -707,6 +734,46 @@ read_expanded_setting()
       expanded_variables "${line}" "${srcbootstrap}"
    done
 }
+
+
+# sti
+_combine_settings_in_front()
+{
+   local settings1="$1"
+   local settings2="$2"
+   local key="$3"
+
+   local result
+
+   result="${settings2}"
+
+   local line
+
+   # https://stackoverflow.com/questions/742466/how-can-i-reverse-the-order-of-lines-in-a-file/744093#744093
+
+   IFS="
+"
+   for line in `echo "${settings1}" | sed -n '1!G;h;$p'`
+   do
+      result="`echo "${result}" | grep -v -x "${line}"`"
+      result="${line}
+${result}"
+   done
+
+   IFS="${DEFAULT_IFS}"
+
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o \
+        "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   then
+      log_trace2 "----------------------"
+      log_trace2 "Merged settings:      "
+      log_trace2 "----------------------"
+      log_trace2 "${result}"
+      log_trace2 "----------------------"
+   fi
+   echo "${result}"
+}
+
 
 
 _merge_settings_in_front()
@@ -908,9 +975,12 @@ _setting_append()
    filename="${directory}/${key}"
    before="`_read_setting "${filename}"`"
 
+   # ugliness needed for
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+
    case "${key}" in
       embedded_repositories|repositories)
-         redirect_exekutor "${filename}" merge_repository_file "${before}" "${value}"
+         redirect_exekutor "${filename}" merge_repository_contents "${before}" "${value}"
       ;;
 
       brews|tarballs)
@@ -960,32 +1030,54 @@ _config_list()
 
 _config_read()
 {
-   local key="$1"
-
    read_config_setting "${key}"
 }
 
 
 _config_append()
 {
-   fail "Not yet implemented"
+   internal_fail "Not yet implemented"
 }
 
 
 _config_write()
 {
-   mkdir_if_missing "${BOOTSTRAP_DIR}.local/config"
+   local key="$1"
+   local value="$2"
 
-   exekutor echo "$2" > "${BOOTSTRAP_DIR}.local/config/$1"
+   local configdir
+
+   configdir="${BOOTSTRAP_DIR}.local/config"
+
+   if [ "${OPTION_GLOBAL}" = "YES" ]
+   then
+      configdir="${HOME}/.mulle-bootstrap"
+   fi
+
+   mkdir_if_missing "${configdir}"
+   exekutor echo "${value}" > "${configdir}/${key}"
+
    exekutor touch "${BOOTSTRAP_DIR}.local"
 }
 
 
 _config_delete()
 {
-   if [ -f "${BOOTSTRAP_DIR}.local/config/$1" ]
+   local key="$1"
+   local value="$2"
+
+   local configdir
+
+   configdir="${BOOTSTRAP_DIR}.local/config"
+
+   if [ "${OPTION_GLOBAL}" = "YES" ]
    then
-      exekutor rm "${BOOTSTRAP_DIR}.local/config/$1"  >&2
+      configdir="${HOME}/.mulle-bootstrap"
+   fi
+
+   if [ -f "${configdir}/$1" ]
+   then
+      exekutor rm "${configdir}/$1"  >&2
       exekutor touch "${BOOTSTRAP_DIR}.local"  >&2
    fi
 }
@@ -1026,7 +1118,7 @@ _expansion_write()
 
 _expansion_append()
 {
-   fail "Not yet implemented"
+   internal_fail "Not yet implemented"
 }
 
 
@@ -1043,7 +1135,7 @@ _expansion_delete()
 
 _expansion_list()
 {
-   fail "Not yet implemented"
+   internal_fail "Not yet implemented"
 }
 
 

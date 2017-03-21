@@ -1,0 +1,383 @@
+#! /bin/sh
+#
+#   Copyright (c) 2017 Nat! - Mulle kybernetiK
+#   All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions are met:
+#
+#   Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+#   Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+#   Neither the name of Mulle kybernetiK nor the names of its contributors
+#   may be used to endorse or promote products derived from this software
+#   without specific prior written permission.
+#
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+#   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#   POSSIBILITY OF SUCH DAMAGE.
+MULLE_EXECUTABLE_VERSION_MAJOR=3
+MULLE_EXECUTABLE_VERSION_MINOR=0
+MULLE_EXECUTABLE_VERSION_PATCH=0
+
+MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
+
+#
+# This is the main user interface to mulle-bootstrap
+# sorta like git
+#
+
+trap_fail()
+{
+   exit 1
+}
+
+
+mulle_brew_usage()
+{
+   cat <<EOF
+usage: mulle-brew [flags] [command] [options]
+ Flags:
+   -n        : do nothing creative or destructive
+   -v        : -v to be more verbose (-vv or -vvv for more verbosity)
+EOF
+
+   bootstrap_technical_option_usage
+
+   cat <<EOF
+
+ Commands:
+   install   : fetches brews
+   update    : update brew
+   upgrade   : upgrade brew fomulae
+   init      : initializes a bootstrap project
+
+ Options are command specific. Use mulle-brew <command> -h for help.
+EOF
+
+   if [ "${UNAME}" = 'darwin' ]
+   then
+      cat <<EOF
+   xcode     : setup xcodeproj settings
+EOF
+   fi
+
+   exit 1
+}
+
+
+bootstrap_libexec_path()
+{
+   local exedir
+   local exedirpath
+   local prefix
+   local libexecpath
+
+   exedir="`dirname "$1"`"
+   exedirpath="`( cd "${exedir}" ; pwd -P )`" || fail "failed to get pwd"
+   prefix="`dirname "${exedirpath}"`"
+   libexecpath="${prefix}/libexec/mulle-bootstrap"
+
+   if [ ! -x "${libexecpath}/mulle-bootstrap-functions.sh" ]
+   then
+      libexecpath="${exedirpath}/src"
+   fi
+
+   if [ -x "${libexecpath}/mulle-bootstrap-functions.sh" ]
+   then
+      echo "${libexecpath}"
+   fi
+}
+
+
+bootstrap_init()
+{
+   local libexecpath
+
+   libexecpath="`bootstrap_libexec_path "$0"`"
+   if [ -z "${libexecpath}" ]
+   then
+      echo "could not find libexec for mulle-bootstrap" >&2
+      exit 1
+   fi
+
+   #
+   # shell export commands with minimal
+   # trap setup
+   #
+   case "${1}" in
+      library-path)
+         echo "${libexecpath}"
+         exit 0
+      ;;
+
+      version)
+         echo "${MULLE_EXECUTABLE_VERSION}"
+         exit 0
+      ;;
+   esac
+
+
+   PATH="${libexecpath}:$PATH"
+   export PATH
+
+   if [ ! -z "${MULLE_BOOTSTRAP_LIBEXEC_TRACE}" ]
+   then
+      echo "PATH=$PATH" >&2
+   fi
+
+   #  set -e # more pain then gain in the end
+   #  set -u # doesn't work with my style
+
+   # now include this first to get
+   # logging and UNAME
+
+   . mulle-bootstrap-logging.sh
+   . mulle-bootstrap-local-environment.sh || fail "not loaded"
+
+   trap trap_fail INT
+
+   # source_environment
+}
+
+
+brew_main()
+{
+   local command
+   local ps4string
+
+   # technical flags
+   local MULLE_FLAG_EXECUTOR_DRY_RUN="NO"
+   local MULLE_FLAG_LOG_CACHE="NO"
+   local MULLE_FLAG_LOG_DEBUG="NO"
+   local MULLE_FLAG_LOG_EXECUTOR="NO"
+   local MULLE_FLAG_LOG_EXECUTOR="NO"
+   local MULLE_FLAG_LOG_FLUFF="NO"
+   local MULLE_FLAG_LOG_SCRIPTS="NO"
+   local MULLE_FLAG_LOG_SETTINGS="NO"
+   local MULLE_FLAG_LOG_VERBOSE="NO"
+   local MULLE_FLAG_MERGE_LOG="NO"
+   local MULLE_TRACE_PATHS_FLIP_X="NO"
+   local MULLE_TRACE_POSTPONE="NO"
+   local MULLE_TRACE_RESOLVER_FLIP_X="NO"
+   local MULLE_TRACE_SETTINGS_FLIP_X="NO"
+
+   #
+   # simple option handling
+   #
+   while [ $# -ne 0 ]
+   do
+      if bootstrap_technical_flags "$1"
+      then
+         shift
+         continue
+      fi
+
+      case "$1" in
+         -h|--help)
+            mulle_brew_usage
+         ;;
+
+         -*)
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option \"$1\""
+            mulle_brew_usage
+         ;;
+
+         *)
+            break
+         ;;
+      esac
+
+      shift
+   done
+
+   bootstrap_setup_trace "${MULLE_TRACE}"
+
+   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" ]
+   then
+      log_trace "Dry run is active."
+   fi
+
+   # source in environment now
+
+   local_environment_main
+
+   #
+   # some commands only run when we have a .bootstrap folder
+   #
+   command="${1:-install}"
+   [ $# -eq 0 ] || shift
+
+   if [ ! -d "${BOOTSTRAP_DIR}" -a ! -d "${BOOTSTRAP_DIR}.local" ]
+   then
+      case "$1" in
+         -h|--help)
+         ;;
+
+         *)
+            case "${command}" in
+               dist|clean|dist-clean|install|upgrade|update|setup-xcode|xcode)
+                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($PWD), can't continue"
+               ;;
+            esac
+         ;;
+      esac
+   else
+      if bootstrap_should_defer_to_master "$@"
+      then
+         return 1
+      fi
+   fi
+
+   MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_EXECUTABLE} ${command}"
+   MULLE_EXECUTABLE_OPTIONS="$@"
+
+   case "${command}" in
+      build)
+         . mulle-bootstrap-build.sh
+
+         build_main "$@" || exit 1
+      ;;
+
+      clean)
+         . mulle-bootstrap-clean.sh
+
+         clean_main "$@" || exit 1
+      ;;
+
+      config)
+         . mulle-bootstrap-settings.sh
+
+         config_main "$@" || exit 1
+      ;;
+
+      dist)
+         . mulle-bootstrap-clean.sh
+
+         clean_main "dist" || exit 1
+      ;;
+
+      defer)
+         . mulle-bootstrap-defer.sh
+
+         defer_main "$@" || exit 1
+      ;;
+
+      emancipate)
+         . mulle-bootstrap-defer.sh
+
+         emancipate_main "$@" || exit 1
+      ;;
+
+      flags)
+         . mulle-bootstrap-flags.sh
+
+         flags_main "$@" || exit 1
+      ;;
+
+      help)
+         mulle_brew_usage "$@" || exit 1
+      ;;
+
+      init)
+         . mulle-bootstrap-init.sh
+
+         init_main "$@" || exit 1
+      ;;
+
+      install|fetch)
+         . mulle-bootstrap-brew.sh
+
+         brew_install_main "$@" || exit 1
+      ;;
+
+      library-path)
+         echo "$PATH" | tr ':' '\012' | head -1
+         return 0
+      ;;
+
+      setting)
+         . mulle-bootstrap-settings.sh
+
+         setting_main "$@" || exit 1
+      ;;
+
+      show)
+         . mulle-bootstrap-show.sh
+
+         show_main "$@" || exit 1
+      ;;
+
+      uname)
+         echo "${UNAME}"
+         exit 0
+      ;;
+
+      update)
+         . mulle-bootstrap-brew.sh
+
+         brew_update_main "$@" || exit 1
+      ;;
+
+      upgrade)
+         . mulle-bootstrap-brew.sh
+
+         brew_upgrade_main "$@" || exit 1
+      ;;
+
+      version)
+         echo "${MULLE_EXECUTABLE_VERSION}"
+         return 0
+      ;;
+
+      xcode|setup-xcode)
+         . mulle-bootstrap-xcode.sh
+
+         MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap xcode"
+         xcode_main "$@" || exit 1
+      ;;
+
+      *)
+         log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown command \"${command}\""
+         mulle_bootstrap_usage
+      ;;
+   esac
+}
+
+#
+# service both names
+#
+MULLE_EXECUTABLE="`basename -- "$0"`"
+MULLE_ARGUMENTS="$@"
+MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_EXECUTABLE}"
+MULLE_EXECUTABLE_PID="$$"
+export MULLE_EXECUTABLE_PID
+
+
+bootstrap_init "$@" # needs params
+
+main()
+{
+   if ! brew_main "$@"
+   then
+      # just do it again, but cd has been set differently
+      main "$@" # is array
+      exit $?
+   fi
+}
+
+main "$@"
+
+trap - TERM EXIT

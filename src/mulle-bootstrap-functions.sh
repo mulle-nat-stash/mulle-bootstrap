@@ -50,6 +50,8 @@ eval_trace()
    then
       local arrow
 
+      [ -z "${MULLE_EXECUTABLE_PID}" ] && internal_fail "MULLE_EXECUTABLE_PID not set"
+
       if [ "${PPID}" -ne "${MULLE_EXECUTABLE_PID}" ]
       then
          arrow="=[${PPID}]=>"
@@ -74,6 +76,8 @@ eval_trace_output()
    if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
    then
       local arrow
+
+      [ -z "${MULLE_EXECUTABLE_PID}" ] && internal_fail "MULLE_EXECUTABLE_PID not set"
 
       if [ "${PPID}" -ne "${MULLE_EXECUTABLE_PID}" ]
       then
@@ -1172,6 +1176,19 @@ _create_file_if_missing()
 }
 
 
+merge_line_into_file()
+{
+  local path="$1"
+  local line="$2"
+
+  if fgrep -s -q -x "${name}" "${path}" 2> /dev/null
+  then
+     return
+  fi
+  redirect_append_exekutor "${path}" echo "${line}"
+}
+
+
 create_file_if_missing()
 {
   _create_file_if_missing "$1" "# intentionally blank file"
@@ -1301,7 +1318,7 @@ find_xcodeproj()
    #
    # don't go too deep in search
    #
-   for i in `find . -depth 2 -name "*.xcodeproj" -print`
+   for i in `find . -maxdepth 2 -name "*.xcodeproj" -print`
    do
       match=`basename -- "${i}" .xcodeproj`
       if [ "$match" = "$expect" ]
@@ -1318,7 +1335,7 @@ find_xcodeproj()
       fi
    done
 
-   if [ "$found" != "" ]
+   if [ ! -z "$found" ]
    then
       echo "${found}"
       return 0

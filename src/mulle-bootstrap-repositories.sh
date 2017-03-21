@@ -780,6 +780,8 @@ parse_raw_clone()
 }
 
 
+#   # process_raw_clone
+#   local name        # name of clone
 process_raw_clone()
 {
    name="`_canonical_clone_name "${url}"`"
@@ -828,6 +830,40 @@ parse_clone()
    [ -z "${name}" ]     && internal_fail "name is empty ($clone)"
    [ -z "${stashdir}" ] && internal_fail "stashdir is empty ($clone)"
    :
+}
+
+
+names_from_repository_file()
+{
+   local filename="$1"
+
+   local clones
+
+   local url        # url of clone
+   local dstdir
+   local name
+   local branch
+   local scm
+   local tag
+
+   clones="`read_setting "${dst}/repositories"`"
+
+   IFS="
+"
+   for clone in ${clones}
+   do
+      IFS="${DEFAULT_IFS}"
+
+      parse_raw_clone "${clone}"
+      process_raw_clone
+
+      if [ ! -z "${name}" ]
+      then
+         echo "${name}"
+      fi
+   done
+
+   IFS="${DEFAULT_IFS}"
 }
 
 
@@ -977,6 +1013,29 @@ merge_repository_contents()
       log_trace2 "----------------------"
    fi
    assoc_array_all_values "${map}"
+}
+
+
+merge_repository_files()
+{
+   local srcfile="$1"
+   local dstfile="$2"
+   local delete_dstdir="${3:-NO}"
+
+   [ -z "${srcfile}" ] && internal_fail "srcfile is empty"
+   [ -z "${dstfile}" ] && internal_fail "dstfile is empty"
+
+   log_fluff "Copying expanded \"repositories\" from \"${srcfile}\""
+
+   local contents
+   local additions
+
+   contents="`cat "${dstfile}" 2> /dev/null || :`"
+   additions="`read_repository_file "${srcfile}" "${delete_dstdir}"`" || fail "read"
+   additions="`echo "${additions}"| sed 's/;*$//'`"
+   additions="`merge_repository_contents "${contents}" "${additions}"`"
+
+   redirect_exekutor "${dstfile}" echo "${additions}"
 }
 
 

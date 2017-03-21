@@ -399,7 +399,7 @@ user_say_yes()
 
       if [ -z "${x}" ]
       then
-         x="${MULLE_FLAG_ANSWER}"
+         x="NO"
       fi
    done
 }
@@ -518,9 +518,12 @@ build_needed()
 
    [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
 
-   if [ ! -f "${REPOS_DIR}/build_done" ]
+   local build_done
+
+   build_done="${REPOS_DIR}/.build_done"
+   if [ ! -f "${build_done}" ]
    then
-      log_verbose "Need build because \"${REPOS_DIR}/.build_done\" does not exist."
+      log_verbose "Need build because \"${build_done}\" does not exist."
       return 0
    fi
 
@@ -531,12 +534,12 @@ build_needed()
    # sort  and unique, because people can redo builds manually
    # which will add duplicate lines
    #
-   progress="`read_setting "${REPOS_DIR}/.build_done" | sort | sort -u`"
+   progress="`read_setting "${build_done}" | sort`"
    complete="`read_root_setting "build_order" | sort`"
 
    if [ "${progress}" != "${complete}" ]
    then
-      log_verbose "Need build because \"${REPOS_DIR}/build_done\" is different to \"build_order\""
+      log_verbose "Need build because \"${build_done}\" is different to \"build_order\""
       return 0
    fi
 
@@ -581,6 +584,23 @@ fetch_needed()
    IFS="
 "
    for stashdir in `all_repository_stashes ${REPOS_DIR}`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      if [ "${referencefile}" -ot "${stashdir}/${BOOTSTRAP_DIR}" ]
+      then
+         log_verbose "Need fetch because \"${stashdir}/${BOOTSTRAP_DIR}\" is modified"
+         return 0
+      fi
+   done
+
+   local minions
+
+   minions="`read_root_setting "minions"`"
+
+   IFS="
+"
+   for stashdir in ${minions}
    do
       IFS="${DEFAULT_IFS}"
 

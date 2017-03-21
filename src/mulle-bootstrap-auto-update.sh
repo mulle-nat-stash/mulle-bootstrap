@@ -94,14 +94,14 @@ _bootstrap_auto_copy()
          ;;
 
          repositories)
-            _bootstrap_merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+            merge_repository_files "${filepath}" "${dstfilepath}" "NO"
          ;;
 
          embedded_repositories)
             (
                STASHES_DEFAULT_DIR=""
                STASHES_ROOT_DIR=""
-               _bootstrap_merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+               merge_repository_files "${filepath}" "${dstfilepath}" "NO"
             )
          ;;
 
@@ -135,6 +135,21 @@ _bootstrap_auto_copy()
    done
 
    # rmdir_safer "${tmpdir}"
+}
+
+
+_bootstrap_create_required_if_needed()
+{
+   dst="$1"
+
+   #
+   # if there is no required file add all names from repositories
+   # which ought to have been expanded already
+   #
+   if [ ! -f "${dst}/required" -a -f "${dst}/repositories" ]
+   then
+      redirect_exekutor "${dst}/required" names_from_repository_file "${dst}/repositories"
+   fi
 }
 
 
@@ -175,6 +190,8 @@ _bootstrap_auto_create()
    then
       _bootstrap_auto_copy "${dst}" "${src}" "NO"
    fi
+
+   _bootstrap_create_required_if_needed "${dst}"
 }
 
 
@@ -210,25 +227,6 @@ _bootstrap_merge_expanded_settings_in_front()
    _merge_settings_in_front "${settings1}" "${settings2}"
 }
 
-
-_bootstrap_merge_repository_files()
-{
-   local srcfile="$1"
-   local dstfile="$2"
-   local delete_dstdir="${3:-NO}"
-
-   log_fluff "Copying expanded \"repositories\" from \"${srcfile}\""
-
-   local contents
-   local additions
-
-   contents="`cat "${dstfile}" 2> /dev/null || :`"
-   additions="`read_repository_file "${srcfile}" "${delete_dstdir}"`" || fail "read"
-   additions="`echo "${additions}"| sed 's/;*$//'`"
-   additions="`merge_repository_contents "${contents}" "${additions}"`"
-
-   redirect_exekutor "${dstfile}" echo "${additions}"
-}
 
 
 #
@@ -280,7 +278,7 @@ _bootstrap_auto_merge_root_settings()
          ;;
 
          "repositories")
-            _bootstrap_merge_repository_files "${srcfile}" "${dstfile}" "YES"
+            merge_repository_files "${srcfile}" "${dstfile}" "YES"
             continue
          ;;
       esac
@@ -308,9 +306,8 @@ _bootstrap_auto_merge_root_settings()
       fi
    done
 
-   IFS="${DEFAULT_IFS}"
+   _bootstrap_create_required_if_needed "${dst}"
 }
-
 
 
 _bootstrap_auto_special_copy()
@@ -339,7 +336,7 @@ _bootstrap_auto_special_copy()
    (
       STASHES_DEFAULT_DIR=""
       STASHES_ROOT_DIR="${directory}"
-      _bootstrap_merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+      merge_repository_files "${filepath}" "${dstfilepath}" "NO"
    )
 }
 
@@ -536,6 +533,7 @@ bootstrap_auto_final()
    fi
 
    order=""
+   missing="`read_setting "${REPOS_DIR}/.missing"`"
 
    IFS="
 "
@@ -544,7 +542,14 @@ bootstrap_auto_final()
       IFS="${DEFAULT_IFS}"
 
       parse_clone "${clone}"
-      order="`add_line "${order}" "${name}"`"
+
+      #
+      # don't build optional missing stuff
+      #
+      if ! echo "${missing}" | fgrep -s -x -q "${name}"
+      then
+         order="`add_line "${order}" "${name}"`"
+      fi
    done
 
    IFS="${DEFAULT_IFS}"

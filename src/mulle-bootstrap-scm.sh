@@ -234,14 +234,20 @@ _git_clone()
 
    if [ ! -d "${dstdir}" ]
    then
-      exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${dstdir}"  >&2 \
-         || fail "git clone of \"${url}\" into \"${dstdir}\" failed"
+      if ! exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${dstdir}" >&2
+      then
+         log_error "git clone of \"${url}\" into \"${dstdir}\" failed"
+         return 1
+      fi
    fi
 
    if [ ! -z "${CLONE_CACHE}" -a "${stashdir}" != "${CLONE_CACHE}" ]
    then
-      exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${dstdir}" "${stashdir}"  >&2 \
-      || fail "git clone of \"${dstdir}\" into \"${stashdir}\" failed"
+      if ! exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${dstdir}" "${stashdir}"  >&2
+      then
+         log_error "git clone of \"${dstdir}\" into \"${stashdir}\" failed"
+         return 1
+      fi
    fi
 
    if [ ! -z "${tag}" ]
@@ -365,8 +371,11 @@ svn_checkout()
       fi
    fi
 
-   exekutor svn checkout ${options} ${SVNOPTIONS} "${url}" "${stashdir}"  >&2 \
-     || fail "svn clone of \"${url}\" into \"${stashdir}\" failed"
+   if ! exekutor svn checkout ${options} ${SVNOPTIONS} "${url}" "${stashdir}"  >&2
+   then
+      log_error "svn clone of \"${url}\" into \"${stashdir}\" failed"
+      return 1
+   fi
 }
 
 
@@ -721,17 +730,17 @@ tar_unpack()
    esac
 
    rmdir_safer "${name}.tmp"
-   tmpdir="`exekutor mktemp -d "${name}.tmp"`" || exit 1
+   tmpdir="`exekutor mktemp -d "${name}.tmp"`" || return 1
    (
-      exekutor cd "${tmpdir}" || exit 1
+      exekutor cd "${tmpdir}" || return 1
 
-      _tar_download "${download}" || exit 1
+      _tar_download "${download}" || return 1
 
       case "${url}" in
          *.zip)
-            exekutor unzip "${download}" || exit 1
+            exekutor unzip "${download}" || return 1
             archive="`basename "${download}" .zip`"
-            exekutor rm "${download}" || exit 1
+            exekutor rm "${download}" || return 1
          ;;
       esac
 
@@ -758,9 +767,9 @@ tar_unpack()
 
       log_verbose "Extracting ${C_MAGENTA}${C_BOLD}${archive}${C_INFO} ..."
 
-      exekutor tar xf ${TAROPTIONS} ${options} "${archive}" || exit 1
-      exekutor rm "${archive}" || exit 1
-   ) || exit 1
+      exekutor tar xf ${TAROPTIONS} ${options} "${archive}" || return 1
+      exekutor rm "${archive}"
+   ) || return 1
 
    _move_stuff "${tmpdir}" "${stashdir}" "${archivename}" "${name}"
 }
@@ -788,18 +797,18 @@ zip_unpack()
    rmdir_safer "${name}.tmp"
    tmpdir="`exekutor mktemp -d "${name}.tmp"`" || exit 1
    (
-      exekutor cd "${tmpdir}" || exit 1
+      exekutor cd "${tmpdir}" || return 1
 
       log_info "Downloading ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
 
-      exekutor curl -O -L ${CURLOPTIONS} "${url}" || exit 1
-      _validate_download "${download}" "${SCM_OPTIONS}" || exit 1
+      exekutor curl -O -L ${CURLOPTIONS} "${url}" || return 1
+      _validate_download "${download}" "${SCM_OPTIONS}" || return 1
 
       log_verbose "Extracting ${C_MAGENTA}${C_BOLD}${download}${C_INFO} ..."
 
-      exekutor unzip "${download}" || exit 1
-      exekutor rm "${download}" || exit 1
-   ) || exit 1
+      exekutor unzip "${download}" || return 1
+      exekutor rm "${download}"
+   ) || return 1
 
    _move_stuff "${tmpdir}" "${stashdir}" "${archivename}" "${name}"
 }
