@@ -147,7 +147,7 @@ parentclone_of_repository()
 
 all_repository_names()
 {
-   ls -1 "${REPOS_DIR}/" 2> /dev/null
+   ( cd "${REPOS_DIR}" ; ls -1 ) 2> /dev/null
 }
 
 
@@ -166,6 +166,7 @@ _all_repository_stashes()
    do
       IFS="${DEFAULT_IFS}"
 
+      # somewhat a hack, since name is actually a subpath
       stash="`stash_of_repository "${reposdir}" "${name}"`"
       if [ ! -z "${stash}" ]
       then
@@ -180,6 +181,41 @@ _all_repository_stashes()
 }
 
 
+_all_deep_embedded_repository_stashes()
+{
+   local reposdir="$1"
+
+   [ -z "${reposdir}" ] && internal_fail "repos is empty"
+
+   local name
+   local stash
+   local deep
+
+   IFS="
+"
+   for deep in `ls -1d "${reposdir}/.deep"/*.d 2> /dev/null`
+   do
+      for name in `ls -1 "${reposdir}/${deep}"/* 2> /dev/null`
+      do
+         IFS="${DEFAULT_IFS}"
+
+         # somewhat a hack, since name is actually a subpath
+         stash="`stash_of_repository "${reposdir}" "${name}"`"
+         if [ ! -z "${stash}" ]
+         then
+           if [ -d "${stash}" ]
+           then
+              echo "${stash}"
+           fi
+         fi
+      done
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+
 all_repository_stashes()
 {
    _all_repository_stashes "${REPOS_DIR}"
@@ -189,6 +225,12 @@ all_repository_stashes()
 all_embedded_repository_stashes()
 {
    _all_repository_stashes "${EMBEDDED_REPOS_DIR}"
+}
+
+
+all_deep_embedded_repository_stashes()
+{
+   _all_deep_embedded_repository_stashes "${REPOS_DIR}"
 }
 
 

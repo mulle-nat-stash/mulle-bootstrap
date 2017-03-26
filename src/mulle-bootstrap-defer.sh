@@ -51,7 +51,7 @@ usage:
    mulle-bootstrap defer
 
    Share and defer builds to master. The master will be used
-   to fetch dependencies and build them. Use mulle-bootstrap flags
+   to fetch dependencies and build them. Use mulle-bootstrap paths
    to get paths to addictions and dependencies.
 EOF
   exit 1

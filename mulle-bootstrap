@@ -30,7 +30,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=0
-MULLE_EXECUTABLE_VERSION_PATCH=1
+MULLE_EXECUTABLE_VERSION_PATCH=2
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -71,7 +71,7 @@ EOF
    clean         : cleans mulle-bootstrap produced files.
    defer         : join a master mulle-bootstrap project
    emancipate    : emancipate from a master mulle-bootstrap project
-   flags         : produces CFLAGS for cc invocation and more
+   paths         : get include and library paths
    init          : initializes a bootstrap project
    update        : updates repositories (fetch).
    upgrade       : updates and checks out repositories (pull).
@@ -347,6 +347,9 @@ bootstrap_main()
 
    #
    # some commands only run when we have a .bootstrap folder
+   # we do it somewhat like git, and progress up the directory
+   # hierarchy until we find a .bootstrap or .bootstrap.local folder
+   # this is useful for `mulle-bootstrap paths` (with absolute paths)
    #
    command="${1:-bootstrap}"
 
@@ -356,37 +359,47 @@ bootstrap_main()
       set_build_needed
    fi
 
-   if ! is_bootstrap_project
+   local previous
+
+   case "${command}" in
+      -h|--help|init|help)
+      ;;
+
+      *)
+         local  orgpwd
+
+         orgpwd="$PWD"
+
+         while ! is_bootstrap_project
+         do
+            local old
+
+            old="$PWD"
+            cd ..
+
+            if [ "$PWD" = "${old}" ]
+            then
+               fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($orgpwd), can't continue"
+            fi
+         done
+      ;;
+   esac
+
+   if bootstrap_should_defer_to_master "$@"
    then
-      case "$1" in
-         -h|--help)
+      return 1
+   fi
+
+   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
+   then
+      case "${command}" in
+         clean|dist-clean|init|status|show|config|setting)
          ;;
 
          *)
-            case "${command}" in
-               bootstrap|build|clean|defer|dist|dist-clean|emancipate|fetch|install|syteminstall|upgrade|update|setup-xcode|show|status|tag|xcode)
-                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here (${C_RESET_BOLD}$PWD${C_ERROR})"
-               ;;
-            esac
+            bootstrap_ensure_consistency
          ;;
       esac
-   else
-      if bootstrap_should_defer_to_master "$@"
-      then
-         return 1
-      fi
-
-      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
-      then
-         case "${command}" in
-            clean|dist-clean|init|status|show|config|setting)
-            ;;
-
-            *)
-               bootstrap_ensure_consistency
-            ;;
-         esac
-      fi
    fi
 
    MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_EXECUTABLE} ${command}"
@@ -441,10 +454,10 @@ bootstrap_main()
          expansion_main "$@" || exit 1
       ;;
 
-      flags)
-         . mulle-bootstrap-flags.sh
+      paths)
+         . mulle-bootstrap-paths.sh
 
-         flags_main "$@" || exit 1
+         paths_main "$@" || exit 1
       ;;
 
       git)

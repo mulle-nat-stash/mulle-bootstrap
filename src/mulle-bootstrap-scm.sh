@@ -516,13 +516,65 @@ append_dir_to_gitignore_if_needed()
 }
 
 
+#
+# will this run over embedded too ?
+#
+_run_git_on_stash()
+{
+   local i="$1" ; shift
+
+   if [ -d "${i}/.git" -o -d "${i}/refs" ]
+   then
+      log_info "### $i:"
+      (
+         cd "$i" ;
+         exekutor git ${GITFLAGS} "$@" ${GITOPTIONS}  >&2
+      ) || fail "git failed"
+      log_info
+   fi
+}
+
+
+#
+# todo: let user select what repositories are affected
+#
+run_git()
+{
+   local i
+
+   IFS="
+"
+   for i in `all_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _run_git_on_stash "$i" "$@"
+   done
+
+   for i in `all_embedded_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _run_git_on_stash "$i" "$@"
+   done
+
+   for i in `all_deep_embedded_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _run_git_on_stash "$i" "$@"
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
 git_main()
 {
    log_debug "::: git :::"
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]           && . mulle-bootstrap-scripts.sh
-
 
    while :
    do
@@ -543,31 +595,6 @@ git_main()
    fi
 
    run_git "$@"
-}
-
-
-run_git()
-{
-   local i
-
-   IFS="
-"
-   for i in `all_repository_directories_from_repos`
-   do
-      IFS="${DEFAULT_IFS}"
-
-      if [ -d "${i}/.git" -o -d "${i}/refs" ]
-      then
-         log_info "### $i:"
-         (
-            cd "$i" ;
-            exekutor git ${GITFLAGS} "$@" ${GITOPTIONS}  >&2
-         ) || fail "git failed"
-         log_info
-      fi
-   done
-
-   IFS="${DEFAULT_IFS}"
 }
 
 

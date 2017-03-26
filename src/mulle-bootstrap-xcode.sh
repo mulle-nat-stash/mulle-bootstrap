@@ -250,8 +250,8 @@ Release"
    local framework_search_paths
 
    # grab values from master if needed
-   DEPENDENCIES_DIR="`mulle-bootstrap flags dependencies`"
-   ADDICTIONS_DIR="`mulle-bootstrap flags addictions`"
+   DEPENDENCIES_DIR="`mulle-bootstrap paths dependencies`"
+   ADDICTIONS_DIR="`mulle-bootstrap paths addictions`"
 
    relpath="`symlink_relpath "${DEPENDENCIES_DIR}" "${projectdir}"`"
    dependencies_dir='$(PROJECT_DIR)'/"${relpath}"

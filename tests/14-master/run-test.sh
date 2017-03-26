@@ -82,7 +82,7 @@ test_a()
 
    (
       cd master/a ;
-      run_mulle_bootstrap "$@" flags -m
+      run_mulle_bootstrap "$@" paths -m
    )
 
    (

@@ -28,13 +28,13 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
-MULLE_BOOTSTRAP_FLAGS_SH="included"
+MULLE_BOOTSTRAP_PATHS_SH="included"
 
-flags_usage()
+paths_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap flags [options] <type>
+   mulle-bootstrap paths [options] <type>
 
    Options:
       -1             : output is a one-liner
@@ -42,7 +42,7 @@ usage:
       -l             : emit link directives for libraries
       -f             : emit link directives for Frameworks
 
-   Output flags for various tool types. You can specify multiple types.
+   Output paths for various tool types. You can specify multiple types.
 
    Types:
       addictions     : output "addictions" path
@@ -468,7 +468,7 @@ _flags_do_environment()
 }
 
 
-flags_main()
+paths_main()
 {
    local types
    local separator
@@ -487,7 +487,7 @@ flags_main()
    local OPTION_WITH_MISSING_PATHS="NO"
    local OPTION_PATH_SEPARATOR=":"
 
-   log_debug ":flags_main:"
+   log_debug ":paths_main:"
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
@@ -513,7 +513,7 @@ flags_main()
    do
       case "$1" in
          -h|-help|--help)
-            flags_usage
+            paths_usage
          ;;
 
          -1|--one-line)
@@ -571,7 +571,7 @@ flags_main()
 
          -*)
             log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
-            flags_usage
+            paths_usage
          ;;
 
          *)
@@ -637,7 +637,7 @@ flags_main()
 
          *)
             log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown type \"$type\""
-            flags_usage
+            paths_usage
          ;;
       esac
 

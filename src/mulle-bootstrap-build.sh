@@ -74,7 +74,7 @@ EOF
 
    local  repositories
 
-   repositories="`all_repository_directories_from_repos`"
+   repositories="`all_repository_stashes`"
    if [ -z "${repositories}" ]
    then
       echo "Currently available repositories are:"
@@ -2400,7 +2400,7 @@ build_main()
       exekutor chmod -R u+w "${DEPENDENCIES_DIR}"
       if have_tars
       then
-         log_warning "Tars have not been installed, as \"${DEPENDENCIES_DIR}\" already exists."
+         log_verbose "Tars have not been installed, as \"${DEPENDENCIES_DIR}\" already exists."
       fi
    else
       install_tars "$@"

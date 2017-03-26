@@ -100,6 +100,17 @@ git_must_be_clean()
 }
 
 
+_ensure_repos_clean()
+{
+   local i="$1" ; shift
+
+   # only tag what looks like a git repo
+   if [ -d "${i}/.git" -o -d "${i}/refs" ]
+   then
+      (cd "${i}" ; git_must_be_clean "${i}" ) || exit 1
+   fi
+}
+
 ensure_repos_clean()
 {
    #
@@ -110,25 +121,48 @@ ensure_repos_clean()
 
    IFS="
 "
-   for i in `all_repository_directories_from_repos`
+   for i in `all_repository_stashes`
    do
       IFS="${DEFAULT_IFS}"
 
-      # only tag what looks like a git repo
-      if [ -d "${i}/.git" -o -d "${i}/refs" ]
-      then
-         (cd "${i}" ; git_must_be_clean "${i}" ) || exit 1
-      fi
+      _ensure_repos_clean "$i"
    done
+
+   for i in `all_embedded_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _ensure_repos_clean "$i"
+   done
+
+   for i in `all_deep_embedded_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _ensure_repos_clean "$i"
+   done
+
    IFS="${DEFAULT_IFS}"
+}
+
+
+_ensure_tags_unknown()
+{
+   local i="$1" ; shift
+   local tag="$1" ; shift
+
+   # only tag what looks like a git repo
+   # make it scm_tag sometimes
+   if [ -d "${i}/.git" -o -d "${i}/refs" ]
+   then
+      (cd "${i}" ; git_tag_unknown "${i}" "${tag}" ) || exit 1
+   fi
 }
 
 
 ensure_tags_unknown()
 {
-   local tag
-
-   tag="$1"
+   local tag="$1"
 
    #
    # Make sure that tagging is OK
@@ -138,19 +172,48 @@ ensure_tags_unknown()
 
    IFS="
 "
-   for i in `all_repository_directories_from_repos`
+   for i in `all_repository_stashes`
    do
       IFS="${DEFAULT_IFS}"
 
-      # only tag what looks like a git repo
-      # make it scm_tag sometimes
-      if [ -d "${i}/.git" -o -d "${i}/refs" ]
-      then
-         (cd "${i}" ; git_tag_unknown "${i}" "${tag}" ) || exit 1
-      fi
+      _ensure_tags_unknown "$i" "${tag}"
+   done
+
+   for i in `all_embedded_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _ensure_tags_unknown "$i" "${tag}"
+   done
+
+   for i in `all_deep_embedded_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _ensure_tags_unknown "$i" "${tag}"
    done
 
    IFS="${DEFAULT_IFS}"
+}
+
+
+_tag()
+{
+   local i="$1" ; shift
+   local tag="$1" ; shift
+
+   if [ -d "${i}/.git" -o -d "${i}/refs" ]
+   then
+      name="`basename -- "${i}"`"
+      if [ -z "${tag}" ]
+      then
+         log_info "### ${name}:"
+         (cd "$i" ; exekutor git ${GITFLAGS} tag ${GITOPTIONS} "$@" ) || fail "tag failed"
+      else
+         log_info "Tagging \"${name}\" with \"${tag}\""
+         (cd "$i" ; exekutor git ${GITFLAGS} tag ${GITOPTIONS} "$@" "${tag}" ) || fail "tag failed"
+      fi
+   fi
 }
 
 
@@ -166,22 +229,25 @@ tag()
 
    IFS="
 "
-   for i in `all_repository_directories_from_repos`
+   for i in `all_repository_stashes`
    do
       IFS="${DEFAULT_IFS}"
 
-      if [ -d "${i}/.git" -o -d "${i}/refs" ]
-      then
-         name="`basename -- "${i}"`"
-         if [ -z "${tag}" ]
-         then
-            log_info "### ${name}:"
-            (cd "$i" ; exekutor git ${GITFLAGS} tag ${GITOPTIONS} "$@" ) || fail "tag failed"
-         else
-            log_info "Tagging \"${name}\" with \"${tag}\""
-            (cd "$i" ; exekutor git ${GITFLAGS} tag ${GITOPTIONS} "$@" "${tag}" ) || fail "tag failed"
-         fi
-      fi
+      _tag "$i" "${tag}"
+   done
+
+   for i in `all_embedded_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _tag "$i" "${tag}"
+   done
+
+   for i in `all_deep_embedded_repository_stashes`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      _tag "$i" "${tag}"
    done
 
    IFS="${DEFAULT_IFS}"
