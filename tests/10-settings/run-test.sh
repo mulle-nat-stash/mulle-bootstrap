@@ -145,6 +145,7 @@ b.build
 build_order
 c.build
 repositories
+required
 a/.bootstrap.auto/b.build:
 b
 bin
@@ -167,7 +168,7 @@ c
 EOF
 
 diff "${expect}" "${result}"
-[ $? -ne 0 ] && fail "unexpected result"
+[ $? -ne 0 ] && fail "unexpected result \"${result}\""
 
 rm -rf a b c
 

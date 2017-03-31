@@ -57,12 +57,12 @@ bootstrap_setup_trace()
       FLUFF)
          MULLE_FLAG_LOG_FLUFF="YES"
          MULLE_FLAG_LOG_VERBOSE="YES"
-         MULLE_FLAG_LOG_EXECUTOR="YES"
+         MULLE_FLAG_LOG_EXEKUTOR="YES"
       ;;
 
       TRACE)
          MULLE_FLAG_LOG_SETTINGS="YES"
-         MULLE_FLAG_LOG_EXECUTOR="YES"
+         MULLE_FLAG_LOG_EXEKUTOR="YES"
          MULLE_FLAG_LOG_FLUFF="YES"
          MULLE_FLAG_LOG_VERBOSE="YES"
          bootstrap_dump_env
@@ -113,7 +113,7 @@ bootstrap_technical_flags()
 {
    case "$1" in
       -n|--dry-run)
-         MULLE_FLAG_EXECUTOR_DRY_RUN="YES"
+         MULLE_FLAG_EXEKUTOR_DRY_RUN="YES"
       ;;
 
       -lc|--log-cache)
@@ -125,7 +125,7 @@ bootstrap_technical_flags()
       ;;
 
       -le|--log-execution)
-         MULLE_FLAG_LOG_EXECUTOR="YES"
+         MULLE_FLAG_LOG_EXEKUTOR="YES"
       ;;
 
       -lm|--log-merge)
@@ -831,7 +831,7 @@ local_environment_main()
    log_debug ":local_environment_main:"
    # source_environment
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" = "YES" ]
    then
       log_trace "Dry run is active."
    fi

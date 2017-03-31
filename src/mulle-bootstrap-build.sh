@@ -962,7 +962,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          logfile1="`tty`"
          logfile2="$logfile1"
       fi
-      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
+      if [ "$MULLE_FLAG_EXEKUTOR_DRY_RUN" = "YES" ]
       then
          logfile1="/dev/null"
          logfile2="/dev/null"
@@ -1208,7 +1208,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          logfile1="`tty`"
          logfile2="$logfile1"
       fi
-      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
+      if [ "$MULLE_FLAG_EXEKUTOR_DRY_RUN" = "YES" ]
       then
          logfile1="/dev/null"
          logfile2="/dev/null"
@@ -1509,7 +1509,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local owd
    local command
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" = "YES" ]
    then
       command=-showBuildSettings
    else
@@ -1599,7 +1599,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       then
          logfile="`tty`"
       fi
-      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
+      if [ "$MULLE_FLAG_EXEKUTOR_DRY_RUN" = "YES" ]
       then
          logfile="/dev/null"
       fi
@@ -1817,7 +1817,7 @@ build_script()
       then
          logfile="`tty`"
       fi
-      if [ "$MULLE_FLAG_EXECUTOR_DRY_RUN" = "YES" ]
+      if [ "$MULLE_FLAG_EXEKUTOR_DRY_RUN" = "YES" ]
       then
          logfile="/dev/null"
       fi

@@ -580,27 +580,7 @@ clone_or_symlink()
                        "${tag}" \
                        "${stashdir}"
    then
-      #
-      # check if clone is an optional install component
-      # it is if it doesn't show up in "required"
-      # required is built by mulle-bootstrap usually
-      # you specify optionals, by specifying the required
-      # clones and leaving the optional out
-      #
-      local required
-
-      required="`read_root_setting "required"`"
-      [ -z "${required}" ] && internal_fail "required missing"
-
-      if ! echo "${required}" | fgrep -s -q -x "${name}" > /dev/null
-      then
-         log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is missing, but it's not required."
-
-         merge_line_into_file "${REPOS_DIR}/.missing" "${name}"
-         return 1  # means just skip
-      fi
-
-      return  # means exit
+      return 1
    fi
 
    if [ "${DONT_WARN_SCRIPTS}" != "YES" ]
@@ -1092,7 +1072,8 @@ work_clones()
 {
    local reposdir="$1"
    local clones="$2"
-   local autoupdate="$3"
+   local required_clones="$3"
+   local autoupdate="$4"
 
    local clone
    local name
@@ -1177,6 +1158,9 @@ work_clones()
 
          log_debug "${C_INFO}Actions for \"${name}\": ${actionitems:-none}"
 
+         local skip
+
+         skip="NO"
          IFS="
 "
          for item in ${actionitems}
@@ -1207,16 +1191,28 @@ work_clones()
 
                   case "$?" in
                      1)
-                        # skipped
-                        continue
+                        #
+                        # check if clone is an optional install component
+                        # it is if it doesn't show up in "required"
+                        # required is built by mulle-bootstrap usually
+                        # you specify optionals, by specifying the required
+                        # clones and leaving the optional out
+                        #
+                        if ! echo "${required_clones}" | fgrep -s -q -x "${name}" > /dev/null
+                        then
+                           log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is missing, but it's not required."
+
+                           merge_line_into_file "${REPOS_DIR}/.missing" "${name}"
+                           skip="YES"
+                           continue
+                        fi
+
+                        exit 1  # means exit
                      ;;
+
                      2)
                         # if we used a symlink, we want to memorize that
                         scm="symlink"
-                     ;;
-
-                     3)
-                        exit 1
                      ;;
                   esac
                ;;
@@ -1284,6 +1280,11 @@ work_clones()
          clone="`echo "${url};${dstdir};${branch};${scm};${tag}" | sed 's/;*$//'`"
       fi
 
+      if [ "${skip}" = "YES" ]
+      then
+         continue
+      fi
+
       #
       # always remember, what we have now (except if its a minion)
       #
@@ -1317,9 +1318,11 @@ fetch_once_embedded_repositories()
       OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
 
       local clones
+      local required_clones
 
       clones="`read_root_setting "embedded_repositories"`" ;
-      work_clones "${EMBEDDED_REPOS_DIR}" "${clones}" "NO"
+      required_clones="`read_root_setting "embedded_required"`" ;
+      work_clones "${EMBEDDED_REPOS_DIR}" "${clones}" "${required_clones}" "NO"
    ) || exit 1
 }
 
@@ -1370,9 +1373,11 @@ fetch_once_minions_embedded_repositories()
          OPTION_ALLOW_CREATING_SYMLINKS="${OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS}" ;
 
          local clones
+         local required_clones
 
          clones="`read_setting "${autodir}/embedded_repositories"`" ;
-         work_clones "${reposdir}" "${clones}" "NO"
+         required_clones="`read_setting "${autodir}/embedded_required"`" ;
+         work_clones "${reposdir}" "${clones}" "${required_clones}" "NO"
       ) || exit 1
    done
 
@@ -1409,10 +1414,12 @@ _fetch_once_deep_embedded_repository()
       PARENT_CLONE="${clone}"
 
       local clones
+      local required_clones
 
       # ugliness
       clones="`read_setting "${autodir}/embedded_repositories"`" ;
-      work_clones "${reposdir}" "${clones}" "NO"
+      required_clones="`read_setting "${autodir}/embedded_required"`" ;
+      work_clones "${reposdir}" "${clones}" "${required_clones}" "NO"
    ) || exit 1
 }
 
@@ -1445,6 +1452,7 @@ fetch_loop_repositories()
    local loops
    local before
    local after
+   local required
 
    log_debug "fetch_loop_repositories"
 
@@ -1477,7 +1485,8 @@ fetch_loop_repositories()
 
       __REFRESHED__=""
 
-      work_clones "${REPOS_DIR}" "${before}" "YES"
+      required="`read_root_setting "required"`"
+      work_clones "${REPOS_DIR}" "${before}" "${required}" "YES"
 
       __IGNORE__="`add_line "${__IGNORE__}" "${__REFRESHED__}"`"
 

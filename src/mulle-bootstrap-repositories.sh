@@ -888,7 +888,7 @@ names_from_repository_file()
    local scm
    local tag
 
-   clones="`read_setting "${dst}/repositories"`"
+   clones="`read_setting "${filename}"`"
 
    IFS="
 "

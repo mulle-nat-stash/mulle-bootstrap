@@ -195,6 +195,8 @@ _git_clone()
    [ ! -z "${url}" ]      || internal_fail "url is empty"
    [ ! -z "${stashdir}" ] || internal_fail "stashdir is empty"
 
+   [ -e "${stashdir}" ] && internal_fail "${stashdir} already exists"
+
    local options
 
    options="$*"
@@ -218,8 +220,20 @@ _git_clone()
       *:*)
          if [ ! -z "${CLONE_CACHE}" ]
          then
+            local cachedir
+
             mkdir_if_missing "${CLONE_CACHE}"
-            dstdir="${CLONE_CACHE}/`basename ${url}`" # try to keep it global
+            cachedir="${CLONE_CACHE}/`basename ${url}`" # try to keep it global
+
+            if [ ! -d "${cachedir}" ]
+            then
+               if ! exekutor git ${GITFLAGS} clone --bare ${options} ${GITOPTIONS} -- "${url}" "${cachedir}" >&2
+               then
+                  log_error "git clone of \"${url}\" into \"${cachedir}\" failed"
+                  return 1
+               fi
+            fi
+            url="${cachedir}"
          fi
       ;;
    esac
@@ -232,22 +246,18 @@ _git_clone()
 #    parent="`dirname -- "${stashdir}"`"
 #   mkdir_if_missing "${parent}"
 
-   if [ ! -d "${dstdir}" ]
+   if [ "${stashdir}" = "${url}" ]
    then
-      if ! exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${dstdir}" >&2
-      then
-         log_error "git clone of \"${url}\" into \"${dstdir}\" failed"
-         return 1
-      fi
+      # since we know that stash dir does not exist, this
+      # message is a bit less confusing
+      log_error "Clone source \"${url}\" does not exist."
+      return 1
    fi
 
-   if [ ! -z "${CLONE_CACHE}" -a "${stashdir}" != "${CLONE_CACHE}" ]
+   if ! exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${url}" "${stashdir}"  >&2
    then
-      if ! exekutor git ${GITFLAGS} clone ${options} ${GITOPTIONS} -- "${dstdir}" "${stashdir}"  >&2
-      then
-         log_error "git clone of \"${dstdir}\" into \"${stashdir}\" failed"
-         return 1
-      fi
+      log_error "git clone of \"${url}\" into \"${stashdir}\" failed"
+      return 1
    fi
 
    if [ ! -z "${tag}" ]
@@ -588,7 +598,7 @@ git_main()
 
    if dir_has_files "${REPOS_DIR}"
    then
-      log_fluff "Will git $* clones " >&2
+      log_fluff "Will run \"git $*\" over clones" >&2
    else
       log_verbose "There is nothing to run git over."
       return 0

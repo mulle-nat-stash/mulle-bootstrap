@@ -34,7 +34,7 @@ paths_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap paths [options] <type>
+   mulle-bootstrap paths [options] <type>+
 
    Options:
       -1             : output is a one-liner
@@ -65,12 +65,14 @@ EOF
 __collect_libraries()
 {
    local i
+   local name
 
    for i in "$1/"*
    do
-      case "$i" in
-         *.a|*.so|*.dylib|*.lib)
-            echo "$i" | 's/\.[^.]*$//'
+      name="`basename "$i"`"
+      case "${name}" in
+         lib*.a|lib*.lib)
+            echo "${name}" | sed 's/\.[^.]*$//' | sed 's/^lib//'
          ;;
       esac
    done
@@ -80,12 +82,14 @@ __collect_libraries()
 __collect_frameworks()
 {
    local i
+   local name
 
    for i in "$1/"*
    do
-      case "$i" in
+      name="`basename "$i"`"
+      case "${name}" in
          *.framework)
-            echo "$i" | 's/\.[^.]*$//'
+            basename "${name}" | sed 's/\.[^.]*$//'
          ;;
       esac
    done
@@ -173,7 +177,7 @@ _flags_emit_option()
       then
          directory="`absolutepath "${directory}"`"
       fi
-      echo "${prefix}'${directory}'"
+      echo "${prefix}${OPTION_QUOTE}${directory}${OPTION_QUOTE}"
    fi
 }
 
@@ -241,7 +245,7 @@ _flags_ldflags_value()
       for i in `collect_libraries`
       do
          IFS="${DEFAULT_IFS}"
-         echo "'-l$i'"
+         echo "${OPTION_QUOTE}-l$i${OPTION_QUOTE}"
       done
       IFS="${DEFAULT_IFS}"
    fi
@@ -256,10 +260,17 @@ _flags_ldflags_value()
       for i in `collect_frameworks`
       do
          IFS="${DEFAULT_IFS}"
-         echo "-framework '$i'"
+         echo "-framework ${OPTION_QUOTE}$i${OPTION_QUOTE}"
       done
       IFS="${DEFAULT_IFS}"
    fi
+}
+
+
+_flags_cflags_value()
+{
+   _flags_cppflags_value "$@"
+   _flags_ldflags_value "$@"
 }
 
 
@@ -471,7 +482,6 @@ _flags_do_environment()
 paths_main()
 {
    local types
-   local separator
 
    # semi-local
    local OPTION_SUPPRESS_FRAMEWORK_CFLAGS="NO"
@@ -486,6 +496,8 @@ paths_main()
    local OPTION_WITH_LIBRARYPATHS="YES"
    local OPTION_WITH_MISSING_PATHS="NO"
    local OPTION_PATH_SEPARATOR=":"
+   local OPTION_QUOTE="'"
+   local OPTION_LINE_SEPERATOR="\n"
 
    log_debug ":paths_main:"
 
@@ -508,7 +520,6 @@ paths_main()
       OPTION_WITH_DEPENDENCIES="YES"
    fi
 
-   separator="\n"
    while [ $# -ne 0 ]
    do
       case "$1" in
@@ -517,7 +528,14 @@ paths_main()
          ;;
 
          -1|--one-line)
-            separator=" "
+            OPTION_LINE_SEPERATOR=" "
+         ;;
+
+         -q|--quote)
+            shift
+            [ $# -eq 0 ] && fail "quote missing"
+
+            OPTION_QUOTE="$1"
          ;;
 
          -s|--separator)
@@ -614,7 +632,7 @@ paths_main()
             result="`add_line "${result}" "${values}"`"
          ;;
 
-         "cppflags"|"ldflags"|"binpath"|"frameworkpath"|"headerpath"|"librarypath")
+         "cflags"|"cppflags"|"ldflags"|"binpath"|"frameworkpath"|"headerpath"|"librarypath")
             values="`_flags_${type}_value`"
             result="`add_line "${result}" "${values}"`"
          ;;
@@ -646,7 +664,7 @@ paths_main()
 
    if [ ! -z "${result}" ]
    then
-      if [ "${separator}" = " " ]
+      if [ "${OPTION_LINE_SEPERATOR}" = " " ]
       then
          printf "%s" "${result}" | tr '\012' ' '  | sed 's/ *$//'
          printf "\n"

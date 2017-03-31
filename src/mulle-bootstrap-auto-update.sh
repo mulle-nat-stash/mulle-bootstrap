@@ -141,14 +141,15 @@ _bootstrap_auto_copy()
 _bootstrap_create_required_if_needed()
 {
    dst="$1"
+   prefix="$2"
 
    #
    # if there is no required file add all names from repositories
    # which ought to have been expanded already
    #
-   if [ ! -f "${dst}/required" -a -f "${dst}/repositories" ]
+   if [ ! -f "${dst}/${prefix}required" -a -f "${dst}/${prefix}repositories" ]
    then
-      redirect_exekutor "${dst}/required" names_from_repository_file "${dst}/repositories"
+      redirect_exekutor "${dst}/${prefix}required" names_from_repository_file "${dst}/${prefix}repositories"
    fi
 }
 
@@ -192,6 +193,7 @@ _bootstrap_auto_create()
    fi
 
    _bootstrap_create_required_if_needed "${dst}"
+   _bootstrap_create_required_if_needed "${dst}" "embedded_"
 }
 
 
@@ -307,6 +309,7 @@ _bootstrap_auto_merge_root_settings()
    done
 
    _bootstrap_create_required_if_needed "${dst}"
+   _bootstrap_create_required_if_needed "${dst}" "embedded_"
 }
 
 
@@ -337,6 +340,7 @@ _bootstrap_auto_special_copy()
       STASHES_DEFAULT_DIR=""
       STASHES_ROOT_DIR="${directory}"
       merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+
    )
 }
 
@@ -346,6 +350,8 @@ _bootstrap_auto_embedded_copy()
    log_debug ":_bootstrap_auto_embedded_copy:"
 
    _bootstrap_auto_special_copy "embedded_repositories" "$@"
+
+   _bootstrap_create_required_if_needed "${BOOTSTRAP_DIR}.auto/.deep/${name}.d" "embedded_"
 }
 
 
@@ -551,6 +557,9 @@ bootstrap_auto_final()
          order="`add_line "${order}" "${name}"`"
       fi
    done
+
+   # get rid of temporary file now
+   remove_file_if_present "${REPOS_DIR}/.missing"
 
    IFS="${DEFAULT_IFS}"
 

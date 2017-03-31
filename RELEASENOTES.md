@@ -1,3 +1,12 @@
+### 3.1.0
+
+You can allow optional fetches to fail my listing repository-names, that
+are required. (embeded_repositories <-> embedded_required)
+Fixes some bugs.
+
+Still alpha though.
+
+
 # 3.0
 
 #### New commands: defer, emancipate, flags, status

@@ -46,7 +46,7 @@ MULLE_BOOTSTRAP_FUNCTIONS_VERSION="3.0"
 
 exekutor_trace()
 {
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXEKUTOR}" = "YES" ]
    then
       local arrow
 
@@ -59,11 +59,11 @@ exekutor_trace()
          arrow="==>"
       fi
 
-      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
+      if [ -z "${MULLE_EXEKUTOR_LOG_DEVICE}" ]
       then
          echo "${arrow}" "$@" >&2
       else
-         echo "${arrow}" "$@" > "${MULLE_EXECUTOR_LOG_DEVICE}"
+         echo "${arrow}" "$@" > "${MULLE_EXEKUTOR_LOG_DEVICE}"
       fi
    fi
 }
@@ -73,7 +73,7 @@ exekutor_trace_output()
 {
    local output="$1"; shift
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXECUTOR}" = "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXEKUTOR}" = "YES" ]
    then
       local arrow
 
@@ -86,11 +86,11 @@ exekutor_trace_output()
          arrow="==>"
       fi
 
-      if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
+      if [ -z "${MULLE_EXEKUTOR_LOG_DEVICE}" ]
       then
          echo "${arrow}" "$@" ">" "${output}" >&2
       else
-         echo "${arrow}" "$@" ">" "${output}" > "${MULLE_EXECUTOR_LOG_DEVICE}"
+         echo "${arrow}" "$@" ">" "${output}" > "${MULLE_EXEKUTOR_LOG_DEVICE}"
       fi
    fi
 }
@@ -101,7 +101,7 @@ exekutor()
 {
    exekutor_trace "$@"
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" != "YES" ]
    then
       "$@"
    fi
@@ -112,7 +112,7 @@ eval_exekutor()
 {
    exekutor_trace "$@"
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" != "YES" ]
    then
       ( eval "$@" )
    fi
@@ -125,7 +125,7 @@ redirect_exekutor()
 
    exekutor_trace_output "${output}" "$@"
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" != "YES" ]
    then
       ( "$@" ) > "${output}"
    fi
@@ -138,7 +138,7 @@ redirect_append_exekutor()
 
    exekutor_trace_output "${output}" "$@"
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" != "YES" ]
    then
       ( "$@" ) >> "${output}"
    fi
@@ -151,7 +151,7 @@ _redirect_append_eval_exekutor()
 
    exekutor_trace_output "${output}" "$@"
 
-   if [ "${MULLE_FLAG_EXECUTOR_DRY_RUN}" != "YES" ]
+   if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" != "YES" ]
    then
       ( eval "$@" ) >> "${output}"
    fi

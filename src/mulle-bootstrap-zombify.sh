@@ -119,6 +119,13 @@ bury_stash()
 
    gravepath="${reposdir}/.graveyard/${name}"
 
+   if [ -L "${stashdir}" ]
+   then
+      log_verbose "Removing old symlink \"${stashdir}\""
+      exekutor rm -f ${COPYMOVEFLAGS} "${stashdir}" >&2
+      return
+   fi
+
    if [ -e "${gravepath}" ]
    then
       log_fluff "Repurposing old grave \"${gravepath}\""

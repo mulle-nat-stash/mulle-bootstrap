@@ -40,11 +40,11 @@ MULLE_BOOTSTRAP_LOGGING_VERSION="3.0"
 #
 log_printf()
 {
-   if [ -z "${MULLE_EXECUTOR_LOG_DEVICE}" ]
+   if [ -z "${MULLE_EXEKUTOR_LOG_DEVICE}" ]
    then
       printf "$@" >&2
    else
-      printf "$@" > "${MULLE_EXECUTOR_LOG_DEVICE}"
+      printf "$@" > "${MULLE_EXEKUTOR_LOG_DEVICE}"
    fi
 }
 
