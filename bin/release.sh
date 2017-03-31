@@ -57,7 +57,7 @@ devbranch="`git rev-parse --abbrev-ref HEAD`"
 (
 	cd ../homebrew-$TAP ; \
    git add mulle-bootstrap.rb ; \
- 	git commit -m "${TAG} release of mulle-bootstrap" mulle-bootstrap.rb ; \
+ 	git commit -m "${TAG} ${BRANCH} of mulle-bootstrap" mulle-bootstrap.rb ; \
  	git push origin master
 )
 

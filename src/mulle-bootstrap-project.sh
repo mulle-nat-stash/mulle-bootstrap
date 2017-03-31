@@ -173,7 +173,7 @@ master_remove_minion_bootstrap_project()
    local filepath
 
    minionpath="`symlink_relpath "${minionpath}" "${masterpath}"`"
-   unregex="`sed -e 's/[]\/()$*.^|[]/\\&/g' <<< "${minionpath}"`"
+   unregex="`echo "${minionpath}" | sed -e 's/[]\/()$*.^|[]/\\&/g'`"
    filepath="${masterpath}/${BOOTSTRAP_DIR}.local/minions"
 
    if [ -f "${filepath}" ]

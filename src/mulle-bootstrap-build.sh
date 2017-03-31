@@ -759,7 +759,7 @@ _build_flags()
       for path in ${native_includelines}
       do
          IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
+         path="`echo "${path}" | sed 's/ /\\ /g'`"
          cppflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
       done
 
@@ -767,7 +767,7 @@ _build_flags()
       for path in ${native_librarylines}
       do
          IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
+         path="`echo "${path}" | sed 's/ /\\ /g'`"
          ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
       done
 
@@ -775,7 +775,7 @@ _build_flags()
       for path in ${native_frameworklines}
       do
          IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
+         path="`echo "${path}" | sed 's/ /\\ /g'`"
          other_cppflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
          ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
       done

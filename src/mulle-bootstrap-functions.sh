@@ -852,8 +852,8 @@ _simplified_path()
 
            if [ ! -z "${last}" -a "${last}" != ".." ]
            then
-              result="$(sed '$d' <<< "${result}")"
-              last="$(sed -n '$p' <<< "${result}")"
+              result="`echo "${result}" | sed '$d'`"
+              last="`echo "${result}" | sed -n '$p'`"
               continue
            fi
          ;;

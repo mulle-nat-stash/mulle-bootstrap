@@ -52,6 +52,13 @@ class ${PROJECT} < Formula
   version "${VERSION}"
   sha256 "${HASH}"
 
+  depends_on :git  => :run
+  depends_on :curl => :run
+  depends_on :bash => :run
+
+# we can live w/o cmake though
+  depends_on :cmake => :run
+
   def install
      system "./install.sh", "#{prefix}"
   end

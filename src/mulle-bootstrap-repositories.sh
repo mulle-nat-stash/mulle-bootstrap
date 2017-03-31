@@ -818,7 +818,7 @@ parse_raw_clone()
 
    [ -z "${clone}" ] && internal_fail "parse_raw_clone: clone is empty"
 
-   IFS=";" read -r url dstdir branch scm tag <<< "${clone}"
+   echo "${clone}" | IFS=";" read -r url dstdir branch scm tag
 }
 
 

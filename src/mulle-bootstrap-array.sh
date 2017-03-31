@@ -107,7 +107,7 @@ array_get()
 #   [ "$i" -ge "$n" ] && internal_fail "index ${i} out of bounds ${n}"
 
    ((i++))
-   sed -n "${i}p" <<< "${array}"
+   echo "${array}" | sed -n "${i}p"
 }
 
 
@@ -115,7 +115,7 @@ array_get_last()
 {
    local array="$1"
 
-   tail -1 <<< "${array}"
+   echo "${array}" | tail -1
 }
 
 
@@ -143,14 +143,14 @@ array_insert()
 
    if [ "${head_count}" -ne 0 ]
    then
-      head "-${head_count}" <<< "${array}"
+      echo "${array}" | head "-${head_count}"
    fi
 
    echo "${value}"
 
    if [ "${tail_count}" -ne 0 ]
    then
-      tail "-${tail_count}" <<< "${array}"
+      echo "${array}" | tail "-${tail_count}"
    fi
 }
 
@@ -165,7 +165,7 @@ array_remove()
 
    if [ ! -z "${array}" ]
    then
-       fgrep -v -x "${value}" <<< "${array}"
+       echo "${array}" | fgrep -v -x "${value}"
    fi
 }
 
@@ -269,7 +269,7 @@ _assoc_array_remove()
    then
 # DEBUG code
 #       key="`_assoc_array_key_check "${key}"`"
-      grep -v "^${key}=" <<< "${array}"
+      echo "${array}" | grep -v "^${key}="
    fi
 }
 
@@ -282,7 +282,8 @@ assoc_array_get()
 # DEBUG code
 #   key="`_assoc_array_key_check "${key}"`"
 
-   grep "^${key}=" <<< "${array}" \
+   echo "${array}" \
+      | grep "^${key}="  \
       | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
 
@@ -291,7 +292,8 @@ assoc_array_get_last()
 {
    local array="$1"
 
-   tail -1 <<< "${array}" \
+   echo "${array}" \
+      | tail -1  \
       | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
 
@@ -300,7 +302,7 @@ assoc_array_all_keys()
 {
    local array="$1"
 
-   sed -n 's/^\([^=]*\)=.*$/\1/p' <<< "${array}"
+   echo "${array}" | sed -n 's/^\([^=]*\)=.*$/\1/p'
 }
 
 
@@ -308,7 +310,7 @@ assoc_array_all_values()
 {
    local array="$1"
 
-   sed -n 's/^[^=]*=\(.*\)$/\1/p' <<< "${array}"
+   echo "${array}" | sed -n 's/^[^=]*=\(.*\)$/\1/p'
 }
 
 
