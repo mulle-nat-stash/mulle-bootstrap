@@ -713,7 +713,11 @@ _canonical_clone_name()
    name="`echo "${name%%.*}"`"
 
    case "${name}" in
-      .*|"")
+      "")
+         fail "clone name can't be empty"
+      ;;
+
+      .*)
          fail "clone name can't start with a '.'"
       ;;
    esac

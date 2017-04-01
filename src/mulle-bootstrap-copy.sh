@@ -34,15 +34,17 @@ MULLE_BOOTSTRAP_COPY_SH="included"
 
 tar_remove_extension()
 {
-   local ext
-
-   ext="$1"
+   local ext="$1"
 
    if [ ! -z "${ext}" ]
    then
       case "${UNAME}" in
          darwin|freebsd)
             echo "-s/\.$1\$//"
+         ;;
+
+         linux)
+            echo "--transform s/\.$1\$//"
          ;;
 
          *)
