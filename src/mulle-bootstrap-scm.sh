@@ -232,6 +232,21 @@ _git_clone()
                   log_error "git clone of \"${url}\" into \"${cachedir}\" failed"
                   return 1
                fi
+            else
+               # refetch (this shjoz)
+               local refresh_cache
+
+               refresh_cache="`read_config_setting "refresh_cache" "YES"`"
+               if [ "${refresh_cache}" = "YES" ]
+               then
+               (
+                  cd "${cachedir}";
+                  if ! exekutor git ${GITFLAGS} fetch --tags >&2
+                  then
+                     log_warning "git fetch from \"${url}\" failed, using old state"
+                  fi
+               )
+               fi
             fi
             url="${cachedir}"
          fi
