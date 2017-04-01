@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /usr/bin/env bash
 #
 #   Copyright (c) 2017 Nat! - Mulle kybernetiK
 #   All rights reserved.
@@ -87,7 +87,7 @@ _unarchive_files()
    local noclobber="$2"
 
    [ -d "${dstdir}" ] || fail "${dstdir} does not exist"
-   
+
    (
       exekutor cd "${dstdir}" ;
       if [ "${noclobber}" = "NO" ]
@@ -96,8 +96,8 @@ _unarchive_files()
       else
          exekutor tar -x ${TARFLAGS} -k -f -
       fi
-      :  # ignore trashy tar rval 
-   )  2> /dev/null 
+      :  # ignore trashy tar rval
+   )  2> /dev/null
 }
 
 

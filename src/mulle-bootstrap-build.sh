@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /usr/bin/env bash
 #
 #   Copyright (c) 2015 Nat! - Mulle kybernetiK
 #   All rights reserved.
@@ -27,6 +27,7 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+#
 MULLE_BOOTSTRAP_BUILD_SH="included"
 
 
@@ -426,210 +427,6 @@ build_log_name()
    absolutepath "${logfile}.${tool}.log"
 }
 
-
-verify_binary()
-{
-   local toolname
-   local toolfamily
-   local tooldefaultname
-
-   toolname="$1"
-   toolfamily="$2"
-   tooldefaultname="$3"
-
-   [ -z "${toolname}" ] && internal_fail "toolname for \"${toolfamily}\" is empty"
-
-   local path
-
-   path=`which_binary "${toolname}"`
-   if [ ! -z "${path}" ]
-   then
-      echo "${toolname}"
-      return 0
-   fi
-
-   #
-   # if user specified a certain tool, then it not being there is bad
-   # otherwise it's maybe OK (f.e. only using xcodebuild not cmake)
-   #
-   toolname="`extension_less_basename "${toolname}"`"
-   tooldefaultname="`extension_less_basename "${tooldefaultname}"`"
-
-   if [ "${toolname}" != "${tooldefaultname}" ]
-   then
-      fail "${toolname} not found in PATH"
-   else
-      log_fluff "${toolname} not found in PATH"
-   fi
-
-   return
-}
-
-
-assert_binary()
-{
-   local toolname
-   local toolfamily
-
-   toolname="$1"
-   toolfamily="$2"
-
-   [ -z "${toolname}" ] && internal_fail "toolname for \"${toolfamily}\" is empty"
-
-   local path
-
-   path=`which_binary "${toolname}"`
-   if [ -z "${path}" ]
-   then
-      which_binary "${toolname}"
-      fail "${toolname} is an unknown build tool (PATH=$PATH)"
-   fi
-   # echo "$path"
-}
-
-
-find_cmake()
-{
-   local name
-
-   name="$1"
-
-   local toolname
-
-   toolname=`read_build_setting "${name}" "cmake" "cmake"`
-   verify_binary "${toolname}" "cmake" "cmake"
-}
-
-
-find_make()
-{
-   local name
-
-   name="$1"
-
-   local toolname
-   local defaultname
-
-   defaultname="${2:-make}"
-   toolname=`read_build_setting "${name}" "make" "${defaultname}"`
-   verify_binary "${toolname}" "make" "${defaultname}"
-}
-
-
-find_compiler()
-{
-   local compiler_name
-   local srcdir
-   local name
-
-   name="$1"
-   srcdir="$2"
-   compiler_name="$3"
-
-   local compiler
-   local filename
-
-   compiler="`read_build_setting "${name}" "${compiler_name}"`"
-   if [ -z "${compiler}" ]
-   then
-      filename="${srcdir}/.${compiler_name}"
-      compiler="`cat "${filename}" 2>/dev/null`"
-      if [  ! -z "${compiler}" ]
-      then
-         log_verbose "Compiler ${C_RESET_BOLD}${compiler_name}${C_VERBOSE} set to ${C_MAGENTA}${C_BOLD}${compiler}${C_VERBOSE} found in \"${filename}\""
-      fi
-   fi
-
-   case "${UNAME}" in
-      mingw)
-         if [ "`read_config_setting "mangle_minwg_compiler" "YES"`" = "YES" ]
-         then
-            compiler="`mingw_mangle_compiler "${compiler}"`"
-         fi
-      ;;
-   esac
-
-   if [ ! -z "${compiler}" ]
-   then
-      assert_binary "${compiler}" "${compiler_name}"
-   fi
-   echo "`basename -- "${compiler}"`"
-}
-
-
-find_xcodebuild()
-{
-   local name
-
-   name="$1"
-
-   local toolname
-
-   toolname=`read_build_setting "${name}" "xcodebuild" "xcodebuild"`
-   verify_binary "${toolname}" "xcodebuild" "xcodebuild"
-}
-
-
-tools_environment()
-{
-   local name
-   local srcdir
-
-   name="$1"
-   srcdir="$2"
-
-   # no problem if those are empty
-   C_COMPILER="`find_compiler "${name}" "${srcdir}" CC`"
-   CXX_COMPILER="`find_compiler "${name}" "${srcdir}" CXX`"
-
-   local defaultgenerator
-   local defaultmake
-
-   case "${UNAME}" in
-      mingw)
-         case "${C_COMPILER}" in
-            ""|cl|cl.exe)
-               defaultmake="nmake"
-            ;;
-            *)
-               defaultmake="mingw32-make"
-            ;;
-         esac
-
-         MAKE="`find_make "${name}" "${defaultmake}"`"
-         case "${MAKE}" in
-            n*|N*)
-               defaultgenerator="NMake Makefiles"
-            ;;
-            mingw*|MINGW*)
-               defaultgenerator="MinGW Makefiles"
-            ;;
-            *)
-               defaultgenerator="MSYS Makefiles"
-            ;;
-         esac
-
-         CMAKE="`find_cmake "${name}"`"
-         # default use mingw32-make
-         # except if the settings specify otherwise
-      ;;
-
-      darwin)
-         XCODEBUILD="`find_xcodebuild "${name}"`"
-         defaultgenerator="Unix Makefiles"
-         MAKE="`find_make "${name}"`"
-         CMAKE="`find_cmake "${name}"`"
-      ;;
-
-      *)
-         defaultgenerator="Unix Makefiles"
-         MAKE="`find_make "${name}"`"
-         CMAKE="`find_cmake "${name}"`"
-      ;;
-   esac
-
-   CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "${defaultgenerator}"`"
-}
 
 
 _build_flags()
@@ -2372,6 +2169,7 @@ build_main()
 
    build_complete_environment
 
+   [ -z "${MULLE_BOOTSTRAP_COMMAND_SH}" ] && . mulle-bootstrap-command.sh
    [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
