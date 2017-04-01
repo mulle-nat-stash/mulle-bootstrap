@@ -1,4 +1,4 @@
-#! /usr/bin/env bash 
+#! /usr/bin/env bash
 #
 #   Copyright (c) 2017 Nat! - Mulle kybernetiK
 #   All rights reserved.
@@ -30,7 +30,7 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=1
-MULLE_EXECUTABLE_VERSION_PATCH=1
+MULLE_EXECUTABLE_VERSION_PATCH=2
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -250,37 +250,43 @@ brew_main()
    command="${1:-install}"
    [ $# -eq 0 ] || shift
 
-   if [ ! -d "${BOOTSTRAP_DIR}" -a ! -d "${BOOTSTRAP_DIR}.local" ]
-   then
-      case "$1" in
-         -h|--help)
-         ;;
 
-         *)
-            case "${command}" in
-               dist|clean|dist-clean|install|upgrade|update|setup-xcode|xcode)
-                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($PWD), can't continue"
-               ;;
-            esac
-         ;;
-      esac
-   else
-      if bootstrap_should_defer_to_master "$@"
-      then
-         return 1
-      fi
+   local previous
+
+   case "${command}" in
+      help|init|uname)
+      ;;
+
+      *)
+         local  orgpwd
+
+         orgpwd="$PWD"
+
+         while ! is_bootstrap_project
+         do
+            local old
+
+            old="$PWD"
+            cd ..
+
+            if [ "$PWD" = "${old}" ]
+            then
+               fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($orgpwd), can't continue"
+            fi
+         done
+      ;;
+   esac
+
+   if bootstrap_should_defer_to_master "$@"
+   then
+      return 1
    fi
+
 
    MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_EXECUTABLE} ${command}"
    MULLE_EXECUTABLE_OPTIONS="$@"
 
    case "${command}" in
-      build)
-         . mulle-bootstrap-build.sh
-
-         build_main "$@" || exit 1
-      ;;
-
       clean)
          . mulle-bootstrap-clean.sh
 
@@ -311,7 +317,7 @@ brew_main()
          emancipate_main "$@" || exit 1
       ;;
 
-      flags)
+      paths)
          . mulle-bootstrap-flags.sh
 
          flags_main "$@" || exit 1
