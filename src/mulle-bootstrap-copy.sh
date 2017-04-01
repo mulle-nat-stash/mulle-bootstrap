@@ -65,6 +65,7 @@ _archive_files()
 {
    local srcdir="$1"
    local ext="$2"
+   local taroptions="$3"
 
    (
       exekutor cd "${srcdir}" ;
@@ -79,18 +80,14 @@ _archive_files()
 }
 
 
-_filter_boring_tar_output()
-{
-   egrep -v 'Already exist|Error exit delayed'
-   :
-}
-
 
 _unarchive_files()
 {
    local dstdir="$1"
    local noclobber="$2"
 
+   [ -d "${dstdir}" ] || fail "${dstdir} does not exist"
+   
    (
       exekutor cd "${dstdir}" ;
       if [ "${noclobber}" = "NO" ]
@@ -98,9 +95,9 @@ _unarchive_files()
          exekutor tar -x ${TARFLAGS} -f -
       else
          exekutor tar -x ${TARFLAGS} -k -f -
-         :
-      fi 2>&1 | _filter_boring_tar_output
-   ) >&2 # 2> /dev/null   #intentional order
+      fi
+      :  # ignore trashy tar rval 
+   )  2> /dev/null 
 }
 
 
@@ -125,7 +122,7 @@ _copy_files()
    #
    # copy over files only, let tar remove extension
    #
-   _archive_files "${srcdir}" "${ext}" | _unarchive_files "${dstdir}" "${noclobber}"
+   _archive_files "${srcdir}" "${ext}" "${taroptions}" | _unarchive_files "${dstdir}" "${noclobber}"
 }
 
 

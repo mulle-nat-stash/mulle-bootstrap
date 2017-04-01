@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh -x
 
 clear_test_dirs()
 {
