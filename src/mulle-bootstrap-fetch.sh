@@ -1633,20 +1633,6 @@ _common_main()
    local DONT_WARN_SCRIPTS="NO"
 
    local ROOT_DIR="`pwd -P`"
-   local CACHES_PATH
-   local CLONE_CACHE
-
-   #
-   # where we look for symlink sources
-   # user can set also set via environment "MULLE_BOOTSTRAP_CACHES_PATH"
-   #
-   # "repository" caches can and usually are outside the project folder
-   # this can be multiple paths!
-   CACHES_PATH="`read_config_setting "caches_path" "${MULLE_BOOTSTRAP_CACHES_PATH}"`"
-
-   # stuff clones get intermediate saved too, default empty
-   CLONE_CACHE="`read_config_setting "clone_cache"`"
-   CACHES_PATH="`add_path "${CACHES_PATH}" "${CLONE_CACHE}"`"
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OVERRIDE_BRANCH="`read_config_setting "override_branch"`"

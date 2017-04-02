@@ -87,6 +87,149 @@ EOF
 
 
 
+find_cmake()
+{
+   local name="$1"
+
+   local toolname
+
+   toolname=`read_build_setting "${name}" "cmake" "cmake"`
+   verify_binary "${toolname}" "cmake" "cmake"
+}
+
+
+find_make()
+{
+   local name="$1"
+   local defaultname="${2:-make}"
+
+   local toolname
+
+   toolname=`read_build_setting "${name}" "make" "${defaultname}"`
+   verify_binary "${toolname}" "make" "${defaultname}"
+}
+
+
+
+find_xcodebuild()
+{
+   local name
+
+   name="$1"
+
+   local toolname
+
+   toolname=`read_build_setting "${name}" "xcodebuild" "xcodebuild"`
+   verify_binary "${toolname}" "xcodebuild" "xcodebuild"
+}
+
+
+find_compiler()
+{
+   local name="$1"
+   local srcdir="$2"
+   local compiler_name="$3"
+
+   local compiler
+   local filename
+
+   compiler="`read_build_setting "${name}" "${compiler_name}"`"
+   if [ -z "${compiler}" ]
+   then
+      filename="${srcdir}/.${compiler_name}"
+      compiler="`cat "${filename}" 2>/dev/null`"
+      if [  ! -z "${compiler}" ]
+      then
+         log_verbose "Compiler ${C_RESET_BOLD}${compiler_name}${C_VERBOSE} set to ${C_MAGENTA}${C_BOLD}${compiler}${C_VERBOSE} found in \"${filename}\""
+      fi
+   fi
+
+   case "${UNAME}" in
+      mingw)
+         if [ "`read_config_setting "mangle_minwg_compiler" "YES"`" = "YES" ]
+         then
+            compiler="`mingw_mangle_compiler "${compiler}"`"
+         fi
+      ;;
+   esac
+
+   if [ ! -z "${compiler}" ]
+   then
+      compiler=`which_binary "${toolname}"`
+      if [ -z "${compiler}" ]
+      then
+         suggest_binary_install "${toolname}"
+         exit 1
+      fi
+      echo "${compiler}"
+   fi
+}
+
+
+tools_environment_common()
+{
+   local name="$1"
+   local srcdir="$2"
+
+   # no problem if those are empty
+   C_COMPILER="`find_compiler "${name}" "${srcdir}" CC`"
+   CXX_COMPILER="`find_compiler "${name}" "${srcdir}" CXX`"
+}
+
+
+tools_environment_xcodebuild()
+{
+   local name="$1"
+   local srcdir="$2"
+
+   tools_environment_common "$@"
+
+   XCODEBUILD="`find_xcodebuild "${name}"`"
+}
+
+
+tools_environment_make()
+{
+   local name="$1"
+   local srcdir="$2"
+
+   tools_environment_common "$@"
+
+   local defaultmake
+
+   defaultmake="`platform_make "${C_COMPILER}"`"
+
+   case "${UNAME}" in
+      mingw)
+         MAKE="`find_make "${name}" "${defaultmake}"`"
+      ;;
+
+      darwin)
+         MAKE="`find_make "${name}"`"
+      ;;
+
+      *)
+         MAKE="`find_make "${name}"`"
+      ;;
+   esac
+}
+
+
+tools_environment_cmake()
+{
+   local name="$1"
+   local srcdir="$2"
+
+   tools_environment_make "$@"
+
+   local defaultgenerator
+
+   defaultgenerator="`platform_cmake_generator "${defaultmake}"`"
+   CMAKE="`find_cmake "${name}"`"
+   CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "${defaultgenerator}"`"
+}
+
+
 #
 # move stuff produced my cmake and configure to places
 # where we expect them. Expect  others to build to
@@ -1714,12 +1857,14 @@ build_with_configuration_sdk_preferences()
             then
                project="`(cd "${srcdir}" ; find_xcodeproj "${name}")`"
 
-               if [ ! -z "${project}" ]
+               if [ -z "${project}" ]
                then
+                  log_fluff "There is no Xcode project in \"${srcdir}\""
+               else
+                  tools_environment_xcodebuild "${name}" "${srcdir}"
+
                   build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" "${project}"  || exit 1
                   return 0
-               else
-                  log_fluff "There is no Xcode project in \"${srcdir}\""
                fi
             fi
          ;;
@@ -1736,6 +1881,8 @@ build_with_configuration_sdk_preferences()
                then
                   log_warning "Found a configure, but make is not installed"
                else
+                  tools_environment_make "${name}" "${srcdir}"
+
                   build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
                   return 0
                fi
@@ -1751,6 +1898,8 @@ build_with_configuration_sdk_preferences()
                then
                   log_warning "Found a CMakeLists.txt, but cmake is not installed"
                else
+                  tools_environment_cmake "${name}" "${srcdir}"
+
                   build_cmake "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
                   return 0
                fi
@@ -1780,10 +1929,6 @@ build()
    [ "${name}" != "${REPOS_DIR}" ] || internal_fail "missing repo argument (${srcdir})"
 
    log_verbose "Building ${name} ..."
-
-   # find make, cmake compilers for this repo
-
-   tools_environment "${name}" "${srcdir}"
 
    local preferences
 

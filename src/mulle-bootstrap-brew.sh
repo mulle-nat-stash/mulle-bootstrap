@@ -145,7 +145,7 @@ _brew_action()
 
          if [ -z "${versions}" ]
          then
-            log_fluff "brew install \"${formula}\""
+            log_info "Installing ${C_MAGENTA}${C_BOLD}${formula}${C_INFO} ..."
             exekutor "${BREW}" install "${formula}" || exit 1
 
             log_info "Force linking it, in case it was keg-only"
@@ -156,7 +156,7 @@ _brew_action()
       ;;
 
       upgrade)
-         log_fluff "brew upgrade \"${formula}\""
+         log_info "Upgrading ${C_MAGENTA}${C_BOLD}${formula}${C_INFO} ..."
          exekutor "${BREW}" upgrade "${formula}"
       ;;
    esac
@@ -214,7 +214,7 @@ _brew_install_brews()
 
    local flag
 
-   walk_brews "_brew_action" "${brewcmd}"
+   walk_brews "${brews}" _brew_action "${brewcmd}"
 }
 
 
@@ -381,6 +381,7 @@ brew_initialize()
 
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]         && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]               && . mulle-bootstrap-scm.sh
 
    BREW="${ADDICTIONS_DIR}/bin/brew"
 

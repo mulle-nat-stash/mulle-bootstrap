@@ -1,3 +1,10 @@
+### 3.2.0
+
+Do not specify cmake dependency in formula, since cmake is not
+absolutely required. Rather check this at runtime and output
+some helpful hints.
+
+
 ### 3.1.0
 
 You can allow optional fetches to fail my listing repository-names, that

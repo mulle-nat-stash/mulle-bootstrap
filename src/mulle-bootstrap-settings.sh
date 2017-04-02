@@ -1159,7 +1159,7 @@ _generic_main()
    while [ $# -ne 0 ]
    do
       case "${type}" in
-         setting|expansion)
+         setting|config|expansion)
             case "$1" in
                -g|--global)
                   OPTION_GLOBAL="YES"

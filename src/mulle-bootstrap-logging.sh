@@ -165,9 +165,15 @@ _bail()
 }
 
 
-fail()
+log_fail()
 {
    log_error "${MULLE_EXECUTABLE_FAIL_PREFIX} Error: $*"
+}
+
+
+fail()
+{
+   log_fail "$*"
    _bail
 }
 
