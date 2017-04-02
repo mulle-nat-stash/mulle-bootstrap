@@ -9,6 +9,13 @@ development environment of tools and libraries.
 
 **mulle-brew** helps you set-up and share such playgrounds.
 
+## Advantages
+
+* Keep the runtime and your system clear off temporary downloads.
+* Updating brew libraries for one project, doesn't neccessarily impact parallel projects
+* An easy way to share the required build environments
+
+
 ## How does it work ?
 
 In the simplest form, `mulle-brew` is just a simple loop over a
@@ -30,6 +37,8 @@ When you call `mulle-brew` this will setup a local brew installation in a folder
 called `addictions`. The **autoconf** binaries will appear in `addictions/bin`
 and the **libpng** library in `addictions/lib` and `addictions/include`.
 `addictions` is your playground's '/usr/local' so to speak
+
+
 
 
 ## Various Playground configurations

@@ -127,7 +127,7 @@ setup_clean_environment()
 
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
-   OUTPUT_CLEANABLE_FILES="${REPOS_DIR}/.bootstrap_build_done"
+   OUTPUT_CLEANABLE_FILES="${REPOS_DIR}/.build_done"
 
    BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
 ${DEPENDENCIES_DIR}/tmp"`"

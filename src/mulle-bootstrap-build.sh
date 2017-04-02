@@ -155,10 +155,10 @@ find_compiler()
 
    if [ ! -z "${compiler}" ]
    then
-      compiler=`which_binary "${toolname}"`
+      compiler=`which_binary "${compiler}"`
       if [ -z "${compiler}" ]
       then
-         suggest_binary_install "${toolname}"
+         suggest_binary_install "${compiler}"
          exit 1
       fi
       echo "${compiler}"
