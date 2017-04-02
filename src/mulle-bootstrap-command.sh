@@ -213,6 +213,29 @@ which_binary()
 }
 
 
+# used by test scripts outside of mulle-bootstrap
+assert_binary()
+{
+   local toolname
+   local toolfamily
+
+   toolname="$1"
+   toolfamily="$2"
+
+   [ -z "${toolname}" ] && internal_fail "toolname for \"${toolfamily}\" is empty"
+
+   local path
+
+   path=`which_binary "${toolname}"`
+   if [ -z "${path}" ]
+   then
+      which_binary "${toolname}"
+      fail "${toolname} is an unknown build tool (PATH=$PATH)"
+   fi
+   # echo "$path"
+}
+
+
 #
 # toolname : ex. mulle-clang
 # toolfamily: CC
@@ -255,3 +278,16 @@ verify_binary()
    return 1
 }
 
+
+
+#
+# command because it's like `command -v gcc`
+#
+command_initialize()
+{
+   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
+
+   log_debug ":command_initialize:"
+}
+
+command_initialize
