@@ -1862,9 +1862,13 @@ build_with_configuration_sdk_preferences()
                   log_fluff "There is no Xcode project in \"${srcdir}\""
                else
                   tools_environment_xcodebuild "${name}" "${srcdir}"
-
-                  build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" "${project}"  || exit 1
-                  return 0
+                  if [ -z "${XCODEBUILD}" ]
+                  then
+                     log_warning "Found a Xcode project, but ${C_RESET}${C_BOLD}xcodebuild${C_WARNING} is not installed"
+                  else
+                     build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" "${project}"  || exit 1
+                     return 0
+                  fi
                fi
             fi
          ;;
@@ -1877,12 +1881,12 @@ build_with_configuration_sdk_preferences()
             fi
             if [ -x "${srcdir}/configure" ]
             then
+               tools_environment_make "${name}" "${srcdir}"
+
                if [ -z "${MAKE}" ]
                then
-                  log_warning "Found a configure, but make is not installed"
+                  log_warning "Found a ./configure, but ${C_RESET}${C_BOLD}make${C_WARNING} is not installed"
                else
-                  tools_environment_make "${name}" "${srcdir}"
-
                   build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
                   return 0
                fi
@@ -1894,12 +1898,12 @@ build_with_configuration_sdk_preferences()
          cmake)
             if [ -f "${srcdir}/CMakeLists.txt" ]
             then
+               tools_environment_cmake "${name}" "${srcdir}"
+
                if [ -z "${CMAKE}" ]
                then
-                  log_warning "Found a CMakeLists.txt, but cmake is not installed"
+                  log_warning "Found a CMakeLists.txt, but ${C_RESET}${C_BOLD}cmake${C_WARNING} is not installed"
                else
-                  tools_environment_cmake "${name}" "${srcdir}"
-
                   build_cmake "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
                   return 0
                fi
