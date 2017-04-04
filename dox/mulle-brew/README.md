@@ -83,7 +83,6 @@ mulle-bootstrap emancipate
 Here the use of `mulle-brew paths` comes in handy, as it adapts to the
 new position of the `addictions` folder in the filesystem.
 
-
 ## Tips
 
 ### Keep a cache of homebrew locally

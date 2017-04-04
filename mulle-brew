@@ -344,12 +344,6 @@ brew_main()
          paths_main "$@" || exit 1
       ;;
 
-      setting)
-         . mulle-bootstrap-settings.sh
-
-         setting_main "$@" || exit 1
-      ;;
-
       show)
          . mulle-bootstrap-show.sh
 
