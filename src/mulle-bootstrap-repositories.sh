@@ -1157,12 +1157,8 @@ unique_repository_contents()
 #
 sort_repository_file()
 {
-   local clones
    local stop
-   local refreshed
    local match
-   local dependency_map
-   local clone
 
    [ -z "${MULLE_BOOTSTRAP_DEPENDENCY_RESOLVE_SH}" ] && . mulle-bootstrap-dependency-resolve.sh
 
@@ -1170,21 +1166,37 @@ sort_repository_file()
 
    log_debug ":sort_repository_file:"
 
-   refreshed=""
-   dependency_map=""
 
    #
    # read from .auto
    #
+   local clones
+   local auxclones
+
+
    clones="`read_root_setting "repositories"`"
-   if [ -z "${clones}" ]
+   auxclones="`read_root_setting "additional_repositories"`"
+
+   if [ -z "${clones}" -a -z "${auxclones}" ]
    then
       return
    fi
 
+   local refreshed
+   local dependency_map
+   local clone
+
+   refreshed=""
+   dependency_map=""
+
+   #
+   # add auxclones first, they and there dependencies will be sorted
+   # first, which is useful, because we often don't know who'se
+   # depending on them in a master situation.
+   #
    IFS="
 "
-   for clone in ${clones}
+   for clone in ${auxclones} ${clones}
    do
       IFS="${DEFAULT_IFS}"
 

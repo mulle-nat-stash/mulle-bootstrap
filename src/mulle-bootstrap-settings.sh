@@ -77,11 +77,13 @@ usage:
    mulle-bootstrap setting [options] [key][=][value]
 
    Options:
-      -a   : append value to setting
-      -d   : delete setting
-      -g   : use global .bootstrap folder instead of local
-      -p   : show current setting value
-      -r   : specify repository for build setting
+      -a              : append value to setting
+      -b <repository> : specify repository for build setting
+      -d              : delete setting
+      -g              : use global .bootstrap folder instead of local
+      -o              : use overrides settings
+      -p              : show current setting value
+      -r              : use root settings
 
    Use:
       mulle-bootstrap setting <key> to read settings
@@ -144,6 +146,7 @@ xcodebuild
 "
 
 KNOWN_ROOT_SETTING_KEYS="\
+additional_repositories
 brews
 embedded_repositories
 repositories
@@ -463,6 +466,29 @@ _read_home_setting()
 }
 
 
+
+list_build_directories()
+{
+   local directory="$1"
+
+   local filename
+   local name
+
+   IFS="
+"
+   for filename in `ls -1 "${directory}/*.build" 2> /dev/null`
+   do
+      IFS="${DEFAULT_IFS}"
+
+      name="`basename -- "${filename}" ".build"`"
+      echo "# mulle-bootstrap setting -r '${name}' -l"
+   done
+
+   IFS="${DEFAULT_IFS}"
+}
+
+
+
 list_dir_settings()
 {
    local directory="$1"
@@ -482,6 +508,7 @@ list_dir_settings()
       value="`_read_setting "${directory}/${key}"`"
       if [ ! -z "${value}" ]
       then
+         value="`escape_linefeeds "${value}"`"
          echo "${key} '${value}'"
       fi
    done
@@ -491,6 +518,7 @@ list_dir_settings()
 
 
 CONFIG_KEY_REGEXP='^[a-z_][a-z_0-9]*$'
+
 
 list_local_config_settings()
 {
@@ -882,17 +910,10 @@ ${keys3}
 #
 # setting ops
 #
-_setting_list()
-{
-   fail "Not yet implemented"
-}
-
 
 _chosen_bootstrapdir()
 {
-   local option="$1"
-
-   if [ "${option}" = "YES" ]
+   if [ "${OPTION_GLOBAL}" = "YES" ]
    then
       echo "${BOOTSTRAP_DIR}"
    else
@@ -904,29 +925,140 @@ _chosen_bootstrapdir()
 _chosen_setting_directory()
 {
    local repository="$1"
-   local option="$2"
 
    local bootstrapdir
 
-   if [ "${option}" = "YES" ]
+   if [ "${OPTION_GLOBAL}" = "YES" ]
    then
       bootstrapdir="${BOOTSTRAP_DIR}"
-      if [ ! -z "${repository}" ]
-      then
-         echo "${bootstrapdir}/${repository}.build"
-      else
-         echo "${bootstrapdir}"
-      fi
    else
       bootstrapdir="${BOOTSTRAP_DIR}.local"
-      if [ ! -z "${3}" ]
-      then
-         echo "${bootstrapdir}/${repository}.build"
-      else
-         echo "${bootstrapdir}/settings/"
-      fi
    fi
+
+   if [ ! -z "${repository}" ]
+   then
+      echo "${bootstrapdir}/${repository}.build"
+      return
+   fi
+
+   if [ "${OPTION_ROOT}" = "YES" ]
+   then
+      echo "${bootstrapdir}"
+      return
+   fi
+
+   if [ "${OPTION_OVERRIDES}" = "YES" ]
+   then
+      echo "${bootstrapdir}/overrides"
+      return
+   fi
+
+   echo "${bootstrapdir}/settings"
 }
+
+
+SETTING_KEY_REGEXP='^[a-z_][a-z_0-9]*$'
+
+
+list_local_settings()
+{
+   list_dir_settings "${BOOTSTRAP_DIR}.local" "${SETTING_KEY_REGEXP}"
+}
+
+
+list_global_settings()
+{
+   list_dir_settings "${BOOTSTRAP_DIR}" "${SETTING_KEY_REGEXP}"
+}
+
+
+_setting_list()
+{
+   local repository="$1"
+
+   if [ -z "${repository}" ]
+   then
+      log_info ".bootstrap.local ($PWD):"
+
+      list_dir_settings "${BOOTSTRAP_DIR}.local" "${SETTING_KEY_REGEXP}" | \
+                        sed "s/^/mulle-bootstrap setting -r /" | \
+                        _unescape_linefeeds
+
+      log_info ".bootstrap ($PWD):"
+      list_dir_settings "${BOOTSTRAP_DIR}" "${SETTING_KEY_REGEXP}" | \
+                        sed "s/^/mulle-bootstrap setting -r -g/" | \
+                        _unescape_linefeeds
+
+      log_info "Available repository settings:"
+      list_build_directories
+
+      return
+   fi
+
+   local directory
+
+   (
+      local OPTION_OVERRIDES
+      local OPTION_GLOBAL
+
+      #
+      # emit overrides
+      #
+      OPTION_OVERRIDES="YES"
+      OPTION_GLOBAL="NO"
+      directory="`_chosen_setting_directory`"
+      log_info "${directory} ($PWD):"
+      list_dir_settings "${directory}" "${SETTING_KEY_REGEXP}" | \
+                        sed "s/^/mulle-bootstrap setting -o /" | \
+                        _unescape_linefeeds
+
+      OPTION_GLOBAL="YES"
+      directory="`_chosen_setting_directory`"
+      log_info "${directory} ($PWD):"
+      list_dir_settings "${directory}" "${SETTING_KEY_REGEXP}" | \
+                        sed "s/^/mulle-bootstrap setting -g -o /" | \
+                        _unescape_linefeeds
+
+      #
+      # emit build directory
+      #
+      OPTION_OVERRIDES="NO"
+      OPTION_GLOBAL="NO"
+      directory="`_chosen_setting_directory "${repository}"`"
+      log_info "${directory} ($PWD):"
+      list_dir_settings "${directory}" "${SETTING_KEY_REGEXP}" | \
+                        sed "s/^/mulle-bootstrap setting -b '${repository}' /" | \
+                        _unescape_linefeeds
+
+      OPTION_GLOBAL="YES"
+      directory="`_chosen_setting_directory "${repository}"`"
+      log_info "${directory} ($PWD):"
+      list_dir_settings "${directory}" "${SETTING_KEY_REGEXP}" | \
+                        sed "s/^/mulle-bootstrap setting -g -b '${repository}' /" | \
+                        _unescape_linefeeds
+
+      #
+      # emit settings directory
+      #
+      #
+      # emit overrides
+      #
+      OPTION_GLOBAL="NO"
+      directory="`_chosen_setting_directory`"
+      log_info "${directory} ($PWD):"
+      list_dir_settings "${directory}" "${SETTING_KEY_REGEXP}" | \
+                        sed "s/^/mulle-bootstrap setting /" | \
+                        _unescape_linefeeds
+
+      OPTION_GLOBAL="YES"
+      directory="`_chosen_setting_directory`"
+      log_info "${directory} ($PWD):"
+      list_dir_settings "${directory}" "${SETTING_KEY_REGEXP}" | \
+                        sed "s/^/mulle-bootstrap setting -g /" | \
+                        _unescape_linefeeds
+   )
+}
+
 
 
 _setting_read()
@@ -939,8 +1071,8 @@ _setting_read()
 
    if [ "${OPTION_PROCESSED_READ}" = "NO" ]
    then
-      bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
-      directory="`_chosen_setting_directory "${repository}" "${OPTION_GLOBAL}"`"
+      bootstrapdir="`_chosen_bootstrapdir`"
+      directory="`_chosen_setting_directory "${repository}"`"
       _read_setting "${directory}/${name}"
 
       return
@@ -964,8 +1096,8 @@ _setting_write()
    local bootstrapdir
    local directory
 
-   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
-   directory="`_chosen_setting_directory "${repository}" "${OPTION_GLOBAL}"`"
+   bootstrapdir="`_chosen_bootstrapdir`"
+   directory="`_chosen_setting_directory "${repository}"`"
 
    mkdir_if_missing "${directory}"
 
@@ -986,8 +1118,8 @@ _setting_append()
    local bootstrapdir
    local directory
 
-   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
-   directory="`_chosen_setting_directory "${repository}" "${OPTION_GLOBAL}"`"
+   bootstrapdir="`_chosen_bootstrapdir`"
+   directory="`_chosen_setting_directory "${repository}"`"
 
    mkdir_if_missing "${directory}"
 
@@ -1001,7 +1133,7 @@ _setting_append()
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
    case "${key}" in
-      embedded_repositories|repositories)
+      embedded_repositories|repositories|additional_repositories)
          redirect_exekutor "${filename}" merge_repository_contents "${before}" "${value}"
       ;;
 
@@ -1023,8 +1155,8 @@ _setting_delete()
    local bootstrapdir
    local directory
 
-   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
-   directory="`_chosen_setting_directory "${repository}" "${OPTION_GLOBAL}"`"
+   bootstrapdir="`_chosen_bootstrapdir`"
+   directory="`_chosen_setting_directory "${repository}"`"
 
    local filename
 
@@ -1040,13 +1172,13 @@ _setting_delete()
 _config_list()
 {
    log_info "environment:"
-   list_environment_settings | sed "s/^/setenv /"
+   list_environment_settings | sed "s/^/setenv /" | _unescape_linefeeds
 
    log_info ".bootstrap.local/config ($PWD):"
-   list_local_config_settings | sed "s/^/mulle-bootstrap config /"
+   list_local_config_settings | sed "s/^/mulle-bootstrap config /" | _unescape_linefeeds
 
    log_info "~/.mulle-bootstrap:"
-   list_home_config_settings | sed "s/^/mulle-bootstrap config -h /"
+   list_home_config_settings | sed "s/^/mulle-bootstrap config -h /" | _unescape_linefeeds
 }
 
 
@@ -1116,7 +1248,7 @@ _expansion_read()
 
    if [ "${OPTION_PROCESSED_READ}" = "NO" ]
    then
-      bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+      bootstrapdir="`_chosen_bootstrapdir`"
       _read_setting "${bootstrapdir}/${key}"
 
       return
@@ -1130,7 +1262,7 @@ _expansion_write()
 {
    local bootstrapdir
 
-   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+   bootstrapdir="`_chosen_bootstrapdir`"
    mkdir_if_missing "${bootstrapdir}"
 
    redirect_exekutor "${bootstrapdir}/$1" echo "$2"
@@ -1148,7 +1280,7 @@ _expansion_delete()
 {
    local bootstrapdir
 
-   bootstrapdir="`_chosen_bootstrapdir "${OPTION_GLOBAL}"`"
+   bootstrapdir="`_chosen_bootstrapdir`"
 
    remove_file_if_present "${bootstrapdir}/$1"
    exekutor touch "${bootstrapdir}"
@@ -1172,10 +1304,10 @@ list_global_expansions()
 _expansion_list()
 {
    log_info ".bootstrap.local ($PWD):"
-   list_local_expansions | sed "s/^/mulle-bootstrap expansion /"
+   list_local_expansions | sed "s/^/mulle-bootstrap expansion /" | _unescape_linefeeds
 
    log_info ".bootstrap ($PWD):"
-   list_global_expansions | sed "s/^/mulle-bootstrap expansion -g/"
+   list_global_expansions | sed "s/^/mulle-bootstrap expansion -g/" | _unescape_linefeeds
 }
 
 
@@ -1187,8 +1319,11 @@ _generic_main()
 
    local OPTION_APPEND="NO"
    local OPTION_GLOBAL="NO"
-   local OPTION_USER="NO"
+   local OPTION_OVERRIDES="NO"
    local OPTION_PROCESSED_READ="NO"
+   local OPTION_ROOT="NO"
+   local OPTION_USER="NO"
+
    local key
    local value
    local command
@@ -1234,9 +1369,25 @@ _generic_main()
 
          setting)
             case "$1" in
-               -r|--repository)
+               -b|--build-repository-setting)
                   [ $# -ne 0 ] || fail "repository name missing"
+                  shift
                   repository="$1"
+
+                  shift
+                  continue
+               ;;
+
+               -o|--override)
+                  OPTION_OVERRIDES="YES"
+
+                  shift
+                  continue
+               ;;
+
+               -r|--root)
+                  OPTION_ROOT="YES"
+
                   shift
                   continue
                ;;
@@ -1345,17 +1496,30 @@ _generic_main()
       ${type}_usage
    fi
 
+   if [ "${OPTION_ROOT}" = "YES" -a "${OPTION_OVERRIDES}" = "YES" ]
+   then
+      fail "You can't set overrides and root at the same time"
+   fi
+   if [ "${OPTION_OVERRIDES}" = "YES" -a ! -z "${repositories}" ]
+   then
+      fail "You can't set overrides and repository at the same time"
+   fi
+   if [ "${OPTION_ROOT}" = "YES" -a ! -z "${repositories}" ]
+   then
+      fail "You can't set root and repository at the same time"
+   fi
+
    case "${command}" in
-      read)
-         _${type}_read "${key}" "${repository}"
+      delete)
+         _${type}_delete "${key}" "${repository}"
       ;;
 
       list)
          _${type}_list "${repository}"
       ;;
 
-      delete)
-         _${type}_delete "${key}" "${repository}"
+      read)
+         _${type}_read "${key}" "${repository}"
       ;;
 
       write)

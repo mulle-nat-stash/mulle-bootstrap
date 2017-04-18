@@ -3,7 +3,7 @@
 > <font color="green">**Important: Setting values are delimited by LF.**</font>
 
 1. All files in lowercase are regular settings
-2. All files in uppercase are expansion settings (somewhar like an environment variable).These are not described here.
+2. All files in uppercase are expansion settings (somewhat like an environment variable).These are not described here.
 3 Config settings are local to the system. They are not part of a
 distribution.
 

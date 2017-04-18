@@ -128,7 +128,6 @@ show_repository()
       printf "%b" "${C_BOLD}"
    fi
 
-
    if [ "${PARENT_REPOSITORY_NAME}" ]
    then
       printf "%b"  "${PARENT_REPOSITORY_NAME}/"
@@ -207,6 +206,9 @@ show_raw_repositories()
       SHOW_PREFIX="${SHOW_PREFIX}   "
       clones="`read_raw_setting "repositories"`"
       walk_raw_clones "${clones}" "show_raw_repository"
+
+      clones="`read_raw_setting "additional_repositories"`"
+      walk_raw_clones "${clones}" "show_raw_repository"
    )
 }
 
@@ -241,6 +243,7 @@ show_raw_minions()
    )
 }
 
+
 show_minions()
 {
    (
@@ -260,6 +263,11 @@ minion"
    (
       SHOW_PREFIX="${SHOW_PREFIX}   " \
       walk_auto_repositories "repositories"  \
+                             "show_repository" \
+                             "${permissions}" \
+                             "${REPOS_DIR}"
+
+      walk_auto_repositories "additional_repositories"  \
                              "show_repository" \
                              "${permissions}" \
                              "${REPOS_DIR}"

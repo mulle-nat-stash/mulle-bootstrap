@@ -114,6 +114,14 @@ _bootstrap_auto_copy()
             seen="`seen_check "${seen}" "${name}"`"
          ;;
 
+         additional_repositories)
+            if [ "${is_local}" = "YES" ]
+            then
+               merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+               seen="`seen_check "${seen}" "${name}"`"
+            fi
+         ;;
+
          embedded_repositories)
             (
                STASHES_DEFAULT_DIR=""
@@ -303,13 +311,18 @@ _bootstrap_auto_merge_root_settings()
 
       #
       # "repositories" files gets special treatment
+      # "additional_repositories" is just a local patch thing
       # "embedded_repositories" is not merged though
       case "${settingname}" in
          "embedded_repositories"|"minions")
             continue  # done by caller
          ;;
 
-         "repositories")
+         "additional_repositories")
+            continue # just ignored
+         ;;
+
+         "repositories"|"additional_repositories")
             merge_repository_files "${srcfile}" "${dstfile}" "YES"
             continue
          ;;
@@ -404,7 +417,7 @@ bootstrap_auto_update()
          _bootstrap_auto_embedded_copy "${name}" "${stashdir}" "${src}"
       fi
 
-      # don't copy minions
+      # don't copy minions or additional_repositories
 
       src="${stashdir}/${BOOTSTRAP_DIR}/bin"
       if [ -d "${src}" ]

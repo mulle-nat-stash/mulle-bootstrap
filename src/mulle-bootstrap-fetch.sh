@@ -783,6 +783,12 @@ _update_operation_walk_repositories()
                           "${operation}" \
                           "${permissions}" \
                           "${REPOS_DIR}"
+
+   permissions="minion"
+   walk_auto_repositories "additional_repositories"  \
+                          "${operation}" \
+                          "${permissions}" \
+                          "${REPOS_DIR}"
 }
 
 
@@ -1464,12 +1470,15 @@ fetch_loop_repositories()
    local loops
    local before
    local after
+   local auxbefore
+   local auxafter
    local required
 
    log_debug "fetch_loop_repositories"
 
    loops=""
    before=""
+   auxbefore=""
 
    __IGNORE__=""
 
@@ -1484,9 +1493,12 @@ fetch_loop_repositories()
 
       after="${before}"
       before="`read_root_setting "repositories" | sort`"
-      if [ "${after}" = "${before}" ]
+      auxafter="${auxbefore}"
+      auxbefore="`read_root_setting "additional_repositories" | sort`"
+
+      if [ "${after}" = "${before}" -a "${auxafter}" = "${auxbefore}" ]
       then
-         log_fluff "Repositories file is unchanged, so done"
+         log_fluff "Repositories files are unchanged, so done"
          break
       fi
 
@@ -1499,6 +1511,7 @@ fetch_loop_repositories()
 
       required="`read_root_setting "required"`"
       work_clones "${REPOS_DIR}" "${before}" "${required}" "YES"
+      work_clones "${REPOS_DIR}" "${auxbefore}" "${required}" "YES"
 
       __IGNORE__="`add_line "${__IGNORE__}" "${__REFRESHED__}"`"
 

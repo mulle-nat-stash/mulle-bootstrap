@@ -285,10 +285,18 @@ escape_linefeeds()
 }
 
 
+_unescape_linefeeds()
+{
+   tr '|' '\012' | sed -e 's/\\$/|/g' -e '/^$/d'
+}
+
+
 unescape_linefeeds()
 {
    echo "$@" | tr '|' '\012' | sed -e 's/\\$/|/g' -e '/^$/d'
 }
+
+
 
 
 #

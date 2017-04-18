@@ -1,3 +1,11 @@
+### 3.4.0
+
+* added handling of `additional_repositories`. This is supposed to be used
+in `.bootstrap.local`. This way I can specify a "MulleFoundation" dependency
+if I want to compile for mulle-objc. But sometimes I want the Apple Foundation.
+* finally added list command for `setting`. All that's needed now is a scripts
+setting to list all scripts
+
 ### 3.3.0
 
 * `mulle-bootstrap project-path` prints out what it thinks your project path is.
@@ -16,6 +24,7 @@ it easier to copy/paste show output.
 * old Frameworks of previous builds are not a problem anymore
 * With config `use_cc_cxx=NO` mulle-bootstrap won't read the compiler to use
 from `.CC` and `.CXX`.
+
 
 ### 3.2.0
 
