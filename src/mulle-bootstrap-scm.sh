@@ -167,7 +167,7 @@ git_checkout()
       (
          exekutor cd "${stashdir}" ;
          exekutor git ${GITFLAGS} checkout ${options} "${tag}"  >&2
-      ) || exit 1
+      ) || return 1
 
       if [ $? -ne 0 ]
       then
@@ -176,7 +176,7 @@ git_checkout()
 
          rmdir_safer "${stashdir}.failed"
          exekutor mv "${stashdir}" "${stashdir}.failed"  >&2
-         exit 1
+         return 1
       fi
    else
       log_fluff "Already on proper branch \"${branch}\""

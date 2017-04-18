@@ -581,6 +581,7 @@ clone_or_symlink()
                        "${tag}" \
                        "${stashdir}"
    then
+      log_debug "Clone \"${operation}\" failed"
       return 1
    fi
 
@@ -593,9 +594,11 @@ clone_or_symlink()
 
    if [ "${operation}" = "link_command" ]
    then
+      log_debug "Symlink \"${operation}\" successful"
       return 2
    fi
 
+   log_debug "Clone \"${operation}\" successful"
    return 0
 }
 
@@ -1142,9 +1145,13 @@ work_clones()
             internal_fail "failed stashdir: ${stashdir}"
       esac
 
+      local skip
+
+      skip="NO"
+
       if is_minion_bootstrap_project "${name}"
       then
-         log_fluff "Is a minion, ignoring possible changes"
+         log_fluff "\"${name}\" is a minion, ignoring possible changes"
          clone="`echo "${name};${name};${branch};minion;${tag}" | sed 's/;*$//'`"
          remember="YES"
       else
@@ -1159,9 +1166,6 @@ work_clones()
 
          log_debug "${C_INFO}Actions for \"${name}\": ${actionitems:-none}"
 
-         local skip
-
-         skip="NO"
          IFS="
 "
          for item in ${actionitems}
@@ -1172,13 +1176,16 @@ work_clones()
 
             case "${item}" in
                "checkout")
-                  checkout_repository "${reposdir}" \
-                                      "${name}" \
-                                      "${url}" \
-                                      "${branch}" \
-                                      "${scm}" \
-                                      "${tag}" \
-                                      "${stashdir}"
+                  if ! checkout_repository "${reposdir}" \
+                                           "${name}" \
+                                           "${url}" \
+                                           "${branch}" \
+                                           "${scm}" \
+                                           "${tag}" \
+                                           "${stashdir}"
+                  then
+                     fail "Failed to checkout"
+                  fi
                ;;
 
                "clone")
@@ -1208,6 +1215,7 @@ work_clones()
                            continue
                         fi
 
+                        log_debug "don't continue, because a required fetch failed"
                         exit 1  # means exit
                      ;;
 
@@ -1283,6 +1291,7 @@ work_clones()
 
       if [ "${skip}" = "YES" ]
       then
+         log_debug "skipping to next clone because..."
          continue
       fi
 
@@ -1299,6 +1308,8 @@ work_clones()
                                       "${name}"  \
                                       "${stashdir}" \
                                       "${PARENT_CLONE}"
+      else
+         log_debug "ignoring because..."
       fi
       mark_stash_as_alive "${reposdir}" "${name}"
    done
@@ -1778,6 +1789,7 @@ _common_main()
       ;;
    esac
 
+
    local default_permissions
 
    #
@@ -1803,8 +1815,8 @@ _common_main()
    esac
 
    remove_file_if_present "${REPOS_DIR}/.build_done"
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
-   create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_started"
+   remove_file_if_present "${REPOS_DIR}/.fetch_done"
+   create_file_if_missing "${REPOS_DIR}/.fetch_started"
 
    if [ "${BREW_PERMISSIONS}" != "none" ]
    then
@@ -1825,14 +1837,14 @@ _common_main()
 
    _common_fetch "$@"
 
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_started"
+   remove_file_if_present "${REPOS_DIR}/.fetch_started"
 
    #
    # only say we are done if a build_order was created
    #
    if [ -f "${BOOTSTRAP_DIR}.auto/build_order" ]
    then
-      create_file_if_missing "${REPOS_DIR}/.bootstrap_fetch_done"
+      create_file_if_missing "${REPOS_DIR}/.fetch_done"
    fi
 
    if read_yes_no_config_setting "upgrade_gitignore" "YES"

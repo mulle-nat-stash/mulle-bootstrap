@@ -32,6 +32,20 @@
 MULLE_BOOTSTRAP_AUTO_UPDATE_SH="included"
 
 
+seen_check()
+{
+   local seen="$1"
+   local name="$1"
+
+   if [ ! -z "${seen}" -a "${name}" = "minions" ]
+   then
+      log_warning "Specifying both minions and ${seen} is usually a mistake"
+   fi
+
+   concat "${seen}" "${name}"
+}
+
+
 #
 # only to be used in bootstrap_auto_create
 #
@@ -51,6 +65,7 @@ _bootstrap_auto_copy()
    local value
    local match
    local tmpdir
+   local seen
 
    #
    # this first stage folds platform specific files
@@ -96,6 +111,7 @@ _bootstrap_auto_copy()
 
          repositories)
             merge_repository_files "${filepath}" "${dstfilepath}" "NO"
+            seen="`seen_check "${seen}" "${name}"`"
          ;;
 
          embedded_repositories)
@@ -104,6 +120,7 @@ _bootstrap_auto_copy()
                STASHES_ROOT_DIR=""
                merge_repository_files "${filepath}" "${dstfilepath}" "NO"
             )
+            seen="`seen_check "${seen}" "${name}"`"
          ;;
 
          minions)
@@ -111,6 +128,7 @@ _bootstrap_auto_copy()
             then
                exekutor cp -a ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
             fi
+            seen="`seen_check "${seen}" "${name}"`"
          ;;
 
          *)
@@ -148,9 +166,20 @@ _bootstrap_create_required_if_needed()
    # if there is no required file add all names from repositories
    # which ought to have been expanded already
    #
-   if [ ! -f "${dst}/${prefix}required" -a -f "${dst}/${prefix}repositories" ]
+   if [ ! -f "${dst}/${prefix}required" ]
    then
-      redirect_exekutor "${dst}/${prefix}required" names_from_repository_file "${dst}/${prefix}repositories"
+      if [ -f "${dst}/${prefix}repositories" ]
+      then
+         redirect_exekutor "${dst}/${prefix}required" names_from_repository_file "${dst}/${prefix}repositories"
+      fi
+
+      #
+      # Are Minions required ? Could be annoying
+      #
+      # if [ -z "${prefix}" -a -f "${dst}/minions" ]
+      # then
+      #   redirect_exekutor "${dst}/required" read_setting "${dst}/minions"
+      # fi
    fi
 }
 

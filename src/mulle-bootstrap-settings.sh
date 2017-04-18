@@ -36,7 +36,7 @@ config_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap config [options] [key] [value]
+   mulle-bootstrap config [options] [key][=][value]
 
    Options:
       -d   : delete config setting
@@ -55,11 +55,12 @@ expansion_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap expansion [options] <key> [value]
+   mulle-bootstrap expansion [options] [key][=][value]
 
    Options:
       -d   : delete setting
       -g   : use global .bootstrap folder instead of local
+      -l   : list expansion values
 
    Use:
       mulle-bootstrap expansion <key> to read
@@ -73,7 +74,7 @@ setting_usage()
 {
     cat <<EOF >&2
 usage:
-   mulle-bootstrap setting [options] <key> [value]
+   mulle-bootstrap setting [options] [key][=][value]
 
    Options:
       -a   : append value to setting
@@ -136,6 +137,7 @@ output_clean_folders
 override_branch
 stashes_dir
 symlinks
+use_cc_cxx
 warn_environment_setting
 warn_user_setting
 xcodebuild
@@ -455,7 +457,7 @@ _read_home_setting()
       return 2
    fi
 
-   warn_user_setting "${HOME}/.mulle-bootstrap/${key}"
+   # warn_user_setting "${HOME}/.mulle-bootstrap/${key}"
 
    echo "$value"
 }
@@ -464,6 +466,7 @@ _read_home_setting()
 list_dir_settings()
 {
    local directory="$1"
+   local sedpattern="$2"
 
    local filename
    local key
@@ -471,7 +474,7 @@ list_dir_settings()
 
    IFS="
 "
-   for filename in `ls -1 "${directory}" 2> /dev/null`
+   for filename in `ls -1 "${directory}" 2> /dev/null | sed -n "/${sedpattern}/p" `
    do
       IFS="${DEFAULT_IFS}"
 
@@ -479,7 +482,7 @@ list_dir_settings()
       value="`_read_setting "${directory}/${key}"`"
       if [ ! -z "${value}" ]
       then
-         echo "${key}=\"${value}\""
+         echo "${key} '${value}'"
       fi
    done
 
@@ -487,15 +490,17 @@ list_dir_settings()
 }
 
 
-list_local_settings()
+CONFIG_KEY_REGEXP='^[a-z_][a-z_0-9]*$'
+
+list_local_config_settings()
 {
-   list_dir_settings "${BOOTSTRAP_DIR}.local/config"
+   list_dir_settings "${BOOTSTRAP_DIR}.local/config" "${CONFIG_KEY_REGEXP}"
 }
 
 
-list_home_settings()
+list_home_config_settings()
 {
-   list_dir_settings "${HOME}/.mulle-bootstrap"
+   list_dir_settings "${HOME}/.mulle-bootstrap" "${CONFIG_KEY_REGEXP}"
 }
 
 
@@ -660,8 +665,6 @@ find_build_setting_file()
 }
 
 
-
-
 ####
 # Functions building on read_ functions
 #
@@ -715,6 +718,7 @@ read_expanded_setting()
    [ $# -eq 3 ]             || internal_fail "wrong parameters"
 
    local value
+   local rval
 
    value="`(
       MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
@@ -727,13 +731,30 @@ read_expanded_setting()
       value="${default}"
    fi
 
+   rval=0
+
    IFS="
 "
    echo "${value}" | while read line
    do
       IFS="${DEFAULT_IFS}"
+
       expanded_variables "${line}" "${srcbootstrap}"
+      if [ $? -ne 0 ]
+      then
+         empty_expansion_is_error="`read_config_setting "empty_expansion_is_error" "YES"`"
+         if [ "${empty_expansion_is_error}" = "YES" ]
+         then
+           fail "Aborting, because empty expansion warning is an error condition.
+To disable this:
+   ${C_RESET_BOLD}mulle-bootstrap config -n empty_expansion_is_error"
+         fi
+      fi
    done
+
+   IFS="${DEFAULT_IFS}"
+
+   return $rval
 }
 
 
@@ -1019,13 +1040,13 @@ _setting_delete()
 _config_list()
 {
    log_info "environment:"
-   list_environment_settings | sed 's/^/   /'
+   list_environment_settings | sed "s/^/setenv /"
 
    log_info ".bootstrap.local/config ($PWD):"
-   list_local_settings | sed 's/^/   /'
+   list_local_config_settings | sed "s/^/mulle-bootstrap config /"
 
    log_info "~/.mulle-bootstrap:"
-   list_home_settings | sed 's/^/   /'
+   list_home_config_settings | sed "s/^/mulle-bootstrap config -h /"
 }
 
 
@@ -1050,7 +1071,7 @@ _config_write()
 
    configdir="${BOOTSTRAP_DIR}.local/config"
 
-   if [ "${OPTION_GLOBAL}" = "YES" ]
+   if [ "${OPTION_USER}" = "YES" ]
    then
       configdir="${HOME}/.mulle-bootstrap"
    fi
@@ -1071,7 +1092,7 @@ _config_delete()
 
    configdir="${BOOTSTRAP_DIR}.local/config"
 
-   if [ "${OPTION_GLOBAL}" = "YES" ]
+   if [ "${OPTION_USER}" = "YES" ]
    then
       configdir="${HOME}/.mulle-bootstrap"
    fi
@@ -1134,9 +1155,27 @@ _expansion_delete()
 }
 
 
+EXPANSION_KEY_REGEXP='^[A-Z_][A-Z_0-9]*$'
+
+list_local_expansions()
+{
+   list_dir_settings "${BOOTSTRAP_DIR}.local" "${EXPANSION_KEY_REGEXP}"
+}
+
+
+list_global_expansions()
+{
+   list_dir_settings "${BOOTSTRAP_DIR}" "${EXPANSION_KEY_REGEXP}"
+}
+
+
 _expansion_list()
 {
-   internal_fail "Not yet implemented"
+   log_info ".bootstrap.local ($PWD):"
+   list_local_expansions | sed "s/^/mulle-bootstrap expansion /"
+
+   log_info ".bootstrap ($PWD):"
+   list_global_expansions | sed "s/^/mulle-bootstrap expansion -g/"
 }
 
 
@@ -1148,6 +1187,7 @@ _generic_main()
 
    local OPTION_APPEND="NO"
    local OPTION_GLOBAL="NO"
+   local OPTION_USER="NO"
    local OPTION_PROCESSED_READ="NO"
    local key
    local value
@@ -1159,9 +1199,14 @@ _generic_main()
    while [ $# -ne 0 ]
    do
       case "${type}" in
-         setting|config|expansion)
+         setting|expansion)
             case "$1" in
                -g|--global)
+                  if is_master_bootstrap_project
+                  then
+                     fail "You can't use -g on master bootstrap projects"
+                  fi
+
                   OPTION_GLOBAL="YES"
                   shift
                   continue
@@ -1177,6 +1222,16 @@ _generic_main()
       esac
 
       case "${type}" in
+         config)
+            case "$1" in
+               -u|--user)
+                  OPTION_USER="YES"
+                  shift
+                  continue
+               ;;
+            esac
+         ;;
+
          setting)
             case "$1" in
                -r|--repository)
@@ -1236,7 +1291,22 @@ _generic_main()
          key="$1"
          [ -z "${key}" ] && ${type}_usage
          shift
+      ;;
+   esac
 
+   case "${command}" in
+      read)
+         value="`sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=\(.*\)$/\2/p' <<< "${key}"`"
+         if [ ! -z "${value}" ]
+         then
+            command="write"
+            key="`sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=\(.*\)$/\1/p' <<< "${key}"`"
+         fi
+      ;;
+   esac
+
+   case "${command}" in
+      read|write|delete)
          if [ ! -z "${known_keys_1}" ]
          then
             local match

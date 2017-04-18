@@ -482,14 +482,16 @@ _show_main()
    done
 
    [ $# -ne 0 ] && show_usage
-
    _common_show "${header_only}" "$@"
 
-   if [ "${header_only}" != "YES" -a \
-        "${SHOW_RAW}" != "YES" -a \
-        ! -d "${BOOTSTRAP_DIR}".auto ]
+   if [ "${SHOW_RAW}" != "YES" ]
    then
-      log_warning "Nothing to show yet. Maybe use --raw option ?"
+      if [ ! -f "${REPOS_DIR}/.fetch_done" ]
+      then
+          log_warning "mulle-bootstrap has not run fetch completly.
+Results may be incomplete or missing.
+Maybe use --raw option or run mulle-bootstrap again ?"
+      fi
    fi
 }
 

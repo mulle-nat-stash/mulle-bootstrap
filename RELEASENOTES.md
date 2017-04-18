@@ -1,7 +1,26 @@
+### 3.3.0
+
+* `mulle-bootstrap project-path` prints out what it thinks your project path is.
+This is helpful for **mulle-build**.
+* Improve output of `mulle-bootstrap -v help`.
+* An empty expansion in repositories is now an error by default. But you can
+change it back to previous behavior with  `mulle-bootstrap config -n empty_expansion_is_error`
+* The `-g` option no longer works for `mulle-bootstrap config`, use the `-u`
+setting to set values in `~/.bootstrap`. This unconfuses the '-g' which means
+`.bootstrap` and not `.bootstrap.local`, the default.
+* `mulle-bootstrap expansion -l` works now
+* You can now use `<key>=<value>` to set settings and expansions. This makes
+it easier to copy/paste show output.
+* Missing but not required repositories no longer produce a build error
+* added `-fb` as lesser -force mode than -f.
+* old Frameworks of previous builds are not a problem anymore
+* With config `use_cc_cxx=NO` mulle-bootstrap won't read the compiler to use
+from `.CC` and `.CXX`.
+
 ### 3.2.0
 
-Do not specify cmake dependency in formula, since cmake is not
-absolutely required. Rather check this at runtime and output
+Do not specify cmake dependency in homebrew formula for mulle-bootstrap, since
+cmake is not absolutely required. Rather check this at runtime and output
 some helpful hints.
 
 

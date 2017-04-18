@@ -102,7 +102,7 @@ defer_main()
       [ ! -z "${masterpath}" ]  || internal_fail "is_minion file empty"
       log_warning "Master \"${masterpath}\" already owns \"${minionpath}\""
 
-      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "none" ]
       then
          return
       fi
@@ -135,7 +135,7 @@ defer_main()
    then
       log_warning "Master \"${masterpath}\" already owns \"${minionpath}\", but it was not detected before"
 
-      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "none" ]
       then
          return
       fi
@@ -204,7 +204,7 @@ emancipate_main()
    then
       log_warning "Project \"${minionpath}\" does not defer to a master and is already emancipated"
 
-      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "none" ]
       then
          return
       fi
@@ -224,7 +224,7 @@ emancipate_main()
    if ! is_master_bootstrap_project "${masterpath}"
    then
       log_warning "\"${masterpath}\" is not a master project"
-      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "none" ]
       then
          return
       fi

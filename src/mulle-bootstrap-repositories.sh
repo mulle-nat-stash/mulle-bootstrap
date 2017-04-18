@@ -267,7 +267,7 @@ _get_all_repos_clones()
 #
 # Walkers
 #
-# Possible permissions: "symlink\nmissing"
+# Possible permissions: "symlink\nmission\nmissing"
 #
 walk_check()
 {
@@ -275,16 +275,6 @@ walk_check()
    local permissions="$2"
 
    local match
-
-   if is_minion_bootstrap_project "${stashdir}"
-   then
-      match="`echo "${permissions}" | fgrep -s -x "minion"`"
-      if [ -z "${match}" ]
-      then
-         log_verbose "\"${stashdir}\" is a minion, skipped"
-         return 1
-      fi
-   fi
 
    if [ -L "${stashdir}" ]
    then
@@ -308,6 +298,16 @@ walk_check()
             log_verbose "Repository expected in \"${stashdir}\" is not yet fetched, skipped"
             return 1
          fi
+      fi
+   fi
+
+   if is_minion_bootstrap_project "${stashdir}"
+   then
+      match="`echo "${permissions}" | fgrep -s -x "minion"`"
+      if [ -z "${match}" ]
+      then
+         log_verbose "\"${stashdir}\" is a minion, skipped"
+         return 1
       fi
    fi
 
@@ -848,7 +848,7 @@ process_raw_clone()
 #   local tag
 #   local stashdir
 #
-# expansion is now done during already during .auto creation
+# expansion is now done during .auto creation
 # clone="`expanded_variables "${1}"`"
 #
 parse_clone()
@@ -924,8 +924,10 @@ read_repository_file()
 
    local srcbootstrap
    local clones
+   local empty_expansion_is_error
 
    srcbootstrap="`dirname -- "${srcfile}"`"
+
    clones="`read_expanded_setting "$srcfile" "" "${srcbootstrap}"`"
 
    local url        # url of clone

@@ -81,8 +81,8 @@ _status_repository()
 
    if [ "${STATUS_FETCH}" = "YES" ]
    then
-      if [ "${stashdir}/.bootstrap" -nt "${REPOS_DIR}/.bootstrap_fetch_done" -o \
-           "${stashdir}/.bootstrap.local" -nt "${REPOS_DIR}/.bootstrap_fetch_done" ]
+      if [ "${stashdir}/.bootstrap" -nt "${REPOS_DIR}/.fetch_done" -o \
+           "${stashdir}/.bootstrap.local" -nt "${REPOS_DIR}/.fetch_done" ]
       then
          echo "${C_RED} M ${C_RESET}${stashdir}"
       fi

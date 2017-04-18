@@ -90,7 +90,7 @@ new position of the `addictions` folder in the filesystem.
 Cloning **brew** from GitHub can get tedious. You can use a local cache with:
 
 ```
-mulle-brew config -g "clone_cache" "${HOME}/Library/Caches/mulle-brew"
+mulle-brew config -h "clone_cache" "${HOME}/Library/Caches/mulle-brew"
 ```
 
 

@@ -159,7 +159,7 @@ override
 a/.bootstrap.auto/c.build/bin:
 c.sh
 a/.bootstrap.repos:
-.bootstrap_fetch_done
+.fetch_done
 b
 c
 a/stashes:

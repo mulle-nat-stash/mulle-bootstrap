@@ -29,8 +29,8 @@
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
 MULLE_EXECUTABLE_VERSION_MAJOR=3
-MULLE_EXECUTABLE_VERSION_MINOR=2
-MULLE_EXECUTABLE_VERSION_PATCH=3
+MULLE_EXECUTABLE_VERSION_MINOR=3
+MULLE_EXECUTABLE_VERSION_PATCH=0
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -45,9 +45,56 @@ trap_fail()
 }
 
 
+SHOWN_COMMANDS="\
+   bootstrap     : does install and build recursively [default]
+   build         : builds fetched repositories
+   clean         : cleans mulle-bootstrap produced files.
+   defer         : join a master mulle-bootstrap project
+   emancipate    : emancipate from a master mulle-bootstrap project
+   paths         : get include and library paths
+   init          : initializes a bootstrap project
+   update        : updates repositories (fetch).
+   upgrade       : updates and checks out repositories (pull).
+   show          : show repositories and brews"
+
+DARWIN_COMMANDS="\
+   xcode         : sets up xcodeproj settings"
+HIDDEN_COMMANDS="\
+   config        : read or edit config settings
+   expansion     : read or edit fetch expansions
+   git           : run git commands on fetched repositories
+   library-path  : print path to mulle-bootstrap libexec
+   project-path  : print path to folder containing .bootstrap
+   setting       : read or edit build settings
+   status        : show status of repositories and brews
+   systeminstall : install dependencies as system headers
+   tag           : tag fetched repositories
+   uname         : mulle-bootstraps simplified uname(1)
+   version       : print mulle-bootstrap version"
+
+
+print_commands()
+{
+   local  show_all="${1:-NO}"
+
+   echo "${SHOWN_COMMANDS}"
+
+   if [ "${UNAME}" = 'darwin' ]
+   then
+      echo "${DARWIN_COMMANDS}"
+   fi
+
+   if [ "${show_all}" != "NO" ]
+   then
+      echo "${HIDDEN_COMMANDS}"
+   fi
+}
+
 
 mulle_bootstrap_usage()
 {
+   local  verbose="${1:-NO}"
+
    cat <<EOF
 usage: mulle-bootstrap [flags] [command] [options]
  Flags:
@@ -66,37 +113,21 @@ EOF
    cat <<EOF
 
  Commands:
-   bootstrap     : does install and build recursively [default]
-   build         : builds fetched repositories
-   clean         : cleans mulle-bootstrap produced files.
-   defer         : join a master mulle-bootstrap project
-   emancipate    : emancipate from a master mulle-bootstrap project
-   paths         : get include and library paths
-   init          : initializes a bootstrap project
-   update        : updates repositories (fetch).
-   upgrade       : updates and checks out repositories (pull).
-   show          : show repositories and brews
+EOF
 
+   print_commands "${verbose}" | sort
+
+
+   if [ "${verbose}" = "NO" ]
+   then
+      cat <<EOF
+      (use mulle-bootstrap -v help to show more commands)
+EOF
+   fi
+
+   cat <<EOF
  Options are command specific. Use mulle-bootstrap <command> -h for help.
 EOF
-
-   if [ "${UNAME}" = 'darwin' ]
-   then
-      cat <<EOF
-   xcode         : sets up xcodeproj settings
-EOF
-   fi
-
-   if [ !  -z "${MULLE_TRACE}" ]
-   then
-      cat <<EOF
-
-   systeminstall : install dependencies as system headers
-   git           : run git commands on fetched repositories
-   status        : show status of repositories and brews
-   tag           : tag fetched repositories
-EOF
-   fi
 
    exit 1
 }
@@ -254,7 +285,7 @@ bootstrap_main()
    local ps4string
 
    local MULLE_FLAG_ANSWER="ASK"
-   local MULLE_FLAG_MAGNUM_FORCE="NO"
+   local MULLE_FLAG_MAGNUM_FORCE="none"
    local MULLE_FLAG_IGNORE_GRAVEYARD="NO"
    local MULLE_FLAG_VERBOSE_BUILD="NO"
 
@@ -304,8 +335,12 @@ bootstrap_main()
             MULLE_FLAG_FOLLOW_SYMLINKS="YES"
          ;;
 
-         -f|--force-fetch)
-            MULLE_FLAG_MAGNUM_FORCE="YES"
+         -fb|--force-build)
+            MULLE_FLAG_MAGNUM_FORCE="build"
+         ;;
+
+         -f|--force)
+            MULLE_FLAG_MAGNUM_FORCE="both"
          ;;
 
          --ignore-graveyard)
@@ -313,7 +348,7 @@ bootstrap_main()
          ;;
 
          -h|--help)
-            mulle_bootstrap_usage
+            mulle_bootstrap_usage "${MULLE_TRACE}"
          ;;
 
          -D*)  # just like C
@@ -352,11 +387,16 @@ bootstrap_main()
    #
    command="${1:-bootstrap}"
 
-   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "YES" ]
-   then
-      set_fetch_needed
-      set_build_needed
-   fi
+   case "${MULLE_FLAG_MAGNUM_FORCE}" in
+      both)
+         set_fetch_needed
+         set_build_needed
+      ;;
+
+      build)
+         set_build_needed
+      ;;
+   esac
 
    case "${command}" in
       help|init|uname)
@@ -382,18 +422,26 @@ bootstrap_main()
       ;;
    esac
 
+   case "${command}" in
+      project-path)
+         echo "`pwd -P`"
+         exit 0
+      ;;
+   esac
+
    if bootstrap_should_defer_to_master "$@"
    then
       return 1
    fi
 
-   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NO" ]
+   #
+   # some commands are only valid, if the fetch went through
+   # defer/emancipate clean, so that's ok
+   #
+   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "none" ]
    then
       case "${command}" in
-         clean|config|dist-clean|expansion|init|status|show|paths|setting|uname)
-         ;;
-
-         *)
+         bootstrap|build|systeminstall|tag|update|upgrade)
             bootstrap_ensure_consistency
          ;;
       esac
@@ -464,7 +512,7 @@ bootstrap_main()
       ;;
 
       help)
-         mulle_bootstrap_usage "$@" || exit 1
+         mulle_bootstrap_usage "${MULLE_TRACE}" || exit 1
       ;;
 
       init)

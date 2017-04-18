@@ -51,7 +51,13 @@ log_printf()
 
 log_error()
 {
-   log_printf "${C_ERROR}%b${C_RESET}\n" "$*"
+   log_printf "${C_ERROR}${MULLE_EXECUTABLE_FAIL_PREFIX} error: %b${C_RESET}\n" "$*"
+}
+
+
+log_fail()
+{
+   log_printf "${C_ERROR}${MULLE_EXECUTABLE_FAIL_PREFIX} fatal error: %b${C_RESET}\n" "$*"
 }
 
 
@@ -59,7 +65,7 @@ log_warning()
 {
    if [ "${MULLE_FLAG_LOG_TERSE}" != "YES" ]
    then
-      log_printf "${C_WARNING}%b${C_RESET}\n" "$*"
+      log_printf "${C_WARNING}${MULLE_EXECUTABLE_FAIL_PREFIX} warning: %b${C_RESET}\n" "$*"
    fi
 }
 
@@ -165,11 +171,6 @@ _bail()
 }
 
 
-log_fail()
-{
-   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX} Error: $*"
-}
-
 
 fail()
 {
@@ -180,7 +181,7 @@ fail()
 
 internal_fail()
 {
-   log_error "${MULLE_EXECUTABLE_FAIL_PREFIX} *** Internal Error: ${C_BR_RED}$*"
+   log_printf "${C_ERROR}${MULLE_EXECUTABLE_FAIL_PREFIX} *** internal error ***: %b${C_RESET}\n" "$*"
    stacktrace
    _bail
 }

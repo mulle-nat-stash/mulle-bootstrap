@@ -64,7 +64,7 @@ EOF
 
       *)
          cat <<EOF >&2
-   -j         :  number of cores parameter for make (${CORES})
+   -j             :  number of cores parameter for make (${CORES})
 EOF
       ;;
    esac
@@ -134,7 +134,7 @@ find_compiler()
    local filename
 
    compiler="`read_build_setting "${name}" "${compiler_name}"`"
-   if [ -z "${compiler}" ]
+   if [ -z "${compiler}" -a "${OPTION_USE_CC_CXX}" = "YES" ]
    then
       filename="${srcdir}/.${compiler_name}"
       compiler="`cat "${filename}" 2>/dev/null`"
@@ -307,7 +307,7 @@ dispense_binaries()
          log_fluff "Copying binaries from \"${src}\" to \"${dst}\""
          mkdir_if_missing "${dst}"
          exekutor find "${src}" -xdev -mindepth 1 -maxdepth 1 \( -type "${findtype}" -o -type "${findtype2}" \) -print0 | \
-            exekutor xargs -0 -I % mv ${COPYMOVEFLAGS} "${copyflag}" % "${dst}" >&2
+            exekutor xargs -0 -I % mulle-bootstrap-mv-force.sh ${COPYMOVEFLAGS} "${copyflag}" % "${dst}" >&2
          [ $? -eq 0 ]  || exit 1
       else
          log_fluff "But there are none"
@@ -571,7 +571,6 @@ build_log_name()
 }
 
 
-
 _build_flags()
 {
    local configuration="$1"
@@ -700,7 +699,7 @@ _build_flags()
       do
          IFS="${DEFAULT_IFS}"
          path="$(sed 's/ /\\ /g' <<< "${path}")"
-         cppflags="`concat "${other_cflags}" "${includeprefix}${path}"`"
+         cppflags="`concat "${cppflags}" "${includeprefix}${path}"`"
       done
 
       IFS="${PATH_SEPARATOR}"
@@ -708,7 +707,7 @@ _build_flags()
       do
          IFS="${DEFAULT_IFS}"
          path="$(sed 's/ /\\ /g' <<< "${path}")"
-         ldflags="`concat "${other_ldflags}" "${libraryprefix}${path}"`"
+         ldflags="`concat "${ldflags}" "${libraryprefix}${path}"`"
       done
 
       IFS="${PATH_SEPARATOR}"
@@ -716,8 +715,8 @@ _build_flags()
       do
          IFS="${DEFAULT_IFS}"
          path="$(sed 's/ /\\ /g' <<< "${path}")"
-         other_cppflags="`concat "${other_cflags}" "${frameworkprefix}${path}"`"
-         ldflags="`concat "${other_ldflags}" "${frameworkprefix}${path}"`"
+         cppflags="`concat "${cppflags}" "${frameworkprefix}${path}"`"
+         ldflags="`concat "${ldflags}" "${frameworkprefix}${path}"`"
       done
       IFS="${DEFAULT_IFS}"
 
@@ -831,11 +830,11 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local librarylines
    local frameworklines
 
-   cppflags="`echo "${flaglines}"   | sed -n '1p'`"
-   ldflags="`echo "${flaglines}"    | sed -n '2p'`"
-   includelines="`echo "${flags}"   | sed -n '6p'`"
-   librarylines="`echo "${flags}"   | sed -n '7p'`"
-   frameworklines="`echo "${flags}" | sed -n '8p'`"
+   cppflags="`echo "${flaglines}"       | sed -n '1p'`"
+   ldflags="`echo "${flaglines}"        | sed -n '2p'`"
+   includelines="`echo "${flaglines}"   | sed -n '6p'`"
+   librarylines="`echo "${flaglines}"   | sed -n '7p'`"
+   frameworklines="`echo "${flaglines}" | sed -n '8p'`"
 
    # CMAKE_CPP_FLAGS does not exist in cmake
    # so merge into CFLAGS and CXXFLAGS
@@ -945,10 +944,14 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          cmake_dirs="`concat "${cmake_dirs}" "-DADDICTIONS_DIR='${addictionsdir}'"`"
       fi
 
-      if [ ! -z "${includelines}" ]
-      then
-         cmake_dirs="`concat "${cmake_dirs}" "-DCMAKE_INCLUDE_PATH='${includelines}'"`"
-      fi
+      #
+      # CMAKE_INCLUDE_PATH doesn't really do what one expects it would
+      # it's a settinh for the rarely used find_file
+      #
+      #if [ ! -z "${includelines}" ]
+      #then
+      #   cmake_dirs="`concat "${cmake_dirs}" "-DCMAKE_INCLUDE_PATH='${includelines}'"`"
+      #fi
 
       if [ ! -z "${librarylines}" ]
       then
@@ -1068,17 +1071,17 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    other_cppflags="`gcc_cppflags_value "${name}"`"
    other_ldflags="`gcc_ldflags_value "${name}"`"
 
-   local flags
+   local flaglines
    local mapped
 
    mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
-   flags="`build_unix_flags "$@" "${mapped}"`"
+   flaglines="`build_unix_flags "$@" "${mapped}"`"
 
    local cppflags
    local ldflags
 
-   cppflags="`echo "${flags}" | sed -n '1p'`"
-   ldflags="`echo "${flags}"  | sed -n '2p'`"
+   cppflags="`echo "${flaglines}" | sed -n '1p'`"
+   ldflags="`echo "${flaglines}"  | sed -n '2p'`"
 
    # CMAKE_CPP_FLAGS does not exist in cmake
    # so merge into CFLAGS and CXXFLAGS
@@ -2130,6 +2133,10 @@ build_stashes()
             IFS="${DEFAULT_IFS}"
 
             stashdir="`stash_of_repository "${REPOS_DIR}" "${name}"`"
+            if [ -z "${stashdir}" ]
+            then
+               fail "${REPOS_DIR}/${name} is missing, that shouldn't have happened. Maybe it's time to dist clean"
+            fi
 
             if [ -d "${stashdir}" ]
             then
@@ -2140,7 +2147,12 @@ build_stashes()
                   log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                   :
                else
-                  fail "Build failed for repository \"${name}\": not found in (\"${stashdir}\") ($PWD)"
+                  if [ ! -z "${stashdir}" ]
+                  then
+                     fail "Build failed for repository \"${name}\": not found in (\"${stashdir}\") ($PWD)"
+                  else
+                     log_fluff "Ignoring \"${name}\" as \"${stashdir}\" is missing, but it is not required"
+                  fi
                fi
             fi
          done
@@ -2159,7 +2171,12 @@ build_stashes()
                log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a system library, so not building it"
                :
             else
-               fail "Unknown repo \"${name}\""
+               if [ ! -z "${stashdir}" ]
+               then
+                  fail "Build failed for repository \"${name}\": not found in (\"${stashdir}\") ($PWD)"
+               else
+                  fail "Unknown repo \"${name}\", possibly not a required one."
+               fi
             fi
          fi
       done
@@ -2222,8 +2239,10 @@ build_main()
    local OPTION_CHECK_USR_LOCAL_INCLUDE
    local OPTION_CONFIGURATIONS
    local OPTION_ADD_USR_LOCAL
+   local OPTION_USE_CC_CXX
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   OPTION_USE_CC_CXX="`read_config_setting "use_cc_cxx" "YES"`"
 
    #
    # it is useful, that fetch understands build options and
@@ -2318,18 +2337,14 @@ build_main()
 
    build_complete_environment
 
-   [ -z "${MULLE_BOOTSTRAP_COMMAND_SH}" ] && . mulle-bootstrap-command.sh
-   [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ] && . mulle-bootstrap-gcc.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMAND_SH}" ]      && . mulle-bootstrap-command.sh
+   [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ]          && . mulle-bootstrap-gcc.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
-   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]      && . mulle-bootstrap-scripts.sh
 
    #
    #
    #
-   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "YES" ]
-   then
-      remove_file_if_present "${REPOS_DIR}/.build_done"
-   fi
 
    if [ ! -f "${REPOS_DIR}/.build_done" ]
    then

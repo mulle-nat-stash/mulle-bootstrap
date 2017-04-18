@@ -171,6 +171,9 @@ fi
 install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-bootstrap" || exit 1
 printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-bootstrap" >&2
 
+install -m "${mode}" "mulle-bootstrap-dotdump" "${bin}/mulle-bootstrap-dotdump" || exit 1
+printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-bootstrap-dotdump" >&2
+
 case `uname` in
    MINGW*)
       install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-brew" || exit 1

@@ -61,7 +61,12 @@ gcc_cppflags_value()
 {
    local name="$1"
 
-   read_build_setting "${name}" "OTHER_CPPFLAGS"
+   local value
+   local result
+
+   result="${CFLAGS}"
+   value="`read_build_setting "${name}" "OTHER_CPPFLAGS"`"
+   concat "$result" "$value"
 }
 
 
@@ -73,9 +78,12 @@ gcc_cflags_value()
    local result
    local i
 
-   result="`read_build_setting "${name}" "OTHER_CFLAGS"`"
+   result="${CFLAGS}"
+   value="`read_build_setting "${name}" "OTHER_CFLAGS"`"
+   result="`concat "$result" "$value"`"
    value="`read_build_setting "${name}"  "WARNING_CFLAGS"`"
    result="`concat "$result" "$value"`"
+
    for i in `read_build_setting "${name}" "GCC_PREPROCESSOR_DEFINITIONS"`
    do
       result="`concat "$result" "-D${i}"`"
@@ -93,7 +101,9 @@ gcc_cxxflags_value()
    local result
    local name
 
-   result="`read_build_setting "${name}" "OTHER_CXXFLAGS"`"
+   result="${CXXFLAGS}"
+   value="`read_build_setting "${name}" "OTHER_CXXFLAGS"`"
+   result="`concat "$result" "$value"`"
    value="`gcc_cflags_value "${name}"`"
    result="`concat "$result" "$value"`"
 
@@ -105,7 +115,12 @@ gcc_ldflags_value()
 {
    local name="$1"
 
-   read_build_setting "${name}" "OTHER_LDFLAGS"
+   local value
+   local result
+
+   result="${LDFLAGS}"
+   value="`read_build_setting "${name}" "OTHER_LDFLAGS"`"
+   concat "$result" "$value"
 }
 
 

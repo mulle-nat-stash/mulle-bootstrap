@@ -72,6 +72,7 @@ exekutor_trace()
 
 exekutor_trace_output()
 {
+   local redirect="$1"; shift
    local output="$1"; shift
 
    if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" = "YES" -o "${MULLE_FLAG_LOG_EXEKUTOR}" = "YES" ]
@@ -89,9 +90,9 @@ exekutor_trace_output()
 
       if [ -z "${MULLE_EXEKUTOR_LOG_DEVICE}" ]
       then
-         echo "${arrow}" "$@" ">" "${output}" >&2
+         echo "${arrow}" "$@" "${redirect}" "${output}" >&2
       else
-         echo "${arrow}" "$@" ">" "${output}" > "${MULLE_EXEKUTOR_LOG_DEVICE}"
+         echo "${arrow}" "$@" "${redirect}" "${output}" > "${MULLE_EXEKUTOR_LOG_DEVICE}"
       fi
    fi
 }
@@ -124,7 +125,7 @@ redirect_exekutor()
 {
    local output="$1"; shift
 
-   exekutor_trace_output "${output}" "$@"
+   exekutor_trace_output '>' "${output}" "$@"
 
    if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" != "YES" ]
    then
@@ -137,7 +138,7 @@ redirect_append_exekutor()
 {
    local output="$1"; shift
 
-   exekutor_trace_output "${output}" "$@"
+   exekutor_trace_output '>>' "${output}" "$@"
 
    if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" != "YES" ]
    then
@@ -150,7 +151,7 @@ _redirect_append_eval_exekutor()
 {
    local output="$1"; shift
 
-   exekutor_trace_output "${output}" "$@"
+   exekutor_trace_output '>>' "${output}" "$@"
 
    if [ "${MULLE_FLAG_EXEKUTOR_DRY_RUN}" != "YES" ]
    then
@@ -1072,6 +1073,7 @@ mkdir_if_missing()
 }
 
 
+
 dir_is_empty()
 {
    [ -z "$1" ] && internal_fail "empty path"
@@ -1206,7 +1208,7 @@ create_symlink()
       url="`symlink_relpath "${url}" "${directory}"`"
    fi
 
-   log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} as \"${url}\" ..."
+   log_info "Symlinking ${C_MAGENTA}${C_BOLD}${srcname}${C_INFO} as \"${url}\" in \"${directory}\" ..."
    exekutor ln -s -f "${url}" "${stashdir}"  >&2 || fail "failed to setup symlink \"${stashdir}\" (to \"${url}\")"
 }
 

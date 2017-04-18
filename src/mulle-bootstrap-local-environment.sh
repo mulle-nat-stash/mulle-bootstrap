@@ -323,6 +323,8 @@ bootstrap_should_defer_to_master()
 
    masterpath="`get_master_of_minion_bootstrap_project`"
 
+   assert_sane_master_bootstrap_project "${masterpath}"
+
    case "${command}" in
       git|setup-xcode|xcode|tag|version|defer|emancipate|uname|library-path)
          log_verbose "Minion executes locally"
@@ -508,7 +510,7 @@ dirty_harry()
 {
    log_debug ":dirty_harry:"
 
-   [ -f "${REPOS_DIR}/.bootstrap_fetch_started" ]
+   [ -f "${REPOS_DIR}/.fetch_started" ]
 }
 
 
@@ -555,7 +557,7 @@ fetch_needed()
 
    local  referencefile
 
-   referencefile="${REPOS_DIR}/.bootstrap_fetch_done"
+   referencefile="${REPOS_DIR}/.fetch_done"
    if [ ! -f "${referencefile}" ]
    then
       log_verbose "Need fetch because \"${referencefile}\" does not exist."
@@ -623,8 +625,8 @@ set_fetch_needed()
 {
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_started"
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_fetch_done"
+   remove_file_if_present "${REPOS_DIR}/.fetch_started"
+   remove_file_if_present "${REPOS_DIR}/.fetch_done"
 }
 
 
@@ -632,8 +634,8 @@ set_build_needed()
 {
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_build_started"
-   remove_file_if_present "${REPOS_DIR}/.bootstrap_build_done"
+   remove_file_if_present "${REPOS_DIR}/.build_started"
+   remove_file_if_present "${REPOS_DIR}/.build_done"
 }
 
 
@@ -668,12 +670,14 @@ _expanded_variables()
    local next
    local default
    local tmp
+   local rval
 
+   rval=0
    key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
    if [ -z "${key}" ]
    then
       echo "${string}"
-      return
+      return $rval
    fi
 
    prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
@@ -703,6 +707,7 @@ _expanded_variables()
       if [ -z "${default}" ]
       then
          log_warning "\${${key}} expanded to the empty string."
+         rval=1
       else
          log_setting "Root setting for ${C_MAGENTA}${key}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
          value="${default}"
@@ -716,26 +721,37 @@ _expanded_variables()
    fi
 
    _expanded_variables "${next}" "${altbootstrap}"
+   if [ $? -ne 0 ]
+   then
+      rval=1
+   fi
+
+   return $rval
 }
 
 
 expanded_variables()
 {
+   local string=$1
    local value
+   local rval
 
    value="`_expanded_variables "$@"`"
+   rval=$?
 
-   if [ "$1" != "${value}" ]
+   echo "$value"
+
+   if [ "${string}" != "${value}" ] # $1 could not contain any $
    then
       if [ -z "${value}" ]
       then
-         log_warning "Expanded \"$1\" to empty string"
+         log_warning "Expanded \"${string}\" to empty string"
       else
-         log_fluff "Expanded \"$1\" to \"${value}\""
+         log_setting "Expanded \"${string}\" to \"${value}\""
       fi
    fi
 
-   echo "$value"
+   return $rval
 }
 
 
@@ -762,6 +778,21 @@ is_minion_bootstrap_project()
    [ -f "${minionpath}/${BOOTSTRAP_DIR}.local/is_minion" ]
 }
 
+
+assert_sane_master_bootstrap_project()
+{
+   local  masterpath="$1"
+
+   if [ -d "${masterpath}/${BOOTSTRAP_DIR}" ]
+   then
+      fail "master project at \"${masterpath}\" must not have a \"${BOOTSTRAP_DIR}\" folder"
+   fi
+
+   if ! is_master_bootstrap_project "${masterpath}"
+   then
+      fail "\"${masterpath}\" is not a master project"
+   fi
+}
 
 #
 # read local environment
