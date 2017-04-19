@@ -198,19 +198,18 @@ _git_clone()
    [ -e "${stashdir}" ] && internal_fail "${stashdir} already exists"
 
    local options
-
-   options="$*"
-   if [ ! -z "${branch}" ]
-   then
-      log_info "Cloning branch ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
-      options="`concat "${options}" "-b ${branch}"`"
-   else
-      log_info "Cloning ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
-   fi
-
    local dstdir
 
    dstdir="${stashdir}"
+   options="$*"
+   if [ ! -z "${branch}" ]
+   then
+      log_info "Cloning branch ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${url}${C_INFO} into \"${stashdir}\" ..."
+      options="`concat "${options}" "-b ${branch}"`"
+   else
+      log_info "Cloning ${C_MAGENTA}${C_BOLD}${url}${C_INFO} into \"${stashdir}\" ..."
+   fi
+
 
    # "remote urls" go through caches
    case "${url}" in

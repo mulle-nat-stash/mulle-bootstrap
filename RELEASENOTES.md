@@ -5,6 +5,9 @@ in `.bootstrap.local`. This way I can specify a "MulleFoundation" dependency
 if I want to compile for mulle-objc. But sometimes I want the Apple Foundation.
 * finally added list command for `setting`. All that's needed now is a scripts
 setting to list all scripts
+* -fb automatically adds `-U *` to CMAKEFLAGS so that cached values are ignored,
+this reduces a lot of WTF moments.
+* `CMAKE_FLAGS` is now `CMAKEFLAGS
 
 ### 3.3.0
 
@@ -104,7 +107,7 @@ I am lazy and I expect it.
 * Reduce verbosity for PATH to fluff
 * The --no-recursion flag has been fixed, the  old behaviour is now available
 as --no-embedded.
-* Use eval exekutor for cmake to better inherit CMAKE_FLAGS and protect paths
+* Use eval exekutor for cmake to better inherit CMAKEFLAGS and protect paths
 with spaces.
 * build now acknowledges --check-usr-local-include also
 * With --prefix you can change /usr/local on the commandline for build and fetch

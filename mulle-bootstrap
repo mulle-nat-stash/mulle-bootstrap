@@ -285,7 +285,7 @@ bootstrap_main()
    local ps4string
 
    local MULLE_FLAG_ANSWER="ASK"
-   local MULLE_FLAG_MAGNUM_FORCE="none"
+   local MULLE_FLAG_MAGNUM_FORCE="NONE"
    local MULLE_FLAG_IGNORE_GRAVEYARD="NO"
    local MULLE_FLAG_VERBOSE_BUILD="NO"
 
@@ -336,11 +336,11 @@ bootstrap_main()
          ;;
 
          -fb|--force-build)
-            MULLE_FLAG_MAGNUM_FORCE="build"
+            MULLE_FLAG_MAGNUM_FORCE="BUILD-ONLY"
          ;;
 
          -f|--force)
-            MULLE_FLAG_MAGNUM_FORCE="both"
+            MULLE_FLAG_MAGNUM_FORCE="BOTH"
          ;;
 
          --ignore-graveyard)
@@ -388,12 +388,12 @@ bootstrap_main()
    command="${1:-bootstrap}"
 
    case "${MULLE_FLAG_MAGNUM_FORCE}" in
-      both)
+      "BOTH")
          set_fetch_needed
          set_build_needed
       ;;
 
-      build)
+      "BUILD-ONLY")
          set_build_needed
       ;;
    esac
@@ -438,7 +438,7 @@ bootstrap_main()
    # some commands are only valid, if the fetch went through
    # defer/emancipate clean, so that's ok
    #
-   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "none" ]
+   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NONE" ]
    then
       case "${command}" in
          bootstrap|build|systeminstall|tag|update|upgrade)

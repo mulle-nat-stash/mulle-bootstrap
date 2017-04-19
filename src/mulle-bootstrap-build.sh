@@ -982,7 +982,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 "${c_compiler_line}" \
 "${cxx_compiler_line}" \
 "${local_cmake_flags}" \
-"${CMAKE_FLAGS}" \
+"${CMAKEFLAGS}" \
 "'${relative_srcdir}'"
       rval=$?
 
