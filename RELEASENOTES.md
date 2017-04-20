@@ -1,3 +1,9 @@
+
+### 3.4.1
+
+* experimentally, don't kill so hard anymore when failing (mostly for
+mulle-builds sake)
+
 ### 3.4.0
 
 * added handling of `additional_repositories`. This is supposed to be used

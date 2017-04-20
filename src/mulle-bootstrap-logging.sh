@@ -157,14 +157,14 @@ _bail()
    # should kill process group...
    kill 0
 
-   if [ ! -z "${MULLE_EXECUTABLE_PID}" ]
-   then
-      kill -INT "${MULLE_EXECUTABLE_PID}"  # kill myself (especially, if executing in subshell)
-      if [ $$ -ne ${MULLE_EXECUTABLE_PID} ]
-      then
-         kill -INT $$  # actually useful
-      fi
-   fi
+#   if [ ! -z "${MULLE_EXECUTABLE_PID}" ]
+#   then
+#      kill -INT "${MULLE_EXECUTABLE_PID}"  # kill myself (especially, if executing in subshell)
+#      if [ $$ -ne ${MULLE_EXECUTABLE_PID} ]
+#      then
+#         kill -INT $$  # actually useful
+#      fi
+#   fi
 
    exit 1        # paranoia
    # don't ask me why the fail message is printed twice
