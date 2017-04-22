@@ -303,7 +303,7 @@ _read_setting()
            "${key}" != "MULLE_NAT_REPOSITORIES" \
          ]
       then
-         log_printf "${C_SETTING}%b${C_RESET}\n" "Setting ${C_MAGENTA}${key}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${C_BOLD}${value}${C_SETTING}"
+         log_printf "${C_SETTING}%b${C_RESET}\n" "Setting ${C_MAGENTA}${key}${C_SETTING} found in \"${apath}\" as ${C_MAGENTA}${value}${C_SETTING}"
       fi
    fi
 

@@ -40,19 +40,21 @@ Usage:
 Output paths for various tool types. You can specify multiple types.
 
 Options:
-   -1             : output is a one-liner
    -f             : emit link directives for Frameworks
    -l             : emit link directives for libraries
    -m             : emit regardless of directory existence
-   -q <char>      : specify quote character
+   -n             : output is a multi-liner
+   -q <char>      : specify quote character, default empty
    -s <char>      : specify PATH seperator character
 
 Types:
    addictions     : output "addictions" path
    binpath        : output paths for binaries
+   cflags         : output CFLAGS for standalone build
    cppflags       : output CPPFLAGS
    cmakeflags     : output cmake flag definitions
    cmakepaths     : output cmake paths definitions
+   make           : output PATH, CPPFLAGS, LDFLAGS
 EOF
 
    if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
@@ -63,12 +65,12 @@ EOF
    fi
 
    cat <<EOF >&2
-   environment*   : output CPPFLAGS, LDFLAGS (default)
    frameworkpath  : output framework search paths PATH style
    headerpath     : output framework search paths PATH style
    ldflags        : output LDFLAGS
    librarypath    : output library search paths PATH style
    path           : output PATH
+   run            : output PATH, LD_LIBRARY_PATH (default)
 
 EOF
   exit 1
@@ -283,7 +285,12 @@ _flags_ldflags_value()
 _flags_cflags_value()
 {
    _flags_cppflags_value "$@"
-   _flags_ldflags_value "$@"
+   (
+      # avoid duplicate -F
+      OPTION_SUPPRESS_FRAMEWORK_LDFLAGS="YES"
+
+      _flags_ldflags_value "$@"
+   )
 }
 
 
@@ -391,10 +398,10 @@ _flags_do_cmake_flags()
    if [ ! -z "${values}" ]
    then
       values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-      line="-DCMAKE_C_FLAGS=\"${values}\""
+      line="-DCMAKE_C_FLAGS=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
 
-      line="-DCMAKE_CXX_FLAGS=\"${values}\""
+      line="-DCMAKE_CXX_FLAGS=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -402,10 +409,10 @@ _flags_do_cmake_flags()
    if [ ! -z "${values}" ]
    then
       values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-      line="-DCMAKE_EXE_LINKER_FLAGS=\"${values}\""
+      line="-DCMAKE_EXE_LINKER_FLAGS=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
 
-      line="-DCMAKE_SHARED_LINKER_FLAGS=\"${values}\""
+      line="-DCMAKE_SHARED_LINKER_FLAGS=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -423,22 +430,21 @@ _flags_do_cmake_paths()
    values="`_flags_headerpath_value`"
    if [ ! -z "${values}" ]
    then
-      line="-DCMAKE_INCLUDE_PATH =\"${values}\""
+      line="-DCMAKE_INCLUDE_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
    values="`_flags_librarypath_value`"
    if [ ! -z "${values}" ]
    then
-      line="-DCMAKE_LIBRARY_PATH=\"${values}\""
+      line="-DCMAKE_LIBRARY_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
-   # does CMAKE_FRAMEWORK_PATH even exist ?
    values="`_flags_frameworkpath_value`"
    if [ ! -z "${values}" ]
    then
-      line="-DCMAKE_FRAMEWORK_PATH=\"${values}\""
+      line="-DCMAKE_FRAMEWORK_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -457,7 +463,7 @@ _flags_do_path()
    values="`_flags_binpath_value`"
    if [ ! -z "${values}" ]
    then
-      line="PATH='${values}:${PATH}'"
+      line="PATH=${OPTION_QUOTE}${values}:${PATH}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -465,7 +471,7 @@ _flags_do_path()
 }
 
 
-_flags_do_environment()
+_flags_do_make_environment()
 {
    local result="$1"
 
@@ -476,7 +482,7 @@ _flags_do_environment()
    if [ ! -z "${values}" ]
    then
       values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-      line="CPPFLAGS=\"${values}\""
+      line="CPPFLAGS=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -484,11 +490,91 @@ _flags_do_environment()
    if [ ! -z "${values}" ]
    then
       values="`echo "${values}" | tr '\012' ' ' | sed 's/ *$//'`"
-      line="LDFLAGS=\"${values}\""
+      line="LDFLAGS=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   values="`_flags_binpath_value`"
+   if [ ! -z "${values}" ]
+   then
+      line="PATH=${OPTION_QUOTE}${values}:${PATH}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
    printf "%s" "$result"
+}
+
+
+_flags_do_run_environment()
+{
+   local result="$1"
+
+   local values
+   local line
+
+   values="`_flags_librarypath_value`"
+   if [ ! -z "${values}" ]
+   then
+      case "${UNAME}" in
+         darwin)
+            line="DYLD_FALLBACK_LIBRARY_PATH=${OPTION_QUOTE}${values}:${HOME}/lib:/usr/local/lib:/lib:/usr/lib${OPTION_QUOTE}"
+         ;;
+
+         *)
+            line="LD_LIBRARY_PATH=${OPTION_QUOTE}${values}:${LD_LIBRARY_PATH}${OPTION_QUOTE}"
+         ;;
+      esac
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   values="`_flags_frameworkpath_value`"
+   if [ ! -z "${values}" ]
+   then
+      case "${UNAME}" in
+         darwin)
+            line="DYLD_FALLBACK_FRAMEWORK_PATH=${OPTION_QUOTE}${values}:/Library/Frameworks:/Network/Library/Frameworks:/System/Library/Frameworks${OPTION_QUOTE}"
+            result="`add_line "${result}" "${line}"`"
+         ;;
+      esac
+   fi
+
+   values="`_flags_binpath_value`"
+   if [ ! -z "${values}" ]
+   then
+      line="PATH=${OPTION_QUOTE}${values}:${PATH}${OPTION_QUOTE}"
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   printf "%s" "$result"
+}
+
+
+run_main()
+{
+   local commandline
+   local value
+
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+
+   #
+   # use mulle-bootstrap this way to get properly deferred
+   # paths
+   #
+   commandline="`${MULLE_EXECUTABLE} -s paths -1 -q "'"`"
+   while [ $# -ne 0 ]
+   do
+      value="$1"
+#      case "${value}" in
+#         \`*)
+#            value="`eval_exekutor echo "${value}"`"
+#         ;;
+#      esac
+
+      commandline="`concat "${commandline}" "'${value}'"`"
+      shift
+   done
+
+   eval_exekutor "${commandline}"
 }
 
 
@@ -509,8 +595,8 @@ paths_main()
    local OPTION_WITH_LIBRARYPATHS="YES"
    local OPTION_WITH_MISSING_PATHS="NO"
    local OPTION_PATH_SEPARATOR=":"
-   local OPTION_QUOTE="'"
-   local OPTION_LINE_SEPERATOR="\n"
+   local OPTION_QUOTE=""
+   local OPTION_LINE_SEPERATOR=" "
 
    log_debug ":paths_main:"
 
@@ -540,7 +626,7 @@ paths_main()
             paths_usage
          ;;
 
-         -1|--one-line)
+         -1|--one-line) # old code
             OPTION_LINE_SEPERATOR=" "
          ;;
 
@@ -560,6 +646,10 @@ paths_main()
 
          -m|--missing)
             OPTION_WITH_MISSING_PATHS="YES"
+         ;;
+
+         -n|--multiple-lines)
+            OPTION_LINE_SEPERATOR="\n"
          ;;
 
          -na|--no-addictions)
@@ -622,7 +712,7 @@ paths_main()
    local result
 
    result=""
-   type="${1:-environment}"
+   type="${1:-run}"
 
 
    local memo
@@ -635,12 +725,12 @@ paths_main()
       [ $# -ne 0 ] && shift
 
       case "${type}" in
-         addictions)
+         "addictions")
             values="`_flags_emit_path "${ADDICTIONS_DIR}"`"
             result="`add_line "${result}" "${values}"`"
          ;;
 
-         dependencies)
+         "dependencies")
             values="`_flags_emit_path "${DEPENDENCIES_DIR}"`"
             result="`add_line "${result}" "${values}"`"
          ;;
@@ -650,11 +740,11 @@ paths_main()
             result="`add_line "${result}" "${values}"`"
          ;;
 
-         "cmakeflags")
+         "cmakeflags") # obsolete
             result="`_flags_do_cmake_flags "${result}"`"
          ;;
 
-         "cmakepaths")
+         "cmake"|"cmakepaths")
             result="`_flags_do_cmake_paths "${result}"`"
          ;;
 
@@ -662,8 +752,12 @@ paths_main()
             result="`_flags_do_path "${result}"`"
          ;;
 
-         "environment")
-            result="`_flags_do_environment "${result}"`"
+         "make")
+            result="`_flags_do_make_environment "${result}"`"
+         ;;
+
+         "run")
+            result="`_flags_do_run_environment "${result}"`"
          ;;
 
          *)

@@ -348,8 +348,10 @@ Release"
    user_say_yes "$query"
    [ $? -eq 0 ] || exit 1
 
-
-   patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${default}" "${flag}"
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
+   then
+      patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${default}" "${flag}"
+   fi
 
    exekutor mulle-xcode-settings "${flag}" "ADDICTIONS_DIR" "${addictions_dir}" "${project}"  || exit 1
    exekutor mulle-xcode-settings "${flag}" "DEPENDENCIES_DIR" "${dependencies_dir}" "${project}"  || exit 1
@@ -380,11 +382,8 @@ xcode_main()
 {
    log_debug "::: xcode :::"
 
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
-   [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ]     && . mulle-bootstrap-brew.sh
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
-
-   build_complete_environment
 
    if [ "${UNAME}" != 'darwin' ]
    then

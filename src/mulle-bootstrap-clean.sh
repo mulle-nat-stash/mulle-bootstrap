@@ -153,6 +153,8 @@ print_stashdir_embedded_repositories()
 
 setup_clean_environment()
 {
+   build_complete_environment
+
    [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
    [ -z "${CLONESBUILD_DIR}" ]     && internal_fail "CLONESBUILD_DIR is empty"
    [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "ADDICTIONS_DIR is empty"
@@ -305,11 +307,6 @@ clean_directories()
 clean_execute()
 {
    local style="$1"
-
-   [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
-   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "CLONESBUILD_DIR is empty"
-   [ -z "${ADDICTIONS_DIR}"   ]    && internal_fail "ADDICTIONS_DIR is empty"
-   [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "STASHES_DEFAULT_DIR is empty"
 
    setup_clean_environment
 

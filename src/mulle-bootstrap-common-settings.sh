@@ -36,6 +36,8 @@ MULLE_BOOTSTRAP_COMMON_SETTINGS_SH="included"
 #
 build_complete_environment()
 {
+   log_debug ":build_complete_environment:"
+
    #
    # Global Settings
    # used to be configurable, but just slows me down
@@ -54,6 +56,13 @@ build_complete_environment()
       OPTION_CONFIGURATIONS="`read_root_setting "configurations" "${OPTION_CONFIGURATIONS}"`"
    fi
    N_CONFIGURATIONS="`echo "${OPTION_CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
+
+   # experimentally, these could reside outside the project folder but never tested
+   CLONESBUILD_DIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
+   BUILDLOGS_DIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_DIR}/.logs"`"
+
+   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "variable CLONESBUILD_DIR is empty"
+   [ -z "${BUILDLOGS_DIR}" ]    && internal_fail "variable BUILDLOGS_DIR is empty"
 
    #
    # expand PATH for build, but it's kinda slow
@@ -99,16 +108,7 @@ build_complete_environment()
 
 common_settings_initialize()
 {
-   [ -z "${MULLE_BOOTSTRAP_LOGGING_SH}" ] && . mulle-bootstrap-logging.sh
-
    log_debug ":common_settings_initialize:"
-
-   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
-   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
-
-   # experimentally, these could reside outside the project folder but never tested
-   CLONESBUILD_DIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
-   BUILDLOGS_DIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_DIR}/.logs"`"
 
    # all of these must reside in the project folder
    # used to be configurable, but what's the point really ? just slows us down
@@ -121,8 +121,6 @@ common_settings_initialize()
    # ADDICTIONS_DIR="`read_sane_config_path_setting "addictions_dir" "addictions"`"
    # STASHES_DEFAULT_DIR="`read_sane_config_path_setting "stashes_dir" "stashes"`"
 
-   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "variable CLONESBUILD_DIR is empty"
-   [ -z "${BUILDLOGS_DIR}" ]    && internal_fail "variable BUILDLOGS_DIR is empty"
 #   [ -z "${DEPENDENCIES_DIR}" ]    && internal_fail "variable DEPENDENCIES_DIR is empty"
 #   [ -z "${ADDICTIONS_DIR}" ]      && internal_fail "variable ADDICTIONS_DIR is empty"
 #   [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "variable STASHES_DEFAULT_DIR is empty"

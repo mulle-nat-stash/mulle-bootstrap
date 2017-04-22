@@ -869,6 +869,7 @@ zip_unpack()
 scm_initialize()
 {
    log_debug ":scm_initialize:"
+
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
 
