@@ -213,6 +213,8 @@ _bootstrap_auto_create()
    rmdir_safer "${dst}"
    mkdir_if_missing "${dst}"
 
+   redirect_exekutor "${dst}/.creator" echo "${MULLE_EXCUTABLE}"
+
    #
    # Copy over .local with config
    #

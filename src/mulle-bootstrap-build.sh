@@ -48,9 +48,25 @@ build_usage()
    fi
 
    cat <<EOF >&2
-usage:
-   mulle-bootstrap build [-ck] [repos]*
+Usage:
+   ${MULLE_BOOTSTAP_EXECUTABLE} build [options] [repos]*
+EOF
 
+   cat <<EOF >&2
+   You may specify the names of the repositories to build.
+EOF
+
+   local  repositories
+
+   repositories="`all_repository_stashes`"
+   if [ -z "${repositories}" ]
+   then
+      echo "Currently available repositories are:"
+      echo "${repositories}" | sed 's/^/   /'
+   fi
+
+   cat <<EOF >&2
+Options:
    -k             :  don't clean before building $defk
    -K             :  always clean before building $defkk
    -c <name>      :  configurations to build ($defc), separate with comma
@@ -69,18 +85,7 @@ EOF
       ;;
    esac
 
-   cat << EOF >&2
-   You can optionally specify the names of the repositories to build.
-EOF
-
-   local  repositories
-
-   repositories="`all_repository_stashes`"
-   if [ -z "${repositories}" ]
-   then
-      echo "Currently available repositories are:"
-      echo "${repositories}" | sed 's/^/   /'
-   fi
+   echo >&2
 
    exit 1
 }

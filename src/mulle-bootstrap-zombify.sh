@@ -43,9 +43,10 @@ MULLE_BOOTSTRAP_ZOMBIFY_SH="included"
 refresh_usage()
 {
    cat <<EOF >&2
-usage:
-   mulle-bootstrap <refresh|nonrecursive>
+Usage:
+   ${MULLE_EXECUTABLE} <command>
 
+Commands:
    refresh      : update settings, remove unused repositories (default)
    nonrecursive : ignore .bootstrap folders of fetched repositories
 EOF

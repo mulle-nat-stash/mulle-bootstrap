@@ -56,25 +56,27 @@ MULLE_BOOTSTRAP_FETCH_SH="included"
 fetch_usage()
 {
    cat <<EOF >&2
-usage:
-   mulle-bootstrap ${COMMAND} [options] [repositories]
+Usage:
+   ${MULLE_EXECUTABLE} ${COMMAND} [options] [repositories]
 
-   Options
-      --caches            :  use CACHES_PATH to locate local repositories
-      --check-usr-local   :  check /usr/local for duplicates
-      --embedded-only     :  fetch embedded repositories only
+   You can specify the names of the repositories to update.
 
-      --symlinks          :  allow symlinking instead of cloning
-      --embedded-symlinks :  allow embedded symlinks (very experimental)
-      --follow-symlinks   :  follow symlinks when updating (not recommended)
-      --no-caches         :  don't use caches. Useful to counter flag -y
-      --no-symlinks       :  don't create symlinks. Useful to counter flag -y
-
+Commands:
    install  :  clone or symlink non-exisiting repositories and other resources
    update   :  execute a "fetch" in already fetched repositories
    upgrade  :  execute a "pull" in fetched repositories
 
-   You can specify the names of the repositories to update.
+Options:
+   --caches            :  use CACHES_PATH to locate local repositories
+   --check-usr-local   :  check /usr/local for duplicates
+   --embedded-only     :  fetch embedded repositories only
+
+   --symlinks          :  allow symlinking instead of cloning
+   --embedded-symlinks :  allow embedded symlinks (very experimental)
+   --follow-symlinks   :  follow symlinks when updating (not recommended)
+   --no-caches         :  don't use caches. Useful to counter flag -y
+   --no-symlinks       :  don't create symlinks. Useful to counter flag -y
+
 EOF
 
    local  repositories
@@ -199,10 +201,10 @@ link_command()
 
    if [ "${branch}" != "master" ]
    then
-      log_warning "The intended ${branchlabel} ${C_RESET_BOLD}${branch}${C_WARNING} will be ignored, because"
-      log_warning "the repository is symlinked."
-      log_warning "If you want to checkout this ${branchlabel} do:"
-      log_warning "${C_RESET_BOLD}(cd ${stashdir}; git checkout ${GITOPTIONS} \"${branch}\" )${C_WARNING}"
+      log_warning "The intended ${branchlabel} ${C_RESET_BOLD}${branch}${C_WARNING} \
+will be ignored, because the repository is symlinked.
+If you want to checkout this ${branchlabel} do:
+   ${C_RESET_BOLD}(cd ${stashdir}; git checkout ${GITOPTIONS} \"${branch}\" )${C_WARNING}"
    fi
 }
 
@@ -327,7 +329,7 @@ search_for_git_repository_in_caches()
       realdir="`realpath "${directory}"`"
       if [ "${realdir}" = "${curdir}" ]
       then
-         fail "config setting \"caches_path\" mistakenly contains \"${directory}\", which is the current directory"
+         fail "config setting \"search_path\" mistakenly contains \"${directory}\", which is the current directory"
       fi
 
       found="`_search_for_git_repository_in_cache "${realdir}" "$@"`" || exit 1
@@ -636,7 +638,7 @@ clone_repository()
             is_minion_bootstrap_project "${stashdir}" || fail "\"${stashdir}\" \
 should be a minion but it isn't.
 Suggested fix:
-   ${C_RESET}${C_BOLD}cd \"${stashdir}\" ; mulle-bootstrap defer \"\
+   ${C_RESET}${C_BOLD}cd \"${stashdir}\" ; ${MULLE_EXECUTABLE} defer \"\
 `symlink_relpath "${PWD}" "${stashdir}"`\
 \""
             log_info "${C_MAGENTA}${C_BOLD}${name}${C_INFO} is a minion, so cloning is skipped"

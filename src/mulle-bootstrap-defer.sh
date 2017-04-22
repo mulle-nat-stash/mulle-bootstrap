@@ -35,10 +35,12 @@ MULLE_BOOTSTRAP_DEFER_SH="included"
 emancipate_usage()
 {
     cat <<EOF >&2
-usage:
-   mulle-bootstrap emancipate
+Usage:
+   ${MULLE_EXECUTABLE} emancipate
 
-   Emancipate from master. mulle-bootstrap will produce local builds again.
+   Emancipate from master. ${MULLE_EXECUTABLE} will make local dependencies
+   again.
+
 EOF
   exit 1
 }
@@ -47,12 +49,13 @@ EOF
 defer_usage()
 {
     cat <<EOF >&2
-usage:
-   mulle-bootstrap defer
+Usage:
+   ${MULLE_EXECUTABLE} defer
 
    Share and defer builds to master. The master will be used
-   to fetch dependencies and build them. Use mulle-bootstrap paths
+   to fetch dependencies and build them. Use ${MULLE_EXECUTABLE} paths
    to get paths to addictions and dependencies.
+
 EOF
   exit 1
 }

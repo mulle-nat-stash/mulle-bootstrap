@@ -37,12 +37,13 @@ MULLE_BOOTSTRAP_INSTALL_SH="included"
 install_usage()
 {
    cat <<EOF >&2
-usage:
-   mulle-bootstrap install [libraryprefix] [frameworkprefix]
+Usage:
+   ${MULLE_EXECUTABLE} install [libraryprefix] [frameworkprefix]
 
    You may need to run this as sudo.
-   The default libraryprefix is ${DEFAULT_PREFIX}
-   The default frameworkprefix is ${DEFAULT_FRAMEWORK_PREFIX}
+   The default libraryprefix is "${DEFAULT_PREFIX}
+   The default frameworkprefix is "${DEFAULT_FRAMEWORK_PREFIX}"
+
 EOF
    exit 1
 }
@@ -341,7 +342,7 @@ install_main()
    then
      fail "No dependencies have been created yet.
 Suggested fix:
-   mulle-bootstrap build"
+   ${MULLE_EXECUTABLE} build"
    fi
 
    local symlink

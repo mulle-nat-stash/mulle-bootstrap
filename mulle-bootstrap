@@ -28,9 +28,10 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+#
 MULLE_EXECUTABLE_VERSION_MAJOR=3
-MULLE_EXECUTABLE_VERSION_MINOR=4
-MULLE_EXECUTABLE_VERSION_PATCH=1
+MULLE_EXECUTABLE_VERSION_MINOR=5
+MULLE_EXECUTABLE_VERSION_PATCH=0
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -96,8 +97,10 @@ mulle_bootstrap_usage()
    local  verbose="${1:-NO}"
 
    cat <<EOF
-usage: mulle-bootstrap [flags] [command] [options]
- Flags:
+Usage:
+   ${MULLE_BOOTSTAP_EXECUTABLE} [flags] [command] [options]
+
+Flags:
    -a -y     : default answer to questions (scripts wont be checked)
                -a (clone preferred) -y (local copy/symlink preferred)
    -f        : force operation
@@ -112,7 +115,7 @@ EOF
 
    cat <<EOF
 
- Commands:
+Commands:
 EOF
 
    print_commands "${verbose}" | sort
@@ -126,7 +129,7 @@ EOF
    fi
 
    cat <<EOF
- Options are command specific. Use mulle-bootstrap <command> -h for help.
+Options are command specific. Use mulle-bootstrap <command> -h for help.
 EOF
 
    exit 1
@@ -236,7 +239,7 @@ bootstrap_init()
    libexecpath="`bootstrap_libexec_path "$0"`"
    if [ -z "${libexecpath}" ]
    then
-      echo "Fatal Error: Could not find libexec for mulle-bootstrap" >&2
+      echo "Fatal Error: Could not find libexec for ${MULLE_EXECUTABLE}" >&2
       exit 1
    fi
 
@@ -387,17 +390,6 @@ bootstrap_main()
    #
    command="${1:-bootstrap}"
 
-   case "${MULLE_FLAG_MAGNUM_FORCE}" in
-      "BOTH")
-         set_fetch_needed
-         set_build_needed
-      ;;
-
-      "BUILD-ONLY")
-         set_build_needed
-      ;;
-   esac
-
    case "${command}" in
       help|init|uname)
       ;;
@@ -416,7 +408,12 @@ bootstrap_main()
 
             if [ "$PWD" = "${old}" ]
             then
-               fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($orgpwd), can't continue"
+               if [ "${command}" = "seting" ]
+               then
+                  cd "${orgpwd}"
+               else
+                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($orgpwd), can't continue"
+               fi
             fi
          done
       ;;
@@ -438,14 +435,24 @@ bootstrap_main()
    # some commands are only valid, if the fetch went through
    # defer/emancipate clean, so that's ok
    #
-   if [ "${MULLE_FLAG_MAGNUM_FORCE}" = "NONE" ]
-   then
-      case "${command}" in
-         bootstrap|build|systeminstall|tag|update|upgrade)
-            bootstrap_ensure_consistency
-         ;;
-      esac
-   fi
+   case "${MULLE_FLAG_MAGNUM_FORCE}" in
+      "BOTH")
+         set_fetch_needed
+         set_build_needed
+      ;;
+
+      "BUILD-ONLY")
+         set_build_needed
+      ;;
+
+      "NONE")
+         case "${command}" in
+            bootstrap|build|systeminstall|tag|update|upgrade)
+               bootstrap_ensure_consistency
+            ;;
+         esac
+      ;;
+   esac
 
    MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_EXECUTABLE} ${command}"
    [ $# -eq 0 ] || shift

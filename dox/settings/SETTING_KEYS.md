@@ -98,7 +98,7 @@ Setting Name                      |  Description                                
 Setting Name                      |  Description                                  | Default
 ----------------------------------|-----------------------------------------------|--------------
 `absolute_symlinks`               | Use absolute symlinks instead of relatives    | NO
-`caches_path`                     | PATH to search for repositories, before cloning |
+`search_path`                     | PATH to search for repositories, before cloning |
 `embedded_symlinks`               | mulle-bootstrap will attempt to symlink regular repositories       | NO (ignored on MINGW)
 `symlinks`                        | mulle-bootstrap will attempt to symlink embedded repositories       | NO (ignored on MINGW)
 `update_gitignore`                | add cleanable directories to .gitignore       | YES

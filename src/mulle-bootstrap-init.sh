@@ -35,13 +35,13 @@ MULLE_BOOTSTRAP_INIT_SH="included"
 init_usage()
 {
     cat <<EOF >&2
-usage:
-  mulle-bootstrap init [options]
+Usage:
+  ${MULLE_EXECUTABLE} init [options]
 
-  Options
-    -d :  don't create default files
-    -e :  create example files
-    -n :  don't ask for editor
+Options
+   -d : create default files
+   -n : don't ask for editor
+
 EOF
   exit 1
 }
@@ -108,10 +108,8 @@ init_main()
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]         && . mulle-bootstrap-functions.sh
 
    local OPTION_CREATE_DEFAULT_FILES
-   local OPTION_CREATE_EXAMPLE_FILES
 
-   OPTION_CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "YES"`"
-   OPTION_CREATE_EXAMPLE_FILES="`read_config_setting "create_example_files" "NO"`"
+   OPTION_CREATE_DEFAULT_FILES="`read_config_setting "create_default_files" "NO"`"
 
    while [ $# -ne 0 ]
    do
@@ -125,11 +123,7 @@ init_main()
          ;;
 
          -d)
-            OPTION_CREATE_DEFAULT_FILES=
-         ;;
-
-         -e)
-            OPTION_CREATE_EXAMPLE_FILES="YES"
+            OPTION_CREATE_DEFAULT_FILES="YES"
          ;;
 
          -*)
@@ -148,8 +142,7 @@ init_main()
 
    if [ -d "${BOOTSTRAP_DIR}" ]
    then
-      log_warning "\"${BOOTSTRAP_DIR}\" already exists"
-      exit 1
+      fail "\"${BOOTSTRAP_DIR}\" already exists"
    fi
 
    log_fluff "Create \"${BOOTSTRAP_DIR}\""
@@ -160,9 +153,24 @@ init_main()
 ${MULLE_EXECUTABLE_VERSION_MAJOR}.0.0
 EOF
 
-   if [ "${OPTION_CREATE_DEFAULT_FILES}" = "YES" ]
+   if [ "${OPTION_CREATE_DEFAULT_FILES}" = "NO" ]
    then
-      log_fluff "Create default files"
+      if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
+      then
+         log_info "${BOOTSTRAP_DIR} has been created. Use
+   ${C_RESET}${C_BOLD}${MULLE_EXECUTABLE} setting -g -r -a repositories <url>${C_INFO}
+to specify dependencies and then install them with
+   ${C_RESET}${C_BOLD}${MULLE_EXECUTABLE}${C_INFO}"
+      else
+         log_info "${BOOTSTRAP_DIR} has been created. Use
+   ${C_RESET}${C_BOLD}${MULLE_EXECUTABLE} setting -g -r -a brews <name>${C_INFO}
+to specify brew formula to fetch and then install them with
+   ${C_RESET}${C_BOLD}${MULLE_EXECUTABLE}${C_INFO}"
+      fi
+      return
+   fi
+
+   log_fluff "Create default files"
 
 
 #cat <<EOF > "${BOOTSTRAP_DIR}/pips"
@@ -171,16 +179,15 @@ EOF
 # mod-pbxproj
 #EOF
 
-      init_add_brews
+   init_add_brews
 
-      if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
-      then
-         mainfile="repositories"
-         _init_add_repositories "repositories"
-         _init_add_repositories "embedded_repositories"
-      else
-         mainfile="brews"
-      fi
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
+   then
+      mainfile="repositories"
+      _init_add_repositories "repositories"
+      _init_add_repositories "embedded_repositories"
+   else
+      mainfile="brews"
    fi
 
    log_verbose "\"${BOOTSTRAP_DIR}\" folder has been set up."

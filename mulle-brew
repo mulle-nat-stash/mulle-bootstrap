@@ -28,9 +28,10 @@
 #   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 #   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #   POSSIBILITY OF SUCH DAMAGE.
+#
 MULLE_EXECUTABLE_VERSION_MAJOR=3
-MULLE_EXECUTABLE_VERSION_MINOR=4
-MULLE_EXECUTABLE_VERSION_PATCH=1
+MULLE_EXECUTABLE_VERSION_MINOR=5
+MULLE_EXECUTABLE_VERSION_PATCH=0
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -48,23 +49,25 @@ trap_fail()
 mulle_brew_usage()
 {
    cat <<EOF
-usage: mulle-brew [flags] [command] [options]
- Flags:
-   -n        : do nothing creative or destructive
-   -v        : -v to be more verbose (-vv or -vvv for more verbosity)
+Usage:
+   ${MULLE_BOOTSTAP_EXECUTABLE} [flags] [command] [options]
+
+Flags:
+   -n   : do nothing creative or destructive
+   -v   : -v to be more verbose (-vv or -vvv for more verbosity)
 EOF
 
    bootstrap_technical_option_usage
 
    cat <<EOF
 
- Commands:
+Commands:
    install   : fetches brews
    update    : update brew
    upgrade   : upgrade brew fomulae
    init      : initializes a bootstrap project
 
- Options are command specific. Use mulle-brew <command> -h for help.
+Options are command specific. Use mulle-brew <command> -h for help.
 EOF
 
    if [ "${UNAME}" = 'darwin' ]
@@ -139,7 +142,7 @@ bootstrap_init()
    libexecpath="`bootstrap_libexec_path "$0"`"
    if [ -z "${libexecpath}" ]
    then
-      echo "could not find libexec for mulle-bootstrap" >&2
+      echo "could not find libexec for ${MULLE_EXECUTABLE}" >&2
       exit 1
    fi
 
@@ -344,6 +347,13 @@ brew_main()
          paths_main "$@" || exit 1
       ;;
 
+      setting)
+         . mulle-bootstrap-settings.sh
+
+         setting_main "$@" || exit 1
+      ;;
+
+
       show)
          . mulle-bootstrap-show.sh
 
@@ -381,7 +391,7 @@ brew_main()
 
       *)
          log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown command \"${command}\""
-         mulle_bootstrap_usage
+         mulle_brew_usage
       ;;
    esac
 }

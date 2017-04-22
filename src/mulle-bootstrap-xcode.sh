@@ -37,11 +37,13 @@ MULLE_BOOTSTRAP_XCODE_SH="included"
 xcode_usage()
 {
    cat <<EOF >&2
-usage:
-   mulle-bootstrap xcode <add|remove> [xcodeproj]
+Usage:
+   ${MULLE_EXECUTABLE} xcode <command> [xcodeproj]
 
+Commands:
    add      : add settings to Xcode project (default)
    remove   : remove settings from Xcode project
+
 EOF
    exit 1
 }
@@ -251,8 +253,8 @@ Release"
    local framework_search_paths
 
    # grab values from master if needed
-   DEPENDENCIES_DIR="`mulle-bootstrap paths dependencies`"
-   ADDICTIONS_DIR="`mulle-bootstrap paths addictions`"
+   DEPENDENCIES_DIR="`${MULLE_EXECUTABLE} paths dependencies`"
+   ADDICTIONS_DIR="`${MULLE_EXECUTABLE} paths addictions`"
 
    relpath="`symlink_relpath "${DEPENDENCIES_DIR}" "${projectdir}"`"
    dependencies_dir='$(PROJECT_DIR)'/"${relpath}"
@@ -366,7 +368,7 @@ Release"
          echo "If you add a configuration to your project, remember to" >&2
          echo "edit the ${C_RESET_BOLD}LIBRARY_CONFIGURATION${C_CYAN} setting for that" >&2
          echo "configuration." >&2
-         echo "You can rerun \"mulle-bootstrap xcode add\" at later times" >&2
+         echo "You can rerun \"${MULLE_EXECUTABLE} xcode add\" at later times" >&2
          echo "and it should not unduly duplicate setting contents." >&2
          printf "\n${C_RESET}" >&2
       fi

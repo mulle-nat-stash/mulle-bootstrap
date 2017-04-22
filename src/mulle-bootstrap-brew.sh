@@ -35,13 +35,14 @@ MULLE_BOOTSTRAP_BREW_SH="included"
 _brew_usage()
 {
    cat <<EOF >&2
-usage:
-   mulle-brew ${COMMAND} [options] [repositories]
-
-   Options
-      -cs   :  check /usr/local for duplicates
+Usage:
+   ${MULLE_BOOTSTAP_EXECUTABLE}  ${COMMAND} [options] [repositories]
 
    You can specify the names of the formulae to ${COMMAND}.
+
+Options:
+   -cs   :  check /usr/local for duplicates
+
 EOF
    exit 1
 }
@@ -151,7 +152,7 @@ _brew_action()
             log_info "Force linking it, in case it was keg-only"
             exekutor "${BREW}" link --force "${formula}" || exit 1
          else
-            log_info "\"${formula}\" is already installed."
+            log_info "${C_MAGENTA}${C_BOLD}${formula}${C_INFO} is already installed."
          fi
       ;;
 
@@ -170,11 +171,6 @@ find_brews()
    brews="`read_root_setting "brews" | sort | sort -u`"
    if [ ! -z "${brews}" ]
    then
-      if [ "${MULLE_EXECUTABLE}" != "mulle-bootstrap" ]
-      then
-         log_info "Setting read from .bootstrap.auto folder. \
-You might want to use mulle-bootstrap instead of mulle-brew."
-      fi
       echo "${brews}"
       return
    fi
@@ -239,6 +235,23 @@ brew_install_brews()
 }
 
 
+brew_fetch_loop()
+{
+   [ -z "${MULLE_BOOTSTRAP_AUTO_UPDATE_SH}" ] && . mulle-bootstrap-auto-update.sh
+
+   bootstrap_auto_create
+
+   if is_master_bootstrap_project
+   then
+      log_info "Extracting minions' brews ..."
+
+      [ -z "${MULLE_BOOTSTRAP_FETCH_SH}" ] && . mulle-bootstrap-fetch.sh
+
+      extract_minion_precis
+   fi
+}
+
+
 _brew_common_install()
 {
    if [ $# -ne 0 ]
@@ -246,6 +259,8 @@ _brew_common_install()
       log_error "Additional parameters not allowed for fetch (" "$@" ")"
       ${USAGE}
    fi
+
+   brew_fetch_loop
 
    brew_install_brews "install" "$@"
 

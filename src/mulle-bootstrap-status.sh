@@ -35,11 +35,12 @@ MULLE_BOOTSTRAP_STATUS_SH="included"
 status_usage()
 {
     cat <<EOF >&2
-usage:
-   mulle-bootstrap status [options]
+Usage:
+   ${MULLE_EXECUTABLE} status [options]
 
-      -e   : embedded directories
-      -nfs : don't follow symlinks
+Options:
+   -e   : embedded directories
+   -nfs : don't follow symlinks
 
 EOF
   exit 1

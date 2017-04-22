@@ -40,14 +40,15 @@ MULLE_BOOTSTRAP_TAG_SH="included"
 tag_usage()
 {
    cat <<EOF >&2
-usage:
-   mulle-bootstrap tag [options] <tag>
+Usage:
+   ${MULLE_EXECUTABLE} tag [options] <tag>
 
-   Options:
-      -d   : delete tag
-      -f   : force tag
+   Give a tag for your fetched repositories.
 
-      tag  : the tag for your fetched repositories
+Options:
+   -d   : delete tag
+   -f   : force tag
+
 EOF
    exit 1
 }

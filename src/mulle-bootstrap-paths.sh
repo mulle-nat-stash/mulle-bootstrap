@@ -34,30 +34,42 @@ MULLE_BOOTSTRAP_PATHS_SH="included"
 paths_usage()
 {
     cat <<EOF >&2
-usage:
-   mulle-bootstrap paths [options] <type>+
+Usage:
+   ${MULLE_EXECUTABLE} paths [options] <types>
 
-   Options:
-      -1             : output is a one-liner
-      -m             : emit regardless of directory existence
-      -l             : emit link directives for libraries
-      -f             : emit link directives for Frameworks
+Output paths for various tool types. You can specify multiple types.
 
-   Output paths for various tool types. You can specify multiple types.
+Options:
+   -1             : output is a one-liner
+   -f             : emit link directives for Frameworks
+   -l             : emit link directives for libraries
+   -m             : emit regardless of directory existence
+   -q <char>      : specify quote character
+   -s <char>      : specify PATH seperator character
 
-   Types:
-      addictions     : output "addictions" path
-      binpath        : output paths for binaries
-      cppflags       : output CPPFLAGS
-      cmakeflags     : output cmake flag definitions
-      cmakepaths     : output cmake paths definitions
-      dependencies   : output "dependencies" path
-      environment*   : output CPPFLAGS, LDFLAGS (default)
-      frameworkpath  : output framework search paths PATH style
-      headerpath     : output framework search paths PATH style
-      ldflags        : output LDFLAGS
-      librarypath    : output library search paths PATH style
-      path           : output PATH
+Types:
+   addictions     : output "addictions" path
+   binpath        : output paths for binaries
+   cppflags       : output CPPFLAGS
+   cmakeflags     : output cmake flag definitions
+   cmakepaths     : output cmake paths definitions
+EOF
+
+   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
+   then
+       cat <<EOF >&2
+   dependencies   : output "dependencies" path
+EOF
+   fi
+
+   cat <<EOF >&2
+   environment*   : output CPPFLAGS, LDFLAGS (default)
+   frameworkpath  : output framework search paths PATH style
+   headerpath     : output framework search paths PATH style
+   ldflags        : output LDFLAGS
+   librarypath    : output library search paths PATH style
+   path           : output PATH
+
 EOF
   exit 1
 }
@@ -532,20 +544,6 @@ paths_main()
             OPTION_LINE_SEPERATOR=" "
          ;;
 
-         -q|--quote)
-            shift
-            [ $# -eq 0 ] && fail "quote missing"
-
-            OPTION_QUOTE="$1"
-         ;;
-
-         -s|--separator)
-            shift
-            [ $# -eq 0 ] && fail "separator missing"
-
-            OPTION_PATH_SEPARATOR="$1"
-         ;;
-
          -d|--dependencies)
             OPTION_WITH_DEPENDENCIES="YES"
          ;;
@@ -576,6 +574,10 @@ paths_main()
             OPTION_SUPPRESS_FRAMEWORK_LDFLAGS="YES"
          ;;
 
+         -nf|--no-framework-paths)
+            OPTION_WITH_FRAMEWORKPATHS="NO"
+         ;;
+
          -nh|--no-header-paths)
             OPTION_WITH_HEADERPATHS="NO"
          ;;
@@ -584,8 +586,18 @@ paths_main()
             OPTION_WITH_LIBRARYPATHS="NO"
          ;;
 
-         -nf|--no-framework-paths)
-            OPTION_WITH_FRAMEWORKPATHS="NO"
+         -q|--quote)
+            shift
+            [ $# -eq 0 ] && fail "quote missing"
+
+            OPTION_QUOTE="$1"
+         ;;
+
+         -s|--separator)
+            shift
+            [ $# -eq 0 ] && fail "separator missing"
+
+            OPTION_PATH_SEPARATOR="$1"
          ;;
 
          -*)

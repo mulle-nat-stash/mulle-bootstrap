@@ -1,8 +1,13 @@
 
-### 3.4.1
+### 3.5.0
+
+#### `caches_path`renamed to more sensible `search_path`
 
 * experimentally, don't kill so hard anymore when failing (mostly for
 mulle-builds sake)
+* Because `mulle-bootstrap setting` now works, init by default does not
+create demo files any more. Inverted meaning of -d flag.
+* Various improvements to mulle-brew handling
 
 ### 3.4.0
 

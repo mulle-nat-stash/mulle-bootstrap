@@ -240,7 +240,7 @@ bootstrap_define_expansion()
 
    keyvalue="$1"
 
-   is_bootstrap_project || fail "This is not a mulle-bootstrap project"
+   is_bootstrap_project || fail "This is not a ${MULLE_EXECUTABLE} project"
 
    if [ -z "${keyvalue}" ]
    then
@@ -277,11 +277,11 @@ bootstrap_ensure_consistency()
    then
       log_error "A previous fetch or update was incomplete.
 Suggested resolution (in $PWD):
-    ${C_RESET_BOLD}mulle-bootstrap clean dist${C_ERROR}
-    ${C_RESET_BOLD}mulle-bootstrap${C_ERROR}
+    ${C_RESET_BOLD}${MULLE_EXECUTABLE} clean dist${C_ERROR}
+    ${C_RESET_BOLD}${MULLE_EXECUTABLE}${C_ERROR}
 
 Or do you feel lucky ? Then try again with
-   ${C_RESET_BOLD}mulle-bootstrap -f ${MULLE_ARGUMENTS}${C_ERROR}
+   ${C_RESET_BOLD}${MULLE_EXECUTABLE} -f ${MULLE_ARGUMENTS}${C_ERROR}
 But you've gotta ask yourself one question: Do I feel lucky ?
 Well, do ya, punk?"
       exit 1
@@ -564,6 +564,20 @@ fetch_needed()
       return 0
    fi
 
+   local creator
+
+   creator="`cat "${BOOTSTRAP_DIR}.auto/.creator" 2> /dev/null`"
+   if [ "${creator}" != "${MULLE_EXECUTABLE}" ]
+   then
+      if [ -d "${BOOTSTRAP_DIR}.auto" ]
+      then
+         log_verbose "Need fetch because ${BOOTSTRAP_DIR}.auto was created by ${creator}."
+      else
+         log_verbose "Need fetch because ${BOOTSTRAP_DIR}.auto does not exist."
+      fi
+      return 0
+   fi
+
    local bootstrapdir="${BOOTSTRAP_DIR}"
 
    [ -z "${bootstrapdir}" ] && internal_fail "BOOTSTRAP_DIR undefined"
@@ -651,7 +665,7 @@ assert_mulle_bootstrap_version()
       return
    fi
 
-   fail "This ${BOOTSTRAP_DIR} requires mulle-bootstrap version ${version} at least, you have ${MULLE_EXECUTABLE_VERSION}"
+   fail "This ${BOOTSTRAP_DIR} requires ${MULLE_EXECUTABLE} version ${version} at least, you have ${MULLE_EXECUTABLE_VERSION}"
 }
 
 

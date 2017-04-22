@@ -157,7 +157,7 @@ test_fetch()
    (
       cd Master
 
-      run_mulle_bootstrap config caches_path "${owd}" || exit 1
+      run_mulle_bootstrap config search_path "${owd}" || exit 1
       run_mulle_bootstrap -y "$@" fetch  || exit 1
 
    ) || fail "defer"

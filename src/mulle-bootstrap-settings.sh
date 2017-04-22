@@ -35,17 +35,17 @@ MULLE_BOOTSTRAP_SETTINGS_SH="included"
 config_usage()
 {
     cat <<EOF >&2
-usage:
-   mulle-bootstrap config [options] [key][=][value]
+Usage:
+   ${MULLE_EXECUTABLE} config [options] [key][=][value]
 
-   Options:
-      -d   : delete config setting
-      -g   : use ~/.mulle-bootstrap folder instead of .bootstrap-local
-      -l   : list config values
+   Use ${MULLE_EXECUTABLE} config <key> to read
+   and ${MULLE_EXECUTABLE} config <key> <value> to write
 
-   Use:
-      mulle-bootstrap config <key> to read
-      mulle-bootstrap config <key> <value> to write
+Options:
+   -d   : delete config setting
+   -u   : use user ~/.mulle-bootstrap folder instead of .bootstrap-local
+   -l   : list config values
+
 EOF
   exit 1
 }
@@ -54,17 +54,17 @@ EOF
 expansion_usage()
 {
     cat <<EOF >&2
-usage:
-   mulle-bootstrap expansion [options] [key][=][value]
+Usage:
+   ${MULLE_EXECUTABLE} expansion [options] [key][=][value]
 
-   Options:
-      -d   : delete setting
-      -g   : use global .bootstrap folder instead of local
-      -l   : list expansion values
+   Use ${MULLE_EXECUTABLE} expansion <key> to read
+   and ${MULLE_EXECUTABLE} expansion <key> <value> to write
 
-   Use:
-      mulle-bootstrap expansion <key> to read
-      mulle-bootstrap expansion <key> <value> to write
+Options:
+   -d   : delete setting
+   -g   : use global .bootstrap folder instead of local
+   -l   : list expansion values
+
 EOF
   exit 1
 }
@@ -73,21 +73,21 @@ EOF
 setting_usage()
 {
     cat <<EOF >&2
-usage:
-   mulle-bootstrap setting [options] [key][=][value]
+Usage:
+   ${MULLE_EXECUTABLE} setting [options] [key][=][value]
 
-   Options:
-      -a              : append value to setting
-      -b <repository> : specify repository for build setting
-      -d              : delete setting
-      -g              : use global .bootstrap folder instead of local
-      -o              : use overrides settings
-      -p              : show current setting value
-      -r              : use root settings
+   Use ${MULLE_EXECUTABLE} setting <key> to read settings
+   and ${MULLE_EXECUTABLE} setting <key> <value> to write settings
 
-   Use:
-      mulle-bootstrap setting <key> to read settings
-      mulle-bootstrap setting <key> <value> to write settings
+Options:
+   -a              : append value to setting
+   -b <repository> : specify repository for build setting
+   -d              : delete setting
+   -g              : use global .bootstrap folder instead of local
+   -o              : use overrides settings
+   -p              : show current setting value
+   -r              : use root settings
+
 EOF
   exit 1
 }
@@ -112,7 +112,7 @@ brew_permissions
 build_dir
 build_log_dir
 build_preferences
-caches_path
+search_path
 clone_cache
 check_usr_local_include
 clean_before_build
@@ -481,7 +481,7 @@ list_build_directories()
       IFS="${DEFAULT_IFS}"
 
       name="`basename -- "${filename}" ".build"`"
-      echo "# mulle-bootstrap setting -r '${name}' -l"
+      echo "# ${MULLE_EXECUTABLE} setting -r '${name}' -l"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -986,7 +986,7 @@ _setting_list()
 
       log_info ".bootstrap ($PWD):"
       list_dir_settings "${BOOTSTRAP_DIR}" "${SETTING_KEY_REGEXP}" | \
-                        sed "s/^/mulle-bootstrap setting -r -g/" | \
+                        sed "s/^/mulle-bootstrap setting -r -g /" | \
                         _unescape_linefeeds
 
       log_info "Available repository settings:"
@@ -1178,7 +1178,7 @@ _config_list()
    list_local_config_settings | sed "s/^/mulle-bootstrap config /" | _unescape_linefeeds
 
    log_info "~/.mulle-bootstrap:"
-   list_home_config_settings | sed "s/^/mulle-bootstrap config -h /" | _unescape_linefeeds
+   list_home_config_settings | sed "s/^/mulle-bootstrap config -u /" | _unescape_linefeeds
 }
 
 

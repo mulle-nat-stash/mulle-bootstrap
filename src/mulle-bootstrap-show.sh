@@ -35,20 +35,21 @@ MULLE_BOOTSTRAP_SHOW_SH="included"
 show_usage()
 {
     cat <<EOF >&2
-usage:
-   mulle-bootstrap show [options]
+Usage:
+   ${MULLE_EXECUTABLE} show [options]
 
-   Options:
+Options:
 EOF
 
    if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       cat <<EOF >&2
-      -b : show brews
-      -d : show deeply embedded repositories
-      -r : show raw repository content
-      -u : show URL
-      -s : show scm, branch, tag info
+   -b : show brews
+   -d : show deeply embedded repositories
+   -r : show raw repository content
+   -u : show URL
+   -s : show scm, branch, tag info
+
 EOF
    fi
   exit 1
@@ -315,15 +316,18 @@ show_brew()
 
 show_brews()
 {
-   local brews
+   (
+      local brews
 
-   if [ "${SHOW_RAW}" = "YES" ]
-   then
-      brews="`read_raw_setting "brews"`"
-   else
-      brews="`find_brews`"
-   fi
-   walk_brews "${brews}" "show_brew"
+      SHOW_PREFIX="${SHOW_PREFIX}   "
+      if [ "${SHOW_RAW}" = "YES" ]
+      then
+         brews="`read_raw_setting "brews"`"
+      else
+         brews="`find_brews`"
+      fi
+      walk_brews "${brews}" "show_brew"
+   )
 }
 
 
@@ -492,13 +496,13 @@ _show_main()
    [ $# -ne 0 ] && show_usage
    _common_show "${header_only}" "$@"
 
-   if [ "${SHOW_RAW}" != "YES" ]
+   if [ "${SHOW_RAW}" != "YES" -a "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
    then
       if [ ! -f "${REPOS_DIR}/.fetch_done" ]
       then
-          log_warning "mulle-bootstrap has not run fetch completly.
+          log_warning "${MULLE_EXECUTABLE} has not run fetch completely.
 Results may be incomplete or missing.
-Maybe use --raw option or run mulle-bootstrap again ?"
+Maybe use --raw option or run ${MULLE_EXECUTABLE} again ?"
       fi
    fi
 }

@@ -32,6 +32,39 @@
 MULLE_BOOTSTRAP_CLEAN_SH="included"
 
 
+clean_usage()
+{
+   setup_clean_environment
+
+   cat <<EOF >&2
+Usage:
+   ${MULLE_EXECUTABLE} clean [command]
+
+Commands:
+   build : remove intermediate build files to conserve space. It deletes
+`echo "${BUILD_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
+
+   output : useful to rebuild. It deletes
+`echo "${BUILD_CLEANABLE_SUBDIRS}
+${OUTPUT_CLEANABLE_FILES}
+${OUTPUT_CLEANABLE_SUBDIRS}"  | sort| sed '/^$/d' | sed -e 's/^/      /'`
+
+   install : keep only addictions and dependencies
+`echo "${BUILD_CLEANABLE_SUBDIRS}
+${OUTPUT_CLEANABLE_FILES}
+${INSTALL_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
+
+   dist : remove all clones, dependencies, addictions. It deletes
+`echo "${BUILD_CLEANABLE_SUBDIRS}
+${OUTPUT_CLEANABLE_SUBDIRS}
+${DIST_CLEANABLE_SUBDIRS}"    | sort | sed '/^$/d' | sed -e 's/^/      /'`
+
+EOF
+
+   exit 1
+}
+
+
 _collect_stashdir()
 {
    log_debug ":_collect_stashdir:" "$*"
@@ -165,38 +198,6 @@ ${BOOTSTRAP_DIR}.auto"`"
 }
 
 
-clean_usage()
-{
-   cat <<EOF >&2
-usage:
-   mulle-bootstrap clean [build|dist|install|output]
-
-EOF
-
-   setup_clean_environment
-
-   cat <<EOF >&2
-   build : remove intermediate build files to conserve space. It deletes
-`echo "${BUILD_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
-
-   output : useful to rebuild. It deletes
-`echo "${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_FILES}
-${OUTPUT_CLEANABLE_SUBDIRS}"  | sort| sed '/^$/d' | sed -e 's/^/      /'`
-
-   install : keep only addictions and dependencies
-`echo "${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_FILES}
-${INSTALL_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
-
-   dist : remove all clones, dependencies, addictions. It deletes
-`echo "${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_SUBDIRS}
-${DIST_CLEANABLE_SUBDIRS}"    | sort | sed '/^$/d' | sed -e 's/^/      /'`
-EOF
-
-   exit 1
-}
 
 
 clean_asserted_folder()

@@ -875,7 +875,7 @@ scm_initialize()
    #
    # "repository" caches can and usually are outside the project folder
    # this can be multiple paths!
-   CACHES_PATH="`read_config_setting "caches_path" "${MULLE_BOOTSTRAP_CACHES_PATH}"`"
+   CACHES_PATH="`read_config_setting "search_path" "${MULLE_BOOTSTRAP_CACHES_PATH}"`"
 
    # stuff clones get intermediate saved too, default empty
    CLONE_CACHE="`read_config_setting "clone_cache"`"

@@ -121,7 +121,7 @@ Abort now ?"
    then
        log_error "The bootstrap is in an inconsistent state. It would be good
 to run
-     ${C_RESET}mulle-bootstrap clean dist${C_ERROR}
+     ${C_RESET}${C_BOLD}${MULLE_EXECUTABLE} clean dist${C_ERROR}
 now."
        return 1
    fi

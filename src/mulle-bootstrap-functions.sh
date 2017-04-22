@@ -1178,7 +1178,7 @@ remove_file_if_present()
    then
       log_fluff "Removing \"$1\""
       exekutor chmod u+w "$1"  >&2 || fail "Failed to make $1 writable"
-      exekutor rm -f "$1"  >&2 || fail "failed to remove \"$1\""
+      exekutor rm -f "$1"  >&2     || fail "failed to remove \"$1\""
    fi
 }
 
