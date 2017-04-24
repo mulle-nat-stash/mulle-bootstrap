@@ -41,9 +41,22 @@ Usage:
    You can specify the names of the formulae to ${COMMAND}.
 
 Options:
-   -cs   :  check /usr/local for duplicates
-
+   -cs        : check /usr/local for duplicates
 EOF
+
+   case "${UNAME}" in
+      darwin)
+         cat <<EOF >&2
+   -c         : change @rpath for shared libraries and frameworks
+   -n         : don't change @rpath for shared libraries (if config option is set)
+   -f <rpath> : @rpath for Frameworks (default: ${OPTION_RPATH_FRAMEWORKS})
+   -l <rpath> : @rpath for shared libraries (default: ${OPTION_RPATH_LIBRARIES})
+EOF
+      ;;
+   esac
+
+   echo >&2
+
    exit 1
 }
 
@@ -161,6 +174,133 @@ _brew_action()
          exekutor "${BREW}" upgrade "${formula}"
       ;;
    esac
+}
+
+
+darwin_get_shared_library_id()
+{
+   otool -L "$1" | \
+      sed -n '2p' | \
+      sed 's/^\([^(]*\).*$/\1/' | \
+      sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+
+darwin_hack_shared_library()
+{
+   local path="$1"
+   local rpath="$2"
+
+   chmod u+w "${path}" || return 1
+
+   install_name_tool -id "${rpath}" "${path}" || return 2
+   log_fluff "Otool \"${path}\": `otool -L "${path}"`"
+
+   chmod u-w "${path}"
+
+   echo "${path}"
+
+   return 0
+}
+
+
+darwin_hack_shared_libraries()
+{
+   local rpathprefix="$1"
+
+   local name
+   local path
+   local rpath
+   local i
+
+   local hacked
+
+   hacked=""
+   IFS="
+"
+   for i in `find "${ADDICTIONS_DIR}/lib" -name "*.dylib" -print`
+   do
+      IFS="${OLDIFS}"
+
+      path="`resolve_symlinks "${i}"`"
+
+      echo "${hacked}" | fgrep -s -q -x "${path}" > /dev/null
+      if [ $? -eq 0 ]
+      then
+         continue
+      fi
+
+      local libid
+
+      #
+      # maybe overzealous, but try to keep dylibname as given
+      # in the executable
+      #
+      libid="`darwin_get_shared_library_id "${path}"`"
+      if [ -z "${libid}" ]
+      then
+         log_warning "\"${path}\" is not really a dylib"
+         continue
+      fi
+
+      name="`basename -- "${libid}"`"
+      rpath="`add_component "${rpathprefix}" "${name}"`"
+
+      log_info "Setting id on library \"${name}\" to \"${rpath}\" ..."
+      if ! darwin_hack_shared_library "${path}" "${rpath}"
+      then
+         fail "Could not hack \"${i}\"'s @rpath."
+      fi
+
+      hacked="`add_line "${hacked}" "${path}"`"
+   done
+
+   IFS="${OLDIFS}"
+}
+
+
+#
+# this needs to become more sophisticated, because
+# there could be bundles inside the framework
+#
+darwin_hack_frameworks()
+{
+   local rpathprefix="$1"
+
+   local name
+   local path
+   local rpath
+   local framework
+   local frameworkname
+   local i
+
+   IFS="
+"
+   for i in `find "${ADDICTIONS_DIR}/Frameworks/"*.framework -maxdepth 1 -print 2>/dev/null`
+   do
+      IFS="${OLDIFS}"
+
+      name="`basename -- "${i}"`"
+      framework="`dirname -- "${i}"`"
+      frameworkname="`basename -- "${framework}" .framework`"
+
+      if [ "${name}" != "${frameworkname}" ]
+      then
+         continue
+      fi
+
+      path="`resolve_symlinks "${i}"`"
+      rpath="`add_component "${rpathprefix}" "${frameworkname}.framework"`"
+      rpath="`add_component "${rpath}" "${name}"`"
+
+      log_info "Setting id on framework \"${frameworkname}\" to \"${rpath}\" ..."
+      if ! darwin_hack_shared_library "${path}" "${rpath}"
+      then
+         fail "Could not hack \"${i}\"'s @rpath."
+      fi
+   done
+
+   IFS="${OLDIFS}"
 }
 
 
@@ -297,9 +437,16 @@ _brew_common_main()
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]          && . mulle-bootstrap-settings.sh
 
-   local  OPTION_CHECK_USR_LOCAL_INCLUDE
+   local OPTION_CHECK_USR_LOCAL_INCLUDE
+   local OPTION_CHANGE_RPATH
+   local OPTION_RPATH_LIBRARY
+   local OPTION_RPATH_FRAMEWORK
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
+   OPTION_CHANGE_RPATH="`read_config_setting "change_rpath" "NO"`"
+   # @rpath/../Resources is lazy and wrong, but so convenient for quick hacks
+   OPTION_RPATH_LIBRARY="`read_config_setting "rpath_library" "@rpath/../Resources"`"
+   OPTION_RPATH_FRAMEWORK="`read_config_setting "rpath_framework" "@rpath/../Frameworks"`"
 
    while [ $# -ne 0 ]
    do
@@ -311,6 +458,26 @@ _brew_common_main()
          -cs|--check-usr-local-include)
             OPTION_CHECK_USR_LOCAL_INCLUDE="YES"
             ;;
+
+         -f|--rpath-framework)
+            [ $# -eq 1 ] && fail "missing argument to $1"
+            shift
+            OPTION_RPATH_FRAMEWORK="$1"
+         ;;
+
+         -l|--rpath-library)
+            [ $# -eq 1 ] && fail "missing argument to $1"
+            shift
+            OPTION_RPATH_LIBRARY="$1"
+         ;;
+
+         -n|--no-rpath)
+            OPTION_CHANGE_RPATH="NO"
+         ;;
+
+         -r|--rpath)
+            OPTION_CHANGE_RPATH="YES"
+         ;;
 
          -*)
             log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown ${COMMAND} option $1"
@@ -327,7 +494,6 @@ _brew_common_main()
 
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
    [ -z "${ADDICTIONS_DIR}" ] && internal_fail "missing ADDICTIONS_DIR"
-
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if
@@ -348,7 +514,25 @@ _brew_common_main()
 
       *)
          internal_fail "Command \"${COMMAND}\" is unknown"
+      ;;
    esac
+
+   if [ "${OPTION_CHANGE_RPATH}" = "YES" ]
+   then
+      case "${UNAME}" in
+         darwin)
+            if [ ! -z "${OPTION_RPATH_LIBRARY}" ]
+            then
+               darwin_hack_shared_libraries "${OPTION_RPATH_LIBRARY}"
+            fi
+
+            if [ ! -z "${OPTION_RPATH_FRAMEWORK}" ]
+            then
+               darwin_hack_frameworks "${OPTION_RPATH_FRAMEWORK}"
+            fi
+         ;;
+      esac
+   fi
 }
 
 

@@ -491,7 +491,7 @@ clone_or_symlink()
       ;;
 
       *)
-         fail "Unknown scm system ${scm}"
+         fail "Unknown scm system \"${scm}\""
       ;;
    esac
 
@@ -677,7 +677,7 @@ checkout_repository()
          operation="svn_checkout"
       ;;
       *)
-         fail "Unknown scm system ${scm}"
+         fail "Unknown scm system \"${scm}\""
       ;;
    esac
 
@@ -717,7 +717,7 @@ update_repository()
          return
       ;;
       *)
-         fail "Unknown scm system ${scm}"
+         fail "Unknown scm system \"${scm}\""
       ;;
    esac
 
@@ -757,7 +757,7 @@ upgrade_repository()
          return
       ;;
       *)
-         fail "Unknown scm system ${scm}"
+         fail "Unknown scm system \"${scm}\""
       ;;
    esac
 

@@ -41,12 +41,13 @@ fail()
 _prepend_path_if_relative()
 {
    case "$2" in
-      /* )
+      /*)
          echo "$2"
-         ;;
-      * )
+      ;;
+
+      *)
          echo "$1/$2"
-         ;;
+      ;;
    esac
 }
 
@@ -66,35 +67,19 @@ resolve_symlinks()
 }
 
 
-_canonicalize_dir_path()
-{
-   (
-      cd "$1" 2>/dev/null &&
-      pwd -P
-   ) || exit 1
-}
-
-
-_canonicalize_file_path()
-{
-    local dir file
-
-    dir="`dirname "$1"`"
-    file="`basename -- "$1"`"
-    (
-      cd "${dir}" 2>/dev/null &&
-      echo "`pwd -P`/${file}"
-    ) || exit 1
-}
-
 
 canonicalize_path()
 {
    if [ -d "$1" ]
    then
-      _canonicalize_dir_path "$1"
+      ( cd "$1" && pwd -P )
    else
-      _canonicalize_file_path "$1"
+      local dir
+      local file
+
+      dir="`dirname "$1"`"
+      file="`basename -- "$1"`"
+      ( cd "${dir}" 2>/dev/null && echo "`pwd -P`/${file}" )
    fi
 }
 
@@ -142,84 +127,97 @@ sed_mangle_escape_slashes()
 }
 
 
-prefix=${1:-"/usr/local"}
-[ $# -eq 0 ] || shift
-prefix="`realpath "${prefix}"`"
+main()
+{
+   local prefix
+   local mode
 
-mode=${1:-755}
-[ $# -eq 0 ] || shift
+   prefix=${1:-"/usr/local"}
+   [ $# -eq 0 ] || shift
+   mode=${1:-755}
+   [ $# -eq 0 ] || shift
 
-bin="${prefix}/bin"
-libexec="${prefix}/libexec/mulle-bootstrap"
+   if [ -z "${prefix}" ] || [ -z "${mode}" ]
+   then
+      fail "usage: install.sh [prefix] [mode]"
+   fi
 
-if [ "$prefix" = "" ] || [ "$bin" = "" ] || [ "$libexec" = "" ] || [ "$mode" = "" ]
-then
-   echo "usage: install.sh [prefix] [mode] [binpath] [libexecpath]" >&2
-   exit 1
-fi
+   prefix="`realpath "${prefix}" 2> /dev/null`"
+   if [ ! -d "${prefix}" ]
+   then
+      fail "\"${prefix}\" does not exist"
+   fi
 
-if [ ! -d "${bin}" ]
-then
-   mkdir -p "${bin}" || fail "could not create ${bin}"
-fi
-if [ ! -d "${libexec}" ]
-then
-   mkdir -p "${libexec}" || fail "could not create ${libexec}"
-fi
+   local bin
+   local libexec
 
+   bin="${prefix}/bin"
+   libexec="${prefix}/libexec/mulle-bootstrap"
 
-install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-bootstrap" || exit 1
-printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-bootstrap" >&2
+   if [ ! -d "${bin}" ]
+   then
+      mkdir -p "${bin}" || fail "could not create ${bin}"
+   fi
 
-install -m "${mode}" "mulle-bootstrap-dotdump" "${bin}/mulle-bootstrap-dotdump" || exit 1
-printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-bootstrap-dotdump" >&2
-
-case `uname` in
-   MINGW*)
-      install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-brew" || exit 1
-      printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-brew" >&2
-   ;;
-
-   *)
-      ln -f "${bin}/mulle-bootstrap" "${bin}/mulle-brew" || exit 1
-      printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-brew" >&2
-   ;;
-esac
+   if [ ! -d "${libexec}" ]
+   then
+      mkdir -p "${libexec}" || fail "could not create ${libexec}"
+   fi
 
 
-case `uname` in
-   MINGW*)
-      for i in mulle-mingw-*sh
-      do
-         install -m "${mode}" "${i}" "${bin}/$i" || exit 1
-         printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
-      done
+   install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-bootstrap" || exit 1
+   printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-bootstrap" >&2
 
-      SH_PATH="`get_sh_windows_path | sed_mangle_escape_slashes`"
-      INSTALL_PATH="${bin}" # `get_windows_path "${bin}" | sed_mangle_escape_slashes`"
+   install -m "${mode}" "mulle-bootstrap-dotdump" "${bin}/mulle-bootstrap-dotdump" || exit 1
+   printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-bootstrap-dotdump" >&2
 
-      for i in mulle-mingw-*bat
-      do
+   case `uname` in
+      MINGW*)
+         install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-brew" || exit 1
+         printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-brew" >&2
+      ;;
 
-         sed -e "s|SH_PATH|${SH_PATH}|g" -e "s|INSTALL_PATH|${INSTALL_PATH}|g" < "${i}" > "${bin}/$i" || exit 1
-         chmod "${mode}" "${bin}/${i}" || exit 1
-         printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
-      done
-   ;;
-esac
+      *)
+         ln -f "${bin}/mulle-bootstrap" "${bin}/mulle-brew" || exit 1
+         printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-brew" >&2
+      ;;
+   esac
 
-for i in src/mulle*.sh
-do
-   mkdir -p "${libexec}" 2> /dev/null
-   install -v -m "${mode}" "${i}" "${libexec}" || exit 1
-done
 
-if [ -d "test" ]
-then
-   # use attractive colors :)
-   printf "${C_GREEN}If you are new to mulle-bootstrap I would suggest checking out\n" >&2
-   printf "the ${C_YELLOW}README.md${C_GREEN} in ${C_CYAN}./test${C_GREEN} and doing the examples.\n" >&2
-fi
+   case `uname` in
+      MINGW*)
+         for i in mulle-mingw-*sh
+         do
+            install -m "${mode}" "${i}" "${bin}/$i" || exit 1
+            printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
+         done
 
-# for people who source us
-PATH="${libexec}:$PATH"
+         SH_PATH="`get_sh_windows_path | sed_mangle_escape_slashes`"
+         INSTALL_PATH="${bin}" # `get_windows_path "${bin}" | sed_mangle_escape_slashes`"
+
+         for i in mulle-mingw-*bat
+         do
+
+            sed -e "s|SH_PATH|${SH_PATH}|g" -e "s|INSTALL_PATH|${INSTALL_PATH}|g" < "${i}" > "${bin}/$i" || exit 1
+            chmod "${mode}" "${bin}/${i}" || exit 1
+            printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
+         done
+      ;;
+   esac
+
+   for i in src/mulle*.sh
+   do
+      mkdir -p "${libexec}" 2> /dev/null
+      install -v -m "${mode}" "${i}" "${libexec}" || exit 1
+   done
+
+   if [ -d "test" ]
+   then
+      # use attractive colors :)
+      printf "${C_GREEN}If you are new to mulle-bootstrap I would suggest checking out\n" >&2
+      printf "the ${C_YELLOW}README.md${C_GREEN} in ${C_CYAN}./test${C_GREEN} and doing the examples.\n" >&2
+   fi
+}
+
+main "$@"
+

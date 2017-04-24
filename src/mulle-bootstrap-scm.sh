@@ -165,7 +165,7 @@ git_checkout()
    then
       log_info "Checking out version ${C_RESET_BOLD}${tag}${C_INFO} of ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
       (
-         exekutor cd "${stashdir}" ;
+         exekutor cd "${stashdir}" &&
          exekutor git ${GITFLAGS} checkout ${options} "${tag}"  >&2
       ) || return 1
 
@@ -190,22 +190,22 @@ _git_clone()
 
    local url="$1"; shift
    local stashdir="$1"; shift
-   local branch="$1"; [ $# -ne 0 ] && shift
+   local branch="$1"
 
    [ ! -z "${url}" ]      || internal_fail "url is empty"
    [ ! -z "${stashdir}" ] || internal_fail "stashdir is empty"
 
-   [ -e "${stashdir}" ] && internal_fail "${stashdir} already exists"
+   [ -e "${stashdir}" ]   && internal_fail "${stashdir} already exists"
 
    local options
    local dstdir
 
    dstdir="${stashdir}"
-   options="$*"
+   options=""
    if [ ! -z "${branch}" ]
    then
       log_info "Cloning branch ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${url}${C_INFO} into \"${stashdir}\" ..."
-      options="`concat "${options}" "-b ${branch}"`"
+      options="-b ${branch}"
    else
       log_info "Cloning ${C_MAGENTA}${C_BOLD}${url}${C_INFO} into \"${stashdir}\" ..."
    fi
@@ -273,11 +273,6 @@ _git_clone()
       log_error "git clone of \"${url}\" into \"${stashdir}\" failed"
       return 1
    fi
-
-   if [ ! -z "${tag}" ]
-   then
-      git_checkout "$@"
-   fi
 }
 
 
@@ -286,15 +281,23 @@ git_clone()
 {
    [ $# -ge 7 ] || internal_fail "git_clone: parameters missing"
 
-   local reposdir="$1" ; shift
-   local name="$1"; shift
-   local url="$1"; shift
-   local branch="$1"; shift
-   local scm="$1"; shift
-   local tag="$1"; shift
-   local stashdir="$1"; shift
+#   local reposdir="$1"
+#   local name="$2"
+   local url="$3"
+   local branch="$4"
+#   local scm="$5"
+   local tag="$6"
+   local stashdir="$7"
 
-   _git_clone "${url}" "${stashdir}" "${branch}" "$@"
+   if ! _git_clone "${url}" "${stashdir}" "${branch}"
+   then
+      return 1
+   fi
+
+   if [ ! -z "${tag}" ]
+   then
+      git_checkout "$@"
+   fi
 }
 
 

@@ -66,6 +66,7 @@ HIDDEN_COMMANDS="\
    git           : run git commands on fetched repositories
    library-path  : print path to mulle-bootstrap libexec
    project-path  : print path to folder containing .bootstrap
+   run           : run command with proper dependencies PATHs
    setting       : read or edit build settings
    status        : show status of repositories and brews
    systeminstall : install dependencies as system headers
@@ -537,6 +538,12 @@ bootstrap_main()
       library-path)
          echo "$PATH" | tr ':' '\012' | head -1
          return 0
+      ;;
+
+      run)
+         . mulle-bootstrap-paths.sh
+
+         run_main "$@" || exit 1
       ;;
 
       setting)

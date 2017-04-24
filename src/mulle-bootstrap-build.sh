@@ -468,6 +468,9 @@ enforce_build_sanity()
    then
       fail "A previous build left \"${BUILD_DEPENDENCIES_DIR}\", can't continue"
    fi
+
+   # now make it appear
+   mkdir_if_missing "${BUILD_DEPENDENCIES_DIR}"
 }
 
 
@@ -1172,7 +1175,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       local prefixbuild
 
-      prefixbuild="`add_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
+      prefixbuild="`add_component "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
 
       local oldpath
       local rval
@@ -1742,6 +1745,8 @@ build_script()
    name="$4"
    sdk="$5"
 
+   enforce_build_sanity "${builddir}"
+
    local project
    local schemename
    local targetname
@@ -2030,7 +2035,6 @@ build_wrapper()
       log_fluff "Cleaning up orphaned \"${BUILD_DEPENDENCIES_DIR}\""
       rmdir_safer "${BUILD_DEPENDENCIES_DIR}"
    fi
-
 
    #
    # move dependencies we have so far away into safety,

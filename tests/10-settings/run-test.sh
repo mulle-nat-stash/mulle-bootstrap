@@ -159,6 +159,7 @@ override
 a/.bootstrap.auto/c.build/bin:
 c.sh
 a/.bootstrap.repos:
+.creator
 .fetch_done
 b
 c

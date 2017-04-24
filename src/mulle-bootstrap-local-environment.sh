@@ -423,6 +423,9 @@ get_core_count()
 }
 
 
+#
+# this is for PATH style variables
+#
 add_path()
 {
    local line="$1"
@@ -457,6 +460,27 @@ add_path_if_exists()
       echo "${line}"
    fi
 }
+
+
+
+#
+# this is for constructing filesystem paths
+#
+add_component()
+{
+   local filepath="$1"
+   local component="$2"
+
+   [ -z "${COMPONENT_SEPARATOR}" ] && fail "COMPONENT_SEPARATOR is undefined"
+
+   if [ -z "${filepath}" ]
+   then
+      echo "${component}"
+   else
+      echo "${filepath}${COMPONENT_SEPARATOR}${component}"
+   fi
+}
+
 
 
 unpostpone_trace()
@@ -833,6 +857,8 @@ local_environment_initialize()
 
    # used by embedded repositories to change location
    STASHES_ROOT_DIR=""
+
+   COMPONENT_SEPARATOR="/"
 
    log_fluff "${UNAME} detected"
    case "${UNAME}" in

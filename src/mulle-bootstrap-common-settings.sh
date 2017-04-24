@@ -38,24 +38,14 @@ build_complete_environment()
 {
    log_debug ":build_complete_environment:"
 
-   #
-   # Global Settings
-   # used to be configurable, but just slows me down
-   HEADER_DIR_NAME="include"
-   LIBRARY_DIR_NAME="lib"
-   FRAMEWORK_DIR_NAME="Frameworks"
-
-   # HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
-   # LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
-   # FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
-
-   OPTION_CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
    if [ -z "${OPTION_CONFIGURATIONS}" ]
    then
       OPTION_CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
       OPTION_CONFIGURATIONS="`read_root_setting "configurations" "${OPTION_CONFIGURATIONS}"`"
    fi
    N_CONFIGURATIONS="`echo "${OPTION_CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
+
+   OPTION_CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
 
    # experimentally, these could reside outside the project folder but never tested
    CLONESBUILD_DIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
@@ -109,6 +99,17 @@ build_complete_environment()
 common_settings_initialize()
 {
    log_debug ":common_settings_initialize:"
+
+   #
+   # Global Settings
+   # used to be configurable, but just slows me down
+   HEADER_DIR_NAME="include"
+   LIBRARY_DIR_NAME="lib"
+   FRAMEWORK_DIR_NAME="Frameworks"
+
+   # HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
+   # LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"
+   # FRAMEWORK_DIR_NAME="`read_config_setting "framework_dir_name" "Frameworks"`"
 
    # all of these must reside in the project folder
    # used to be configurable, but what's the point really ? just slows us down

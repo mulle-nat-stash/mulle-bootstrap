@@ -134,9 +134,12 @@ install_symlinks
 library_dir_name
 mangle_minwg_compiler
 no_warn_local_setting
-open_${mainfile}_file
+open_brews_file
+open_repositories_file
 output_clean_folders
 override_branch
+rpath_frameworks
+rpath_libraries
 stashes_dir
 symlinks
 use_cc_cxx

@@ -478,6 +478,12 @@ _flags_do_make_environment()
    local values
    local line
 
+   values="`_flags_emit_path "${ADDICTIONS_DIR}"`"
+   result="`add_line "${result}" "ADDICTIONS_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
+
+   values="`_flags_emit_path "${DEPENDENCIES_DIR}"`"
+   result="`add_line "${result}" "DEPENDENCIES_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
+
    values="`_flags_cppflags_value`"
    if [ ! -z "${values}" ]
    then
@@ -512,7 +518,19 @@ _flags_do_run_environment()
    local values
    local line
 
+   values="`_flags_emit_path "${ADDICTIONS_DIR}"`"
+   if [ ! -z "${values}" ]
+   then
+      result="`add_line "${result}" "ADDICTIONS_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
+   fi
+   values="`_flags_emit_path "${DEPENDENCIES_DIR}"`"
+
+   if [ ! -z "${values}" ]
+   then
+      result="`add_line "${result}" "DEPENDENCIES_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
+   fi
    values="`_flags_librarypath_value`"
+
    if [ ! -z "${values}" ]
    then
       case "${UNAME}" in
@@ -560,7 +578,7 @@ run_main()
    # use mulle-bootstrap this way to get properly deferred
    # paths
    #
-   commandline="`${MULLE_EXECUTABLE} -s paths -1 -q "'"`"
+   commandline="`${MULLE_EXECUTABLE} -s paths -1 -q "'" run addictions `"
    while [ $# -ne 0 ]
    do
       value="$1"

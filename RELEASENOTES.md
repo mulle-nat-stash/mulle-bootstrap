@@ -10,6 +10,7 @@ create demo files any more. Inverted meaning of -d flag.
 * Various improvements to mulle-brew handling
 * The paths default is now to output an unquoted one-liner. This is less
 correct but simpler.
+* Added `mulle-bootstrap run`. See mulle-brew for more details.
 
 
 ### 3.4.0
