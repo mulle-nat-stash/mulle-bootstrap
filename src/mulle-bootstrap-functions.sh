@@ -33,7 +33,10 @@
 [ ! -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && echo "double inclusion of functions" >&2 && exit 1
 MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
 
-MULLE_BOOTSTRAP_FUNCTIONS_VERSION="3.0"
+MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MINOR="5"
+MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MAJOR="3"
+
+MULLE_BOOTSTRAP_FUNCTIONS_VERSION="${MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MAJOR}.${MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MINOR}"
 
 #
 # WARNING! THIS FILE IS A LIBRARY USE BY OTHER PROJECTS
@@ -1317,7 +1320,33 @@ functions_initialize()
 
    log_debug ":functions_initialize:"
 
-   :
+   if [ ! -z "${MULLE_EXECUTABLE_FUNCTIONS_MIN}" ]
+   then
+
+      major="`cut -d. -f1 <<< "${MULLE_EXECUTABLE_FUNCTIONS_MIN}"`"
+      minor="`cut -d. -f2 <<< "${MULLE_EXECUTABLE_FUNCTIONS_MIN}"`"
+
+      if [ "${MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MAJOR}" -lt "${major}" ]
+      then
+         fail "Installed mulle-bootstrap library is too old. (installed is ${MULLE_BOOTSTRAP_FUNCTIONS_VERSION}, but ${MULLE_EXECUTABLE_FUNCTIONS_MIN} is required)"
+      fi
+
+      if [ "${MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MAJOR}" -eq "${major}" ] &&
+         [ "${MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MINOR}" -lt "${minor}" ]
+      then
+         fail "Installed mulle-bootstrap library is too old. (installed is ${MULLE_BOOTSTRAP_FUNCTIONS_VERSION}, but ${MULLE_EXECUTABLE_FUNCTIONS_MIN} is required)"
+      fi
+   fi
+
+   if [ ! -z "${MULLE_EXECUTABLE_FUNCTIONS_MAX}" ]
+   then
+      major="`cut -d. -f1 <<< "${MULLE_EXECUTABLE_FUNCTIONS_MAX}"`"
+
+      if [ "${MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MAJOR}" -ge "${major}" ]
+      then
+         fail "Installed mulle-bootstrap library is too new. (${MULLE_BOOTSTRAP_FUNCTIONS_VERSION})"
+      fi
+   fi
 }
 
 

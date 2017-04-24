@@ -1,5 +1,5 @@
 
-### 3.5.0
+### 3.5.2
 
 #### `caches_path`renamed to more sensible `search_path`
 
@@ -11,7 +11,8 @@ create demo files any more. Inverted meaning of -d flag.
 * The paths default is now to output an unquoted one-liner. This is less
 correct but simpler.
 * Added `mulle-bootstrap run`. See mulle-brew for more details.
-
+* Add proper version check in mulle-functions, so that mulle-brew doesn't
+run with wrong libraries
 
 ### 3.4.0
 
