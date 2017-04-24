@@ -72,14 +72,19 @@ canonicalize_path()
 {
    if [ -d "$1" ]
    then
-      ( cd "$1" && pwd -P )
+   (
+      cd "$1" 2>/dev/null && pwd -P
+   )
    else
       local dir
       local file
 
       dir="`dirname "$1"`"
       file="`basename -- "$1"`"
-      ( cd "${dir}" 2>/dev/null && echo "`pwd -P`/${file}" )
+      (
+         cd "${dir}" 2>/dev/null &&
+         echo "`pwd -P`/${file}"
+      )
    fi
 }
 
@@ -170,19 +175,6 @@ main()
 
    install -m "${mode}" "mulle-bootstrap-dotdump" "${bin}/mulle-bootstrap-dotdump" || exit 1
    printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-bootstrap-dotdump" >&2
-
-   case `uname` in
-      MINGW*)
-         install -m "${mode}" "mulle-bootstrap" "${bin}/mulle-brew" || exit 1
-         printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-brew" >&2
-      ;;
-
-      *)
-         ln -f "${bin}/mulle-bootstrap" "${bin}/mulle-brew" || exit 1
-         printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "${bin}/mulle-brew" >&2
-      ;;
-   esac
-
 
    case `uname` in
       MINGW*)
