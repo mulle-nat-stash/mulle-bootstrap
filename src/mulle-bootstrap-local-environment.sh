@@ -591,11 +591,11 @@ fetch_needed()
    local creator
 
    creator="`cat "${BOOTSTRAP_DIR}.auto/.creator" 2> /dev/null`"
-   if [ "${creator}" != "${MULLE_EXECUTABLE}" ]
+   if [ ! -z "${creator}" -a "${creator}" != "${MULLE_EXECUTABLE}" ]
    then
       if [ -d "${BOOTSTRAP_DIR}.auto" ]
       then
-         log_verbose "Need fetch because ${BOOTSTRAP_DIR}.auto was created by ${creator}."
+         log_verbose "Need fetch because ${BOOTSTRAP_DIR}.auto was created by \"${creator}\"."
       else
          log_verbose "Need fetch because ${BOOTSTRAP_DIR}.auto does not exist."
       fi
@@ -711,15 +711,15 @@ _expanded_variables()
    local rval
 
    rval=0
-   key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\2/p'`"
+   key="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:.\/&;#@-]*\)}\(.*\)$/\2/p'`"
    if [ -z "${key}" ]
    then
       echo "${string}"
       return $rval
    fi
 
-   prefix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\1/'`"
-   suffix="`echo "${string}" | sed 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:-]*\)}\(.*\)$/\3/'`"
+   prefix="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:.\/&;#@-]*\)}\(.*\)$/\1/p'`"
+   suffix="`echo "${string}" | sed -n 's/^\(.*\)\${\([A-Za-z_][A-Za-z0-9_:.\/&;#@-]*\)}\(.*\)$/\3/p'`"
 
    default="" # crazy linux bug, where local vars are reused ?
    tmp="`echo "${key}" | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)[:][-]\(.*\)$/\1/p'`"
@@ -731,12 +731,16 @@ _expanded_variables()
 
    if [ ! -z "${altbootstrap}" ]
    then
-      default="`(
+      local xdefault
+
+      xdefault="`(
          BOOTSTRAP_DIR="${altbootstrap}"
          MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
 
-         read_root_setting "${key}" "${default}"
+         read_root_setting "${key}"
       )`"
+
+      default="${xdefault:-${default}}"
    fi
 
    value="`read_root_setting "${key}"`"

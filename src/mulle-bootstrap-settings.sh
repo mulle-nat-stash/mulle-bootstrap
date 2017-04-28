@@ -469,7 +469,6 @@ _read_home_setting()
 }
 
 
-
 list_build_directories()
 {
    local directory="$1"
@@ -489,7 +488,6 @@ list_build_directories()
 
    IFS="${DEFAULT_IFS}"
 }
-
 
 
 list_dir_settings()
@@ -828,7 +826,6 @@ ${result}"
 }
 
 
-
 _merge_settings_in_front()
 {
    local settings1="$1"
@@ -1069,15 +1066,12 @@ _setting_read()
    local key="$1"
    local repository="$2"
 
-   local bootstrapdir
    local directory
 
    if [ "${OPTION_PROCESSED_READ}" = "NO" ]
    then
-      bootstrapdir="`_chosen_bootstrapdir`"
       directory="`_chosen_setting_directory "${repository}"`"
-      _read_setting "${directory}/${name}"
-
+      _read_setting "${directory}/${key}"
       return
    fi
 

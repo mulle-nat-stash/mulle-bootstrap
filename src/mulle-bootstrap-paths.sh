@@ -578,7 +578,7 @@ run_main()
    # use mulle-bootstrap this way to get properly deferred
    # paths
    #
-   commandline="`${MULLE_EXECUTABLE} -s paths -1 -q "'" run addictions `"
+   commandline="`${MULLE_EXECUTABLE} -s paths -1 -q "'" run`"
    while [ $# -ne 0 ]
    do
       value="$1"
