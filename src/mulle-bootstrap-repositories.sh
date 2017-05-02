@@ -493,6 +493,8 @@ _deep_walk_auto_trampoline()
 
 walk_auto_minions()
 {
+   log_debug "walk_auto_minions" "$@"
+
    local minions
 
    minions="`read_root_setting "minions"`"
@@ -502,6 +504,8 @@ walk_auto_minions()
 
 walk_auto_repositories()
 {
+   log_debug "walk_auto_repositories" "$@"
+
    local settingname="$1";shift
 
    local clones
@@ -513,6 +517,8 @@ walk_auto_repositories()
 
 walk_repos_minions()
 {
+   log_debug "walk_repos_minions" "$@"
+
    local reposdir="$1";shift
    local callback="$1";shift
    local permissions="$1";shift
@@ -530,6 +536,8 @@ walk_repos_minions()
 
 walk_repos_repositories()
 {
+   log_debug "walk_repos_repositories" "$@"
+
    local reposdir="$1";shift
    local callback="$1";shift
    local permissions="$1";shift
@@ -547,6 +555,8 @@ walk_repos_repositories()
 
 walk_deep_embedded_auto_minions()
 {
+   log_debug "walk_deep_embedded_auto_minions" "$@"
+
    local callback="$1";shift
    local permissions="$1";shift
 
@@ -565,10 +575,13 @@ walk_deep_embedded_auto_minions()
 
 walk_deep_embedded_auto_repositories()
 {
+   log_debug "walk_deep_embedded_auto_repositories" "$@"
+
    local callback="$1";shift
    local permissions="$1";shift
 
    local clones
+
 
    clones="`read_root_setting "repositories"`"
    _walk_repositories "${clones}" \
@@ -581,8 +594,10 @@ walk_deep_embedded_auto_repositories()
 }
 
 
-walk_deep_embedded_repos_minions()
+walk_deep_embedded_minion_repositories()
 {
+   log_debug "walk_deep_embedded_minion_repositories" "$@"
+
    local callback="$1";shift
    local permissions="$1";shift
 
@@ -601,6 +616,8 @@ walk_deep_embedded_repos_minions()
 
 walk_deep_embedded_repos_repositories()
 {
+   log_debug "walk_deep_embedded_repos_repositories" "$@"
+
    local callback="$1";shift
    local permissions="$1";shift
 

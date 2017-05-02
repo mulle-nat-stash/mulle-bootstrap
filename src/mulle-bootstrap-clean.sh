@@ -125,6 +125,16 @@ print_stashdir_deep_embedded_repositories()
 }
 
 
+print_stashdir_deep_embedded_minion_repositories()
+{
+   local permissions
+
+   permissions="minion"
+   walk_deep_embedded_minion_repositories "_collect_stashdir" \
+                                         "${permissions}"
+}
+
+
 _collect_embedded_stashdir()
 {
    # local reposdir="$1"  # ususally .bootstrap.repos
@@ -186,6 +196,7 @@ ${BOOTSTRAP_DIR}.auto"`"
 
    #
    # as a master we don't throw the minions out
+   # but we are responsible for embedded repositories of minions
    #
    local stashes
 
@@ -196,6 +207,9 @@ ${BOOTSTRAP_DIR}.auto"`"
    DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
 
    stashes="`print_stashdir_deep_embedded_repositories`"
+   DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
+
+   stashes="`print_stashdir_deep_embedded_minion_repositories`"
    DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
 }
 

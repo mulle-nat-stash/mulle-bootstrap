@@ -119,6 +119,8 @@ fetch_brew_if_needed()
 
 walk_brews()
 {
+   log_debug "walk_brews" "$@"
+
    local brews="$1"; shift
    local callback="$1"; shift
 
@@ -327,8 +329,12 @@ find_brews()
 #
 _brew_install_brews()
 {
+   log_debug "_brew_install_brews" "$@"
+
    local brewcmd="$1" ; shift
    local brews="$@"
+
+   [ -z "${brewcmd}" ] && internal_fail "empty brewcmd"
 
    if [ -z "${brews}" ]
    then

@@ -1,3 +1,13 @@
+### 3.5.4
+
+* fix brews not being installed
+* clean dist now also dist cleans minions embedded repositories
+
+
+### 3.5.4
+
+* fix bug in ${expansion:-default}
+
 
 ### 3.5.2
 

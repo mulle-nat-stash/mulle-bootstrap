@@ -1601,7 +1601,7 @@ _common_fetch()
    #
    case "${BREW_PERMISSIONS}" in
       fetch|update|upgrade)
-         brew_install_brews
+         brew_install_brews "install"
       ;;
    esac
 
