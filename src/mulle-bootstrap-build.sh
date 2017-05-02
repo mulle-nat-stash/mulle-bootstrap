@@ -2341,7 +2341,7 @@ build_main()
    if [ ! -f "${BOOTSTRAP_DIR}.auto/build_order" ]
    then
       log_info "No repositories fetched, so nothing to build."
-      return 1
+      return 0  # not an error really, maybe only embedded stuff here
    fi
 
    build_complete_environment

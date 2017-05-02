@@ -38,6 +38,8 @@ build_complete_environment()
 {
    log_debug ":build_complete_environment:"
 
+   [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+
    if [ -z "${OPTION_CONFIGURATIONS}" ]
    then
       OPTION_CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
