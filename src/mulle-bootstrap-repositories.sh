@@ -1021,7 +1021,7 @@ merge_repository_contents()
    local url
    local name
 
-   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
    then
       log_trace2 "Merging repositories \"${additions}\" into \"${contents}\""
    fi
@@ -1043,7 +1043,7 @@ merge_repository_contents()
       url="`_url_part_from_clone "${clone}"`"
       name="`_canonical_clone_name "${url}"`"
 
-      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
       then
          log_trace2 "${name}: ${clone}"
       fi
@@ -1060,7 +1060,7 @@ merge_repository_contents()
       url="`_url_part_from_clone "${clone}"`"
       name="`_canonical_clone_name "${url}"`"
 
-      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
       then
          log_trace2 "${name}: ${clone}"
       fi
@@ -1069,7 +1069,7 @@ merge_repository_contents()
    done
    IFS="${DEFAULT_IFS}"
 
-   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
    then
       log_trace2 "----------------------"
       log_trace2 "merged \"repositories\":"
@@ -1123,7 +1123,7 @@ unique_repository_contents()
    local name
    local output
 
-   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
    then
       log_trace2 "Uniquing \"${input}\" with \"${another}\""
    fi
@@ -1154,7 +1154,7 @@ unique_repository_contents()
    done
    IFS="${DEFAULT_IFS}"
 
-   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
    then
       log_trace2 "----------------------"
       log_trace2 "uniqued \"repositories\":"
@@ -1225,7 +1225,7 @@ sort_repository_file()
       refreshed="${refreshed}
 ${clone}"
 
-      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
       then
          log_trace2 "Sort is dealing with \"${clone}\" now"
       fi
@@ -1252,7 +1252,7 @@ ${clone}"
 
       if [ ! -d "${stashdir}" ]
       then
-         if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+         if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
          then
             log_trace2 "${stashdir} not fetched yet"
          fi
@@ -1270,7 +1270,7 @@ ${clone}"
       then
          sub_repos="`unique_repository_contents "${sub_repos}" "${clones}"`"
          dependency_map="`dependency_add_array "${dependency_map}" "${clone}" "${sub_repos}"`"
-         if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+         if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
          then
             log_trace2 "add \"${clone}\" to __ROOT__ as dependencies"
             log_trace2 "add [ ${sub_repos} ] to ${clone} as dependencies"
@@ -1290,7 +1290,7 @@ ${clone}"
    repositories="`dependency_resolve "${dependency_map}" "__ROOT__" | fgrep -v -x "__ROOT__"`"
    if [ ! -z "${repositories}" ]
    then
-      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+      if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
       then
          log_trace2 "------------------------"
          log_trace2 "resolved \"repositories\":"

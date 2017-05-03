@@ -129,7 +129,7 @@ bootstrap_technical_flags()
       ;;
 
       -lm|--log-merge)
-         MULLE_FLAG_MERGE_LOG="YES"
+         MULLE_FLAG_LOG_MERGE="YES"
       ;;
 
       -ls|--log-settings)

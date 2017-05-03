@@ -814,7 +814,7 @@ ${result}"
    IFS="${DEFAULT_IFS}"
 
    if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o \
-        "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+        "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
    then
       log_trace2 "----------------------"
       log_trace2 "Merged settings:      "
@@ -852,7 +852,7 @@ ${result}"
    IFS="${DEFAULT_IFS}"
 
    if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o \
-        "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+        "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
    then
       log_trace2 "----------------------"
       log_trace2 "Merged settings:      "

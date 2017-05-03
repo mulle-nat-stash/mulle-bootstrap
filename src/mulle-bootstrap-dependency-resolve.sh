@@ -121,7 +121,7 @@ _dependency_resolve()
    local map="$1"
    local name="$2"
 
-   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_MERGE_LOG" = "YES"  ]
+   if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" -o "$MULLE_FLAG_LOG_MERGE" = "YES"  ]
    then
       log_trace2 "resolve ${name}"
    fi
