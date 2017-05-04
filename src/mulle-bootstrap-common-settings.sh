@@ -105,9 +105,17 @@ common_settings_initialize()
    #
    # Global Settings
    # used to be configurable, but just slows me down
-   HEADER_DIR_NAME="include"
-   LIBRARY_DIR_NAME="lib"
-   FRAMEWORK_DIR_NAME="Frameworks"
+   #
+   case "${UNAME}" in
+      *)
+         FRAMEWORK_DIR_NAME="Frameworks"
+         HEADER_DIR_NAME="include"
+         LIBRARY_DIR_NAME="lib"
+         LIBEXEC_DIR_NAME="libexec"
+         RESOURCE_DIR_NAME="share"
+         BIN_DIR_NAME="bin"
+      ;;
+   esac
 
    # HEADER_DIR_NAME="`read_config_setting "header_dir_name" "include"`"
    # LIBRARY_DIR_NAME="`read_config_setting "library_dir_name" "lib"`"

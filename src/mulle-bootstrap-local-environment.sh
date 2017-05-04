@@ -443,7 +443,12 @@ add_path()
    then
       echo "${path}"
    else
-      echo "${line}${PATH_SEPARATOR}${path}"
+      if [ -z "${path}" ]
+      then
+         echo "${line}"
+      else
+         echo "${line}${PATH_SEPARATOR}${path}"
+      fi
    fi
 }
 
@@ -477,7 +482,12 @@ add_component()
    then
       echo "${component}"
    else
-      echo "${filepath}${COMPONENT_SEPARATOR}${component}"
+      if [ -z "${component}" ]
+      then
+         echo "${filepath}"
+      else
+         echo "${filepath}${COMPONENT_SEPARATOR}${component}"
+      fi
    fi
 }
 

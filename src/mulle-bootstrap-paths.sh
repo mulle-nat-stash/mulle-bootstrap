@@ -459,11 +459,13 @@ _flags_do_path()
 
    local values
    local line
+   local tmppath
 
    values="`_flags_binpath_value`"
    if [ ! -z "${values}" ]
    then
-      line="PATH=${OPTION_QUOTE}${values}:${PATH}${OPTION_QUOTE}"
+      tmppath="`add_path "${values}" "${PATH}"`"
+      line="PATH=${OPTION_QUOTE}${tmppath}${OPTION_QUOTE}"
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -503,7 +505,7 @@ _flags_do_make_environment()
    values="`_flags_binpath_value`"
    if [ ! -z "${values}" ]
    then
-      line="PATH=${OPTION_QUOTE}${values}:${PATH}${OPTION_QUOTE}"
+      result="`_flags_do_path`"
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -559,7 +561,7 @@ _flags_do_run_environment()
    values="`_flags_binpath_value`"
    if [ ! -z "${values}" ]
    then
-      line="PATH=${OPTION_QUOTE}${values}:${PATH}${OPTION_QUOTE}"
+      result="`_flags_do_path`"
       result="`add_line "${result}" "${line}"`"
    fi
 
@@ -792,7 +794,6 @@ paths_main()
       if [ "${OPTION_LINE_SEPERATOR}" = " " ]
       then
          printf "%s" "${result}" | tr '\012' ' '  | sed 's/ *$//'
-         printf "\n"
       else
          printf "%s\n" "${result}"
       fi

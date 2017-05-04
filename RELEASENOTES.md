@@ -1,3 +1,11 @@
+## 3.6
+
+* Improved the dependencies copying routing. Now also copies `share` `sbin`
+`bin` `libexec` and picks up more possible output directories. `sbin` and `bin`
+will me merged into `dependencies/bin`.
+* Improve path construction, omitting empty components
+* Don't output superflous linefeed with paths
+
 ### 3.5.4
 
 * fix brews not being installed
