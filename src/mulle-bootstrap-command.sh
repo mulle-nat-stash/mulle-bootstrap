@@ -34,19 +34,17 @@ MULLE_BOOTSTRAP_COMMAND_SH="included"
 
 suggest_binary_install()
 {
-   toolname="$1"
-
-   log_warning "Suggested fix:"
+   local toolname="$1"
 
    case "${toolname}" in
       mulle-cl*)
          case "${UNAME}" in
             darwin)
-               log_info "brew install mulle-xcode-developer"
+               echo "brew install mulle-xcode-developer"
             ;;
 
             *)
-               log_info "Visit https://mulle-objc.github.io/ for instructions how to install ${toolname}"
+               echo "Visit https://mulle-objc.github.io/ for instructions how to install ${toolname}"
             ;;
          esac
       ;;
@@ -54,19 +52,19 @@ suggest_binary_install()
       *)
          case "${UNAME}" in
             darwin)
-               log_info "brew install $1"
+               echo "brew install ${toolname}"
             ;;
 
             linux)
                if command -v "apt-get" > /dev/null 2>&1
                then
-                  log_info "apt-get install $1"
+                  echo "apt-get install ${toolname}"
                else
                   if command -v "yum" > /dev/null 2>&1
                   then
-                     log_info "yum install $1"
+                     echo "yum install ${toolname}"
                   else
-                     fail "You need to install $1 manually"
+                     echo "You need to install \"${toolname}\" manually"
                   fi
                fi
             ;;
@@ -74,19 +72,19 @@ suggest_binary_install()
             FreeBSD)
                if command -v "pkg" > /dev/null 2>&1
                then
-                  log_info pkg install "$1"
+                  echo "pkg install ${toolname}"
                else
                   if command -v "pkg_add" > /dev/null 2>&1
                   then
-                     log_info pkg_add -r "$1"
+                     echo "pkg_add -r ${toolname}"
                   else
-                     log_info "You need to install $1 manually"
+                     echo "You need to install \"${toolname}\" manually"
                   fi
                fi
             ;;
 
             *)
-               log_info "You need to install $1 manually"
+               echo "You need to install \"${toolname}\" manually"
             ;;
          esac
       ;;
@@ -209,7 +207,7 @@ which_binary()
       ;;
    esac
 
-   which "${toolname}" 2> /dev/null
+   command -v "${toolname}" 2> /dev/null
 }
 
 
@@ -226,10 +224,8 @@ assert_binary()
 
    local path
 
-   path=`which_binary "${toolname}"`
-   if [ -z "${path}" ]
+   if ! which_binary "${toolname}"
    then
-      which_binary "${toolname}"
       fail "${toolname} is an unknown build tool (PATH=$PATH)"
    fi
    # echo "$path"
@@ -268,9 +264,9 @@ verify_binary()
 
    if [ "${toolname}" != "${tooldefaultname}" ]
    then
-      log_fail "${toolfamily} named \"${toolname}\" not found in PATH"
-      suggest_binary_install "${toolname}"
-      _bail
+      fail "${toolfamily} named \"${toolname}\" not found in PATH.
+Suggested fix:
+${C_RESET}${C_BOLD}   `suggest_binary_install "${toolname}"`"
    else
       log_fluff "${toolfamily} named \"${toolname}\" not found in PATH"
    fi

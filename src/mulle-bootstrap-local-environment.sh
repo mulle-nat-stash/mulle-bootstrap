@@ -678,15 +678,6 @@ set_fetch_needed()
 }
 
 
-set_build_needed()
-{
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
-
-   remove_file_if_present "${REPOS_DIR}/.build_started"
-   remove_file_if_present "${REPOS_DIR}/.build_done"
-}
-
-
 assert_mulle_bootstrap_version()
 {
    local version

@@ -174,7 +174,10 @@ _bail()
 
 fail()
 {
-   log_fail "$*"
+   if [ ! -z "$*" ]
+   then
+      log_fail "$*"
+   fi
    _bail
 }
 

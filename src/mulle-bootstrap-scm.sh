@@ -784,7 +784,7 @@ tar_unpack()
    esac
 
    rmdir_safer "${name}.tmp"
-   tmpdir="`exekutor mktemp -d "${name}.XXXX.tmp"`" || return 1
+   tmpdir="`exekutor mktemp -d "${name}.XXXXXXXX"`" || return 1
    (
       exekutor cd "${tmpdir}" || return 1
 
@@ -849,7 +849,7 @@ zip_unpack()
    archivename="`extension_less_basename "${download}"`"
 
    rmdir_safer "${name}.tmp"
-   tmpdir="`exekutor mktemp -d "${name}.XXXX.tmp"`" || exit 1
+   tmpdir="`exekutor mktemp -d "${name}.XXXXXXXX"`" || exit 1
    (
       exekutor cd "${tmpdir}" || return 1
 

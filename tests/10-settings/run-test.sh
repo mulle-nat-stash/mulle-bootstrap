@@ -130,8 +130,8 @@ setup
 [ "`cat a/.bootstrap.auto/c.build/override`" = "# b : .bootstrap/c.build/override" ] || fail "override failed"
 
 
-expect="`mktemp -t foo.XXXX`"
-result="`mktemp -t foo.XXXX`"
+expect="`mktemp -t foo.XXXXXXXX`"
+result="`mktemp -t foo.XXXXXXXX`"
 ls -R1a a | sed '/^$/d' | sed '/^[.]*$/d' | sed '/^a:$/d' | sort  > "${result}"
 cat <<EOF | sort > "${expect}"
 .bootstrap

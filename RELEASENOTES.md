@@ -1,3 +1,8 @@
+## 3.6.1
+
+* bug fixes
+
+
 ## 3.6
 
 * Improved the dependencies copying routing. Now also copies `share` `sbin`
@@ -5,6 +10,9 @@
 will me merged into `dependencies/bin`.
 * Improve path construction, omitting empty components
 * Don't output superflous linefeed with paths
+* removed -fb flag, because it's just the same as clean before build.
+* Added a --from flag to build, so you can rebuild from a starting point.
+
 
 ### 3.5.4
 

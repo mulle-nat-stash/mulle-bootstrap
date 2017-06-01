@@ -65,11 +65,15 @@ EOF
       echo "${repositories}" | sed 's/^/   /'
    fi
 
+# to is experimental and maybe useless
+#   --to <name>    :  force rebuild up to and including this project
+
    cat <<EOF >&2
 Options:
+   -c <name>      :  configurations to build ($defc), separate with comma
+   --from <name>  :  force rebuild from this project
    -k             :  don't clean before building $defk
    -K             :  always clean before building $defkk
-   -c <name>      :  configurations to build ($defc), separate with comma
    --prefix <dir> :  use <dir> instead of /usr/local
 EOF
 
@@ -118,9 +122,7 @@ find_make()
 
 find_xcodebuild()
 {
-   local name
-
-   name="$1"
+   local name="$1"
 
    local toolname
 
@@ -137,6 +139,7 @@ find_compiler()
 
    local compiler
    local filename
+   local path
 
    compiler="`read_build_setting "${name}" "${compiler_name}"`"
    if [ -z "${compiler}" -a "${OPTION_USE_CC_CXX}" = "YES" ]
@@ -160,11 +163,12 @@ find_compiler()
 
    if [ ! -z "${compiler}" ]
    then
-      compiler=`which_binary "${compiler}"`
-      if [ -z "${compiler}" ]
+      path=`which_binary "${compiler}"`
+      if [ -z "${path}" ]
       then
-         suggest_binary_install "${compiler}"
-         exit 1
+         fail "Compiler \"${compiler}\" not found.
+Suggested fix:
+   ${C_RESET}${C_BOLD}`suggest_binary_install "${compiler}"`"
       fi
       echo "${compiler}"
    fi
@@ -342,17 +346,11 @@ dispense_libexec()
 
 _dispense_binaries()
 {
-   local name
-   local src
-   local findtype
-   local depend_subdir
-   local subpath
-
-   src="$1"
-   name="$2"
-   findtype="$3"
-   depend_subdir="$4"
-   subpath="$5"
+   local src="$1"
+   local name="$2"
+   local findtype="$3"
+   local depend_subdir="$4"
+   local subpath="$5"
 
    local dst
    local findtype2
@@ -2186,6 +2184,42 @@ build_wrapper()
 }
 
 
+# keep until "to" but excluding it
+# cut stuff until "to"
+# keep "to" and keep rest
+
+force_rebuild()
+{
+   local from="$1"
+   local to="$2"
+
+   remove_file_if_present "${REPOS_DIR}/.build_started"
+
+   # if nothing's build yet, fine with us
+   if [ ! -f "${REPOS_DIR}/.build_done" ]
+   then
+      log_fluff "Nothing has been built yet"
+      return
+   fi
+
+   #
+   # keep entries above parameter
+   # os x doesn't have 'Q'
+   # also q and i doesn't work on OS X <sigh>
+   #
+   local tmpfile
+
+   [ -z "${MULLE_BOOTSTRAP_SNIP_SH}" ] && . mulle-bootstrap-snip.sh
+
+   tmpfile="`exekutor mktemp "mulle-bootstrap.XXXXXXXX"`" || exit 1
+
+   redirect_exekutor "${tmpfile}" snip_from_to_file "${from}" "${to}" "${REPOS_DIR}/.build_done"
+   exekutor mv "${tmpfile}" "${REPOS_DIR}/.build_done"
+
+   log_debug ".build_done=`cat "${REPOS_DIR}/.build_done"`"
+}
+
+
 build_if_alive()
 {
    local name
@@ -2369,6 +2403,8 @@ build_main()
    local OPTION_CONFIGURATIONS
    local OPTION_ADD_USR_LOCAL
    local OPTION_USE_CC_CXX
+   local OPTION_FROM
+   local OPTION_TO
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OPTION_USE_CC_CXX="`read_config_setting "use_cc_cxx" "YES"`"
@@ -2396,15 +2432,21 @@ build_main()
             OPTION_CONFIGURATIONS="Debug"
          ;;
 
+         --from)
+            [ $# -eq 1 ] && fail "argument for $1 is missing"
+            shift
+            OPTION_FROM="$1"
+         ;;
+
          -j|--cores)
+            [ $# -eq 1 ] && fail "argument for $1 is missing"
+            shift
+
             case "${UNAME}" in
                mingw)
                   build_usage
                ;;
             esac
-
-            shift
-            [ $# -ne 0 ] || fail "core count missing"
 
             CORES="$1"
          ;;
@@ -2425,9 +2467,14 @@ build_main()
             USR_LOCAL_LIB="$1/lib"
          ;;
 
-
          --release)
             OPTION_CONFIGURATIONS="Release"
+         ;;
+
+         --to)
+            [ $# -eq 1 ] && fail "argument for $1 is missing"
+            shift
+            OPTION_TO="$1"
          ;;
 
          --use-prefix-libraries)
@@ -2474,13 +2521,18 @@ build_main()
    #
    #
    #
-
    if [ ! -f "${REPOS_DIR}/.build_done" ]
    then
+      remove_file_if_present "${REPOS_DIR}/.build_done.orig"
       _create_file_if_missing "${REPOS_DIR}/.build_done"
 
       log_fluff "Cleaning dependencies directory as \"${DEPENDENCIES_DIR}\""
       rmdir_safer "${DEPENDENCIES_DIR}"
+   else
+      if [ ! -z "${OPTION_FROM}" -o ! -z "${OPTION_TO}" ]
+      then
+         force_rebuild "${OPTION_FROM}" "${OPTION_TO}"
+      fi
    fi
 
    # parameter ? partial build!
@@ -2505,6 +2557,7 @@ build_main()
    else
       log_fluff "No dependencies have been generated"
 
+      remove_file_if_present "${REPOS_DIR}/.build_done.orig"
       remove_file_if_present "${REPOS_DIR}/.build_done"
    fi
 

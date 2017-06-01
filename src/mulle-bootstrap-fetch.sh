@@ -301,6 +301,8 @@ _search_for_git_repository_in_cache()
 
 search_for_git_repository_in_caches()
 {
+   log_debug "search_for_git_repository_in_caches" "$@" "(${CACHES_PATH})"
+
    local found
    local directory
    local realdir
@@ -347,6 +349,8 @@ search_for_git_repository_in_caches()
 
 _search_for_archive_in_caches()
 {
+   log_debug "_search_for_archive_in_caches" "$@"
+
    local directory="$1"
    local name="$2"
    local filename="$3"
@@ -379,6 +383,8 @@ _search_for_archive_in_caches()
 
 search_for_archive_in_caches()
 {
+   log_debug "search_for_archive_in_caches" "$@" "(${CACHES_PATH})"
+
    local name="$1"
    local filename="$2"
 
@@ -1829,6 +1835,7 @@ _common_main()
       ;;
    esac
 
+   remove_file_if_present "${REPOS_DIR}/.build_done.orig"
    remove_file_if_present "${REPOS_DIR}/.build_done"
    remove_file_if_present "${REPOS_DIR}/.fetch_done"
    create_file_if_missing "${REPOS_DIR}/.fetch_started"

@@ -178,7 +178,7 @@ master_remove_minion_bootstrap_project()
 
    if [ -f "${filepath}" ]
    then
-      exekutor sed -i "" -e "/^${unregex}$/d" "${filepath}"
+      exekutor sed -i"" -e "/^${unregex}$/d" "${filepath}"
 
       if [ -z "`read_setting "${filepath}"`" ]
       then

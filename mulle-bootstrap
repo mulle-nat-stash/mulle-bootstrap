@@ -31,7 +31,7 @@
 #
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=6
-MULLE_EXECUTABLE_VERSION_PATCH=0
+MULLE_EXECUTABLE_VERSION_PATCH=1
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -282,6 +282,31 @@ bootstrap_init()
    # source_environment
 }
 
+bootstrap_cd_projectpath()
+{
+   local  orgpwd
+
+   orgpwd="$PWD"
+
+   while ! is_bootstrap_project
+   do
+      local old
+
+      old="$PWD"
+      cd ..
+
+      if [ "$PWD" = "${old}" ]
+      then
+         if [ "${command}" = "seting" ]
+         then
+            cd "${orgpwd}"
+         else
+            return 1
+         fi
+      fi
+   done
+}
+
 
 bootstrap_main()
 {
@@ -339,10 +364,6 @@ bootstrap_main()
             MULLE_FLAG_FOLLOW_SYMLINKS="YES"
          ;;
 
-         -fb|--force-build)
-            MULLE_FLAG_MAGNUM_FORCE="BUILD-ONLY"
-         ;;
-
          -f|--force)
             MULLE_FLAG_MAGNUM_FORCE="BOTH"
          ;;
@@ -395,35 +416,20 @@ bootstrap_main()
       help|init|uname)
       ;;
 
-      *)
-         local  orgpwd
-
-         orgpwd="$PWD"
-
-         while ! is_bootstrap_project
-         do
-            local old
-
-            old="$PWD"
-            cd ..
-
-            if [ "$PWD" = "${old}" ]
-            then
-               if [ "${command}" = "seting" ]
-               then
-                  cd "${orgpwd}"
-               else
-                  fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($orgpwd), can't continue"
-               fi
-            fi
-         done
-      ;;
-   esac
-
-   case "${command}" in
       project-path)
+         if ! bootstrap_cd_projectpath
+         then
+            exit 1
+         fi
          echo "`pwd -P`"
          exit 0
+      ;;
+
+      *)
+         if ! bootstrap_cd_projectpath
+         then
+            fail "There is no ${BOOTSTRAP_DIR} or ${BOOTSTRAP_DIR}.local folder here ($orgpwd), can't continue"
+         fi
       ;;
    esac
 
@@ -439,10 +445,6 @@ bootstrap_main()
    case "${MULLE_FLAG_MAGNUM_FORCE}" in
       "BOTH")
          set_fetch_needed
-         set_build_needed
-      ;;
-
-      "BUILD-ONLY")
          set_build_needed
       ;;
 
