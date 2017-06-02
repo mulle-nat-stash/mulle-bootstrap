@@ -30,15 +30,15 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 #
 
-MULLE_BOOTSTRAP_INSTALL_SH="included"
+MULLE_BOOTSTRAP_SYSTEMINSTALL_SH="included"
 
 
 
-install_usage()
+systeminstall_usage()
 {
    cat <<EOF >&2
 Usage:
-   ${MULLE_EXECUTABLE} install [libraryprefix] [frameworkprefix]
+   ${MULLE_EXECUTABLE} systeminstall [libraryprefix] [frameworkprefix]
 
    You may need to run this as sudo.
    The default libraryprefix is "${DEFAULT_PREFIX}
@@ -51,6 +51,8 @@ EOF
 
 install_libraries_with_action()
 {
+   log_debug "install_libraries_with_action" "$*"
+
    local action
    local dstdir
    local srcdir
@@ -82,7 +84,8 @@ install_libraries_with_action()
 
          log_info "Installing library ${C_MAGENTA}${C_BOLD}${library}${C_INFO} into ${dstdir}..."
          mkdir_if_missing "${dstdir}"
-         exekutor "$action" "`pwd`/${library}" "${dstdir}/${library}"
+         # don't quote action
+         exekutor $action "`pwd`/${library}" "${dstdir}/${library}"
          if [ -x "${dstdir}/${library}" ]
          then
             exekutor chmod 755 "${dstdir}/${library}"
@@ -97,7 +100,7 @@ install_libraries_with_action()
 
 install_libraries_by_copying()
 {
-   install_libraries_with_action "cp -Ra" "$@"
+   install_libraries_with_action "cp -Ra ${COPYMOVEFLAGS}" "$@"
 }
 
 
@@ -142,7 +145,8 @@ install_headers_with_action()
          fi
          log_info "Installing header ${C_MAGENTA}${C_BOLD}${header}${C_INFO} into \"${dstdir}\" ..."
          mkdir_if_missing "${dstdir}"
-         exekutor "${action}" "`pwd`/${header}" "${dstdir}/${header}"
+         # don't quote action
+         exekutor ${action} "`pwd`/${header}" "${dstdir}/${header}"
       fi
    done
 
@@ -159,7 +163,8 @@ install_headers_with_action()
          fi
          log_info "Installing headers ${C_MAGENTA}${C_BOLD}${header}${C_INFO} into \"${dstdir}\" ..."
          mkdir_if_missing "${dstdir}"
-         exekutor "${action}" "`pwd`/${header}" "${dstdir}/${header}"
+         # don't quote action
+         exekutor ${action} "`pwd`/${header}" "${dstdir}/${header}"
       fi
    done
 
@@ -169,13 +174,13 @@ install_headers_with_action()
 
 install_headers_by_copying()
 {
-   install_headers_with_action "cp -Ra" "$@"
+   install_headers_with_action "cp -Ra ${COPYMOVEFLAGS}" "$@"
 }
 
 
 install_headers_by_symlinking()
 {
-   install_headers_with_action "ln -s" "$@"
+   "install_headers_with_action" "ln -s" "$@"
 }
 
 
@@ -211,7 +216,7 @@ merge_framework_configurations()
       if [ ! -z "${suffix}" ]
       then
          dstexe="${dstdir}/${name}${suffix}"
-         exekutor cp "${srcexe}" "${dstexe}" >&2
+         exekutor cp ${COPYMOVEFLAGS} "${srcexe}" "${dstexe}" >&2
          exekutor chmod 755 "${dstexe}"  >&2
       fi
    done
@@ -251,7 +256,8 @@ install_frameworks_with_action()
 
          mkdir_if_missing "${dstdir}"
          log_info "Installing Framework ${C_MAGENTA}${C_BOLD}${framework}${C_INFO} into \"${dstdir}\" ..."
-         exekutor "${action}" "`pwd`/${framework}" "${dstdir}/${framework}"
+         # don't quote action
+         exekutor ${action} "`pwd`/${framework}" "${dstdir}/${framework}"
       fi
    done
 
@@ -276,9 +282,9 @@ install_frameworks_by_symlinking()
 # Currently only install the default configuration, which
 # is usually "Release"
 #
-install_main()
+systeminstall_main()
 {
-   log_debug "::: install :::"
+   log_debug "::: systeminstall :::"
 
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
 

@@ -31,7 +31,7 @@
 #
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=6
-MULLE_EXECUTABLE_VERSION_PATCH=1
+MULLE_EXECUTABLE_VERSION_PATCH=2
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -555,9 +555,9 @@ bootstrap_main()
       ;;
 
       systeminstall)
-         . mulle-bootstrap-install.sh
+         . mulle-bootstrap-systeminstall.sh
 
-         install_main "$@" || exit 1
+         systeminstall_main "$@" || exit 1
       ;;
 
       show)

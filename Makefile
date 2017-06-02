@@ -11,7 +11,6 @@ SCRIPTS=install.sh \
 	src/mulle-bootstrap-functions.sh \
 	src/mulle-bootstrap-gcc.sh \
 	src/mulle-bootstrap-init.sh \
-	src/mulle-bootstrap-install.sh \
 	src/mulle-bootstrap-local-environment.sh \
 	src/mulle-bootstrap-logging.sh \
 	src/mulle-bootstrap-mingw.sh \
@@ -19,6 +18,7 @@ SCRIPTS=install.sh \
 	src/mulle-bootstrap-scm.sh \
 	src/mulle-bootstrap-scripts.sh \
 	src/mulle-bootstrap-settings.sh \
+	src/mulle-bootstrap-systeminstall.sh \
 	src/mulle-bootstrap-tag.sh \
 	src/mulle-bootstrap-warn-scripts.sh \
 	src/mulle-bootstrap-xcode.sh \

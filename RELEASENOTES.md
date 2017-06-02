@@ -1,3 +1,7 @@
+## 3.6.2
+
+* fix and improve systeminstall (formerly just install)
+
 ## 3.6.1
 
 * bug fixes
