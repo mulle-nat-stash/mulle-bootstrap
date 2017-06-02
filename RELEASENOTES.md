@@ -1,3 +1,7 @@
+## 3.6.3
+
+* fix missing include in warn scripts
+
 ## 3.6.2
 
 * fix and improve systeminstall (formerly just install)
