@@ -83,6 +83,8 @@ DESTINATION "libexec/mulle-bootstrap")
 ######
 set( CPACK_PACKAGE_NAME "mulle-bootstrap")
 set( CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set( CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.md")
+set( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 set( CPACK_STRIP_FILES false)
 
 # stuff needed for Debian
@@ -91,8 +93,7 @@ set( CPACK_STRIP_FILES false)
 set( CPACK_PACKAGE_CONTACT "Nat! <nat@mulle-kybernetik.de>")
 
 set( CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/mulle-nat/mulle-bootstrap")
-set( CPACK_DEBIAN_PACKAGE_DESCRIPTION "👢 Cross platform dependency manager - using bash and cmake
-")
+set( CPACK_DEBIAN_PACKAGE_DESCRIPTION "👢 Cross platform dependency manager - using bash and cmake")
 
 set( CPACK_RPM_PACKAGE_VENDOR "Mulle kybernetiK")
 set( CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_DEBIAN_PACKAGE_DESCRIPTION}")
