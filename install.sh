@@ -67,7 +67,6 @@ resolve_symlinks()
 }
 
 
-
 canonicalize_path()
 {
    if [ -d "$1" ]
