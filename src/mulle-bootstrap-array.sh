@@ -133,9 +133,9 @@ array_insert()
 # DEBUG code
 #   [ -z "${i}" ] && internal_fail "empty index"
 #
-#   local n
+   local n
 #
-#   n="`array_count "${array}"`"
+   n="`array_count "${array}"`"
 #   [ "$i" -gt "$n" ] && internal_fail "index ${i} out of bounds ${n}"
 
    head_count="$i"

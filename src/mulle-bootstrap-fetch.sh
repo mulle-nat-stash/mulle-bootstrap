@@ -1050,7 +1050,7 @@ get_old_stashdir()
       dstdir="${dstdir#$oldprefix/}"
    fi
 
-   oldstashdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
+   oldstashdir="`computed_stashdir "${name}" "${dstdir}"`"
 
    echo "${oldstashdir}"
 }

@@ -176,7 +176,7 @@ show_raw_repository()
    local stashdir
 
    name="`_canonical_clone_name "${url}"`"
-   stashdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
+   stashdir="`computed_stashdir "${name}" "${dstdir}"`"
 
    (
       printf "%b" "${SHOW_PREFIX}${url}"

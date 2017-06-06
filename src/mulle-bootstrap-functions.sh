@@ -31,6 +31,7 @@
 #
 
 [ ! -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && echo "double inclusion of functions" >&2 && exit 1
+
 MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
 
 MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MINOR="5"
@@ -341,7 +342,6 @@ expand_environment_variables()
 }
 
 
-
 # ####################################################################
 #                             Path handling
 # ####################################################################
@@ -452,17 +452,6 @@ canonicalize_path()
    else
       _canonicalize_file_path "$1"
    fi
-}
-
-#
-# canonicalizes existing paths
-# fails for files / directories that do not exist
-#
-realpath()
-{
-   [ -e "$1" ] || fail "only use realpath on existing files ($1)"
-
-   canonicalize_path "`resolve_symlinks "$1"`"
 }
 
 
@@ -1087,7 +1076,6 @@ mkdir_if_missing()
 }
 
 
-
 dir_is_empty()
 {
    [ -z "$1" ] && internal_fail "empty path"
@@ -1188,6 +1176,56 @@ remove_file_if_present()
    fi
 }
 
+# ####################################################################
+#                        Symbolic Links
+# ####################################################################
+#
+
+#
+# stolen from:
+# http://stackoverflow.com/questions/1055671/how-can-i-get-the-behavior-of-gnus-readlink-f-on-a-mac
+# ----
+#
+_prepend_path_if_relative()
+{
+   case "$2" in
+      /*)
+         echo "$2"
+      ;;
+
+      *)
+         echo "$1/$2"
+      ;;
+   esac
+}
+
+
+resolve_symlinks()
+{
+   local dir_context
+   local path
+
+   path="`readlink "$1"`"
+   if [ $? -eq 0 ]
+   then
+      dir_context=`dirname -- "$1"`
+      resolve_symlinks "`_prepend_path_if_relative "$dir_context" "$path"`"
+   else
+      echo "$1"
+   fi
+}
+
+#
+# canonicalizes existing paths
+# fails for files / directories that do not exist
+#
+realpath()
+{
+   [ -e "$1" ] || fail "only use realpath on existing files ($1)"
+
+   canonicalize_path "`resolve_symlinks "$1"`"
+}
+
 #
 # the target of the symlink must exist
 #
@@ -1208,7 +1246,6 @@ create_symlink()
 
    srcname="`basename -- ${url}`"
    directory="`dirname -- "${stashdir}"`"
-   directory="`realpath "${directory}"`"  # resolve symlinks
 
    mkdir_if_missing "${directory}"
 

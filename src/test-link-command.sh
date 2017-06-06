@@ -1,10 +1,11 @@
 #! /bin/sh
 
+
 . mulle-bootstrap-logging.sh
 . mulle-bootstrap-repositories.sh
 . mulle-bootstrap-fetch.sh
 
-
+set -x
 
 run_test_1()
 {
@@ -46,8 +47,6 @@ MULLE_FLAG_LOG_VERBOSE="YES"
 
 rm -rf deep 2> /dev/null
 
-set -e
-set -x
 run_test_1
 
 rm -rf deep 2> /dev/null

@@ -82,6 +82,8 @@ run_test_2()
    [ "${fclone}" = "${clone}" ] || fail "failed to remember clone"
 }
 
+ROOT_DIR="`pwd`"
+
 rm -rf .bootstrap.repos
 run_test_1
 run_test_2

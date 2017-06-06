@@ -1,4 +1,7 @@
-#! /bin/sh -e
+#! /usr/bin/env bash
+
+set -e 
+set -x
 
 . mulle-bootstrap-dependency-resolve.sh
 . mulle-bootstrap-functions.sh

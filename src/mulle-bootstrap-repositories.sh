@@ -803,11 +803,9 @@ path_relative_to_root_dir()
 
 computed_stashdir()
 {
-   local url="$1"
-   local name="$2"
-   local dstdir="$3"
+   local name="$1"
+   local dstdir="$2"
 
-   name="`_canonical_clone_name "${url}"`"
    if is_minion_bootstrap_project "${name}"
    then
       dstdir="${name}"
@@ -848,6 +846,9 @@ parse_raw_clone()
 process_raw_clone()
 {
    name="`_canonical_clone_name "${url}"`"
+
+   # memo this is done in .auto already
+   # stashdir="`computed_stashdir "${name}" "${dstdir}"`"
 }
 
 
@@ -874,7 +875,7 @@ parse_clone()
 
    local dstdir
 
-   parse_raw_clone "$1"
+   parse_raw_clone "${clone}"
    process_raw_clone
 
    stashdir="${dstdir}"
@@ -888,6 +889,13 @@ parse_clone()
       log_trace2 "TAG:      \"${tag}\""
       log_trace2 "STASHDIR: \"${stashdir}\""
    fi
+
+   # this is done  during auto already
+   # case "${stashdir}" in
+   #    ..*|~*|/*)
+   #     fail "dstdir \"${dstdir}\" is invalid ($clone)"
+   #    ;;
+   # esac
 
    [ -z "${url}" ]      && internal_fail "url is empty ($clone)"
    [ -z "${name}" ]     && internal_fail "name is empty ($clone)"
@@ -952,6 +960,8 @@ read_repository_file()
    local branch
    local scm
    local tag
+   local name
+
 
    IFS="
 "
@@ -960,6 +970,7 @@ read_repository_file()
       IFS="${DEFAULT_IFS}"
 
       parse_raw_clone "${clone}"
+      process_raw_clone
 
       case "${url}" in
          */\.\./*|\.\./*|*/\.\.|\.\.)
@@ -981,8 +992,13 @@ read_repository_file()
          dstdir=""
       fi
 
-      dstdir="`computed_stashdir "${url}" "${name}" "${dstdir}"`"
+      dstdir="`computed_stashdir "${name}" "${dstdir}"`"
       scm="${scm:-git}"
+
+      if [ "${MULLE_FLAG_LOG_MERGE}" = "YES" ]
+      then
+         log_trace "${url};${dstdir};${branch};${scm};${tag}"
+      fi
 
       echo "${url};${dstdir};${branch};${scm};${tag}"
    done
@@ -1309,6 +1325,7 @@ mulle_repositories_initialize()
 
    log_debug ":mulle_repositories_initialize:"
 
+   [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ]  && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_ARRAY_SH}" ]           && . mulle-bootstrap-array.sh
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]       && . mulle-bootstrap-functions.sh

@@ -1,3 +1,8 @@
+### 3.6.6
+
+* fix a few regressions
+
+
 ### 3.6.5
 
 * remove superflous set_build_needed

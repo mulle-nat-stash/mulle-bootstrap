@@ -31,33 +31,21 @@ run_test_2()
    local tag
    local stashdir
 
-   parse_clone "url/name;;;;"
+   parse_clone "url/name;whatever;;;"
 
    [ "${url}"      = "url/name" ]  || fail "wrong name \"${url}\""
    [ "${name}"     = "name" ]      || fail "wrong name \"${name}\""
-   [ "${stashdir}" = "stashes/name" ]  || fail "wrong stashdir \"${stashdir}\""
-   [ "${branch}"   = "" ]       || fail "wrong branch \"${branch}\""
-   [ "${tag}"      = "" ]       || fail "wrong tag \"${tag}\""
-   [ "${scm}"      = "" ]       || fail "wrong scm \"${scm}\""
+   [ "${stashdir}" = "whatever" ]  || fail "wrong stashdir \"${stashdir}\""
+   [ "${branch}"   = "" ]          || fail "wrong branch \"${branch}\""
+   [ "${tag}"      = "" ]          || fail "wrong tag \"${tag}\""
+   [ "${scm}"      = "" ]          || fail "wrong scm \"${scm}\""
 }
 
-run_test_3()
-{
-   local name
-   local url
-   local branch
-   local scm
-   local tag
-   local stashdir
 
-   echo "The next test should fail" >&2
-   parse_clone "url/name;../foo;;;" || exit 1
-   echo "If you see this the test is broken" >&2
-}
+ROOT_DIR="`pwd`"
 
 run_test_1
 run_test_2
-run_test_3
 
 echo "test finished" >&2
 

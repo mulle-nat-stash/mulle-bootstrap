@@ -405,6 +405,8 @@ clean_main()
 {
    log_debug "::: clean :::"
 
+   local ROOT_DIR="`pwd -P`"
+
    local MINION_NAME
 
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
