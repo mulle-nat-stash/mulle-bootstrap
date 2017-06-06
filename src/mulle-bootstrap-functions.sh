@@ -1082,7 +1082,7 @@ mkdir_if_missing()
    if [ ! -d "$1" ]
    then
       log_fluff "Creating \"$1\" ($PWD)"
-      exekutor mkdir -p "$1" || fail "failed to create directory \"$1\""
+      exekutor mkdir -p "$1" || fail "failed to create directory \"$1\" ($PWD)"
    fi
 }
 

@@ -184,6 +184,43 @@ git_checkout()
 }
 
 
+_git_clone_cacheurl()
+{
+   local url="$1"; shift
+
+   local cachedir
+
+   mkdir_if_missing "${CLONE_CACHE}"
+   cachedir="${CLONE_CACHE}/`basename ${url}`" # try to keep it global
+
+   if [ ! -d "${cachedir}" ]
+   then
+      if ! exekutor git ${GITFLAGS} clone --mirror ${options} ${GITOPTIONS} -- "${url}" "${cachedir}" >&2
+      then
+         log_error "git clone of \"${url}\" into \"${cachedir}\" failed"
+         return 1
+      fi
+   else
+      # refetch
+      local refresh_cache
+
+      refresh_cache="`read_config_setting "refresh_cache" "YES"`"
+      if [ "${refresh_cache}" = "YES" ]
+      then
+      (
+         cd "${cachedir}";
+         if ! exekutor git ${GITFLAGS} fetch >&2
+         then
+            log_warning "git fetch from \"${url}\" failed, using old state"
+         fi
+      )
+      fi
+   fi
+
+   echo "${cachedir}"
+}
+
+
 _git_clone()
 {
    [ $# -ge 2 ] || internal_fail "_git_clone: parameters missing"
@@ -210,7 +247,6 @@ _git_clone()
       log_info "Cloning ${C_MAGENTA}${C_BOLD}${url}${C_INFO} into \"${stashdir}\" ..."
    fi
 
-
    # "remote urls" go through caches
    case "${url}" in
       file:*|/*|~*|.*)
@@ -219,35 +255,7 @@ _git_clone()
       *:*)
          if [ ! -z "${CLONE_CACHE}" ]
          then
-            local cachedir
-
-            mkdir_if_missing "${CLONE_CACHE}"
-            cachedir="${CLONE_CACHE}/`basename ${url}`" # try to keep it global
-
-            if [ ! -d "${cachedir}" ]
-            then
-               if ! exekutor git ${GITFLAGS} clone --bare ${options} ${GITOPTIONS} -- "${url}" "${cachedir}" >&2
-               then
-                  log_error "git clone of \"${url}\" into \"${cachedir}\" failed"
-                  return 1
-               fi
-            else
-               # refetch (this shjoz)
-               local refresh_cache
-
-               refresh_cache="`read_config_setting "refresh_cache" "YES"`"
-               if [ "${refresh_cache}" = "YES" ]
-               then
-               (
-                  cd "${cachedir}";
-                  if ! exekutor git ${GITFLAGS} fetch --tags >&2
-                  then
-                     log_warning "git fetch from \"${url}\" failed, using old state"
-                  fi
-               )
-               fi
-            fi
-            url="${cachedir}"
+            url="`_git_clone_cacheurl ${url}`"
          fi
       ;;
    esac
@@ -274,7 +282,6 @@ _git_clone()
       return 1
    fi
 }
-
 
 
 git_clone()
@@ -313,11 +320,24 @@ git_fetch()
    local tag="$1"; shift
    local stashdir="$1"; shift
 
+   # "remote urls" going through cache will be refreshed here
+   case "${url}" in
+      file:*|/*|~*|.*)
+      ;;
+
+      *:*)
+         if [ ! -z "${CLONE_CACHE}" ]
+         then
+            url="`_git_clone_cacheurl ${url}`"
+         fi
+      ;;
+   esac
+
    log_info "Fetching ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
 
    (
       exekutor cd "${stashdir}" &&
-      exekutor git ${GITFLAGS} fetch "$@" ${GITOPTIONS}  >&2
+      exekutor git ${GITFLAGS} fetch "$@" ${GITOPTIONS} >&2
    ) || fail "git fetch of \"${stashdir}\" failed"
 }
 
@@ -333,6 +353,19 @@ git_pull()
    local scm="$1"; shift
    local tag="$1"; shift
    local stashdir="$1"; shift
+
+   # "remote urls" going through cache will be refreshed here
+   case "${url}" in
+      file:*|/*|~*|.*)
+      ;;
+
+      *:*)
+         if [ ! -z "${CLONE_CACHE}" ]
+         then
+            url="`_git_clone_cacheurl ${url}`"
+         fi
+      ;;
+   esac
 
    log_info "Pulling ${C_MAGENTA}${C_BOLD}${stashdir}${C_INFO} ..."
 

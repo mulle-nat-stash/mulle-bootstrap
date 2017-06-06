@@ -1102,7 +1102,12 @@ _setting_write()
 
    filename="${directory}/${key}"
    redirect_exekutor "${filename}" echo "${value}"
-   exekutor touch "${bootstrapdir}"
+
+   # avoid creating "files"
+   if [ -d "${bootstrapdir}" ]
+   then
+      exekutor touch "${bootstrapdir}"
+   fi
 }
 
 
@@ -1143,7 +1148,10 @@ _setting_append()
       ;;
    esac
 
-   exekutor touch "${bootstrapdir}"
+   if [ -d "${bootstrapdir}" ]
+   then
+      exekutor touch "${bootstrapdir}"
+   fi
 }
 
 
@@ -1159,7 +1167,11 @@ _setting_delete()
 
    filename="${directory}/${key}"
    remove_file_if_present "${filename}"
-   exekutor touch "${bootstrapdir}" 2> /dev/null
+
+   if [ -d "${bootstrapdir}" ]
+   then
+      exekutor touch "${bootstrapdir}"
+   fi
 }
 
 
@@ -1202,13 +1214,20 @@ _config_write()
 
    if [ "${OPTION_USER}" = "YES" ]
    then
-      configdir="${HOME}/.mulle-bootstrap"
+      case "${UNAME}" in
+         *)
+            configdir="${HOME}/.mulle-bootstrap"
+         ;;
+      esac
    fi
 
    mkdir_if_missing "${configdir}"
    exekutor echo "${value}" > "${configdir}/${key}"
 
-   exekutor touch "${BOOTSTRAP_DIR}.local"
+   if [ -d "${BOOTSTRAP_DIR}.local" ]
+   then
+      exekutor touch "${BOOTSTRAP_DIR}.local"
+   fi
 }
 
 
@@ -1229,7 +1248,10 @@ _config_delete()
    if [ -f "${configdir}/$1" ]
    then
       exekutor rm "${configdir}/$1"  >&2
-      exekutor touch "${BOOTSTRAP_DIR}.local"  >&2
+      if [ -d "${bootstrapdir}" ]
+      then
+         exekutor touch "${BOOTSTRAP_DIR}.local"
+      fi
    fi
 }
 

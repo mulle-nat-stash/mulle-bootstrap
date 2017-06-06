@@ -1563,6 +1563,9 @@ fetch_loop()
 {
    unpostpone_trace
 
+   # tell this for windows, it's so slow..
+   log_info "Checking dependencies ..."
+
    # this is wrong, we just do "stashes" though
    assume_stashes_are_zombies
 

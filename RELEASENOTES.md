@@ -1,3 +1,10 @@
+## 3.6.4
+
+* fix accidental create of `.bootstap.local` as a file
+* when using clone chaches, mulle-bootstrap update and upgrade now work as one
+would expect. It would be good to erase your old clone caches.
+
+
 ## 3.6.3
 
 * fix missing include in warn scripts

@@ -3,7 +3,9 @@ cmake_minimum_required (VERSION 3.0)
 project( mulle-bootstrap)
 
 #
-# primarily used for packaging on Linux
+# Primarily used for packaging on Linux
+#
+# Debian:
 #
 # ```
 # mkdir package
@@ -69,39 +71,44 @@ PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
             WORLD_EXECUTE WORLD_READ
 DESTINATION "bin")
 
+#
+# future: install into libexec/mulle-bootstrap/${MULLE_BOOTSTRAP_VERSION}
+#         allows multiple versions to co-exist (does it really ?)
+#
 INSTALL( FILES ${LIBRARY_SCRIPTS}
 PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
             GROUP_EXECUTE GROUP_READ
             WORLD_EXECUTE WORLD_READ
 DESTINATION "libexec/mulle-bootstrap")
 
-
-
 #
 # CPack and project specific stuff
 #
 ######
+
 set( CPACK_PACKAGE_NAME "mulle-bootstrap")
 set( CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set( CPACK_PACKAGE_CONTACT "Nat! <nat@mulle-kybernetik.de>")
 set( CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.md")
+set( CPACK_PACKAGE_DESCRIPTION_SUMMARY "👢 Cross platform dependency manager - using bash and cmake")
 set( CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 set( CPACK_STRIP_FILES false)
 
 # stuff needed for Debian
 # memo: its impossible to check for chosen generator here
-
-set( CPACK_PACKAGE_CONTACT "Nat! <nat@mulle-kybernetik.de>")
-
+#
+# CPackDeb doesn't produce 100% proper debian file unfortunately
+#
 set( CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/mulle-nat/mulle-bootstrap")
-set( CPACK_DEBIAN_PACKAGE_DESCRIPTION "👢 Cross platform dependency manager - using bash and cmake")
+# not strictly required
+#set( CPACK_DEBIAN_PACKAGE_DEPENDS "cmake (>= 3.0.0)")
+
+# stuff needed for RPM
 
 set( CPACK_RPM_PACKAGE_VENDOR "Mulle kybernetiK")
-set( CPACK_RPM_PACKAGE_DESCRIPTION "${CPACK_DEBIAN_PACKAGE_DESCRIPTION}")
 
 ######
 #
 # must be after CPACK_PACKAGE_VERSION
 include( CPack)
-
-
 
