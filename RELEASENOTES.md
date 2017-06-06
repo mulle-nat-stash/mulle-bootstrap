@@ -1,19 +1,23 @@
-## 3.6.4
+### 3.6.5
+
+* remove superflous set_build_needed
+
+### 3.6.4
 
 * fix accidental create of `.bootstap.local` as a file
 * when using clone chaches, mulle-bootstrap update and upgrade now work as one
 would expect. It would be good to erase your old clone caches.
 
 
-## 3.6.3
+### 3.6.3
 
 * fix missing include in warn scripts
 
-## 3.6.2
+### 3.6.2
 
 * fix and improve systeminstall (formerly just install)
 
-## 3.6.1
+### 3.6.1
 
 * bug fixes
 
