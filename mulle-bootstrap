@@ -385,6 +385,11 @@ bootstrap_main()
             MULLE_FLAG_VERBOSE_BUILD="YES"
          ;;
 
+         --version)
+            echo "${MULLE_EXECUTABLE_VERSION}"
+            exit 0
+         ;;
+
          -*)
             log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option \"$1\""
             mulle_bootstrap_usage
