@@ -119,7 +119,6 @@ find_make()
 }
 
 
-
 find_xcodebuild()
 {
    local name="$1"
@@ -2397,6 +2396,7 @@ build_main()
    [ -z "${DEFAULT_IFS}" ] && internal_fail "IFS fail"
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
+   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ]    && . mulle-bootstrap-repositories.sh
 
    local OPTION_CLEAN_BEFORE_BUILD
    local OPTION_CHECK_USR_LOCAL_INCLUDE
@@ -2515,7 +2515,6 @@ build_main()
 
    [ -z "${MULLE_BOOTSTRAP_COMMAND_SH}" ]      && . mulle-bootstrap-command.sh
    [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ]          && . mulle-bootstrap-gcc.sh
-   [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]      && . mulle-bootstrap-scripts.sh
 
    #

@@ -102,7 +102,6 @@ exekutor_trace_output()
 }
 
 
-
 exekutor()
 {
    exekutor_trace "$@"
@@ -204,7 +203,6 @@ logging_redirect_eval_exekutor()
    # append
    _redirect_append_eval_exekutor "${output}" "$@"
 }
-
 
 
 # ####################################################################
@@ -1340,7 +1338,7 @@ write_protect_directory()
       #
       # ensure basic structure is there to squelch linker warnings
       #
-      log_fluff "Create default lib/include/Frameworks in $1"
+      log_fluff "Create default lib/, include/, Frameworks/ in $1"
       exekutor mkdir "$1/Frameworks" 2> /dev/null
       exekutor mkdir "$1/lib" 2> /dev/null
       exekutor mkdir "$1/include" 2> /dev/null

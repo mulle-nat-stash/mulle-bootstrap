@@ -75,6 +75,7 @@ Options:
    --embedded-symlinks :  allow embedded symlinks (very experimental)
    --follow-symlinks   :  follow symlinks when updating (not recommended)
    --no-caches         :  don't use caches. Useful to counter flag -y
+   --no-git-mirror     :  don't mirror fetched git repositories
    --no-symlinks       :  don't create symlinks. Useful to counter flag -y
 
 EOF
@@ -231,13 +232,12 @@ can_symlink_it()
        # if bare repo, we can only clone anyway
       if git_is_bare_repository "${directory}"
       then
-         log_info "${directory} is a bare git repository. So cloning"
-         log_info "is the only way to go."
+         log_verbose "${directory} is a bare git repository. So no symlinking"
          return 1
       fi
    else
-      log_info "${directory} is not a git repository (yet ?)"
-      log_info "So symlinking is the only way to go."
+      log_info "${directory} is not a git repository (yet ?)
+So symlinking is the only way to go."
    fi
 
   return 0
@@ -337,7 +337,7 @@ search_for_git_repository_in_caches()
       found="`_search_for_git_repository_in_cache "${realdir}" "$@"`" || exit 1
       if [ ! -z "${found}" ]
       then
-         symlink_relpath "${found}" "${ROOT_DIR}"
+         echo "${found}"
          return
       fi
    done
@@ -568,11 +568,14 @@ clone_or_symlink()
 
             case "${operation}" in
                link_command)
-                 log_info "Using symlink to cached item \"${found}\""
+                 log_verbose "Using symlink to cached item \"${found}\""
+
+                 # compatible to earlier code
+                 found="`symlink_relpath "${found}" "${ROOT_DIR}"`"
                ;;
 
                *)
-                 log_info "Using cached item \"${found}\""
+                 log_verbose "Using cached item \"${found}\""
                ;;
             esac
          fi
@@ -1249,6 +1252,7 @@ work_clones()
 
                   log_info "Moving ${repotype}stash ${C_MAGENTA}${C_BOLD}${name}${C_INFO} from \"${oldstashdir}\" to \"${stashdir}\""
 
+                  mkdir_stashparent_if_missing "${stashdir}"
                   if ! exekutor mv ${COPYMOVEFLAGS} "${oldstashdir}" "${stashdir}"  >&2
                   then
                      fail "Move failed!"
@@ -1663,6 +1667,7 @@ _common_main()
    local OPTION_ALLOW_CREATING_SYMLINKS="NO"
    local OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
    local OPTION_ALLOW_SEARCH_CACHES="YES"
+   local OPTION_ALLOW_GIT_MIRROR="YES"
    local OPTION_EMBEDDED_ONLY="NO"
    local OVERRIDE_BRANCH
    local DONT_WARN_SCRIPTS="NO"
@@ -1729,6 +1734,10 @@ _common_main()
             OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="YES"
          ;;
 
+         --no-git-mirror)
+            OPTION_ALLOW_GIT_MIRROR="NO"
+         ;;
+
          --no-caches)
             OPTION_ALLOW_SEARCH_CACHES="NO"
          ;;
@@ -1784,6 +1793,20 @@ _common_main()
    [ -z "${MULLE_BOOTSTRAP_SCM_SH}" ]             && . mulle-bootstrap-scm.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]         && . mulle-bootstrap-scripts.sh
    [ -z "${MULLE_BOOTSTRAP_ZOMBIFY_SH}" ]         && . mulle-bootstrap-zombify.sh
+
+   #
+   # "repository" caches can and usually are outside the project folder
+   # this can be multiple paths!
+   if [ "OPTION_ALLOW_SEARCH_CACHES" = "YES" ]
+   then
+      CACHES_PATH="`read_config_setting "search_path" "${MULLE_BOOTSTRAP_CACHES_PATH}"`"
+      CACHES_PATH="`add_path "${CACHES_PATH}" "${CLONE_CACHE}"`"
+   fi
+
+   if [ "OPTION_ALLOW_GIT_MIRROR" = "YES" ]
+   then
+      git_enable_mirroring
+   fi
 
    #
    # should we check for '/usr/local/include/<name>' and don't fetch if

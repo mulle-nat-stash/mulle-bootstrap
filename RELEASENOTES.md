@@ -1,7 +1,22 @@
+### 3.7.0
+
+* experimentally added ${GITHUB_REMOTE_ORIGIN} expansion, so you can specify
+dependencies relative to the original project.
+* when moving embedded directories around, mulle-bootstrap will now create
+missing target directories
+* renamed `clone_cache` to `git_mirror` because that's better, but old key
+will work too. `refresh_cache` is now `refresh_git_mirror`.
+* added option `--no-git-mirror
+* added `type` command to introspect the bootstrap topology easier
+
+
+### 3.6.7
+
+* reduce verbosity in some places and hide ugly symlink paths
+
 ### 3.6.6
 
 * fix a few regressions
-
 
 ### 3.6.5
 
@@ -364,7 +379,6 @@ to
 #### YOUR OLD SCRIPTS MAY NOT WORK ANYMORE!
 
 * Fetch script names have changed. *-install.sh is now *-fetch.sh.
-
 
 #### Changes
 

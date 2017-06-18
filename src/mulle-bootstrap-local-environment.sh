@@ -41,7 +41,7 @@ bootstrap_dump_env()
 {
    log_trace "FULL trace started"
    log_trace "ARGS:${C_TRACE2} ${MULLE_ARGUMENTS}"
-   log_trace "PWD :${C_TRACE2} `pwd -P`"
+   log_trace "PWD :${C_TRACE2} `pwd -P 2> /dev/null`"
    log_trace "ENV :${C_TRACE2} `env | sort`"
    log_trace "LS  :${C_TRACE2} `ls -a1F`"
 }
@@ -326,7 +326,7 @@ bootstrap_should_defer_to_master()
    assert_sane_master_bootstrap_project "${masterpath}"
 
    case "${command}" in
-      git|setup-xcode|xcode|tag|version|defer|emancipate|uname|library-path)
+      git|defer|emancipate|library-path|setup-xcode|tag|type|uname|version|xcode)
          log_verbose "Minion executes locally"
       ;;
 
@@ -490,7 +490,6 @@ add_component()
       fi
    fi
 }
-
 
 
 unpostpone_trace()
@@ -694,6 +693,31 @@ assert_mulle_bootstrap_version()
 }
 
 
+_git_get_branch()
+{
+   local directory="${1:-${PWD}}"
+
+   (
+      cd "${directory}" &&
+      git rev-parse --abbrev-ref HEAD 2> /dev/null
+   ) || fail "Could not get branch for \"${directory}\""
+}
+
+
+_git_get_url()
+{
+   local directory="${1:-${PWD}}"
+   local remote="$2"
+
+   [ -d "${directory}" ] || internal_fail "wrong \"${directory}\""
+
+   (
+      cd "${directory}" ;
+      git config --get "remote.${remote}.url" 2> /dev/null
+   ) || fail "unknown \"${remote}\" in \"${directory}\" (`pwd`)"
+}
+
+
 #
 # expands ${setting} and ${setting:-foo}
 #
@@ -701,6 +725,7 @@ _expanded_variables()
 {
    local string="$1"
    local altbootstrap="$2"
+   local context="$3"
 
    local key
    local value
@@ -730,40 +755,59 @@ _expanded_variables()
       key="${tmp}"
    fi
 
-   if [ ! -z "${altbootstrap}" ]
-   then
-      local xdefault
+   case "${key}" in
+      GIT_BRANCH)
+         value="`_git_get_branch "${ROOT_DIR}"`"
+      ;;
 
-      xdefault="`(
-         BOOTSTRAP_DIR="${altbootstrap}"
-         MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+      GIT_REMOTE_*)
+         local remote
+         local url
 
-         read_root_setting "${key}"
-      )`"
+         remote="`sed 's/GIT_REMOTE_\(.*\)/\1/' <<< "${key}"`"
+         remote="`tr '[A-Z]' '[a-z]' <<< "${remote}"`"
+         url="`_git_get_url "${ROOT_DIR}" "${remote}"`"
+         value="`dirname "${url}"`"
+      ;;
 
-      default="${xdefault:-${default}}"
-   fi
+      *)
+         if [ ! -z "${altbootstrap}" ]
+         then
+            local xdefault
 
-   value="`read_root_setting "${key}"`"
-   if [ -z "${value}" ]
-   then
-      if [ -z "${default}" ]
-      then
-         log_warning "\${${key}} expanded to the empty string."
-         rval=1
-      else
-         log_setting "Root setting for ${C_MAGENTA}${key}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
-         value="${default}"
-      fi
-   fi
+            xdefault="`(
+               BOOTSTRAP_DIR="${altbootstrap}"
+               MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
+
+               read_root_setting "${key}"
+            )`"
+
+            default="${xdefault:-${default}}"
+         fi
+
+         value="`read_root_setting "${key}"`"
+         if [ -z "${value}" ]
+         then
+            if [ -z "${default}" ]
+            then
+               log_warning "\${${key}} expanded to the empty string (${context}: \"${string}\")."
+               rval=1
+            else
+               log_setting "Root setting for ${C_MAGENTA}${key}${C_SETTING} set to default ${C_MAGENTA}${default}${C_SETTING}"
+               value="${default}"
+            fi
+         fi
+      ;;
+   esac
+
 
    next="${prefix}${value}${suffix}"
    if [ "${next}" = "${string}" ]
    then
-      fail "${string} expands to itself"
+      fail "\"${string}\" expands to itself (${context})"
    fi
 
-   _expanded_variables "${next}" "${altbootstrap}"
+   _expanded_variables "${next}" "${altbootstrap}" "${context}"
    if [ $? -ne 0 ]
    then
       rval=1

@@ -50,19 +50,6 @@ git_is_bare_repository()
 }
 
 
-git_get_url()
-{
-   local remote
-
-   remote="$2"
-
-   (
-      cd "$1" &&
-      git remote get-url "${remote}"  >&2
-   ) || internal_fail "wrong \"$1\" or \"${remote}\" for \"`pwd`\""
-}
-
-
 git_set_url()
 {
    local remote
@@ -188,27 +175,27 @@ _git_clone_cacheurl()
 {
    local url="$1"; shift
 
-   local cachedir
+   local mirrordir
 
-   mkdir_if_missing "${CLONE_CACHE}"
-   cachedir="${CLONE_CACHE}/`basename ${url}`" # try to keep it global
+   mkdir_if_missing "${GIT_MIRROR}"
+   mirrordir="${GIT_MIRROR}/`basename ${url}`" # try to keep it global
 
-   if [ ! -d "${cachedir}" ]
+   if [ ! -d "${mirrordir}" ]
    then
-      if ! exekutor git ${GITFLAGS} clone --mirror ${options} ${GITOPTIONS} -- "${url}" "${cachedir}" >&2
+      if ! exekutor git ${GITFLAGS} clone --mirror ${options} ${GITOPTIONS} -- "${url}" "${mirrordir}" >&2
       then
-         log_error "git clone of \"${url}\" into \"${cachedir}\" failed"
+         log_error "git clone of \"${url}\" into \"${mirrordir}\" failed"
          return 1
       fi
    else
       # refetch
-      local refresh_cache
+      local refresh_git_mirror
 
-      refresh_cache="`read_config_setting "refresh_cache" "YES"`"
-      if [ "${refresh_cache}" = "YES" ]
+      refresh_git_mirror="`read_config_setting "refresh_git_mirror" "YES"`"
+      if [ "${refresh_git_mirror}" = "YES" ]
       then
       (
-         cd "${cachedir}";
+         cd "${mirrordir}";
          if ! exekutor git ${GITFLAGS} fetch >&2
          then
             log_warning "git fetch from \"${url}\" failed, using old state"
@@ -217,7 +204,7 @@ _git_clone_cacheurl()
       fi
    fi
 
-   echo "${cachedir}"
+   echo "${mirrordir}"
 }
 
 
@@ -253,7 +240,7 @@ _git_clone()
       ;;
 
       *:*)
-         if [ ! -z "${CLONE_CACHE}" ]
+         if [ ! -z "${GIT_MIRROR}" ]
          then
             url="`_git_clone_cacheurl ${url}`"
          fi
@@ -326,7 +313,7 @@ git_fetch()
       ;;
 
       *:*)
-         if [ ! -z "${CLONE_CACHE}" ]
+         if [ ! -z "${GIT_MIRROR}" ]
          then
             url="`_git_clone_cacheurl ${url}`"
          fi
@@ -360,7 +347,7 @@ git_pull()
       ;;
 
       *:*)
-         if [ ! -z "${CLONE_CACHE}" ]
+         if [ ! -z "${GIT_MIRROR}" ]
          then
             url="`_git_clone_cacheurl ${url}`"
          fi
@@ -901,24 +888,25 @@ zip_unpack()
 }
 
 
+git_enable_mirroring()
+{
+   # stuff clones get intermediate saved too, default empty
+   GIT_MIRROR="`read_config_setting "git_mirror"`"
+   if [ -z "${GIT_MIRROR}" ]
+   then
+      GIT_MIRROR="`read_config_setting "clone_cache"`"  # old value
+   fi
+}
+
 
 scm_initialize()
 {
    log_debug ":scm_initialize:"
 
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]    && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
-
-   #
-   # "repository" caches can and usually are outside the project folder
-   # this can be multiple paths!
-   CACHES_PATH="`read_config_setting "search_path" "${MULLE_BOOTSTRAP_CACHES_PATH}"`"
-
-   # stuff clones get intermediate saved too, default empty
-   CLONE_CACHE="`read_config_setting "clone_cache"`"
-   CACHES_PATH="`add_path "${CACHES_PATH}" "${CLONE_CACHE}"`"
-
-   :
 }
 
 scm_initialize
+
+:

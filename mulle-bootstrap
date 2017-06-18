@@ -30,8 +30,8 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 #
 MULLE_EXECUTABLE_VERSION_MAJOR=3
-MULLE_EXECUTABLE_VERSION_MINOR=6
-MULLE_EXECUTABLE_VERSION_PATCH=6
+MULLE_EXECUTABLE_VERSION_MINOR=7
+MULLE_EXECUTABLE_VERSION_PATCH=0
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -580,6 +580,20 @@ bootstrap_main()
          . mulle-bootstrap-tag.sh
 
          tag_main "$@" || exit 1
+      ;;
+
+      type)
+         if is_minion_bootstrap_project
+         then
+            echo "Minion"
+         else
+            if is_master_bootstrap_project
+            then
+               echo "Master"
+            else
+               echo "Freeman"
+            fi
+         fi
       ;;
 
       uname)

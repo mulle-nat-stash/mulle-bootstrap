@@ -113,7 +113,6 @@ build_dir
 build_log_dir
 build_preferences
 search_path
-clone_cache
 check_usr_local_include
 clean_before_build
 clean_dependencies_before_build
@@ -128,6 +127,7 @@ dont_warn_scripts
 editor
 embedded_symlinks
 framework_dir_name
+git_mirror
 header_dir_name
 install_clean_folders
 install_symlinks
@@ -138,6 +138,7 @@ open_brews_file
 open_repositories_file
 output_clean_folders
 override_branch
+refresh_git_mirror
 rpath_frameworks
 rpath_libraries
 stashes_dir
@@ -768,7 +769,7 @@ read_expanded_setting()
    do
       IFS="${DEFAULT_IFS}"
 
-      expanded_variables "${line}" "${srcbootstrap}"
+      expanded_variables "${line}" "${srcbootstrap}" "${filepath}"
       if [ $? -ne 0 ]
       then
          empty_expansion_is_error="`read_config_setting "empty_expansion_is_error" "YES"`"
