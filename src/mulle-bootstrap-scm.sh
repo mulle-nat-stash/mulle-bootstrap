@@ -171,7 +171,11 @@ git_checkout()
 }
 
 
-_git_clone_cacheurl()
+
+# global variable __GIT_MIRROR_URLS__ used to avoid refetching
+# repos in one setting
+#
+_git_get_mirror_url()
 {
    local url="$1"; shift
 
@@ -180,8 +184,26 @@ _git_clone_cacheurl()
    mkdir_if_missing "${GIT_MIRROR}"
    mirrordir="${GIT_MIRROR}/`basename ${url}`" # try to keep it global
 
+   local match
+   local filelistpath
+
+   # use global reposdir
+   [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
+
+   filelistpath="${REPOS_DIR}/.uptodate-mirrors"
+   log_debug "Mirror URLS: `cat "${filelistpath}"  2>/dev/null`"
+
+   match="`fgrep -s -x "${mirrordir}" "${filelistpath}" 2>/dev/null`"
+   if [ ! -z "${match}" ]
+   then
+      log_fluff "Repository \"${mirrordir}\" already up-to-date for this session"
+      echo "${mirrordir}"
+      return 0
+   fi
+
    if [ ! -d "${mirrordir}" ]
    then
+      log_verbose "Set up git-mirror \"${mirrordir}\""
       if ! exekutor git ${GITFLAGS} clone --mirror ${options} ${GITOPTIONS} -- "${url}" "${mirrordir}" >&2
       then
          log_error "git clone of \"${url}\" into \"${mirrordir}\" failed"
@@ -189,12 +211,11 @@ _git_clone_cacheurl()
       fi
    else
       # refetch
-      local refresh_git_mirror
 
-      refresh_git_mirror="`read_config_setting "refresh_git_mirror" "YES"`"
-      if [ "${refresh_git_mirror}" = "YES" ]
+      if [ "${REFRESH_GIT_MIRROR}" = "YES" ]
       then
       (
+         log_verbose "Refreshing git-mirror \"${mirrordir}\""
          cd "${mirrordir}";
          if ! exekutor git ${GITFLAGS} fetch >&2
          then
@@ -204,6 +225,9 @@ _git_clone_cacheurl()
       fi
    fi
 
+   # for embedded we are otherwise too early
+   mkdir_if_missing "${reposdir}"
+   echo "${mirrordir}" >> "${filelistpath}"
    echo "${mirrordir}"
 }
 
@@ -242,7 +266,7 @@ _git_clone()
       *:*)
          if [ ! -z "${GIT_MIRROR}" ]
          then
-            url="`_git_clone_cacheurl ${url}`"
+            url="`_git_get_mirror_url "${url}"`"
          fi
       ;;
    esac
@@ -275,7 +299,7 @@ git_clone()
 {
    [ $# -ge 7 ] || internal_fail "git_clone: parameters missing"
 
-#   local reposdir="$1"
+   local reposdir="$1"
 #   local name="$2"
    local url="$3"
    local branch="$4"
@@ -283,7 +307,7 @@ git_clone()
    local tag="$6"
    local stashdir="$7"
 
-   if ! _git_clone "${url}" "${stashdir}" "${branch}"
+   if ! _git_clone "${url}" "${stashdir}" "${branch}" "${reposdir}"
    then
       return 1
    fi
@@ -315,7 +339,7 @@ git_fetch()
       *:*)
          if [ ! -z "${GIT_MIRROR}" ]
          then
-            url="`_git_clone_cacheurl ${url}`"
+            url="`_git_get_mirror_url ${url}`"
          fi
       ;;
    esac
@@ -349,7 +373,7 @@ git_pull()
       *:*)
          if [ ! -z "${GIT_MIRROR}" ]
          then
-            url="`_git_clone_cacheurl ${url}`"
+            url="`_git_get_mirror_url ${url}`"
          fi
       ;;
    esac
@@ -890,11 +914,13 @@ zip_unpack()
 
 git_enable_mirroring()
 {
-   # stuff clones get intermediate saved too, default empty
+   local allow_refresh="${1:-YES}"
+
+   # stuff clones get intermediate saved too, default is empty
    GIT_MIRROR="`read_config_setting "git_mirror"`"
-   if [ -z "${GIT_MIRROR}" ]
+   if [ "${allow_refresh}" = "YES" ]
    then
-      GIT_MIRROR="`read_config_setting "clone_cache"`"  # old value
+      REFRESH_GIT_MIRROR="`read_config_setting "refresh_git_mirror" "YES"`"
    fi
 }
 

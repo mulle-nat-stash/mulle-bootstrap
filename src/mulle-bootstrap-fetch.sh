@@ -1668,6 +1668,7 @@ _common_main()
    local OPTION_ALLOW_CREATING_EMBEDDED_SYMLINKS="NO"
    local OPTION_ALLOW_SEARCH_CACHES="YES"
    local OPTION_ALLOW_GIT_MIRROR="YES"
+   local OPTION_ALLOW_REFRESH_GIT_MIRROR="YES"
    local OPTION_EMBEDDED_ONLY="NO"
    local OVERRIDE_BRANCH
    local DONT_WARN_SCRIPTS="NO"
@@ -1738,6 +1739,10 @@ _common_main()
             OPTION_ALLOW_GIT_MIRROR="NO"
          ;;
 
+         --no-refresh-git_mirror)
+            OPTION_ALLOW_REFRESH_GIT_MIRROR="NO"
+         ;;
+
          --no-caches)
             OPTION_ALLOW_SEARCH_CACHES="NO"
          ;;
@@ -1797,15 +1802,15 @@ _common_main()
    #
    # "repository" caches can and usually are outside the project folder
    # this can be multiple paths!
-   if [ "OPTION_ALLOW_SEARCH_CACHES" = "YES" ]
+   if [ "${OPTION_ALLOW_SEARCH_CACHES}" = "YES" ]
    then
       CACHES_PATH="`read_config_setting "search_path" "${MULLE_BOOTSTRAP_CACHES_PATH}"`"
       CACHES_PATH="`add_path "${CACHES_PATH}" "${CLONE_CACHE}"`"
    fi
 
-   if [ "OPTION_ALLOW_GIT_MIRROR" = "YES" ]
+   if [ "${OPTION_ALLOW_GIT_MIRROR}" = "YES" ]
    then
-      git_enable_mirroring
+      git_enable_mirroring "${OPTION_ALLOW_REFRESH_GIT_MIRROR}"
    fi
 
    #
@@ -1864,6 +1869,7 @@ _common_main()
    remove_file_if_present "${REPOS_DIR}/.build_done.orig"
    remove_file_if_present "${REPOS_DIR}/.build_done"
    remove_file_if_present "${REPOS_DIR}/.fetch_done"
+   remove_file_if_present "${REPOS_DIR}/.uptodate-mirrors"
    create_file_if_missing "${REPOS_DIR}/.fetch_started"
 
    if [ "${BREW_PERMISSIONS}" != "none" ]
