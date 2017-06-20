@@ -1,14 +1,16 @@
-### 3.7.0
+## 3.7.0
 
 * experimentally added ${GITHUB_REMOTE_ORIGIN} expansion, so you can specify
 dependencies relative to the original project.
 * when moving embedded directories around, mulle-bootstrap will now create
 missing target directories
-* renamed `clone_cache` to `git_mirror` because that's better, but old key
-will work too. `refresh_cache` is now `refresh_git_mirror`.
+* renamed `clone_cache` to `git_mirror` because that's better. `refresh_cache` is now `refresh_git_mirror`.
 * added option `--no-git-mirror
 * added `type` command to introspect the bootstrap topology easier
-
+* avoid superflous updating of mirrored git clones during one session, which
+speeds up things considerably, when mirroring
+* fix bug of failing symlinks, when the destination itself is accessed via a
+symlink
 
 ### 3.6.7
 

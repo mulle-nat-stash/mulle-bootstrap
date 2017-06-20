@@ -1,6 +1,8 @@
 .DS_Store
 *~.*
 *.chk
+*.bak
+*.old
 *.xcworkspace
 xcuserdata/
 build/
@@ -13,6 +15,7 @@ addictions/
 mulle-bootstrap.sublime-workspace
 relpath-python.sh
 relpath.sh
+tap-info.sh
 
 tutorial/*/.bootstrap
 

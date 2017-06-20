@@ -467,7 +467,6 @@ add_path_if_exists()
 }
 
 
-
 #
 # this is for constructing filesystem paths
 #

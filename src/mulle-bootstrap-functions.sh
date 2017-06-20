@@ -1242,10 +1242,13 @@ create_symlink()
    url="`absolutepath "${url}"`"
    url="`realpath "${url}"`"  # resolve symlinks
 
+   # need to do this otherwise the symlink fails
+
    srcname="`basename -- ${url}`"
    directory="`dirname -- "${stashdir}"`"
 
    mkdir_if_missing "${directory}"
+   directory="`realpath "${directory}"`"  # resolve symlinks
 
    #
    # relative paths look nicer, but could fail in more complicated
