@@ -171,6 +171,32 @@ git_checkout()
 }
 
 
+fork_and_name_from_url()
+{
+   local url="$1"
+   local name
+   local hack
+   local fork
+
+   hack="`sed 's|^[^:]*:|:|' <<< "${url}"`"
+   name="`basename -- "${hack}"`"
+   fork="`dirname -- "${hack}"`"
+   fork="`basename -- "${fork}"`"
+
+   case "${hack}" in
+      /*/*|:[^/]*/*|://*/*/*)
+      ;;
+
+      *)
+         fork="__other__"
+      ;;
+   esac
+
+   echo "${fork}" | sed 's|^:||'
+   echo "${name}"
+}
+
+
 
 # global variable __GIT_MIRROR_URLS__ used to avoid refetching
 # repos in one setting
@@ -179,10 +205,18 @@ _git_get_mirror_url()
 {
    local url="$1"; shift
 
+   local name
+   local fork
+   local result
+
+   result="`fork_and_name_from_url "${url}"`"
+   fork="`echo "${result}" | head -1`"
+   name="`echo "${result}" | tail -1`"
+
    local mirrordir
 
-   mkdir_if_missing "${GIT_MIRROR}"
-   mirrordir="${GIT_MIRROR}/`basename ${url}`" # try to keep it global
+   mkdir_if_missing "${GIT_MIRROR}/${fork}"
+   mirrordir="${GIT_MIRROR}/${fork}/${name}" # try to keep it global
 
    local match
    local filelistpath
@@ -266,7 +300,7 @@ _git_clone()
       *:*)
          if [ ! -z "${GIT_MIRROR}" ]
          then
-            url="`_git_get_mirror_url "${url}"`"
+            url="`_git_get_mirror_url "${url}"`" || return 1
          fi
       ;;
    esac
@@ -339,7 +373,7 @@ git_fetch()
       *:*)
          if [ ! -z "${GIT_MIRROR}" ]
          then
-            url="`_git_get_mirror_url ${url}`"
+            url="`_git_get_mirror_url ${url}`" || return 1
          fi
       ;;
    esac
@@ -373,7 +407,7 @@ git_pull()
       *:*)
          if [ ! -z "${GIT_MIRROR}" ]
          then
-            url="`_git_get_mirror_url ${url}`"
+            url="`_git_get_mirror_url ${url}`" || return 1
          fi
       ;;
    esac

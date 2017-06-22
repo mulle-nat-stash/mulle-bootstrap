@@ -1,3 +1,7 @@
+### 3.7.1
+
+* save git mirrors under their fork names
+
 ## 3.7.0
 
 * experimentally added ${GITHUB_REMOTE_ORIGIN} expansion, so you can specify
