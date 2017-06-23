@@ -260,7 +260,6 @@ _git_get_mirror_url()
    fi
 
    # for embedded we are otherwise too early
-   mkdir_if_missing "${reposdir}"
    echo "${mirrordir}" >> "${filelistpath}"
    echo "${mirrordir}"
 }

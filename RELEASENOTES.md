@@ -1,3 +1,7 @@
+### 3.7.2
+
+* git fetch exception fixed when mirroring
+
 ### 3.7.1
 
 * save git mirrors under their fork names
