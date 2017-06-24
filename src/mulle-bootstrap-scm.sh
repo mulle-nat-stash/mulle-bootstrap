@@ -875,22 +875,27 @@ tar_unpack()
          ;;
       esac
 
+      local tarcommand
+
+      tarcommand="xf"
+
       case "${UNAME}" in
-         darwin)
+         darwin)  
+            # don't need it 
          ;;
 
          *)
             case "${url}" in
                *.gz)
-                  options="-z"
+                  tarcommand="xfz"
                ;;
 
                *.bz2)
-                  options="-j"
+                  tarcommand="xfj"
                ;;
 
                *.x)
-                  options="-J"
+                  tarcommand="xfJ"
                ;;
             esac
          ;;
