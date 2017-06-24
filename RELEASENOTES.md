@@ -1,3 +1,7 @@
+### 3.8.0
+
+* new build setting `srcdir` where you can specify the subdirectory, that contains configure, CMakeLists et.c
+
 ### 3.7.2
 
 * git fetch exception fixed when mirroring

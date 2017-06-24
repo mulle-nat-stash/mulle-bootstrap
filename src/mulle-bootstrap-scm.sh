@@ -949,7 +949,10 @@ git_enable_mirroring()
 {
    local allow_refresh="${1:-YES}"
 
-   # stuff clones get intermediate saved too, default is empty
+   #
+   # stuff clones get intermediate saved too, default is on
+   # this is only called in main if the option is yes
+   #
    GIT_MIRROR="`read_config_setting "git_mirror"`"
    if [ "${allow_refresh}" = "YES" ]
    then
@@ -964,6 +967,10 @@ scm_initialize()
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]    && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_REPOSITORIES_SH}" ] && . mulle-bootstrap-repositories.sh
+
+   # this is an actual GIT variable
+   GIT_TERMINAL_PROMPT="`read_config_setting "git_terminal_prompt" "0"`"
+   export GIT_TERMINAL_PROMPT
 }
 
 scm_initialize

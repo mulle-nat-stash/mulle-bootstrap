@@ -163,6 +163,7 @@ CMAKEFLAGS
 GCC_PREPROCESSOR_DEFINITIONS
 LD
 OTHER_CFLAGS
+OTHER_CPPFLAGS
 OTHER_CXXFLAGS
 OTHER_LDFLAGS
 build_preferences
@@ -177,6 +178,7 @@ fallback-configuration
 final
 make
 sdks
+srcdir
 xcconfig
 xcode_project
 xcode_proper_skip_install

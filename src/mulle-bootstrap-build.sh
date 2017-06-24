@@ -2065,11 +2065,14 @@ build()
    log_verbose "Building ${name} ..."
 
    local preferences
-
+   local directory
+   
    #
    # repo may override how it wants to be build
    #
    preferences="`read_build_setting "${name}" "build_preferences"`"
+   directory="`read_build_setting "${name}" "srcdir"`"
+   srcdir="`add_component "${srcdir}" "${directory}"`"
 
    if [ -z "${preferences}" ]
    then
