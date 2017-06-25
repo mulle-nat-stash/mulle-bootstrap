@@ -475,13 +475,13 @@ add_component()
    local filepath="$1"
    local component="$2"
 
-   [ -z "${COMPONENT_SEPARATOR}" ] && fail "COMPONENT_SEPARATOR is undefined"
+   [ -z "${COMPONENT_SEPARATOR}" ] && internal_fail "COMPONENT_SEPARATOR is undefined"
 
    if [ -z "${filepath}" ]
    then
       echo "${component}"
    else
-      if [ -z "${component}" ]
+      if [ -z "${component}" -o "${component}" = "${COMPONENT_SEPARATOR}" ]
       then
          echo "${filepath}"
       else

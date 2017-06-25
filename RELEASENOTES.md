@@ -1,6 +1,13 @@
+### 3.8.2
+
+* fix setting listings for os specific settings and build settings
+in general
+* fix reading of dispense settings
+
+
 ### 3.8.1
 
-* fix archive extraction on linux 
+* fix archive extraction on linux
 
 ### 3.8.0
 

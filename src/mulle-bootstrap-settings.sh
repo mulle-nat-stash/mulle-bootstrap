@@ -475,18 +475,30 @@ _read_home_setting()
 list_build_directories()
 {
    local directory="$1"
+   local flags="$2"
+
+   [ -z "${directory}" ] && internal_fail "empty directory path"
 
    local filename
    local name
 
+   log_info "$PWD"
    IFS="
 "
-   for filename in `ls -1 "${directory}/*.build" 2> /dev/null`
+   for filename in `ls -1 "${directory}"` 
    do
-      IFS="${DEFAULT_IFS}"
+      path="${directory}/${filename}"
+      if [ -d "${path}" ]
+      then
+         case "${path}" in
+            *.build)
+               IFS="${DEFAULT_IFS}"
 
-      name="`basename -- "${filename}" ".build"`"
-      echo "# ${MULLE_EXECUTABLE} setting -r '${name}' -l"
+               name="`basename -- "${path}" ".build"`"
+               echo "# ${MULLE_EXECUTABLE} setting ${flags} -b '${name}' -l"
+            ;;
+         esac
+      fi
    done
 
    IFS="${DEFAULT_IFS}"
@@ -720,12 +732,10 @@ read_yes_no_config_setting()
 
 read_sane_config_path_setting()
 {
-   local key
-   local value
-   local default
+   local key="$1"
+   local default="$2"
 
-   key="$1"
-   default="$2"
+   local value
 
    value="`read_config_setting "${key}" "${default}"`"
    if [ $? -eq 0 ]
@@ -888,9 +898,7 @@ merge_settings_in_front()
 #
 all_build_flag_keys()
 {
-   local package
-
-   package="$1"
+   local package="$1"
 
    local keys1
    local keys2
@@ -960,7 +968,7 @@ _chosen_setting_directory()
 }
 
 
-SETTING_KEY_REGEXP='^[a-z_][a-z_0-9]*$'
+SETTING_KEY_REGEXP='^[A-Za-z_][A-Za-z_0-9.]*$'
 
 
 list_local_settings()
@@ -993,7 +1001,8 @@ _setting_list()
                         _unescape_linefeeds
 
       log_info "Available repository settings:"
-      list_build_directories
+      list_build_directories "${BOOTSTRAP_DIR}.local" ""
+      list_build_directories "${BOOTSTRAP_DIR}" "-g"
 
       return
    fi
@@ -1483,14 +1492,16 @@ _generic_main()
          if [ ! -z "${known_keys_1}" ]
          then
             local match
+            local keypart
 
-            match="`echo "${known_keys_1}" | fgrep -s -x "${key}"`"
+            keypart="`cut -d. -f1 <<< "${key}"`"
+            match="`echo "${known_keys_1}" | fgrep -s -x "${keypart}"`"
             if [ -z "${match}" ]
             then
-               match="`echo "${known_keys_2}" | fgrep -s -x "${key}"`"
+               match="`echo "${known_keys_2}" | fgrep -s -x "${keypart}"`"
                if [ -z "${match}" ]
                then
-                  log_warning "${key} is not a known key. Maybe OK, maybe not."
+                  log_warning "${keypart} is not a known key. Maybe OK, maybe not."
                fi
             fi
          fi

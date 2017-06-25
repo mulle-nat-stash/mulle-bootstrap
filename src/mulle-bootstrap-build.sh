@@ -259,7 +259,7 @@ dispense_files()
       if dir_has_files "${src}"
       then
 
-         dst="${REFERENCE_DEPENDENCIES_DIR}${dirpath}"
+         dst="`add_component "${REFERENCE_DEPENDENCIES_DIR}" "${dirpath}"`"
          mkdir_if_missing "${dst}"
 
          # this fails with more nested header set ups, need to fix!
@@ -284,7 +284,7 @@ dispense_headers()
 
    local headerpath
 
-   headerpath="`read_build_setting "$1" "dispense_headers_path" "/${HEADER_DIR_NAME}"`"
+   headerpath="`read_build_setting "${name}" "dispense_headers_path" "${HEADER_DIR_NAME}"`"
 
    local src
    IFS="
@@ -306,7 +306,7 @@ dispense_resources()
 
    local resourcepath
 
-   resourcepath="`read_build_setting "$1" "dispense_resources_path" "/${RESOURCE_DIR_NAME}"`"
+   resourcepath="`read_build_setting "$1" "dispense_resources_path" "${RESOURCE_DIR_NAME}"`"
 
    local src
    IFS="
@@ -2066,7 +2066,7 @@ build()
 
    local preferences
    local directory
-   
+
    #
    # repo may override how it wants to be build
    #
