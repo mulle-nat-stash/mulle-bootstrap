@@ -1,9 +1,12 @@
+### 3.8.3
+
+* fix upgrade and status for tar/zip SCM, which previously errored out
+
 ### 3.8.2
 
 * fix setting listings for os specific settings and build settings
 in general
 * fix reading of dispense settings
-
 
 ### 3.8.1
 

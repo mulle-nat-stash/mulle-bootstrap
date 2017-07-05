@@ -480,8 +480,12 @@ clone_or_symlink()
    local scmflagsdefault
 
    case "${scm}" in
-      git*)
+      git)
          operation="git_clone"
+      ;;
+
+      svn)
+         operation="svn_checkout"
       ;;
 
       zip*)
@@ -490,10 +494,6 @@ clone_or_symlink()
 
       tar*)
          operation="tar_unpack"
-      ;;
-
-      svn*)
-         operation="svn_checkout"
       ;;
 
       *)
@@ -685,6 +685,10 @@ checkout_repository()
       svn)
          operation="svn_checkout"
       ;;
+      zip*|tar*)
+         log_info "No checkout for \"${scm}\""
+         return
+      ;;
       *)
          fail "Unknown scm system \"${scm}\""
       ;;
@@ -722,7 +726,8 @@ update_repository()
       git)
          operation="git_fetch"
       ;;
-      svn)
+      svn|zip*|tar*)
+         log_info "No update for \"${scm}\""
          return
       ;;
       *)
@@ -762,7 +767,8 @@ upgrade_repository()
       git)
          operation="git_pull"
       ;;
-      svn)
+      svn|zip*|tar*)
+         log_info "No upgrade for \"${scm}\""
          return
       ;;
       *)

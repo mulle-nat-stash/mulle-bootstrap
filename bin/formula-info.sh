@@ -3,7 +3,7 @@
 # formula operations.
 #
 PROJECT="mulle-bootstrap"      # your project/repository name
-DESC="👢 Cross platform dependency manager - using bash and cmake"
+DESC="👢 Cross platform dependency manager for developers"
 LANGUAGE="bash"                # c,cpp, objc, bash ...
 # NAME="${PROJECT}"        # formula filename without .rb extension
 

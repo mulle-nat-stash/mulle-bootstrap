@@ -68,12 +68,18 @@ _status_repository()
    if [ "${STATUS_SCM}" = "YES" ]
    then
       case "${scm}" in
-      git|"" )
+      git)
          git_status "$@" >&2
       ;;
+
       svn)
          svn_status "$@" >&2
       ;;
+
+      zip*|tar*)
+         log_verbose "No status for ${scm}"
+      ;;
+
       *)
          fail "Unknown scm system ${scm}"
       ;;
