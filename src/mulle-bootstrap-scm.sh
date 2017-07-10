@@ -285,7 +285,7 @@ _git_clone()
    options=""
    if [ ! -z "${branch}" ]
    then
-      log_info "Cloning branch ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${url}${C_INFO} into \"${stashdir}\" ..."
+      log_info "Cloning ${C_RESET_BOLD}$branch${C_INFO} of ${C_MAGENTA}${C_BOLD}${url}${C_INFO} into \"${stashdir}\" ..."
       options="-b ${branch}"
    else
       log_info "Cloning ${C_MAGENTA}${C_BOLD}${url}${C_INFO} into \"${stashdir}\" ..."
@@ -880,8 +880,8 @@ tar_unpack()
       tarcommand="xf"
 
       case "${UNAME}" in
-         darwin)  
-            # don't need it 
+         darwin)
+            # don't need it
          ;;
 
          *)

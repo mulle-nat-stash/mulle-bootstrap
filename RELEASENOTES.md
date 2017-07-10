@@ -1,3 +1,7 @@
+### 3.8.4
+
+* fix `Abort now (y/N) > y` not really aborting
+
 ### 3.8.3
 
 * fix upgrade and status for tar/zip SCM, which previously errored out

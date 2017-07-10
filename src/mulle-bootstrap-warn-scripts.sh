@@ -138,7 +138,9 @@ warn_scripts_main()
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
    local  dont_warn_scripts
+   local rval
 
+   rval=0
    #
    # if MULLE_FLAG_ANSWER is YES
    # then don't warn either
@@ -149,8 +151,13 @@ warn_scripts_main()
    then
       log_verbose "Script checking disabled"
    else
-      warn_scripts "$@"
+      if ! warn_scripts "$@"
+      then
+         rval=1
+      fi
    fi
 
-   log_debug "::: warn_scripts end :::"
+   log_debug "::: warn_scripts end:::"
+
+   return $rval
 }
