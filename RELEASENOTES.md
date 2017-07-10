@@ -1,3 +1,9 @@
+### 3.8.5
+
+* fix broken xcode build path
+* allow some plural synonmys for setting, config, expansion command
+
+
 ### 3.8.4
 
 * fix `Abort now (y/N) > y` not really aborting

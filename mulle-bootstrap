@@ -31,7 +31,7 @@
 #
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=8
-MULLE_EXECUTABLE_VERSION_PATCH=4
+MULLE_EXECUTABLE_VERSION_PATCH=5
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -483,7 +483,7 @@ bootstrap_main()
          clean_main "$@" || exit 1
       ;;
 
-      config)
+      config|configs|configurations)
          . mulle-bootstrap-settings.sh
 
          config_main "$@" || exit 1
@@ -507,13 +507,13 @@ bootstrap_main()
          emancipate_main "$@" || exit 1
       ;;
 
-      expansion)
+      expansion|expansions)
          . mulle-bootstrap-settings.sh
 
          expansion_main "$@" || exit 1
       ;;
 
-      paths)
+      path|paths)
          . mulle-bootstrap-paths.sh
 
          paths_main "$@" || exit 1
@@ -552,7 +552,7 @@ bootstrap_main()
          run_main "$@" || exit 1
       ;;
 
-      setting)
+      setting|settings)
          . mulle-bootstrap-settings.sh
 
          setting_main "$@" || exit 1

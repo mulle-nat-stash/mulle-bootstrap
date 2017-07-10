@@ -882,6 +882,8 @@ build_cmake_flags()
 #
 build_cmake()
 {
+   log_debug "build_cmake" "$*"
+
    local configuration="$1"
    local srcdir="$2"
    local builddir="$3"
@@ -1142,6 +1144,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 #
 build_configure()
 {
+   log_debug "build_configure" "$*"
+
    local configuration
    local srcdir
    local builddir
@@ -1444,6 +1448,8 @@ fixup_header_path()
 
 build_xcodebuild()
 {
+   log_debug "build_xcodebuild" "$*"
+
    local configuration
    local srcdir
    local builddir
@@ -1789,6 +1795,8 @@ FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
 
 build_xcodebuild_schemes_or_target()
 {
+   log_debug "build_xcodebuild_schemes_or_target" "$*"
+
    local builddir
    local name
    local project
@@ -1827,7 +1835,7 @@ build_xcodebuild_schemes_or_target()
    done
    IFS="${DEFAULT_IFS}"
 
-   if [ "${targets}" = "" -a "${schemes}" = "" ]
+   if [ -z "${targets}" -a -z "${schemes}" ]
    then
       log_fluff "Building project \"${project}\" ..."
       build_xcodebuild "$@"
@@ -1845,6 +1853,8 @@ run_log_build_script()
 
 build_script()
 {
+   log_debug "build_script" "$*"
+
    local script
 
    script="$1"
@@ -1931,6 +1941,8 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
 
 build_with_configuration_sdk_preferences()
 {
+   log_debug "build_with_configuration_sdk_preferences" "$*"
+
    local name
    local configuration
    local sdk
@@ -1983,6 +1995,8 @@ build_with_configuration_sdk_preferences()
          ;;
 
          xcodebuild)
+            tools_environment_xcodebuild "${name}" "${srcdir}"
+
             if [ ! -z "${XCODEBUILD}" ]
             then
                project="`(cd "${srcdir}" ; find_xcodeproj "${name}")`"
@@ -1991,7 +2005,6 @@ build_with_configuration_sdk_preferences()
                then
                   log_fluff "There is no Xcode project in \"${srcdir}\""
                else
-                  tools_environment_xcodebuild "${name}" "${srcdir}"
                   if [ -z "${XCODEBUILD}" ]
                   then
                      log_warning "Found a Xcode project, but ${C_RESET}${C_BOLD}xcodebuild${C_WARNING} is not installed"
@@ -2000,6 +2013,8 @@ build_with_configuration_sdk_preferences()
                      return 0
                   fi
                fi
+            else
+               log_fluff "No xcodebuild found, that's unusual"
             fi
          ;;
 
@@ -2042,8 +2057,12 @@ build_with_configuration_sdk_preferences()
             fi
          ;;
 
+         "")
+            # ignore empty
+         ;;
+
          *)
-            fail "Unknown build preference \"$1\""
+            fail "Unknown build preference \"${preference}\""
          ;;
       esac
    done
@@ -2054,6 +2073,8 @@ build_with_configuration_sdk_preferences()
 
 build()
 {
+   log_debug "build" "$*"
+
    local name
    local srcdir
 
@@ -2092,6 +2113,8 @@ configure"`"
          ;;
       esac
    fi
+
+   log_fluff "Build preferences for ${UNAME} are: `echo ${preferences}`"
 
    local configurations
    local configuration
@@ -2135,6 +2158,8 @@ configure"`"
 #
 build_wrapper()
 {
+   log_debug "build_wrapper" "$*"
+
    local srcdir
    local name
 
@@ -2192,6 +2217,8 @@ build_wrapper()
 
 force_rebuild()
 {
+   log_debug "force_rebuild" "$*"
+
    local from="$1"
    local to="$2"
 
@@ -2224,6 +2251,8 @@ force_rebuild()
 
 build_if_alive()
 {
+   log_debug "build_if_alive" "$*"
+
    local name
    local stashdir
 
@@ -2257,6 +2286,8 @@ ${BUILT}"
 
 build_stashes()
 {
+   log_debug "build_stashes" "$*"
+
    local name
 
    IFS="
@@ -2362,6 +2393,8 @@ have_tars()
 
 install_tars()
 {
+   log_debug "install_tars" "$*"
+
    local tarballs
    local tar
 

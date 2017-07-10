@@ -485,7 +485,7 @@ list_build_directories()
    log_info "$PWD"
    IFS="
 "
-   for filename in `ls -1 "${directory}"` 
+   for filename in `ls -1 "${directory}"`
    do
       path="${directory}/${filename}"
       if [ -d "${path}" ]
