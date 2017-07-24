@@ -1,6 +1,6 @@
 # How to use the mulle-bootstrap bash function libraries in your code
 
-
+```
 main()
 {
    local MULLE_FLAG_EXEKUTOR_DRY_RUN="NO"
@@ -69,3 +69,4 @@ MULLE_EXECUTABLE_FUNCTIONS_MAX="4"
 _init "$@"
 
 main "$@"
+```
