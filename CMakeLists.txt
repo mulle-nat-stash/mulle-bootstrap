@@ -38,6 +38,7 @@ src/mulle-bootstrap-build.sh
 src/mulle-bootstrap-clean.sh
 src/mulle-bootstrap-command.sh
 src/mulle-bootstrap-common-settings.sh
+src/mulle-bootstrap-core-options.sh
 src/mulle-bootstrap-copy.sh
 src/mulle-bootstrap-defer.sh
 src/mulle-bootstrap-dependency-resolve.sh
