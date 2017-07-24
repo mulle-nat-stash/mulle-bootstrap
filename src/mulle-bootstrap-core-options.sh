@@ -66,7 +66,7 @@ core_setup_trace()
          MULLE_FLAG_LOG_EXEKUTOR="YES"
          MULLE_FLAG_LOG_FLUFF="YES"
          MULLE_FLAG_LOG_VERBOSE="YES"
-         bootstrap_dump_env
+         core_dump_env
       ;;
 
       1848)
@@ -75,9 +75,9 @@ core_setup_trace()
          MULLE_FLAG_LOG_VERBOSE="YES"
          MULLE_FLAG_VERBOSE_BUILD="YES"
 
-         bootstrap_dump_env
+         core_dump_env
 
-         if [ "${MULLE_TRACE_POSTPONE}" = "NO" ]
+         if [ "${MULLE_TRACE_POSTPONE}" != "YES" ]
          then
             log_trace "1848 trace (set -x) started"
             set -x

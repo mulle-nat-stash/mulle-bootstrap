@@ -154,8 +154,9 @@ stacktrace()
 
 _bail()
 {
-   # should kill process group...
-   kill 0
+#   should kill process group...
+#   kills calling shell too though
+#   kill 0
 
 #   if [ ! -z "${MULLE_EXECUTABLE_PID}" ]
 #   then
@@ -166,8 +167,7 @@ _bail()
 #      fi
 #   fi
 
-   exit 1        # paranoia
-   # don't ask me why the fail message is printed twice
+   exit 1
 }
 
 
@@ -274,3 +274,5 @@ logging_initialize()
 }
 
 logging_initialize "$@"
+
+:

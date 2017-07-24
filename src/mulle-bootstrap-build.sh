@@ -1340,6 +1340,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 }
 
 
+
 _xcode_get_setting()
 {
    eval_exekutor "xcodebuild -showBuildSettings $*" || fail "failed to read xcode settings"
@@ -1348,12 +1349,11 @@ _xcode_get_setting()
 
 xcode_get_setting()
 {
-   local key
-
-   key="$1"
-   shift
+   local key=$1; shift
 
    _xcode_get_setting "$@" | egrep "^[ ]*${key}" | sed 's/^[^=]*=[ ]*\(.*\)/\1/'
+
+   return 0
 }
 
 
@@ -1364,18 +1364,14 @@ xcode_get_setting()
 #
 create_mangled_header_path()
 {
-   local name
-   local key
-   local default
-
-   key="$1"
-   name="$2"
-   default="$3"
+   local key="$1"
+   local name="$2"
+   local default="$3"
 
    local headers
 #   local prefix
 
-   headers=`xcode_get_setting "${key}" $*` || exit 1
+   headers="`xcode_get_setting "${key}" $*`"
    log_fluff "${key} read as \"${headers}\""
 
    case "${headers}" in
@@ -1692,7 +1688,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       #
       # TODO: need to figure out the correct mapping here
       #
-      inherited="`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`" || exit 1
+      inherited="`xcode_get_setting HEADER_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}/${HEADER_DIR_NAME}" \
 "${owd}/${REFERENCE_ADDICTIONS_DIR}/${HEADER_DIR_NAME}"`
@@ -1703,7 +1699,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          dependencies_header_search_path="${path} ${inherited}"
       fi
 
-      inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`" || exit 1
+      inherited="`xcode_get_setting LIBRARY_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path_if_exists \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${LIBRARY_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${LIBRARY_DIR_NAME}" \
@@ -1727,7 +1723,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
          dependencies_lib_search_path="${path} ${USR_LOCAL_LIB}"
       fi
 
-      inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`" || exit 1
+      inherited="`xcode_get_setting FRAMEWORK_SEARCH_PATHS ${arguments}`"
       path=`combined_escaped_search_path_if_exists \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}${mappedsubdir}/${FRAMEWORK_DIR_NAME}" \
 "${owd}/${REFERENCE_DEPENDENCIES_DIR}${fallbacksubdir}/${FRAMEWORK_DIR_NAME}" \
@@ -2200,6 +2196,8 @@ build_wrapper()
    then
       log_fluff "Remove \"${BUILD_DEPENDENCIES_DIR}\""
       rmdir_safer "${BUILD_DEPENDENCIES_DIR}"
+   else
+      log_fluff "Not removing \"${BUILD_DEPENDENCIES_DIR}\" because of \"${COMMAND}\""
    fi
 
    DEPENDENCIES_DIR="${REFERENCE_DEPENDENCIES_DIR}"
@@ -2228,6 +2226,12 @@ force_rebuild()
    if [ ! -f "${REPOS_DIR}/.build_done" ]
    then
       log_fluff "Nothing has been built yet"
+      return
+   fi
+
+   if [ -z "${from}" -a -z "${to}" ]
+   then
+      remove_file_if_present "${REPOS_DIR}/.build_done"
       return
    fi
 
@@ -2564,7 +2568,8 @@ build_main()
       log_fluff "Cleaning dependencies directory as \"${DEPENDENCIES_DIR}\""
       rmdir_safer "${DEPENDENCIES_DIR}"
    else
-      if [ ! -z "${OPTION_FROM}" -o ! -z "${OPTION_TO}" ]
+      if [ "${MULLE_FLAG_MAGNUM_FORCE}" != "NONE" ] || \
+         [ ! -z "${OPTION_FROM}" -o ! -z "${OPTION_TO}" ]
       then
          force_rebuild "${OPTION_FROM}" "${OPTION_TO}"
       fi

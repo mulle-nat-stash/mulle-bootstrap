@@ -1,8 +1,14 @@
+## 3.9.0
+
+* fix various xcode related build bugs
+* mulle-bootstrap doesn't do kill 0 anymore
+* add `mulle-bootstrap-core-options.sh` for external script users
+* `mulle-bootstrap -f build` now forces a rebuild, as one would expect
+
 ### 3.8.5
 
 * fix broken xcode build path
 * allow some plural synonmys for setting, config, expansion command
-
 
 ### 3.8.4
 
@@ -22,7 +28,7 @@ in general
 
 * fix archive extraction on linux
 
-### 3.8.0
+## 3.8.0
 
 * new build setting `srcdir` where you can specify the subdirectory, that contains configure, CMakeLists et.c
 
@@ -41,7 +47,7 @@ dependencies relative to the original project.
 * when moving embedded directories around, mulle-bootstrap will now create
 missing target directories
 * renamed `clone_cache` to `git_mirror` because that's better. `refresh_cache` is now `refresh_git_mirror`.
-* added option `--no-git-mirror
+* added option `--no-git-mirror`
 * added `type` command to introspect the bootstrap topology easier
 * avoid superflous updating of mirrored git clones during one session, which
 speeds up things considerably, when mirroring
@@ -127,6 +133,7 @@ setting to list all scripts
 * -fb automatically adds `-U *` to CMAKEFLAGS so that cached values are ignored,
 this reduces a lot of WTF moments.
 * `CMAKE_FLAGS` is now `CMAKEFLAGS
+
 
 ### 3.3.0
 
@@ -366,7 +373,7 @@ The idea behind that has been moved to `mulle-build`.
 * embedded repositories can now be placed at an arbitrary position within your
 project tree
 * allow build and fetch options to be passed to `bootstrap`
-* improved comments in repositories` and `embedded_repositories` templates
+* improved comments in `repositories` and `embedded_repositories` templates
 * pass ADDICTIONS_DIR to build systems
 * improve optimistic support, by memorizing if a fetch, refresh, build went
 thru successfully. The automatic refresh should run much less often now.
@@ -513,7 +520,7 @@ eliminated.
    You can now specify the default configurations to build with -c.
    e.g. `mulle-bootstrap -c "Debug"
 *  Improved library and frameworks searchpath generation.
-*  You can pass build a "-j <cores>" flag, for cmake/make to parallelize
+*  You can pass build a `-j <cores>` flag, for cmake/make to parallelize
    the build.
 *  Specify `ARCHS='${NATIVE_ARCH_ACTUAL}' mulle-bootstrap build`, when you
    want to override the ARCHS setting for an Xcode build. Kinda hackish.
@@ -661,12 +668,12 @@ eliminated.
 *  Fetch settings can be platform specific by using the `uname` as a file
    extension. e.g. repositories.Darwin. Other settings may follow, if the need
    arises. So far it hasn't.
-*  Added `embedded_repositories`` for those special moments, where you don't want
+*  Added `embedded_repositories` for those special moments, where you don't want
    to link another project, but just steal a few files. These gits are installed
    in your projects root and they are not built. You can not symlink them into
    your project, just clone them.
 *  Because I needed ancient and dying svn for MulleScion,  you can now remap
-   from the default git to svn, by creating a file <reponame>.scm. That contains
+   from the default git to svn, by creating a file `<reponame>.scm`. That contains
   the string "svn" then.
 *  *** Renamed "gits" to "repositories" ***
 *  Use mulle-bootstrap convert-pre.0.10 ~/src to convert all .bootstrap folders
@@ -708,7 +715,7 @@ eliminated.
 
 ## 0.9
 
-*  Specifying repos with mulle-bootstrap build <repos> was broken.
+*  Specifying repos with `mulle-bootstrap build <repos>` was broken.
 *  Added -y option, so everything is answered YES. I use this all the time.
 *  Log xcodebuild command line into logfile.
 *  Fix useless errors during dry run.
