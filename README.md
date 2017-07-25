@@ -75,6 +75,9 @@ dependencies with **cmake**. It will place the headers and the produced
 libraries into the `dependencies/lib`  and `dependencies/include` folders.
 
 
+Now you can enter your new "virtual environment" with `mulle-bootstrap shell`.
+
+
 ## Tell me more
 
 * [How to install](dox/INSTALL.md)

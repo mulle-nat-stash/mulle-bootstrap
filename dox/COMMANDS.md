@@ -9,20 +9,25 @@ in it and you are all set:
 
 ```console
 mulle-bootstrap
+mulle-bootstrap shell
 ```
+
 `mulle-bootstrap` is the shortened command of `mulle-bootstrap bootstrap`, which
-in turn executes:
+in turn executes
+
+1. `mulle-bootstrap fetch` to download all required dependencies.
+2. `mulle-bootstrap build` to install those dependencies into `./dependencies`.
 
 
-#### mulle-bootstrap fetch
+#### mulle-bootstrap upgrade
 
-Downloads all required libraries into a `.repos` folder.
+Upgrade all dependencies. You need to build afterwards again.
 
 
-#### mulle-bootstrap build
+#### mulle-bootstrap shell
 
-Compiles the required libraries contained in the `.repos` folder into
-`./dependencies`.
+Start a shell with the environment set up, asto execute binaries from
+`dependencies/bin`.
 
 
 ## Commands for a project maintainer

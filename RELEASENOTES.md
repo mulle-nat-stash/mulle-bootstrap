@@ -1,5 +1,6 @@
-## 3.9.0
+### 3.9.0
 
+* new mulle-bootstrap shell command to make life in a virtual env even easier
 * fix various xcode related build bugs
 * mulle-bootstrap doesn't do kill 0 anymore
 * add `mulle-bootstrap-core-options.sh` for external script users

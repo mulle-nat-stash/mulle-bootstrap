@@ -56,6 +56,7 @@ src/mulle-bootstrap-repositories.sh
 src/mulle-bootstrap-scm.sh
 src/mulle-bootstrap-scripts.sh
 src/mulle-bootstrap-settings.sh
+src/mulle-bootstrap-shell.sh
 src/mulle-bootstrap-show.sh
 src/mulle-bootstrap-snip.sh
 src/mulle-bootstrap-status.sh

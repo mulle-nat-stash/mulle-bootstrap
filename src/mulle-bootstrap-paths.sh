@@ -152,13 +152,13 @@ collect_frameworks()
 
 
 #
-# Construct FLAGS paths
+# These _value suffixed functions are values emitters, without any "KEY=" prefix
 #
-_flags_emit_path()
+_flags_emit_path_value()
 {
    local directory="$1"
 
-   if [ "${OPTION_WITH_MISSING_PATHS}" = "YES" -o -d "${directory}" ]
+   if [ "${OPTION_WITH_MISSING_PATHS}" = "YES" ] || [ -d "${directory}" ]
    then
       if [ "${OPTION_USE_ABSOLUTE_PATHS}" = "YES" ]
       then
@@ -174,25 +174,34 @@ _flags_binpath_value()
    local pathline
    local line
 
-   pathline="`_flags_emit_path "${DEPENDENCIES_DIR}/bin"`"
-   line="`_flags_emit_path "${ADDICTIONS_DIR}/bin"`"
+   pathline="`_flags_emit_path_value "${DEPENDENCIES_DIR}/bin"`"
+   line="`_flags_emit_path_value "${ADDICTIONS_DIR}/bin"`"
 
    add_path "${pathline}" "${line}"
 }
 
 
-_flags_emit_option()
+_flags_expanded_binpath_value()
+{
+   local pathline
+
+   pathline="`_flags_binpath_value`"
+   add_path "${pathline}" "${PATH}"
+}
+
+
+
+_flags_emit_option_value()
 {
    local prefix="$1"
    local directory="$2"
 
-   if [ "${OPTION_WITH_MISSING_PATHS}" = "YES" -o -d "${directory}" ]
+   local value
+
+   value="`_flags_emit_path_value "${directory}"`"
+   if [ ! -z "${value}" ]
    then
-      if [ "${OPTION_USE_ABSOLUTE_PATHS}" = "YES" ]
-      then
-         directory="`absolutepath "${directory}"`"
-      fi
-      echo "${prefix}${OPTION_QUOTE}${directory}${OPTION_QUOTE}"
+      echo "${prefix}${OPTION_QUOTE}${value}${OPTION_QUOTE}"
    fi
 }
 
@@ -203,11 +212,11 @@ _flags_cppflags_value()
    then
       if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
-         _flags_emit_option "-I" "${DEPENDENCIES_DIR}/include"
+         _flags_emit_option_value "-I" "${DEPENDENCIES_DIR}/include"
       fi
       if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
-         _flags_emit_option "-I" "${ADDICTIONS_DIR}/include"
+         _flags_emit_option_value "-I" "${ADDICTIONS_DIR}/include"
       fi
    fi
 
@@ -215,11 +224,11 @@ _flags_cppflags_value()
    then
       if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
-         _flags_emit_option "-F" "${DEPENDENCIES_DIR}/Frameworks"
+         _flags_emit_option_value "-F" "${DEPENDENCIES_DIR}/Frameworks"
       fi
       if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
-         _flags_emit_option "-F" "${ADDICTIONS_DIR}/Frameworks"
+         _flags_emit_option_value "-F" "${ADDICTIONS_DIR}/Frameworks"
       fi
    fi
 }
@@ -231,11 +240,11 @@ _flags_ldflags_value()
    then
       if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
-         _flags_emit_option "-L" "${DEPENDENCIES_DIR}/lib"
+         _flags_emit_option_value "-L" "${DEPENDENCIES_DIR}/lib"
       fi
       if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
-         _flags_emit_option "-L" "${ADDICTIONS_DIR}/lib"
+         _flags_emit_option_value "-L" "${ADDICTIONS_DIR}/lib"
       fi
    fi
 
@@ -243,11 +252,11 @@ _flags_ldflags_value()
    then
       if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
-         _flags_emit_option "-F" "${DEPENDENCIES_DIR}/Frameworks"
+         _flags_emit_option_value "-F" "${DEPENDENCIES_DIR}/Frameworks"
       fi
       if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
-         _flags_emit_option "-F" "${ADDICTIONS_DIR}/Frameworks"
+         _flags_emit_option_value "-F" "${ADDICTIONS_DIR}/Frameworks"
       fi
    fi
 
@@ -297,7 +306,7 @@ _flags_cflags_value()
 #
 # Construct search paths
 #
-_flags_add_search_path()
+_flags_add_search_path_value()
 {
    local result="$1"
    local searchpath="$2"
@@ -323,11 +332,11 @@ _flags_frameworkpath_value()
    then
       if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
-         result="`_flags_add_search_path "${result}" "${DEPENDENCIES_DIR}/Frameworks"`"
+         result="`_flags_add_search_path_value "${result}" "${DEPENDENCIES_DIR}/Frameworks"`"
       fi
       if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
-         result="`_flags_add_search_path "${result}" "${ADDICTIONS_DIR}/Frameworks"`"
+         result="`_flags_add_search_path_value "${result}" "${ADDICTIONS_DIR}/Frameworks"`"
       fi
    fi
 
@@ -346,11 +355,11 @@ _flags_headerpath_value()
    then
       if [ "${OPTION_WITH_DEPENDENCIES}" = "YES" ]
       then
-         result="`_flags_add_search_path "${result}" "${DEPENDENCIES_DIR}/include"`"
+         result="`_flags_add_search_path_value "${result}" "${DEPENDENCIES_DIR}/include"`"
       fi
       if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
-         result="`_flags_add_search_path "${result}" "${ADDICTIONS_DIR}/include"`"
+         result="`_flags_add_search_path_value "${result}" "${ADDICTIONS_DIR}/include"`"
       fi
    fi
 
@@ -371,12 +380,12 @@ _flags_librarypath_value()
       then
          if [ "${OPTION_WITH_MISSING_PATHS}" = "YES" -o -d "${DEPENDENCIES_DIR}/lib" ]
          then
-            result="`_flags_add_search_path "${result}" "${DEPENDENCIES_DIR}/lib"`"
+            result="`_flags_add_search_path_value "${result}" "${DEPENDENCIES_DIR}/lib"`"
          fi
       fi
       if [ "${OPTION_WITH_ADDICTIONS}" = "YES" ]
       then
-         result="`_flags_add_search_path "${result}" "${ADDICTIONS_DIR}/lib"`"
+         result="`_flags_add_search_path_value "${result}" "${ADDICTIONS_DIR}/lib"`"
       fi
    fi
 
@@ -384,6 +393,28 @@ _flags_librarypath_value()
    then
       echo "${result}"
    fi
+}
+
+
+#
+# Construct output from values now
+#
+_flags_do_path()
+{
+   local result="$1"
+
+   local values
+   local line
+   local tmppath
+
+   values="`_flags_expanded_binpath_value`"
+   if [ ! -z "${values}" ]
+   then
+      line="PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
+      result="`add_line "${result}" "${line}"`"
+   fi
+
+   printf "%s" "$result"
 }
 
 
@@ -452,27 +483,6 @@ _flags_do_cmake_paths()
 }
 
 
-
-_flags_do_path()
-{
-   local result="$1"
-
-   local values
-   local line
-   local tmppath
-
-   values="`_flags_binpath_value`"
-   if [ ! -z "${values}" ]
-   then
-      tmppath="`add_path "${values}" "${PATH}"`"
-      line="PATH=${OPTION_QUOTE}${tmppath}${OPTION_QUOTE}"
-      result="`add_line "${result}" "${line}"`"
-   fi
-
-   printf "%s" "$result"
-}
-
-
 _flags_do_make_environment()
 {
    local result="$1"
@@ -480,11 +490,17 @@ _flags_do_make_environment()
    local values
    local line
 
-   values="`_flags_emit_path "${ADDICTIONS_DIR}"`"
-   result="`add_line "${result}" "ADDICTIONS_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
+   values="`_flags_emit_path_value "${ADDICTIONS_DIR}"`"
+   if [ ! -z "${values}" ]
+   then
+      result="`add_line "${result}" "ADDICTIONS_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
+   fi
 
-   values="`_flags_emit_path "${DEPENDENCIES_DIR}"`"
-   result="`add_line "${result}" "DEPENDENCIES_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
+   values="`_flags_emit_path_value "${DEPENDENCIES_DIR}"`"
+   if [ ! -z "${values}" ]
+   then
+      result="`add_line "${result}" "DEPENDENCIES_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
+   fi
 
    values="`_flags_cppflags_value`"
    if [ ! -z "${values}" ]
@@ -502,14 +518,7 @@ _flags_do_make_environment()
       result="`add_line "${result}" "${line}"`"
    fi
 
-   values="`_flags_binpath_value`"
-   if [ ! -z "${values}" ]
-   then
-      result="`_flags_do_path`"
-      result="`add_line "${result}" "${line}"`"
-   fi
-
-   printf "%s" "$result"
+   _flags_do_path "${result}"
 }
 
 
@@ -520,27 +529,27 @@ _flags_do_run_environment()
    local values
    local line
 
-   values="`_flags_emit_path "${ADDICTIONS_DIR}"`"
+   values="`_flags_emit_path_value "${ADDICTIONS_DIR}"`"
    if [ ! -z "${values}" ]
    then
       result="`add_line "${result}" "ADDICTIONS_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
    fi
-   values="`_flags_emit_path "${DEPENDENCIES_DIR}"`"
 
+   values="`_flags_emit_path_value "${DEPENDENCIES_DIR}"`"
    if [ ! -z "${values}" ]
    then
       result="`add_line "${result}" "DEPENDENCIES_DIR=${OPTION_QUOTE}${values}${OPTION_QUOTE}"`"
    fi
-   values="`_flags_librarypath_value`"
 
+   values="`_flags_librarypath_value`"
    if [ ! -z "${values}" ]
    then
       case "${UNAME}" in
          darwin)
-            line="DYLD_FALLBACK_LIBRARY_PATH=${OPTION_QUOTE}${values}:${HOME}/lib:/usr/local/lib:/lib:/usr/lib${OPTION_QUOTE}"
+            line="DYLD_LIBRARY_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
          ;;
 
-         *)
+         linux|*)
             line="LD_LIBRARY_PATH=${OPTION_QUOTE}${values}:${LD_LIBRARY_PATH}${OPTION_QUOTE}"
          ;;
       esac
@@ -552,20 +561,13 @@ _flags_do_run_environment()
    then
       case "${UNAME}" in
          darwin)
-            line="DYLD_FALLBACK_FRAMEWORK_PATH=${OPTION_QUOTE}${values}:/Library/Frameworks:/Network/Library/Frameworks:/System/Library/Frameworks${OPTION_QUOTE}"
+            line="DYLD_FRAMEWORK_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
             result="`add_line "${result}" "${line}"`"
          ;;
       esac
    fi
 
-   values="`_flags_binpath_value`"
-   if [ ! -z "${values}" ]
-   then
-      result="`_flags_do_path`"
-      result="`add_line "${result}" "${line}"`"
-   fi
-
-   printf "%s" "$result"
+   _flags_do_path "${result}"
 }
 
 
@@ -616,6 +618,7 @@ paths_main()
    local OPTION_WITH_MISSING_PATHS="NO"
    local OPTION_PATH_SEPARATOR=":"
    local OPTION_QUOTE=""
+   local OPTION_SHELL_QUOTE="\""
    local OPTION_LINE_SEPERATOR=" "
 
    log_debug ":paths_main:"
@@ -672,6 +675,10 @@ paths_main()
             OPTION_LINE_SEPERATOR="\n"
          ;;
 
+         -r|--relative-paths)
+            OPTION_USE_ABSOLUTE_PATHS="NO"
+         ;;
+
          -na|--no-addictions)
             OPTION_WITH_ADDICTIONS="NO"
          ;;
@@ -694,6 +701,13 @@ paths_main()
 
          -nl|--no-library-paths)
             OPTION_WITH_LIBRARYPATHS="NO"
+         ;;
+
+         --shell-quote)
+            shift
+            [ $# -eq 0 ] && fail "quote missing"
+
+            OPTION_SHELL_QUOTE="$1"
          ;;
 
          -q|--quote)
@@ -746,12 +760,12 @@ paths_main()
 
       case "${type}" in
          "addictions")
-            values="`_flags_emit_path "${ADDICTIONS_DIR}"`"
+            values="`_flags_emit_path_value "${ADDICTIONS_DIR}"`"
             result="`add_line "${result}" "${values}"`"
          ;;
 
          "dependencies")
-            values="`_flags_emit_path "${DEPENDENCIES_DIR}"`"
+            values="`_flags_emit_path_value "${DEPENDENCIES_DIR}"`"
             result="`add_line "${result}" "${values}"`"
          ;;
 
@@ -788,6 +802,8 @@ paths_main()
 
       type="$1"
    done
+
+   result="`sort -u <<< "${result}"`"
 
    if [ ! -z "${result}" ]
    then

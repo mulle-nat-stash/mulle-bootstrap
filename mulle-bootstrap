@@ -57,6 +57,7 @@ SHOWN_COMMANDS="\
    clean         : cleans mulle-bootstrap produced files.
    defer         : join a master mulle-bootstrap project
    emancipate    : emancipate from a master mulle-bootstrap project
+   shell         : create a shell based on SHELL with PATH set
    paths         : get include and library paths
    init          : initializes a bootstrap project
    update        : updates repositories (fetch).
@@ -561,6 +562,12 @@ bootstrap_main()
          . mulle-bootstrap-settings.sh
 
          setting_main "$@" || exit 1
+      ;;
+
+      shell)
+         . mulle-bootstrap-shell.sh
+
+         shell_main "$@" || exit 1
       ;;
 
       systeminstall)
