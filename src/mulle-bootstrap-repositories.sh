@@ -821,7 +821,10 @@ computed_stashdir()
 }
 
 
-# this sets values to variables that should be declared
+#
+# Read the CVS from the .repositories file
+#
+# This function sets values of variables that should be declared
 # in the caller!
 #
 #   # parse_raw_clone

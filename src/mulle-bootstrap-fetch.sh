@@ -998,9 +998,9 @@ required_action_for_clone()
    #
    # if scm is not git, don't try to be clever
    #
-   if [ "${scm}" = "symlink" ]
+   if [ "${scm}" != "git" ]
    then
-      if [ -e "${newstashdir}" ]
+      if [ "${scm}" != "sylimk" ] && [ -e "${newstashdir}" ]
       then
          log_fluff "\"${stashdir}\" is symlink. Ignoring possible differences."
          return
@@ -1683,7 +1683,11 @@ _common_main()
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OVERRIDE_BRANCH="`read_config_setting "override_branch"`"
-
+   if [ ! -z "${OVERRIDE_BRANCH}" ]
+   then
+      log_info "All fetched branches will be overriden to \
+\"${OVERRIDE_BRANCH}\" as config \"override_branch\" is set."
+   fi
 
    DONT_WARN_SCRIPTS="`read_config_setting "dont_warn_scripts" "${MULLE_FLAG_ANSWER:-NO}"`"
 

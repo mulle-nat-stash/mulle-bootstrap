@@ -92,7 +92,6 @@ shell_main()
       options="${options} make"
    fi
 
-   set -x
    env_string="`mulle-bootstrap paths -m -1 -q "'" ${options}`"
    cmd_string="${SHELL:-/usr/bin/env bash}"
 

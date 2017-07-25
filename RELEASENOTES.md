@@ -1,3 +1,8 @@
+### 3.9.1
+
+* remove debug -x from release
+* fix a bug with renamed non-git repositories
+
 ### 3.9.0
 
 * new mulle-bootstrap shell command to make life in a virtual env even easier
