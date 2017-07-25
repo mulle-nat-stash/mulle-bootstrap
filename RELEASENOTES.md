@@ -1,4 +1,4 @@
-### 3.9.0
+## 3.9.0
 
 * new mulle-bootstrap shell command to make life in a virtual env even easier
 * fix various xcode related build bugs
