@@ -30,6 +30,13 @@ Start a shell with the environment set up, asto execute binaries from
 `dependencies/bin`.
 
 
+#### mulle-bootstrap clean dist
+
+If mulle-bootstrap painted itself in the corner and produces errors, you can't
+fix doing `mulle-bootstrap clean dist ; mulle-bootstrap` more often than not
+gets you back on track.
+
+
 ## Commands for a project maintainer
 
 #### mulle-bootstrap init

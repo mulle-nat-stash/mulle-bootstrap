@@ -52,14 +52,12 @@ git_is_bare_repository()
 
 git_set_url()
 {
-   local remote
-   local url
-
-   remote="$2"
-   url="$3"
+   local directory="$1"
+   local remote="$2"
+   local url="$3"
 
    (
-      cd "$1" &&
+      cd "${directory}" &&
       git remote set-url "${remote}" "${url}"  >&2 &&
       git fetch "${remote}"  >&2  # prefetch to get new branches
    ) || exit 1
@@ -225,7 +223,7 @@ _git_get_mirror_url()
    [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
 
    filelistpath="${REPOS_DIR}/.uptodate-mirrors"
-   log_debug "Mirror URLS: `cat "${filelistpath}"  2>/dev/null`"
+   log_debug "Mirror URLS: `cat "${filelistpath}" 2>/dev/null`"
 
    match="`fgrep -s -x "${mirrordir}" "${filelistpath}" 2>/dev/null`"
    if [ ! -z "${match}" ]
@@ -372,7 +370,7 @@ git_fetch()
       *:*)
          if [ ! -z "${GIT_MIRROR}" ]
          then
-            url="`_git_get_mirror_url ${url}`" || return 1
+            url="`_git_get_mirror_url "${url}"`" || return 1
          fi
       ;;
    esac
@@ -406,7 +404,7 @@ git_pull()
       *:*)
          if [ ! -z "${GIT_MIRROR}" ]
          then
-            url="`_git_get_mirror_url ${url}`" || return 1
+            url="`_git_get_mirror_url "${url}"`" || return 1
          fi
       ;;
    esac
@@ -795,26 +793,44 @@ _move_stuff()
 _tar_download()
 {
    local download="$1"
+   local url="$2"
 
    local archive_cache
    local cachable_path
    local cached_archive
+   local filename
+   local directory
 
    archive_cache="`read_config_setting "archive_cache" "${DEFAULT_ARCHIVE_CACHE}"`"
 
    if [ ! -z "${archive_cache}" -a "${archive_cache}" != "NO" ]
    then
-      cachable_path="${archive_cache}/${download}"
-      if [ -e "${cachable_path}" ]
+      # fix for github
+      case "${url}" in
+         *github.com*/archive/*)
+            directory="`dirname -- "${url}"`" # remove 3.9.2
+            directory="`dirname -- "${directory}"`" # remove archives
+            filename="`basename -- "${directory}"`-${download}"
+         ;;
+
+         *)
+            filename="${download}"
+         ;;
+      esac
+
+      cachable_path="${archive_cache}/${filename}"
+
+      if [ -f "${cachable_path}" ]
       then
          cached_archive="${cachable_path}"
       fi
    fi
 
-   if [ ! -z "${cached_archive}" ] && [ -f "${cached_archive}" ]
+   if [ ! -z "${cached_archive}" ]
    then
       log_info "Using cached \"${cached_archive}\" for ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
-      exekutor ln -s "${cached_archive}" || fail "failed to symlink \"${cached_archive}\""
+      # we are in a tmp dir
+      exekutor ln -s "${cached_archive}" "${download}" || fail "failed to symlink \"${cached_archive}\""
       cachable_path=""
    else
       exekutor curl -O -L ${CURLOPTIONS} "${url}" || fail "failed to download \"${url}\""
@@ -822,11 +838,11 @@ _tar_download()
 
    _validate_download "${download}" "${SCM_OPTIONS}" || exit 1
 
-   if [ ! -z "${cachable_path}" ]
+   if [ -z "${cached_archive}" -a ! -z "${cachable_path}" ]
    then
-      log_info "Saving \"${download}\" to archive cache \"${archive_cache}\" ..."
-      mkdir_if_missing "${archive_cache}" || fail "failed to create archive cache \"${archive_cache}\""
-      exekutor cp "${download}" "${cachable_path}" || fail "failed to copy \"${download}\" to cache \"${archive_cache}\""
+      log_verbose "Caching \"${url}\" as \"${cachable_path}\" ..."
+      mkdir_if_missing "${archive_cache}" || fail "failed to create archive cache \"${archive_cache}\""
+      exekutor cp "${download}" "${cachable_path}" || fail "failed to copy \"${download}\" to \"${cachable_path}\""
    fi
 }
 
@@ -848,8 +864,10 @@ tar_unpack()
    local download
    local options
    local archivename
+   local directory
 
-   download="`basename "${url}"`"
+   # fixup github
+   download="`basename -- "${url}"`"
    archive="${download}"
 
    # remove .tar (or .zip et friends)
@@ -865,7 +883,7 @@ tar_unpack()
    (
       exekutor cd "${tmpdir}" || return 1
 
-      _tar_download "${download}" || return 1
+      _tar_download "${download}" "${url}" || return 1
 
       case "${url}" in
          *.zip)

@@ -1,3 +1,7 @@
+### 3.9.2
+
+* fix for github tar archives having the same name
+
 ### 3.9.1
 
 * remove debug -x from release
