@@ -480,11 +480,11 @@ clone_or_symlink()
    local scmflagsdefault
 
    case "${scm}" in
-      git)
+      git*)
          operation="git_clone"
       ;;
 
-      svn)
+      svn*)
          operation="svn_checkout"
       ;;
 
@@ -500,19 +500,6 @@ clone_or_symlink()
          fail "Unknown scm system \"${scm}\""
       ;;
    esac
-
-   local SCM_OPTIONS
-
-   #
-   # later: make it so tar?shasum256=djhdjhdfdh
-   # and check that the archive is correct
-   #
-   extra="`echo "${scm}" | sed -n 's/^[^?]*\?\(.*\)/\1/p'`"
-   if [ ! -z "${extra}" ]
-   then
-      log_fluff "Parsed SCM_OPTIONS as \"${extra}\""
-      SCM_OPTIONS="${extra}"
-   fi
 
    local stashparent
 
@@ -558,7 +545,7 @@ clone_or_symlink()
             url="${found}"
 
             case "${scm}" in
-               git)
+               git*)
                   if can_symlink_it "${url}"
                   then
                      operation=link_command
@@ -679,10 +666,10 @@ checkout_repository()
    local operation
 
    case "${scm}" in
-      git)
+      git*)
          operation="git_checkout"
       ;;
-      svn)
+      svn*)
          operation="svn_checkout"
       ;;
       zip*|tar*)
@@ -723,10 +710,10 @@ update_repository()
    local operation
 
    case "${scm}" in
-      git)
+      git*)
          operation="git_fetch"
       ;;
-      svn|zip*|tar*)
+      svn*|zip*|tar*)
          log_info "No update for \"${scm}\""
          return
       ;;
@@ -998,18 +985,28 @@ required_action_for_clone()
    #
    # if scm is not git, don't try to be clever
    #
-   if [ "${scm}" != "git" ]
-   then
-      if [ "${scm}" != "sylimk" ] && [ -e "${newstashdir}" ]
-      then
-         log_fluff "\"${stashdir}\" is symlink. Ignoring possible differences."
-         return
-      fi
+   case "${scm}" in
+      git*)
+      ;;
 
-      log_fluff "\"${newstashdir}\" is missing, reget."
-      echo "clone"
-      return
-   fi
+      symlink*)
+         if [ -e "${newstashdir}" ]
+         then
+            log_fluff "\"${stashdir}\" is symlink. Ignoring possible differences."
+            return
+         fi
+
+         log_fluff "\"${newstashdir}\" is missing, reget."
+         echo "clone"
+         return
+      ;;
+
+      *)
+         log_fluff "Reget because scm is \"${scm}\"."
+         echo "clone"
+         return
+      ;;
+   esac
 
    if [ "${branch}" != "${newbranch}" ]
    then

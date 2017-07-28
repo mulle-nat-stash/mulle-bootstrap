@@ -407,7 +407,13 @@ _flags_do_path()
    local line
    local tmppath
 
-   values="`_flags_expanded_binpath_value`"
+   if [ "${OPTION_INHERIT}" = "YES" ]
+   then
+      values="`_flags_expanded_binpath_value`"
+   else
+      values="`_flags_binpath_value`"
+   fi
+
    if [ ! -z "${values}" ]
    then
       line="PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
@@ -546,11 +552,21 @@ _flags_do_run_environment()
    then
       case "${UNAME}" in
          darwin)
-            line="DYLD_LIBRARY_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
+            if [ "${OPTION_INHERIT}" = "YES" -a ! -z "${DYLD_LIBRARY_PATH}" ]
+            then
+               line="DYLD_LIBRARY_PATH=${OPTION_QUOTE}${values}:${DYLD_LIBRARY_PATH}${OPTION_QUOTE}"
+            else
+               line="DYLD_LIBRARY_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
+            fi
          ;;
 
          linux|*)
-            line="LD_LIBRARY_PATH=${OPTION_QUOTE}${values}:${LD_LIBRARY_PATH}${OPTION_QUOTE}"
+            if [ "${OPTION_INHERIT}" = "YES" -a ! -z "${LD_LIBRARY_PATH}" ]
+            then
+               line="LD_LIBRARY_PATH=${OPTION_QUOTE}${values}:${LD_LIBRARY_PATH}${OPTION_QUOTE}"
+            else
+               line="LD_LIBRARY_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
+            fi
          ;;
       esac
       result="`add_line "${result}" "${line}"`"
@@ -561,7 +577,12 @@ _flags_do_run_environment()
    then
       case "${UNAME}" in
          darwin)
-            line="DYLD_FRAMEWORK_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
+            if [ "${OPTION_INHERIT}" = "YES" -a ! -z "${DYLD_FRAMEWORK_PATH}" ]
+            then
+               line="DYLD_FRAMEWORK_PATH=${OPTION_QUOTE}${values}:${DYLD_FRAMEWORK_PATH}${OPTION_QUOTE}"
+            else
+               line="DYLD_FRAMEWORK_PATH=${OPTION_QUOTE}${values}${OPTION_QUOTE}"
+            fi
             result="`add_line "${result}" "${line}"`"
          ;;
       esac
@@ -608,6 +629,7 @@ paths_main()
    local OPTION_SUPPRESS_FRAMEWORK_CFLAGS="NO"
    local OPTION_SUPPRESS_FRAMEWORK_LDFLAGS="NO"
    local OPTION_USE_ABSOLUTE_PATHS="YES"
+   local OPTION_INHERIT="YES"
    local OPTION_WITH_ADDICTIONS="YES"
    local OPTION_WITH_DEPENDENCIES="NO"
    local OPTION_WITH_FRAMEWORKPATHS="NO"
@@ -697,6 +719,10 @@ paths_main()
 
          -nh|--no-header-paths)
             OPTION_WITH_HEADERPATHS="NO"
+         ;;
+
+         -ni|--no-inherit)
+            OPTION_INHERIT="NO"
          ;;
 
          -nl|--no-library-paths)

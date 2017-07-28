@@ -31,7 +31,7 @@
 #
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=9
-MULLE_EXECUTABLE_VERSION_PATCH=2
+MULLE_EXECUTABLE_VERSION_PATCH=3
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -57,7 +57,6 @@ SHOWN_COMMANDS="\
    clean         : cleans mulle-bootstrap produced files.
    defer         : join a master mulle-bootstrap project
    emancipate    : emancipate from a master mulle-bootstrap project
-   shell         : create a shell based on SHELL with PATH set
    paths         : get include and library paths
    init          : initializes a bootstrap project
    update        : updates repositories (fetch).
@@ -171,9 +170,23 @@ _bootstrap_main()
    if build_needed
    then
       MULLE_EXECUTABLE_FAIL_PREFIX="mulle-bootstrap build"
+      MULLE_BOOTSTRAP_DID_BUILD="YES"
       build_main "$@" || exit 1
    else
       log_verbose "No build needed"
+   fi
+
+   #
+   # only show for default "bootstrap" action
+   #
+   if [ "${MULLE_BOOTSTRAP_DID_FETCH}" = "YES" ]
+   then
+      if [ -f "${BOOTSTRAP_DIR}.auto/motd" ]
+      then
+         log_fluff "Show motd"
+
+         cat "${BOOTSTRAP_DIR}.auto/motd" >&2
+      fi
    fi
 
    log_debug "::: bootstrap end :::"
@@ -190,10 +203,10 @@ _prepend_path_if_relative()
    case "$2" in
       /*)
          echo "$2"
-         ;;
+      ;;
       *)
          echo "$1/$2"
-         ;;
+      ;;
    esac
 }
 
@@ -222,6 +235,15 @@ bootstrap_libexec_path()
    local prefix
    local libexecpath
 
+   case "${path}" in
+      \.*|/*|~*)
+      ;;
+
+      *)
+         path="`command -v "${path}"`"
+      ;;
+   esac
+
    path="`resolve_symlinks "${path}"`"
    exedirpath="`dirname "${path}"`"
    prefix="`dirname "${exedirpath}"`"
@@ -246,7 +268,7 @@ bootstrap_init()
    libexecpath="`bootstrap_libexec_path "$0"`"
    if [ -z "${libexecpath}" ]
    then
-      echo "Fatal Error: Could not find libexec for ${MULLE_EXECUTABLE}" >&2
+      echo "Fatal Error: Could not find libexec for ${MULLE_EXECUTABLE} ($PWD)" >&2
       exit 1
    fi
 
@@ -271,6 +293,10 @@ bootstrap_init()
       version)
          echo "${MULLE_EXECUTABLE_VERSION}"
          exit 0
+      ;;
+
+      shell)
+         fail "shell has moved to mulle-sde"
       ;;
    esac
 
@@ -552,6 +578,11 @@ bootstrap_main()
          return 0
       ;;
 
+      master-path)
+         echo "${PWD}"
+         return 0
+      ;;
+
       run)
          . mulle-bootstrap-paths.sh
 
@@ -562,12 +593,6 @@ bootstrap_main()
          . mulle-bootstrap-settings.sh
 
          setting_main "$@" || exit 1
-      ;;
-
-      shell)
-         . mulle-bootstrap-shell.sh
-
-         shell_main "$@" || exit 1
       ;;
 
       systeminstall)

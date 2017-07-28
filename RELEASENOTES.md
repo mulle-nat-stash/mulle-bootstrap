@@ -1,3 +1,8 @@
+### 3.9.3
+
+* fix some problems with tar archives
+* subcommand !!! `mulle-bootstrap shell` has been moved to mulle-sde, a new project
+
 ### 3.9.2
 
 * fix for github tar archives having the same name

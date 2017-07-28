@@ -982,7 +982,7 @@ read_repository_file()
       esac
 
       case "${scm}" in
-         symlink)
+         symlink*)
             fail "You can't specify symlink in the repositories file yourself. Use -y flag"
          ;;
       esac

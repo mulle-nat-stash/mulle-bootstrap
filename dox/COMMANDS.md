@@ -9,7 +9,6 @@ in it and you are all set:
 
 ```console
 mulle-bootstrap
-mulle-bootstrap shell
 ```
 
 `mulle-bootstrap` is the shortened command of `mulle-bootstrap bootstrap`, which
@@ -22,12 +21,6 @@ in turn executes
 #### mulle-bootstrap upgrade
 
 Upgrade all dependencies. You need to build afterwards again.
-
-
-#### mulle-bootstrap shell
-
-Start a shell with the environment set up, asto execute binaries from
-`dependencies/bin`.
 
 
 #### mulle-bootstrap clean dist

@@ -326,7 +326,7 @@ bootstrap_should_defer_to_master()
    assert_sane_master_bootstrap_project "${masterpath}"
 
    case "${command}" in
-      git|defer|emancipate|library-path|setup-xcode|tag|type|uname|version|xcode)
+      git|defer|emancipate|library-path|setup-xcode|shell|tag|type|uname|version|xcode)
          log_verbose "Minion executes locally"
       ;;
 
@@ -340,8 +340,8 @@ bootstrap_should_defer_to_master()
             show_main_header_only "$@"
          ) || exit 1
 
-         log_info "Minion defers to master \"$masterpath\""
-         log_info ""
+         log_verbose "Minion defers to master \"$masterpath\""
+         log_verbose ""
 
          cd "${masterpath}" || fail "master is missing"
          return 0  # this leads to  main deferring later on (but cd is set!)

@@ -68,11 +68,11 @@ _status_repository()
    if [ "${STATUS_SCM}" = "YES" ]
    then
       case "${scm}" in
-      git)
+      git*)
          git_status "$@" >&2
       ;;
 
-      svn)
+      svn*)
          svn_status "$@" >&2
       ;;
 

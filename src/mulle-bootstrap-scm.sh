@@ -700,13 +700,115 @@ git_main()
 }
 
 
+_archive_test()
+{
+   local archive="$1"
+
+   log_fluff "Testing ${C_MAGENTA}${C_BOLD}${archive}${C_INFO} ..."
+
+   case "${archive}" in
+      *.zip)
+         redirect_exekutor /dev/null unzip -t "${archive}" || return 1
+      ;;
+   esac
+
+   local tarcommand
+
+   tarcommand="tf"
+
+   case "${UNAME}" in
+      darwin)
+         # don't need it
+      ;;
+
+      *)
+         case "${url}" in
+            *.gz)
+               tarcommand="tfz"
+            ;;
+
+            *.bz2)
+               tarcommand="tfj"
+            ;;
+
+            *.x)
+               tarcommand="tfJ"
+            ;;
+         esac
+      ;;
+   esac
+
+
+   redirect_exekutor /dev/null tar ${tarcommand} ${TAROPTIONS} ${options} "${archive}" || return 1
+}
+
+
+_archive_unpack()
+{
+   local archive="$1"
+
+   log_verbose "Extracting ${C_MAGENTA}${C_BOLD}${archive}${C_INFO} ..."
+
+   case "${archive}" in
+      *.zip)
+         exekutor unzip "${archive}" || return 1
+      ;;
+   esac
+
+   local tarcommand
+
+   tarcommand="xf"
+
+   case "${UNAME}" in
+      darwin)
+         # don't need it
+      ;;
+
+      *)
+         case "${url}" in
+            *.gz)
+               tarcommand="xfz"
+            ;;
+
+            *.bz2)
+               tarcommand="xfj"
+            ;;
+
+            *.x)
+               tarcommand="xfJ"
+            ;;
+         esac
+      ;;
+   esac
+
+   exekutor tar ${tarcommand} ${TAROPTIONS} ${options} "${archive}" || return 1
+}
+
+
 _validate_download()
 {
    local filename="$1"
-   local options="$2"
+   local scm="$2"
 
    local checksum
    local expected
+
+   if ! _archive_test "${filename}"
+   then
+      return 1
+   fi
+
+   local options
+
+   #
+   # later: make it so tar?shasum256=djhdjhdfdh
+   # and check that the archive is correct
+   #
+   options="`echo "${scm}" | sed -n 's/^[^?]*\?\(.*\)/\1/p'`"
+   if [ ! -z "${extra}" ]
+   then
+      log_fluff "Parsed scm options as \"${options}\""
+   fi
 
    case "${options}" in
       *shasum256*)
@@ -716,14 +818,14 @@ _validate_download()
             ;;
 
             *)
-               log_verbose "Validating ${C_MAGENTA}${C_BOLD}${filename}${C_INFO} ..."
-
+               log_fluff "Validating ${C_MAGENTA}${C_BOLD}${filename}${C_INFO} ..."
 
                expected="`echo "${options}" | sed -n 's/shasum256=\([a-f0-9]*\).*/\1/p'`"
                checksum="`shasum -a 256 -p "${filename}" | awk '{ print $1 }'`"
                if [ "${expected}" != "${checksum}" ]
                then
-                  fail "${filename} sha256 is ${checksum}, not ${expected} as expected"
+                  log_error "${filename} sha256 is ${checksum}, not ${expected} as expected"
+                  return 1
                fi
             ;;
          esac
@@ -783,6 +885,7 @@ _move_stuff()
    fi
 }
 
+
 #
 # What we do is
 # a) download the package using curl
@@ -794,6 +897,7 @@ _tar_download()
 {
    local download="$1"
    local url="$2"
+   local scm="$3"
 
    local archive_cache
    local cachable_path
@@ -830,13 +934,26 @@ _tar_download()
    then
       log_info "Using cached \"${cached_archive}\" for ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
       # we are in a tmp dir
-      exekutor ln -s "${cached_archive}" "${download}" || fail "failed to symlink \"${cached_archive}\""
       cachable_path=""
-   else
-      exekutor curl -O -L ${CURLOPTIONS} "${url}" || fail "failed to download \"${url}\""
+      if ! _validate_download "${cached_archive}" "${scm}"
+      then
+         remove_file_if_present "${cached_archive}"
+         cached_archive=""
+      fi
+      exekutor ln -s "${cached_archive}" "${download}" || fail "failed to symlink \"${cached_archive}\""
    fi
 
-   _validate_download "${download}" "${SCM_OPTIONS}" || exit 1
+   if [ -z "${cached_archive}" ]
+   then
+      exekutor curl -O -L ${CURLOPTIONS} "${url}" || fail "failed to download \"${url}\""
+      if ! _validate_download "${download}" "${scm}"
+      then
+         remove_file_if_present "${download}"
+         fail "Can't download archive from \"${url}\""
+      fi
+   fi
+
+   [ -f "${download}" ] || internal_fail "expected file \"${download}\" is mising"
 
    if [ -z "${cached_archive}" -a ! -z "${cachable_path}" ]
    then
@@ -855,7 +972,7 @@ tar_unpack()
    local name="$2"
    local url="$3"
 #   local branch="$4"
-#   local scm="$5"
+   local scm="$5"
 #   local tag="$6"
    local stashdir="$7"
 
@@ -883,46 +1000,10 @@ tar_unpack()
    (
       exekutor cd "${tmpdir}" || return 1
 
-      _tar_download "${download}" "${url}" || return 1
+      _tar_download "${download}" "${url}" "${scm}" || return 1
 
-      case "${url}" in
-         *.zip)
-            exekutor unzip "${download}" || return 1
-            archive="`basename "${download}" .zip`"
-            exekutor rm "${download}" || return 1
-         ;;
-      esac
-
-      local tarcommand
-
-      tarcommand="xf"
-
-      case "${UNAME}" in
-         darwin)
-            # don't need it
-         ;;
-
-         *)
-            case "${url}" in
-               *.gz)
-                  tarcommand="xfz"
-               ;;
-
-               *.bz2)
-                  tarcommand="xfj"
-               ;;
-
-               *.x)
-                  tarcommand="xfJ"
-               ;;
-            esac
-         ;;
-      esac
-
-      log_verbose "Extracting ${C_MAGENTA}${C_BOLD}${archive}${C_INFO} ..."
-
-      exekutor tar xf ${TAROPTIONS} ${options} "${archive}" || return 1
-      exekutor rm "${archive}"
+      _archive_unpack "${download}" || return 1
+      exekutor rm "${download}" || return 1
    ) || return 1
 
    _move_stuff "${tmpdir}" "${stashdir}" "${archivename}" "${name}"
@@ -937,7 +1018,7 @@ zip_unpack()
    local name="$2"
    local url="$3"
 #   local branch="$4"
-#   local scm="$5"
+   local scm="$5"
 #   local tag="$6"
    local stashdir="$7"
 
@@ -956,7 +1037,7 @@ zip_unpack()
       log_info "Downloading ${C_MAGENTA}${C_BOLD}${url}${C_INFO} ..."
 
       exekutor curl -O -L ${CURLOPTIONS} "${url}" || return 1
-      _validate_download "${download}" "${SCM_OPTIONS}" || return 1
+      _validate_download "${download}" "${scm}" || return 1
 
       log_verbose "Extracting ${C_MAGENTA}${C_BOLD}${download}${C_INFO} ..."
 
