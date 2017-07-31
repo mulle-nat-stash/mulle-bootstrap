@@ -122,6 +122,7 @@ configurations
 create_default_files
 create_example_files
 dependencies_dir
+dispense_style
 dist_clean_folders
 dont_warn_scripts
 editor

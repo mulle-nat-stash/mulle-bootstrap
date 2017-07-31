@@ -49,6 +49,9 @@ Commands:
 ${OUTPUT_CLEANABLE_FILES}
 ${OUTPUT_CLEANABLE_SUBDIRS}"  | sort| sed '/^$/d' | sed -e 's/^/      /'`
 
+   config : useful if config changes are not picked up
+`echo "${CONFIG_CLEANABLE_SUBDIRS}" | sort| sed '/^$/d' | sed -e 's/^/      /'`
+
    install : keep only addictions and dependencies
 `echo "${BUILD_CLEANABLE_SUBDIRS}
 ${OUTPUT_CLEANABLE_FILES}
@@ -177,6 +180,7 @@ setup_clean_environment()
    BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
 ${DEPENDENCIES_DIR}/tmp"`"
    OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
+   CONFIG_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "config_clean_folders" "${BOOTSTRAP_DIR}.auto"`"
    INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
 ${STASHES_DEFAULT_DIR}
 .bootstrap.auto"`"
@@ -325,18 +329,11 @@ clean_execute()
    setup_clean_environment
 
    case "${style}" in
-      build)
-         BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
-${DEPENDENCIES_DIR}/tmp"`"
+      build|dist|output|install)
          clean_directories "${BUILD_CLEANABLE_SUBDIRS}"
-         return
       ;;
 
-      dist|output|install)
-         BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
-${DEPENDENCIES_DIR}/tmp"`"
-
-         clean_directories "${BUILD_CLEANABLE_SUBDIRS}"
+      config)
       ;;
 
       *)
@@ -345,29 +342,32 @@ ${DEPENDENCIES_DIR}/tmp"`"
    esac
 
    case "${style}" in
-      output)
-         OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
+      config)
+         clean_directories "${CONFIG_CLEANABLE_SUBDIRS}"
 
-         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}"
-         clean_files "${OUTPUT_CLEANABLE_FILES}"
-         return
-      ;;
-
-      dist)
-         OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
-
-         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}"
-         clean_files "${OUTPUT_CLEANABLE_FILES}"
+         if [ -d "${BOOTSTRAP_DIR}.local" ]
+         then
+            touch "${BOOTSTRAP_DIR}.local"
+         else
+            if [ -d "${BOOTSTRAP_DIR}" ]
+            then
+               touch "${BOOTSTRAP_DIR}"
+            fi
+         fi
       ;;
    esac
 
    case "${style}" in
-      install)
-         INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
-.bootstrap.auto"`"
+      output|dist)
+         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}"
+         clean_files "${OUTPUT_CLEANABLE_FILES}"
+      ;;
 
+   esac
+
+   case "${style}" in
+      install)
          clean_directories "${INSTALL_CLEANABLE_SUBDIRS}"
-         return
       ;;
    esac
 
@@ -448,8 +448,7 @@ clean_main()
    style=${1:-"output"}
 
    case "${style}" in
-      "output"|"dist"|"build"|"install")
-
+      "build"|"config"|"dist"|"install"|"output")
          if [ -z "${MINION_NAME}" ]
          then
             clean_execute "${style}"

@@ -1369,7 +1369,7 @@ fetch_once_minions_embedded_repositories()
 
    local minions
 
-   minions="`read_root_setting minions`"
+   minions="`read_root_setting "minions"`"
 
    local minion
 
@@ -1475,7 +1475,7 @@ extract_minion_precis()
 {
    local minions
 
-   minions="`read_root_setting minions`"
+   minions="`read_root_setting "minions"`"
    auto_update_minions "${minions}"
 }
 

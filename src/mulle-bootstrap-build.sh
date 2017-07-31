@@ -95,7 +95,6 @@ EOF
 }
 
 
-
 find_cmake()
 {
    local name="$1"
@@ -248,18 +247,20 @@ dispense_files()
    local src="$1"
    local name="$2"
    local ftype="$3"
-   local dirpath="$4"
+   local depend_subdir="$4"
+   local dirpath="$5"
 
    local dst
 
    log_fluff "Consider copying ${ftype} from \"${src}\""
+
 
    if [ -d "${src}" ]
    then
       if dir_has_files "${src}"
       then
 
-         dst="`add_component "${REFERENCE_DEPENDENCIES_DIR}" "${dirpath}"`"
+         dst="`add_component "${REFERENCE_DEPENDENCIES_DIR}${depend_subdir}" "${dirpath}"`"
          mkdir_if_missing "${dst}"
 
          # this fails with more nested header set ups, need to fix!
@@ -281,6 +282,7 @@ dispense_headers()
 {
    local sources="$1"
    local name="$2"
+   local depend_subdir="$3"
 
    local headerpath
 
@@ -293,7 +295,7 @@ dispense_headers()
    do
       IFS="${DEFAULT_IFS}"
 
-      dispense_files "${src}" "${name}" "headers" "${headerpath}"
+      dispense_files "${src}" "${name}" "headers" "${depend_subdir}" "${headerpath}"
    done
    IFS="${DEFAULT_IFS}"
 }
@@ -303,10 +305,11 @@ dispense_resources()
 {
    local sources="$1"
    local name="$2"
+   local depend_subdir="$3"
 
    local resourcepath
 
-   resourcepath="`read_build_setting "$1" "dispense_resources_path" "${RESOURCE_DIR_NAME}"`"
+   resourcepath="`read_build_setting "${name}" "dispense_resources_path" "${RESOURCE_DIR_NAME}"`"
 
    local src
    IFS="
@@ -315,7 +318,7 @@ dispense_resources()
    do
       IFS="${DEFAULT_IFS}"
 
-      dispense_files "${src}" "${name}" "resources" "${resourcepath}"
+      dispense_files "${src}" "${name}" "resources" "${depend_subdir}" "${resourcepath}"
    done
    IFS="${DEFAULT_IFS}"
 }
@@ -325,10 +328,11 @@ dispense_libexec()
 {
    local sources="$1"
    local name="$2"
+   local depend_subdir="$3"
 
    local libexecpath
 
-   libexecpath="`read_build_setting "$1" "dispense_resources_path" "/${LIBEXEC_DIR_NAME}"`"
+   libexecpath="`read_build_setting "${name}" "dispense_resources_path" "/${LIBEXEC_DIR_NAME}"`"
 
    local src
    IFS="
@@ -337,7 +341,7 @@ dispense_libexec()
    do
       IFS="${DEFAULT_IFS}"
 
-      dispense_files "${src}" "${name}" "libexec" "${libexecpath}"
+      dispense_files "${src}" "${name}" "libexec" "${depend_subdir}" "${libexecpath}"
    done
    IFS="${DEFAULT_IFS}"
 }
@@ -401,17 +405,14 @@ dispense_binaries()
 }
 
 
-collect_and_dispense_product()
+_collect_and_dispense_product()
 {
-   log_debug "collect_and_dispense_product" "$@"
+   log_debug "_collect_and_dispense_product" "$@"
 
    local name="$1"
    local build_subdir="$2"
    local depend_subdir="$3"
    local wasxcode="$4"
-
-   local  dst
-   local  src
 
    if read_yes_no_config_setting "skip_collect_and_dispense" "NO"
    then
@@ -434,6 +435,15 @@ collect_and_dispense_product()
    [ -z "${FRAMEWORK_DIR_NAME}" ]   && internal_fail "FRAMEWORK_DIR_NAME undefined"
    [ -z "${RESOURCE_DIR_NAME}" ]    && internal_fail "LIBRARY_DIR_NAME undefined"
    [ -z "${HEADER_DIR_NAME}" ]      && internal_fail "LIBRARY_DIR_NAME undefined"
+
+   #
+   # ensure basic structure is there to squelch linker warnings
+   #
+   log_fluff "Create default lib/, include/, Frameworks/ in ${REFERENCE_DEPENDENCIES_DIR}${depend_subdir}"
+
+   mkdir_if_missing "${REFERENCE_DEPENDENCIES_DIR}${depend_subdir}/${FRAMEWORK_DIR_NAME}"
+   mkdir_if_missing "${REFERENCE_DEPENDENCIES_DIR}${depend_subdir}/${LIBRARY_DIR_NAME}"
+   mkdir_if_missing "${REFERENCE_DEPENDENCIES_DIR}${depend_subdir}/${HEADER_DIR_NAME}"
 
    #
    # probably should use install_name_tool to hack all dylib paths that contain .ref
@@ -461,7 +471,7 @@ ${BUILD_DEPENDENCIES_DIR}/usr/local/libexec
 ${BUILD_DEPENDENCIES_DIR}/usr/libexec
 ${BUILD_DEPENDENCIES_DIR}/libexec"
 
-      dispense_libexec "${sources}" "${name}"
+      dispense_libexec "${sources}" "${name}" "${depend_subdir}"
 
 
       ##
@@ -472,7 +482,7 @@ ${BUILD_DEPENDENCIES_DIR}/usr/local/share
 ${BUILD_DEPENDENCIES_DIR}/usr/share
 ${BUILD_DEPENDENCIES_DIR}/share"
 
-      dispense_resources "${sources}" "${name}"
+      dispense_resources "${sources}" "${name}" "${depend_subdir}"
 
       ##
       ## copy headers
@@ -482,7 +492,7 @@ ${BUILD_DEPENDENCIES_DIR}/usr/local/include
 ${BUILD_DEPENDENCIES_DIR}/usr/include
 ${BUILD_DEPENDENCIES_DIR}/include"
 
-      dispense_headers  "${sources}" "${name}"
+      dispense_headers  "${sources}" "${name}" "${depend_subdir}"
 
 
       ##
@@ -509,6 +519,9 @@ ${BUILD_DEPENDENCIES_DIR}/Frameworks"
 
       dispense_binaries "${sources}" "${name}" "d" "${depend_subdir}" "/${FRAMEWORK_DIR_NAME}"
    fi
+
+   local dst
+   local src
 
    #
    # Delete empty dirs if so
@@ -591,27 +604,6 @@ enforce_build_sanity()
 }
 
 
-determine_suffix()
-{
-   local configuration="$1"
-   local sdk="$2"
-
-   [ ! -z "$configuration" ] || fail "configuration must not be empty"
-   [ ! -z "$sdk" ]           || fail "sdk must not be empty"
-
-   local suffix
-   local hackish
-
-   suffix="${configuration}"
-   if [ "${sdk}" != "Default" ]
-   then
-      hackish=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
-      suffix="${suffix}-${hackish}"
-   fi
-   echo "${suffix}"
-}
-
-
 #
 # if only one configuration is chosen, make it the default
 # if there are multiple configurations, make Release the default
@@ -619,19 +611,88 @@ determine_suffix()
 #
 determine_build_subdir()
 {
-   echo "/$1"
+   log_debug "determine_build_subdir" "$*"
+
+   local configuration="$1"
+   local sdk="$2"
+
+   [ -z "$configuration" ] && internal_fail "configuration must not be empty"
+   [ -z "$sdk" ]           && internal_fail "sdk must not be empty"
+
+   sdk=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
+
+   if [ "${sdk}" = "Default" ]
+   then
+      if [ "${configuration}" != "Release" ]
+      then
+         echo "/${configuration}"
+      fi
+   else
+      echo "/${configuration}-${sdk}"
+   fi
 }
 
 
 determine_dependencies_subdir()
 {
-   if [ "${N_CONFIGURATIONS}" -gt 1 ]
+   log_debug "determine_dependencies_subdir" "$*"
+
+   local configuration="$1"
+   local sdk="$2"
+   local style="$3"
+
+   [ -z "$configuration" ] && internal_fail "configuration must not be empty"
+   [ -z "$sdk" ]           && internal_fail "sdk must not be empty"
+   [ -z "$BUILD_SDKS" ]    && internal_fail "BUILD_SDKS must not be empty"
+
+   sdk=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
+
+   if [ "${style}" = "auto" ]
    then
-      if [ "$1" != "Release" ]
+      style="configuration"
+
+      n_sdks="`echo "${BUILD_SDKS}" | wc -l | awk '{ print $1 }'`"
+      if [ $n_sdks -gt 1 ]
       then
-         echo "/$1"
+         style="configuration-sdk"
       fi
    fi
+
+   case "${style}" in
+      "none")
+      ;;
+
+      "configuration-strict")
+         echo "/${configuration}"
+      ;;
+
+      "configuration-sdk-strict")
+         echo "/${configuration}-${sdk}"
+      ;;
+
+      "configuration-sdk")
+         if [ "${sdk}" = "Default" ]
+         then
+            if [ "${configuration}" != "Release" ]
+            then
+               echo "/${configuration}"
+            fi
+         else
+            echo "/${configuration}-${sdk}"
+         fi
+      ;;
+
+      "configuration")
+         if [ "${configuration}" != "Release" ]
+         then
+            echo "/${configuration}"
+         fi
+      ;;
+
+      *)
+         fail "unknown value \"${BUILD_DISPENSE_STYLE}\" for dispense_style"
+      ;;
+   esac
 }
 
 
@@ -702,19 +763,17 @@ _build_flags()
    local mapped="$6"
 
    local fallback
-   local suffix
 
    fallback="`echo "${OPTION_CONFIGURATIONS}" | tail -1`"
    fallback="`read_build_setting "${name}" "fallback-configuration" "${fallback}"`"
-   suffix="`determine_suffix "${configuration}" "${sdk}"`"
 
    local mappedsubdir
    local fallbacksubdir
    local suffixsubdir
 
-   mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
-   suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
-   fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
+   suffixsubdir="`determine_dependencies_subdir "${configuration}" "${sdk}" "${OPTION_DISPENSE_STYLE}"`" || exit 1
+   mappedsubdir="`determine_dependencies_subdir "${mapped}" "${sdk}" "${OPTION_DISPENSE_STYLE}"`" || exit 1
+   fallbacksubdir="`determine_dependencies_subdir "${fallback}" "${sdk}" "${OPTION_DISPENSE_STYLE}"`" || exit 1
 
    (
       local nativewd
@@ -849,9 +908,11 @@ _build_flags()
       echo "${native_includelines}"
       echo "${native_librarylines}"
       echo "${native_frameworklines}"
+
       echo "${includelines}"
       echo "${librarylines}"
       echo "${frameworklines}"
+      echo "${nativewd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}"
    )
 }
 
@@ -951,17 +1012,26 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    mapped="`read_build_setting "${name}" "cmake-${configuration}.map" "${configuration}"`"
    flaglines="`build_cmake_flags "$@" "${mapped}"`"
 
+
    local cppflags
    local ldflags
    local includelines
    local librarylines
    local frameworklines
+   local dependenciesdir
 
-   cppflags="`echo "${flaglines}"       | sed -n '1p'`"
-   ldflags="`echo "${flaglines}"        | sed -n '2p'`"
-   includelines="`echo "${flaglines}"   | sed -n '6p'`"
-   librarylines="`echo "${flaglines}"   | sed -n '7p'`"
-   frameworklines="`echo "${flaglines}" | sed -n '8p'`"
+   cppflags="`echo "${flaglines}"        | sed -n '1p'`"
+   ldflags="`echo "${flaglines}"         | sed -n '2p'`"
+   includelines="`echo "${flaglines}"    | sed -n '6p'`"
+   librarylines="`echo "${flaglines}"    | sed -n '7p'`"
+   frameworklines="`echo "${flaglines}"  | sed -n '8p'`"
+   dependenciesdir="`echo "${flaglines}" | sed -n '9p'`"
+
+   local addictionsdir
+   local binpath
+
+   addictionsdir="${PWD}/${REFERENCE_ADDICTIONS_DIR}"
+   binpath="${dependenciesdir}/bin"
 
    # CMAKE_CPP_FLAGS does not exist in cmake
    # so merge into CFLAGS and CXXFLAGS
@@ -1047,19 +1117,15 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       [ -z "${BUILDPATH}" ] && internal_fail "BUILDPATH not set"
 
       oldpath="$PATH"
-      PATH="${BUILDPATH}"
+      PATH="${binpath}:${BUILDPATH}"
+
+      log_fluff "PATH temporarily set to $PATH"
 
       local prefixbuild
 
       prefixbuild="`add_cmake_path "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
 
       local cmake_dirs
-
-      local dependenciesdir
-      local addictionsdir
-
-      dependenciesdir="${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"
-      addictionsdir="${nativewd}/${REFERENCE_ADDICTIONS_DIR}"
 
       if [ ! -z "${dependenciesdir}" ]
       then
@@ -1128,11 +1194,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       set +f
 
    ) || exit 1
-
-   local depend_subdir
-
-   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
-   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" || internal_fail "collect failed silently"
 }
 
 
@@ -1146,17 +1207,11 @@ build_configure()
 {
    log_debug "build_configure" "$*"
 
-   local configuration
-   local srcdir
-   local builddir
-   local name
-   local sdk
-
-   configuration="$1"
-   srcdir="$2"
-   builddir="$3"
-   name="$4"
-   sdk="$5"
+   local configuration="$1"
+   local srcdir="$2"
+   local builddir="$3"
+   local name="$4"
+   local sdk="$5"
 
    if [ -z "${MAKE}" ]
    then
@@ -1208,9 +1263,17 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
    local cppflags
    local ldflags
+   local dependenciesdir
 
    cppflags="`echo "${flaglines}" | sed -n '1p'`"
    ldflags="`echo "${flaglines}"  | sed -n '2p'`"
+   dependenciesdir="`echo "${flaglines}"  | sed -n '9p'`"
+
+   local addictionsdir
+   local binpath
+
+   addictionsdir="${nativewd}/${REFERENCE_ADDICTIONS_DIR}"
+   binpath="${dependenciesdir}/bin"
 
    # CMAKE_CPP_FLAGS does not exist in cmake
    # so merge into CFLAGS and CXXFLAGS
@@ -1288,12 +1351,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       log_verbose "Build logs will be in \"${logfile1}\" and \"${logfile2}\""
 
-      local dependenciesdir
-      local addictionsdir
-
-      dependenciesdir="${nativewd}/${REFERENCE_DEPENDENCIES_DIR}"
-      addictionsdir="${nativewd}/${REFERENCE_ADDICTIONS_DIR}"
-
       local prefixbuild
 
       prefixbuild="`add_component "${prefixbuild}" "${nativewd}/${BUILD_DEPENDENCIES_DIR}"`"
@@ -1302,7 +1359,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       local rval
 
       oldpath="$PATH"
-      PATH="${BUILDPATH}"
+      PATH="${binpath}:${BUILDPATH}"
+
+      log_fluff "PATH temporarily set to $PATH"
 
        # use absolute paths for configure, safer (and easier to read IMO)
       logging_redirect_eval_exekutor "${logfile1}" \
@@ -1328,15 +1387,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       PATH="${oldpath}"
       [ $rval -ne 0 ] && build_fail "${logfile2}" "make"
 
-      PATH="${oldpath}"
       set +f
 
    ) || exit 1
-
-   local depend_subdir
-
-   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
-   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" || exit 1
 }
 
 
@@ -1446,23 +1499,14 @@ build_xcodebuild()
 {
    log_debug "build_xcodebuild" "$*"
 
-   local configuration
-   local srcdir
-   local builddir
-   local name
-   local sdk
-   local project
-   local schemename
-   local targetname
-
-   configuration="$1"
-   srcdir="$2"
-   builddir="$3"
-   name="$4"
-   sdk="$5"
-   project="$6"
-   schemename="$7"
-   targetname="$8"
+   local configuration="$1"
+   local srcdir="$2"
+   local builddir="$3"
+   local name="$4"
+   local sdk="$5"
+   local project="$6"
+   local schemename="$7"
+   local targetname="$8"
 
    [ ! -z "${configuration}" ] || internal_fail "configuration is empty"
    [ ! -z "${srcdir}" ]        || internal_fail "srcdir is empty"
@@ -1514,7 +1558,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local targetname
    local suffix
 
-   suffix="${configuration}"
+   suffix="${mapped}"
    if [ "${sdk}" != "Default" ]
    then
       hackish="`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`"
@@ -1528,10 +1572,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    local mappedsubdir
    local fallbacksubdir
    local suffixsubdir
+   local binpath
 
-   mappedsubdir="`determine_dependencies_subdir "${mapped}"`"
-   suffixsubdir="`determine_dependencies_subdir "${suffix}"`"
-   fallbacksubdir="`determine_dependencies_subdir "${fallback}"`"
+   suffixsubdir="`determine_dependencies_subdir "${configuration}" "${sdk}" "${OPTION_DISPENSE_STYLE}"`" || exit 1
+   mappedsubdir="`determine_dependencies_subdir "${mapped}" "${sdk}" "${OPTION_DISPENSE_STYLE}"`" || exit 1
+   fallbacksubdir="`determine_dependencies_subdir "${fallback}" "${sdk}" "${OPTION_DISPENSE_STYLE}"`" || exit 1
+   binpath="${PWD}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/bin"
 
    local xcode_proper_skip_install
    local skip_install
@@ -1599,7 +1645,6 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
    public_headers="`fixup_header_path "PUBLIC_HEADERS_FOLDER_PATH" "xcode_public_headers" "${name}" "${default}" ${arguments}`"
    default="/include/${name}/private"
    private_headers="`fixup_header_path "PRIVATE_HEADERS_FOLDER_PATH" "xcode_private_headers" "${name}" "${default}" ${arguments}`"
-
 
    local logfile
 
@@ -1754,14 +1799,17 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       local rval
 
       oldpath="${PATH}"
-      PATH="${BUILDPATH}"
+      PATH="${binpath}:${BUILDPATH}"
+
+      log_fluff "PATH temporarily set to $PATH"
+
       # if it doesn't install, probably SKIP_INSTALL is set
       cmdline="\"${XCODEBUILD}\" \"${command}\" ${arguments} \
 ARCHS='${ARCHS:-\${ARCHS_STANDARD_32_64_BIT}}' \
 DSTROOT='${owd}/${BUILD_DEPENDENCIES_DIR}' \
 SYMROOT='${owd}/${builddir}/' \
 OBJROOT='${owd}/${builddir}/obj' \
-DEPENDENCIES_DIR='${owd}/${REFERENCE_DEPENDENCIES_DIR}' \
+DEPENDENCIES_DIR='${owd}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}' \
 ADDICTIONS_DIR='${owd}/${REFERENCE_ADDICTIONS_DIR}' \
 ONLY_ACTIVE_ARCH=${ONLY_ACTIVE_ARCH:-NO} \
 ${skip_install} \
@@ -1781,11 +1829,6 @@ FRAMEWORK_SEARCH_PATHS='${dependencies_framework_search_path}'"
       set +f
 
    exekutor cd "${owd}"
-
-   local depend_subdir
-
-   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
-   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" "YES" || exit 1
 }
 
 
@@ -1793,13 +1836,9 @@ build_xcodebuild_schemes_or_target()
 {
    log_debug "build_xcodebuild_schemes_or_target" "$*"
 
-   local builddir
-   local name
-   local project
-
-   builddir="$3"
-   name="$4"
-   project="$6"
+   local builddir="$3"
+   local name="$4"
+   local project="$6"
 
    local scheme
    local schemes
@@ -1856,17 +1895,11 @@ build_script()
    script="$1"
    shift
 
-   local configuration
-   local srcdir
-   local builddir
-   local name
-   local sdk
-
-   configuration="$1"
-   srcdir="$2"
-   builddir="$3"
-   name="$4"
-   sdk="$5"
+   local configuration="$1"
+   local srcdir="$2"
+   local builddir="$3"
+   local name="$4"
+   local sdk="$5"
 
    enforce_build_sanity "${builddir}"
 
@@ -1879,6 +1912,12 @@ build_script()
 
    logfile="${BUILDLOGS_DIR}/${name}-${configuration}-${sdk}.script.log"
    logfile="`absolutepath "${logfile}"`"
+
+   local suffixsubdir
+   local binpath
+
+   suffixsubdir="`determine_dependencies_subdir "${configuration}" "${sdk}" "${OPTION_DISPENSE_STYLE}"`" || exit 1
+   binpath="${PWD}/${REFERENCE_DEPENDENCIES_DIR}${suffixsubdir}/bin"
 
    log_fluff "Build log will be in: ${C_RESET_BOLD}${logfile}${C_INFO}"
 
@@ -1908,7 +1947,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       local rval
 
       oldpath="${PATH}"
-      PATH="${BUILDPATH}"
+      PATH="${binpath}:${BUILDPATH}"
+
+      log_fluff "PATH temporarily set to $PATH"
 
       run_log_build_script "${owd}/${script}" \
          "${configuration}" \
@@ -1923,15 +1964,20 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO}${info} in \
       [ $rval -ne 0 ] && build_fail "${logfile}" "build.sh"
 
    exekutor cd "${owd}"
+}
 
-   local suffix
+
+collect_and_dispense_product()
+{
+   local name="$1"
+   local configuration="$2"
+   local sdk="$3"
+   local wasxcode="$4"
+
    local depend_subdir
-   local suffixsubdir
 
-   suffix="`determine_suffix "${configuration}" "${sdk}"`"
-   suffixsubdir="`determine_build_subdir "${suffix}"`"
-   depend_subdir="`determine_dependencies_subdir "${suffix}"`"
-   collect_and_dispense_product "${name}" "${suffixsubdir}" "${depend_subdir}" || internal_fail "collect failed silently"
+   depend_subdir="`determine_dependencies_subdir "${configuration}" "${sdk}" "${OPTION_DISPENSE_STYLE}"`" || exit 1
+   _collect_and_dispense_product "${name}" "${build_subdir}" "${depend_subdir}" "${wasxcode}"
 }
 
 
@@ -1939,19 +1985,10 @@ build_with_configuration_sdk_preferences()
 {
    log_debug "build_with_configuration_sdk_preferences" "$*"
 
-   local name
-   local configuration
-   local sdk
-   local preferences
-
-   name="$1"
-   [ $# -ne 0 ] && shift
-   configuration="$1"
-   [ $# -ne 0 ] && shift
-   sdk="$1"
-   [ $# -ne 0 ] && shift
-   preferences="$1"
-   [ $# -ne 0 ] && shift
+   local name="$1"; shift
+   local configuration="$1"; shift
+   local sdk="$1" ; shift
+   local preferences="$1" ; shift
 
    if [ "/${configuration}" = "/${LIBRARY_DIR_NAME}" -o "/${configuration}" = "${HEADER_DIR_NAME}" -o "/${configuration}" = "${FRAMEWORK_DIR_NAME}" ]
    then
@@ -1963,9 +2000,12 @@ build_with_configuration_sdk_preferences()
       fail "You are just asking for major trouble naming your configuration \"${configuration}\"."
    fi
 
+   # always build into fully qualified
+   local build_subdir
    local builddir
 
-   builddir="${CLONESBUILD_DIR}/${configuration}/${name}"
+   build_subdir="`determine_build_subdir "${configuration}" "${sdk}"`" || exit 1
+   builddir="${CLONESBUILD_DIR}${build_subdir}/${name}"
 
    if [ -d "${builddir}" -a "${OPTION_CLEAN_BEFORE_BUILD}" = "YES" ]
    then
@@ -1974,16 +2014,21 @@ build_with_configuration_sdk_preferences()
    fi
 
    local project
+   local rval
+   local wasxcode
 
+   rval=1
    for preference in ${preferences}
    do
+      wasxcode="NO"
       case "${preference}" in
          script)
             script="`find_build_setting_file "${name}" "bin/build.sh"`"
             if [ -x "${script}" ]
             then
                build_script "${script}" "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" || exit 1
-               return 0
+               rval=$?
+               break
             else
                [ ! -e "${script}" ] || fail "script ${script} is not executable"
                log_fluff "There is no build script in \"`build_setting_path "${name}" "bin/build.sh"`\""
@@ -2006,7 +2051,9 @@ build_with_configuration_sdk_preferences()
                      log_warning "Found a Xcode project, but ${C_RESET}${C_BOLD}xcodebuild${C_WARNING} is not installed"
                   else
                      build_xcodebuild_schemes_or_target "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}" "${project}"  || exit 1
-                     return 0
+                     rval=$?
+                     wasxcode="YES"
+                     break
                   fi
                fi
             else
@@ -2029,7 +2076,8 @@ build_with_configuration_sdk_preferences()
                   log_warning "Found a ./configure, but ${C_RESET}${C_BOLD}make${C_WARNING} is not installed"
                else
                   build_configure "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
-                  return 0
+                  rval=$?
+                  break
                fi
             else
                log_fluff "There is no configure script in \"${srcdir}\""
@@ -2046,7 +2094,8 @@ build_with_configuration_sdk_preferences()
                   log_warning "Found a CMakeLists.txt, but ${C_RESET}${C_BOLD}cmake${C_WARNING} is not installed"
                else
                   build_cmake "${configuration}" "${srcdir}" "${builddir}" "${name}" "${sdk}"  || exit 1
-                  return 0
+                  rval=$?
+                  break
                fi
             else
                log_fluff "There is no CMakeLists.txt file in \"${srcdir}\""
@@ -2063,7 +2112,13 @@ build_with_configuration_sdk_preferences()
       esac
    done
 
-   return 1
+   if [ $rval -eq 0 ]
+   then
+      collect_and_dispense_product "${name}" "${configuration}" "${sdk}" "${wasxcode}" || \
+         internal_fail "collect failed silently"
+   fi
+
+   return $rval
 }
 
 
@@ -2118,19 +2173,31 @@ configure"`"
    local sdk
 
    # need uniform SDK for our builds
-   sdks=`read_build_setting "${name}" "sdks" "Default"`
+   sdks=`read_build_setting "${name}" "sdks" "${OPTION_SDKS}"`
+
    [ ! -z "${sdks}" ] || fail "setting \"sdks\" must at least contain \"Default\" to build anything"
 
    # settings can override the commandline default
    configurations="`read_build_setting "${name}" "configurations" "${OPTION_CONFIGURATIONS}"`"
 
+   # "export" some globals
+   local BUILD_CONFIGURATIONS
+   local BUILD_SDKS
+
+   BUILD_CONFIGURATIONS="${configurations}"
+   BUILD_SDKS="${sdks}"
+
    for sdk in ${sdks}
    do
-      # remap macosx to Default, as EFFECTIVE_PLATFORM_NAME will not be appeneded by Xcode
-      if [ "$sdk" = "macosx" ]
-      then
-         sdk="Default"
-      fi
+      # remap macosx to Default, as EFFECTIVE_PLATFORM_NAME will not be appended by Xcode
+      case "${UNAME}" in
+         darwin)
+            if [ "$sdk" = "macosx" ]
+            then
+               sdk="Default"
+            fi
+         ;;
+      esac
 
       for configuration in ${configurations}
       do
@@ -2441,10 +2508,12 @@ build_main()
    local OPTION_CLEAN_BEFORE_BUILD
    local OPTION_CHECK_USR_LOCAL_INCLUDE
    local OPTION_CONFIGURATIONS
+   local OPTION_SDKS
    local OPTION_ADD_USR_LOCAL
    local OPTION_USE_CC_CXX
    local OPTION_FROM
    local OPTION_TO
+   local OPTION_DISPENSE_STYLE  # keep empty
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OPTION_USE_CC_CXX="`read_config_setting "use_cc_cxx" "YES"`"
@@ -2456,9 +2525,9 @@ build_main()
    while [ $# -ne 0 ]
    do
       case "$1" in
-         -c|--configuration)
+         -c|--configuration|--configurations)
+            [ $# -eq 1 ] && fail "argument for $1 is missing"
             shift
-            [ $# -ne 0 ] || fail "configuration names missing"
 
             OPTION_CONFIGURATIONS="`printf "%s" "$1" | tr ',' '\012'`"
             ;;
@@ -2470,11 +2539,13 @@ build_main()
 
          --debug)
             OPTION_CONFIGURATIONS="Debug"
+            OPTION_DISPENSE_STYLE="none"
          ;;
 
          --from)
             [ $# -eq 1 ] && fail "argument for $1 is missing"
             shift
+
             OPTION_FROM="$1"
          ;;
 
@@ -2500,8 +2571,8 @@ build_main()
          ;;
 
          --prefix)
+            [ $# -eq 1 ] && fail "argument for $1 is missing"
             shift
-            [ $# -ne 0 ] || fail "prefix missing"
 
             USR_LOCAL_INCLUDE="$1/include"
             USR_LOCAL_LIB="$1/lib"
@@ -2509,7 +2580,16 @@ build_main()
 
          --release)
             OPTION_CONFIGURATIONS="Release"
+            OPTION_DISPENSE_STYLE="none"
          ;;
+
+         -sdk|--sdks)
+            [ $# -eq 1 ] && fail "argument for $1 is missing"
+            shift
+
+            OPTION_SDKS="`printf "%s" "$1" | tr ',' '\012'`"
+         ;;
+
 
          --to)
             [ $# -eq 1 ] && fail "argument for $1 is missing"
@@ -2553,9 +2633,21 @@ build_main()
 
    build_complete_environment
 
-   [ -z "${MULLE_BOOTSTRAP_COMMAND_SH}" ]      && . mulle-bootstrap-command.sh
-   [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ]          && . mulle-bootstrap-gcc.sh
-   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]      && . mulle-bootstrap-scripts.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMAND_SH}" ] && . mulle-bootstrap-command.sh
+   [ -z "${MULLE_BOOTSTRAP_GCC_SH}" ]     && . mulle-bootstrap-gcc.sh
+   [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ] && . mulle-bootstrap-scripts.sh
+
+   case "${ADDICTIONS_DIR}" in
+      /*|~*)
+         internal_fail "ADDICTIONS_DIR must not be an absolute path"
+      ;;
+   esac
+   case "${DEPENDENCIES_DIR}" in
+      /*|~*)
+         internal_fail "DEPENDENCIES_DIR must not be an absolute path"
+      ;;
+   esac
+
 
    #
    #

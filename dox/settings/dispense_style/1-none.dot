@@ -1,0 +1,7 @@
+digraph inherit {
+   node [shape="folder"]
+
+   dependencies -> lib
+   dependencies -> include
+   dependencies -> Frameworks
+}

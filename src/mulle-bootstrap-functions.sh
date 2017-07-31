@@ -1338,14 +1338,6 @@ write_protect_directory()
 {
    if [ -d "$1" ]
    then
-      #
-      # ensure basic structure is there to squelch linker warnings
-      #
-      log_fluff "Create default lib/, include/, Frameworks/ in $1"
-      exekutor mkdir "$1/Frameworks" 2> /dev/null
-      exekutor mkdir "$1/lib" 2> /dev/null
-      exekutor mkdir "$1/include" 2> /dev/null
-
       log_verbose "Write-protecting ${C_RESET_BOLD}$1${C_VERBOSE} to avoid spurious header edits"
       exekutor chmod -R a-w "$1"
    fi

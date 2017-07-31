@@ -18,7 +18,8 @@ Setting Name            |  Description
 `repositories`          | Repositories to clone, specify the URLs
 `embedded_repositories` | Repositories to embed, specify the URLs
 `tarballs`              | Tarballs to install (currently filesystem only)
-
+`version`               | mulle-bootstrap version that was used for init
+`dispense_style`        | either "configuration-sdk", "configuration" or "none"
 
 > None of these settings are required, they are used to control the
 > **mulle_bootstrap** build processs
@@ -47,6 +48,7 @@ Setting Name                     |  Description                               | 
                                  | relative to dependencies                   | `/usr/local`
 `dispense_other_product`         | if the build should dispense other files   | NO
 `sdks`                           | SDKs to build                              | config setting
+`dispense_style`                 | either "configuration-sdk", "configuration" or "none" | "none"
 `xcode_proper_skip_install`      | assume SKIP_INSTALL is set correctly in    |
                                  | Xcode project                              | NO
 `xcode_public_headers`           | Substitute for PUBLIC_HEADERS_FOLDER_PATH  |

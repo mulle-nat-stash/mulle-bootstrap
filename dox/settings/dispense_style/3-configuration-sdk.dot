@@ -1,0 +1,32 @@
+digraph inherit {
+   node [shape="folder"]
+
+   dependencies -> lib
+   dependencies -> include
+   dependencies -> Frameworks
+
+   dependencies -> "Debug" -> lib2
+                   "Debug" -> include2
+                   "Debug" -> Frameworks2
+
+   dependencies -> "Release-iphonesimulator" -> lib3
+                   "Release-iphonesimulator" -> include3
+                   "Release-iphonesimulator" -> Frameworks3
+
+   dependencies -> "Debug-iphonesimulator" -> lib4
+                   "Debug-iphonesimulator" -> include4
+                   "Debug-iphonesimulator" -> Frameworks4
+
+
+   lib2 [ label="lib"]
+   include2 [ label="include"]
+   Frameworks2 [ label="Frameworks"]
+
+   lib3 [ label="lib"]
+   include3 [ label="include"]
+   Frameworks3 [ label="Frameworks"]
+
+   lib4 [ label="lib"]
+   include4 [ label="include"]
+   Frameworks4 [ label="Frameworks"]
+}

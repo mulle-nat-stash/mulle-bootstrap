@@ -40,12 +40,14 @@ Usage:
 Output paths for various tool types. You can specify multiple types.
 
 Options:
+   -c <config>    : specify the configuration, default is "Release"
    -f             : emit link directives for Frameworks
    -l             : emit link directives for libraries
    -m             : emit regardless of directory existence
    -n             : output is a multi-liner
-   -q <char>      : specify quote character, default empty
+   -q <char>      : specify quote character, default is ""
    -s <char>      : specify PATH seperator character
+   --sdk <name>   : specify the sdk, default is "Default"
 
 Types:
    addictions     : output "addictions" path
@@ -169,11 +171,26 @@ _flags_emit_path_value()
 }
 
 
+_dependencies_subdir()
+{
+   local simplified
+
+   simplified="`simplified_dispense_style "${OPTION_DISPENSE_STYLE}" \
+                                          "${OPTION_CONFIGURATION}" \
+                                          "${OPTION_SDK}"`"
+   #
+   # expand PATH for build, but it's kinda slow
+   # so don't do it all the time
+   #
+
+   _simplified_dispense_style_subdirectory "${simplified}"
+}
+
+
 _flags_binpath_value()
 {
    local pathline
    local line
-
    pathline="`_flags_emit_path_value "${DEPENDENCIES_DIR}/bin"`"
    line="`_flags_emit_path_value "${ADDICTIONS_DIR}/bin"`"
 
@@ -642,10 +659,13 @@ paths_main()
    local OPTION_QUOTE=""
    local OPTION_SHELL_QUOTE="\""
    local OPTION_LINE_SEPERATOR=" "
+   local OPTION_CONFIGURATION="Release"
+   local OPTION_SDK="Default"
 
    log_debug ":paths_main:"
 
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
 
    OPTION_WITH_HEADERPATHS="YES"
    OPTION_WITH_LIBRARYPATHS="YES"
@@ -675,6 +695,13 @@ paths_main()
             OPTION_LINE_SEPERATOR=" "
          ;;
 
+         -c|--configuration)
+            [ $# -eq 1 ] && fail "missing argument for $1"
+            shift
+
+            OPTION_CONFIGURATION="$1"
+         ;;
+
          -d|--dependencies)
             OPTION_WITH_DEPENDENCIES="YES"
          ;;
@@ -695,10 +722,6 @@ paths_main()
 
          -n|--multiple-lines)
             OPTION_LINE_SEPERATOR="\n"
-         ;;
-
-         -r|--relative-paths)
-            OPTION_USE_ABSOLUTE_PATHS="NO"
          ;;
 
          -na|--no-addictions)
@@ -729,13 +752,6 @@ paths_main()
             OPTION_WITH_LIBRARYPATHS="NO"
          ;;
 
-         --shell-quote)
-            shift
-            [ $# -eq 0 ] && fail "quote missing"
-
-            OPTION_SHELL_QUOTE="$1"
-         ;;
-
          -q|--quote)
             shift
             [ $# -eq 0 ] && fail "quote missing"
@@ -743,11 +759,30 @@ paths_main()
             OPTION_QUOTE="$1"
          ;;
 
+         -r|--relative-paths)
+            OPTION_USE_ABSOLUTE_PATHS="NO"
+         ;;
+
          -s|--separator)
             shift
             [ $# -eq 0 ] && fail "separator missing"
 
             OPTION_PATH_SEPARATOR="$1"
+         ;;
+
+         --sdk)
+            [ $# -eq 1 ] && fail "missing argument for $1"
+            shift
+
+            OPTION_SDK="$1"
+         ;;
+
+
+         --shell-quote)
+            shift
+            [ $# -eq 0 ] && fail "quote missing"
+
+            OPTION_SHELL_QUOTE="$1"
          ;;
 
          -*)
@@ -763,9 +798,9 @@ paths_main()
       shift
    done
 
-   [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
    [ -z "${DEPENDENCIES_DIR}" ] && internal_fail "missing DEPENDENCIES_DIR"
    [ -z "${ADDICTIONS_DIR}" ]   && internal_fail "missing ADDICTIONS_DIR"
+
 
    local type
    local values
@@ -774,6 +809,19 @@ paths_main()
    result=""
    type="${1:-run}"
 
+
+   #
+   # if there is no "root", then pick the first configuration/sdk
+   # for the dependencies paths
+   #
+   local old
+   local subdir
+
+   build_complete_environment   # need this now
+
+   old="${DEPENDENCIES_DIR}"
+   subdir="`_dependencies_subdir`"
+   DEPENDENCIES_DIR="${DEPENDENCIES_DIR}${subdir}"
 
    local memo
 
@@ -840,4 +888,6 @@ paths_main()
          printf "%s\n" "${result}"
       fi
    fi
+
+   DEPENDENCIES_DIR="${old}"
 }

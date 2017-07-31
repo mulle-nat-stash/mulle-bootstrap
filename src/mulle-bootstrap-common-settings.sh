@@ -31,6 +31,93 @@
 #
 MULLE_BOOTSTRAP_COMMON_SETTINGS_SH="included"
 
+
+simplified_dispense_style()
+{
+   local dispense_style="$1"
+   local configurations="$2"
+   local sdks="$3"
+
+   local have_release
+   local have_default
+
+   have_release="$(fgrep -x -s "Release" <<< "${configurations}")"
+   have_default="$(fgrep -x -s "Default" <<< "${sdks}")"
+
+   # simplify dispense style to: none, category-strict or category-sdk-strict
+   # for finding a bin directory
+   while :
+   do
+      case "${dispense_style}" in
+         auto|configuration)
+            if [ ! -z "${have_release}" ]
+            then
+               echo "none"
+            else
+               echo "configuration-strict"
+            fi
+            return
+         ;;
+
+         configuration-sdk)
+            if [ ! -z "${have_default}" ]
+            then
+               dispense_style="configuration" # reloop
+            else
+               echo "configuration-sdk-strict"
+               return
+            fi
+         ;;
+
+
+         none|configuration-strict|configuration-sdk-strict)
+            echo "${dispense_style}"
+            return
+         ;;
+
+         *)
+            fail "Unknown dispense_style \"$dispense_style\""
+         ;;
+      esac
+   done
+}
+
+
+_simplified_dispense_style_subdirectory()
+{
+   local dispense_style="$1"
+
+   local configuration
+   local sdk
+
+   [ -z "${OPTION_CONFIGURATIONS}" ] && internal_fail "OPTION_CONFIGURATIONS is empty"
+   [ -z "${OPTION_SDKS}" ]           && internal_fail "OPTION_SDKS is empty"
+
+   case "${dispense_style}" in
+      none)
+         PATH="`prepend_to_search_path_if_missing "$PATH" \
+                                                  "${DEPENDENCIES_DIR}/bin" \
+                                                  "${ADDICTIONS_DIR}/bin"`"
+      ;;
+
+      configuration-strict)
+         configuration="$(head -1 <<< "${OPTION_CONFIGURATIONS}")"
+         echo "/${configuration}"
+      ;;
+
+      configuration-sdk-strict)
+         configuration="$(head -1 <<< "${OPTION_CONFIGURATIONS}")"
+         sdk="$(head -1 <<< "${OPTION_SDKS}")"
+         echo "/${configuration}-${sdk}"
+      ;;
+
+      *)
+         internal_fail "pass in the simplified dispense style"
+      ;;
+   esac
+}
+
+
 #
 # only needed for true builds
 #
@@ -38,14 +125,22 @@ build_complete_environment()
 {
    log_debug ":build_complete_environment:"
 
+   [ -z "${__BUILD_COMPLETE_ENVIRONMENT}" ] || internal_fail "build_complete_environment run twice"
+   __BUILD_COMPLETE_ENVIRONMENT="YES"
+
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
+
+   if [ -z "${OPTION_SDKS}" ]
+   then
+      OPTION_SDKS="`read_config_setting "sdks" "Default"`"
+      OPTION_SDKS="`read_root_setting "sdks" "${OPTION_SDKS}"`"
+   fi
 
    if [ -z "${OPTION_CONFIGURATIONS}" ]
    then
       OPTION_CONFIGURATIONS="`read_config_setting "configurations" "Release"`"
       OPTION_CONFIGURATIONS="`read_root_setting "configurations" "${OPTION_CONFIGURATIONS}"`"
    fi
-   N_CONFIGURATIONS="`echo "${OPTION_CONFIGURATIONS}" | wc -l | awk '{ print $1 }'`"
 
    OPTION_CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
 
@@ -57,13 +152,19 @@ build_complete_environment()
    [ -z "${BUILDLOGS_DIR}" ]    && internal_fail "variable BUILDLOGS_DIR is empty"
 
    #
+   # Determine dispense_style
+   #
+   if [ -z "${OPTION_DISPENSE_STYLE}" ]
+   then
+      OPTION_DISPENSE_STYLE="`read_config_setting "dispense_style" "none"`"
+   fi
+
+   #
    # expand PATH for build, but it's kinda slow
    # so don't do it all the time
    #
-   PATH="`prepend_to_search_path_if_missing "$PATH" "${DEPENDENCIES_DIR}/bin" "${ADDICTIONS_DIR}/bin"`"
-   export PATH
-
-   log_fluff "PATH set to: $PATH"
+   BUILDPATH="`prepend_to_search_path_if_missing "${MULLE_EXECUTABLE_ENV_PATH}" \
+                                                 "${ADDICTIONS_DIR}/bin"`"
 
    #
    # dont export stuff for scripts
@@ -75,7 +176,7 @@ build_complete_environment()
 
          setup_mingw_buildenvironment
 
-         BUILDPATH="`mingw_buildpath "$PATH"`"
+         BUILDPATH="`mingw_buildpath "${BUILDPATH}"`"
          BUILD_PWD_OPTIONS="-PW"
       ;;
 
@@ -92,7 +193,7 @@ build_complete_environment()
          fi
 
          BUILD_PWD_OPTIONS="-P"
-         BUILDPATH="$PATH"
+         BUILDPATH="${BUILDPATH}"
       ;;
    esac
 }
