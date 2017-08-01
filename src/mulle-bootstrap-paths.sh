@@ -207,7 +207,6 @@ _flags_expanded_binpath_value()
 }
 
 
-
 _flags_emit_option_value()
 {
    local prefix="$1"

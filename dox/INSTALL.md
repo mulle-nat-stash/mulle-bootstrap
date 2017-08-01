@@ -27,9 +27,14 @@ brew install mulle-kybernetik/software/mulle-bootstrap
 Run with sudo:
 
 ```
+sudo -s
+
 curl -sS "https://www.mulle-kybernetik.com/dists/admin-pub.asc" | apt-key add -
+
 echo "deb [arch=all] http://www.mulle-kybernetik.com `lsb_release -c -s` main" \
 > "/etc/apt/sources.list.d/mulle-kybernetik.com-main.list"
+
+apt-get update
 apt-get -y --allow-unauthenticated install mulle-bootstrap
 ```
 

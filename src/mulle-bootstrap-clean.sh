@@ -40,6 +40,8 @@ clean_usage()
 Usage:
    ${MULLE_EXECUTABLE} clean [command]
 
+   Default clean command is "full".
+
 Commands:
    build : remove intermediate build files to conserve space. It deletes
 `echo "${BUILD_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
@@ -49,8 +51,9 @@ Commands:
 ${OUTPUT_CLEANABLE_FILES}
 ${OUTPUT_CLEANABLE_SUBDIRS}"  | sort| sed '/^$/d' | sed -e 's/^/      /'`
 
-   config : useful if config changes are not picked up
-`echo "${CONFIG_CLEANABLE_SUBDIRS}" | sort| sed '/^$/d' | sed -e 's/^/      /'`
+   full : useful to pickup config changes and to rebuild
+`echo "${CONFIG_CLEANABLE_SUBDIRS}
+"${BUILD_CLEANABLE_SUBDIRS}" | sort| sed '/^$/d' | sed -e 's/^/      /'`
 
    install : keep only addictions and dependencies
 `echo "${BUILD_CLEANABLE_SUBDIRS}
@@ -179,16 +182,20 @@ setup_clean_environment()
 
    BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
 ${DEPENDENCIES_DIR}/tmp"`"
+
+   # OUTPUT is: BUILD +  ...
    OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
-   CONFIG_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "config_clean_folders" "${BOOTSTRAP_DIR}.auto"`"
+
+   # INSTALL is: BUILD + ...
    INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
-${STASHES_DEFAULT_DIR}
-.bootstrap.auto"`"
+${STASHES_DEFAULT_DIR}"`"
+
+   # FULL is: BUILD + OUTPUT + ...
+   FULL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "full_clean_folders" "${BOOTSTRAP_DIR}.auto"`"
+
+   # DIST is: BUILD + OUTPUT + FULL + INSTALL + ...
    DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" \
-"${REPOS_DIR}
-${ADDICTIONS_DIR}
-${STASHES_DEFAULT_DIR}
-${BOOTSTRAP_DIR}.auto"`"
+"${ADDICTIONS_DIR}"`"
 
    # scrub old stuff
    if [ -d ".repos" ]
@@ -328,12 +335,10 @@ clean_execute()
 
    setup_clean_environment
 
+   # BUILD
    case "${style}" in
-      build|dist|output|install)
+      build|dist|full|output|install)
          clean_directories "${BUILD_CLEANABLE_SUBDIRS}"
-      ;;
-
-      config)
       ;;
 
       *)
@@ -341,9 +346,19 @@ clean_execute()
       ;;
    esac
 
+   # OUTPUT
    case "${style}" in
-      config)
-         clean_directories "${CONFIG_CLEANABLE_SUBDIRS}"
+      dist|full|output)
+         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}"
+         clean_files "${OUTPUT_CLEANABLE_FILES}"
+      ;;
+
+   esac
+
+   # FULL
+   case "${style}" in
+      dist|full)
+         clean_directories "${FULL_CLEANABLE_SUBDIRS}"
 
          if [ -d "${BOOTSTRAP_DIR}.local" ]
          then
@@ -357,20 +372,14 @@ clean_execute()
       ;;
    esac
 
+   # INSTALL
    case "${style}" in
-      output|dist)
-         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}"
-         clean_files "${OUTPUT_CLEANABLE_FILES}"
-      ;;
-
-   esac
-
-   case "${style}" in
-      install)
+      dist|install)
          clean_directories "${INSTALL_CLEANABLE_SUBDIRS}"
       ;;
    esac
 
+   # DIST
    case "${style}" in
       dist)
          clean_directories "${DIST_CLEANABLE_SUBDIRS}"
@@ -445,10 +454,10 @@ clean_main()
 
    local style
 
-   style=${1:-"output"}
+   style=${1:-"full"}
 
    case "${style}" in
-      "build"|"config"|"dist"|"install"|"output")
+      "build"|"full"|"dist"|"install"|"output")
          if [ -z "${MINION_NAME}" ]
          then
             clean_execute "${style}"

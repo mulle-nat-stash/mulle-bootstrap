@@ -1,3 +1,9 @@
+## 3.10.0
+
+* new clean command 'full' is now also the new default
+* new build and root setting . See dox/settings/dispense_style/DISPENSE_STYLE.md
+
+
 ### 3.9.3
 
 * fix some problems with tar archives
