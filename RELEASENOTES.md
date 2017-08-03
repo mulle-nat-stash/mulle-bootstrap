@@ -1,3 +1,7 @@
+## 3.11.0
+
+* clean command 'build' is now different, so that `mulle-boostrap clean build` followed by `mulle-bootstrap build` actually rebuilds everything as one would expect. The old functionality is now called `mulle-bootstrap clean cruft`
+
 ## 3.10.0
 
 * new clean command 'full' is now also the new default

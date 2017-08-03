@@ -43,27 +43,34 @@ Usage:
    Default clean command is "full".
 
 Commands:
-   build : remove intermediate build files to conserve space. It deletes
-`echo "${BUILD_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
-
-   output : useful to rebuild. It deletes
-`echo "${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_FILES}
-${OUTPUT_CLEANABLE_SUBDIRS}"  | sort| sed '/^$/d' | sed -e 's/^/      /'`
-
-   full : useful to pickup config changes and to rebuild
-`echo "${CONFIG_CLEANABLE_SUBDIRS}
-"${BUILD_CLEANABLE_SUBDIRS}" | sort| sed '/^$/d' | sed -e 's/^/      /'`
+   cruft : remove intermediate build files to conserve space. It deletes
+`echo "${CRUFT_CLEANABLE_SUBDIRS}" | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
 
    install : keep only addictions and dependencies
-`echo "${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_FILES}
-${INSTALL_CLEANABLE_SUBDIRS}" | sort | sed '/^$/d' | sed -e 's/^/      /'`
+`echo "${CRUFT_CLEANABLE_SUBDIRS}
+${INSTALL_CLEANABLE_SUBDIRS}" | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
+
+   build : useful to rebuild. It deletes
+`echo "${CRUFT_CLEANABLE_SUBDIRS}
+${BUILD_CLEANABLE_SUBDIRS}
+${BUILD_CLEANABLE_FILES}
+${BUILD_CLEANABLE_SUBDIRS}"  | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
+
+   full : useful to pickup config changes and to rebuild
+`echo "${CRUFT_CLEANABLE_SUBDIRS}
+${BUILD_CLEANABLE_SUBDIRS}
+${BUILD_CLEANABLE_FILES}
+${BUILD_CLEANABLE_SUBDIRS}
+${FULL_CLEANABLE_SUBDIRS}" | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
 
    dist : remove all clones, dependencies, addictions. It deletes
-`echo "${BUILD_CLEANABLE_SUBDIRS}
-${OUTPUT_CLEANABLE_SUBDIRS}
-${DIST_CLEANABLE_SUBDIRS}"    | sort | sed '/^$/d' | sed -e 's/^/      /'`
+`echo "${CRUFT_CLEANABLE_SUBDIRS}
+${BUILD_CLEANABLE_SUBDIRS}
+${BUILD_CLEANABLE_FILES}
+${BUILD_CLEANABLE_SUBDIRS}
+${FULL_CLEANABLE_SUBDIRS}
+${INSTALL_CLEANABLE_SUBDIRS}
+${DIST_CLEANABLE_SUBDIRS}"    | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
 
 EOF
 
@@ -178,22 +185,23 @@ setup_clean_environment()
 
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
 
-   OUTPUT_CLEANABLE_FILES="${REPOS_DIR}/.build_done"
 
-   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
+   CRUFT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
 ${DEPENDENCIES_DIR}/tmp"`"
 
-   # OUTPUT is: BUILD +  ...
-   OUTPUT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
+   BUILD_CLEANABLE_FILES="${REPOS_DIR}/.build_done"
 
-   # INSTALL is: BUILD + ...
+   # BUILD is: CRUFT +  ...
+   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
+
+   # INSTALL is: CRUFT + ...
    INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
 ${STASHES_DEFAULT_DIR}"`"
 
-   # FULL is: BUILD + OUTPUT + ...
+   # FULL is: CRUFT + BUILD + ...
    FULL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "full_clean_folders" "${BOOTSTRAP_DIR}.auto"`"
 
-   # DIST is: BUILD + OUTPUT + FULL + INSTALL + ...
+   # DIST is: CRUFT + BUILD + FULL + INSTALL + ...
    DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" \
 "${ADDICTIONS_DIR}"`"
 
@@ -223,8 +231,6 @@ ${STASHES_DEFAULT_DIR}"`"
    stashes="`print_stashdir_deep_embedded_minion_repositories`"
    DIST_CLEANABLE_SUBDIRS="`add_line "${DIST_CLEANABLE_SUBDIRS}" "${stashes}"`"
 }
-
-
 
 
 clean_asserted_folder()
@@ -335,10 +341,10 @@ clean_execute()
 
    setup_clean_environment
 
-   # BUILD
+   # CRUFT
    case "${style}" in
-      build|dist|full|output|install)
-         clean_directories "${BUILD_CLEANABLE_SUBDIRS}"
+      cruft|build|dist|full|output|install)
+         clean_directories "${CRUFT_CLEANABLE_SUBDIRS}"
       ;;
 
       *)
@@ -346,11 +352,11 @@ clean_execute()
       ;;
    esac
 
-   # OUTPUT
+   # BUILD, formerly called OUTPUT
    case "${style}" in
-      dist|full|output)
-         clean_directories "${OUTPUT_CLEANABLE_SUBDIRS}"
-         clean_files "${OUTPUT_CLEANABLE_FILES}"
+      build|dist|full|output)
+         clean_directories "${BUILD_CLEANABLE_SUBDIRS}"
+         clean_files "${BUILD_CLEANABLE_FILES}"
       ;;
 
    esac
@@ -457,7 +463,7 @@ clean_main()
    style=${1:-"full"}
 
    case "${style}" in
-      "build"|"full"|"dist"|"install"|"output")
+      "cruft"|"build"|"output"|"full"|"dist"|"install"|"output")
          if [ -z "${MINION_NAME}" ]
          then
             clean_execute "${style}"
