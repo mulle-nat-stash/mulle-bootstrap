@@ -739,7 +739,7 @@ read_sane_config_path_setting()
    local value
 
    value="`read_config_setting "${key}" "${default}"`"
-   if [ $? -eq 0 ]
+   if [ $? -eq 0 -a ! -z "${value}" ]
    then
       assert_sane_subdir_path "${value}"
       echo "$value"

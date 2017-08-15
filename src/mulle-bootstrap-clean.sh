@@ -43,27 +43,31 @@ Usage:
    Default clean command is "full".
 
 Commands:
-   cruft : remove intermediate build files to conserve space. It deletes
-`echo "${CRUFT_CLEANABLE_SUBDIRS}" | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
-
-   install : keep only addictions and dependencies
-`echo "${CRUFT_CLEANABLE_SUBDIRS}
-${INSTALL_CLEANABLE_SUBDIRS}" | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
-
-   build : useful to rebuild. It deletes
+   build : useful to run mulle-bootstrap build again. It deletes
 `echo "${CRUFT_CLEANABLE_SUBDIRS}
 ${BUILD_CLEANABLE_SUBDIRS}
 ${BUILD_CLEANABLE_FILES}
 ${BUILD_CLEANABLE_SUBDIRS}"  | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
 
-   full : useful to pickup config changes and to rebuild
+   cruft   : remove intermediate build files to conserve space.
+             It deletes:
+`echo "${CRUFT_CLEANABLE_SUBDIRS}" | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
+
+   full    : useful to pickup config changes and file removals on rebuild.
+             You may need to bootstrap again though. It deletes:
 `echo "${CRUFT_CLEANABLE_SUBDIRS}
 ${BUILD_CLEANABLE_SUBDIRS}
 ${BUILD_CLEANABLE_FILES}
 ${BUILD_CLEANABLE_SUBDIRS}
 ${FULL_CLEANABLE_SUBDIRS}" | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
 
-   dist : remove all clones, dependencies, addictions. It deletes
+   install : keep only addictions and dependencies, if you don't expect to
+             rebuild. It deletes:
+`echo "${CRUFT_CLEANABLE_SUBDIRS}
+${INSTALL_CLEANABLE_SUBDIRS}" | sort -u | sed '/^$/d' | sed -e 's/^/      /'`
+
+   dist    : remove all clones, dependencies, addictions.
+             It deletes
 `echo "${CRUFT_CLEANABLE_SUBDIRS}
 ${BUILD_CLEANABLE_SUBDIRS}
 ${BUILD_CLEANABLE_FILES}
@@ -192,14 +196,15 @@ ${DEPENDENCIES_DIR}/tmp"`"
    BUILD_CLEANABLE_FILES="${REPOS_DIR}/.build_done"
 
    # BUILD is: CRUFT +  ...
-   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "output_clean_folders" "${DEPENDENCIES_DIR}"`"
+   BUILD_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "build_clean_folders" ""`"
 
    # INSTALL is: CRUFT + ...
    INSTALL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "install_clean_folders" "${REPOS_DIR}
 ${STASHES_DEFAULT_DIR}"`"
 
    # FULL is: CRUFT + BUILD + ...
-   FULL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "full_clean_folders" "${BOOTSTRAP_DIR}.auto"`"
+   FULL_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "full_clean_folders" "${DEPENDENCIES_DIR}
+${BOOTSTRAP_DIR}.auto"`"
 
    # DIST is: CRUFT + BUILD + FULL + INSTALL + ...
    DIST_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "dist_clean_folders" \
