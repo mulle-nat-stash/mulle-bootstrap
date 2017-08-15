@@ -8,7 +8,7 @@ Clean command reworked
 ## 3.10.0
 
 * new clean command 'full' is now also the new default
-* new build and root setting . See dox/settings/dispense_style/DISPENSE_STYLE.md
+* new config `dispense_style` . See [DISPENSE_STYLE](dox/settings/dispense_style/DISPENSE_STYLE.md)
 
 
 ### 3.9.3
