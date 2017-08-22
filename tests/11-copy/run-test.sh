@@ -1,4 +1,4 @@
-#! /bin/sh -x
+#! /usr/bin/env bash 
 
 clear_test_dirs()
 {

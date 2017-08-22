@@ -173,9 +173,9 @@ echo "mulle-bootstrap: `mulle-bootstrap version`(`mulle-bootstrap library-path`)
 MULLE_BOOTSTRAP_CACHES_PATH="`pwd -P`"
 export MULLE_BOOTSTRAP_CACHES_PATH
 
-setup_test_case
-test_a "$@"
+setup_test_case &&
+test_a "$@" &&
+echo "succeeded" >&2 &&
 clear_test_dirs a b
 
-echo "succeeded" >&2
 
