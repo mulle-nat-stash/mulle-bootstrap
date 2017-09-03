@@ -181,6 +181,8 @@ tools_environment_common()
    # no problem if those are empty
    C_COMPILER="`find_compiler "${name}" "${srcdir}" CC`"
    CXX_COMPILER="`find_compiler "${name}" "${srcdir}" CXX`"
+   TR="`verify_binary "tr" "tr" "tr"`"
+   SED="`verify_binary "sed" "sed" "sed"`"
 }
 
 
@@ -231,9 +233,12 @@ tools_environment_cmake()
 
    local defaultgenerator
 
-   defaultgenerator="`platform_cmake_generator "${defaultmake}"`"
+   defaultgenerator="`platform_cmake_generator "${MAKE}"`"
+
    CMAKE="`find_cmake "${name}"`"
    CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "${defaultgenerator}"`"
+
+   [ -z "${CMAKE_GENERATOR}" ]  && internal_fail "CMAKE_GENERATOR must not be empty"
 }
 
 
@@ -619,7 +624,7 @@ determine_build_subdir()
    [ -z "$configuration" ] && internal_fail "configuration must not be empty"
    [ -z "$sdk" ]           && internal_fail "sdk must not be empty"
 
-   sdk=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
+   sdk=`echo "${sdk}" | "${SED:-sed}" 's/^\([a-zA-Z]*\).*$/\1/g'`
 
    if [ "${sdk}" = "Default" ]
    then
@@ -645,7 +650,7 @@ determine_dependencies_subdir()
    [ -z "$sdk" ]           && internal_fail "sdk must not be empty"
    [ -z "$BUILD_SDKS" ]    && internal_fail "BUILD_SDKS must not be empty"
 
-   sdk=`echo "${sdk}" | sed 's/^\([a-zA-Z]*\).*$/\1/g'`
+   sdk=`echo "${sdk}" | "${SED}" 's/^\([a-zA-Z]*\).*$/\1/g'`
 
    if [ "${style}" = "auto" ]
    then
@@ -854,8 +859,8 @@ _build_flags()
          ;;
 
          mingw)
-            native_includelines="`echo "${native_includelines}" | tr '/' '\\'  2> /dev/null`"
-            native_librarylines="`echo "${native_librarylines}" | tr '/' '\\'  2> /dev/null`"
+            native_includelines="`echo "${native_includelines}" | "${TR}" '/' '\\'  2> /dev/null`"
+            native_librarylines="`echo "${native_librarylines}" | "${TR}" '/' '\\'  2> /dev/null`"
             libraryprefix="/LIBPATH:"
             includeprefix="/I"
             frameworklines=
@@ -878,7 +883,7 @@ _build_flags()
       for path in ${native_includelines}
       do
          IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
+         path="$("${SED}" 's/ /\\ /g' <<< "${path}")"
          cppflags="`concat "${cppflags}" "${includeprefix}${path}"`"
       done
 
@@ -886,7 +891,7 @@ _build_flags()
       for path in ${native_librarylines}
       do
          IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
+         path="$("${SED}" 's/ /\\ /g' <<< "${path}")"
          ldflags="`concat "${ldflags}" "${libraryprefix}${path}"`"
       done
 
@@ -894,7 +899,7 @@ _build_flags()
       for path in ${native_frameworklines}
       do
          IFS="${DEFAULT_IFS}"
-         path="$(sed 's/ /\\ /g' <<< "${path}")"
+         path="$("${SED}" 's/ /\\ /g' <<< "${path}")"
          cppflags="`concat "${cppflags}" "${frameworkprefix}${path}"`"
          ldflags="`concat "${ldflags}" "${frameworkprefix}${path}"`"
       done
@@ -1020,12 +1025,12 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local frameworklines
    local dependenciesdir
 
-   cppflags="`echo "${flaglines}"        | sed -n '1p'`"
-   ldflags="`echo "${flaglines}"         | sed -n '2p'`"
-   includelines="`echo "${flaglines}"    | sed -n '6p'`"
-   librarylines="`echo "${flaglines}"    | sed -n '7p'`"
-   frameworklines="`echo "${flaglines}"  | sed -n '8p'`"
-   dependenciesdir="`echo "${flaglines}" | sed -n '9p'`"
+   cppflags="`echo "${flaglines}"        | "${SED}" -n '1p'`"
+   ldflags="`echo "${flaglines}"         | "${SED}" -n '2p'`"
+   includelines="`echo "${flaglines}"    | "${SED}" -n '6p'`"
+   librarylines="`echo "${flaglines}"    | "${SED}" -n '7p'`"
+   frameworklines="`echo "${flaglines}"  | "${SED}" -n '8p'`"
+   dependenciesdir="`echo "${flaglines}" | "${SED}" -n '9p'`"
 
    local addictionsdir
    local binpath
@@ -1161,7 +1166,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
       relative_srcdir="`relative_path_between "${owd}/${srcdir}" "${PWD}"`"
       case "${UNAME}" in
          mingw)
-            relative_srcdir="`echo "${relative_srcdir}" | tr '/' '\\'  2> /dev/null`"
+            relative_srcdir="`echo "${relative_srcdir}" | "${TR}" '/' '\\'  2> /dev/null`"
       esac
 
       logging_redirect_eval_exekutor "${logfile1}" "'${CMAKE}'" \
@@ -1265,9 +1270,9 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local ldflags
    local dependenciesdir
 
-   cppflags="`echo "${flaglines}" | sed -n '1p'`"
-   ldflags="`echo "${flaglines}"  | sed -n '2p'`"
-   dependenciesdir="`echo "${flaglines}"  | sed -n '9p'`"
+   cppflags="`echo "${flaglines}"        | "${SED}" -n '1p'`"
+   ldflags="`echo "${flaglines}"         | "${SED}" -n '2p'`"
+   dependenciesdir="`echo "${flaglines}" | "${SED}" -n '9p'`"
 
    local addictionsdir
    local binpath
@@ -1291,7 +1296,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local sdkpath
 
    sdkpath="`gcc_sdk_parameter "${sdk}"`"
-   sdkpath="`echo "${sdkpath}" | sed -e 's/ /\\ /g'`"
+   sdkpath="`echo "${sdkpath}" | "${SED}" -e 's/ /\\ /g'`"
 
    if [ ! -z "${sdkpath}" ]
    then

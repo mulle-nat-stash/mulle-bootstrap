@@ -254,6 +254,15 @@ bootstrap_libexec_path()
       libexecpath="${exedirpath}/src"
    fi
 
+   case "$libexecpath" in
+      /*|~*)
+      ;;
+
+      *)
+         libexecpath="$PWD/$libexecpath"
+      ;;
+   esac
+
    if [ -x "${libexecpath}/mulle-bootstrap-functions.sh" ]
    then
       echo "${libexecpath}"
@@ -679,6 +688,17 @@ bootstrap_main()
 #
 # service both names
 #
+MULLE_EXECUTABLE_PATH="$0"
+case "$MULLE_EXECUTABLE_PATH" in
+   /*|~*)
+   ;;
+
+   *)
+      MULLE_EXECUTABLE_PATH="$PWD/$MULLE_EXECUTABLE_PATH"
+   ;;
+esac
+
+
 MULLE_EXECUTABLE="`basename -- "$0"`"
 MULLE_ARGUMENTS="$@"
 MULLE_EXECUTABLE_ENV_PATH="$PATH"

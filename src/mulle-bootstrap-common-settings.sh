@@ -177,7 +177,17 @@ build_complete_environment()
          setup_mingw_buildenvironment
 
          BUILDPATH="`mingw_buildpath "${BUILDPATH}"`"
+         # if mulle-bootstrap is not properly installed pickup .bat path 
+         # this way
+         local pretty
+
+         pretty="`dirname -- "${MULLE_EXECUTABLE_PATH}"`"
+         pretty="`simplified_path "$pretty"`"
+
+         BUILDPATH="$pretty:${BUILDPATH}"
          BUILD_PWD_OPTIONS="-PW"
+
+         log_fluff "MINGW buildpath is \"${BUILDPATH}\""
       ;;
 
       "")

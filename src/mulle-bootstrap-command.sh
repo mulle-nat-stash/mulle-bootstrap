@@ -94,11 +94,15 @@ suggest_binary_install()
 
 platform_make()
 {
-   local compiler="$1"
+   local compilerpath="$1"
+
+   local name
+
+   name="`basename -- "${compilerpath}"`"
 
    case "${UNAME}" in
       mingw)
-         case "${compiler}" in
+         case "${name}" in
             ""|cl|cl.exe)
                echo "nmake"
             ;;
@@ -117,19 +121,24 @@ platform_make()
 
 platform_cmake_generator()
 {
-   local make="$1"
+   local makepath="$1"
 
+   local name
+
+   name="`basename -- "${makepath}"`"
    case "${UNAME}" in
       mingw)
-         case "${make}" in
-            n*|N*)
-               defaultgenerator="NMake Makefiles"
+         case "${name}" in
+            nmake|*nmake.exe)
+               echo "NMake Makefiles"
             ;;
+
             mingw*|MINGW*)
-               defaultgenerator="MinGW Makefiles"
+               echo "MinGW Makefiles"
             ;;
+
             *)
-               defaultgenerator="MSYS Makefiles"
+               echo "MSYS Makefiles"
             ;;
          esac
       ;;
@@ -250,7 +259,7 @@ verify_binary()
    path=`which_binary "${toolname}"`
    if [ ! -z "${path}" ]
    then
-      echo "`basename ${path}`"
+      echo "${path}"
       return 0
    fi
 

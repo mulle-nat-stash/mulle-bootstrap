@@ -43,7 +43,7 @@ tar_remove_extension()
             echo "-s/\.$1\$//"
          ;;
 
-         linux)
+         linux|mingw)
             echo "--transform s/\.$1\$//"
          ;;
 

@@ -139,7 +139,7 @@ mingw_buildpath()
 
       if [ -x "${i}/sh.exe" ]
       then
-         log_fluff "Remove \"$i\" from build PATH because it contains sh"
+         log_fluff "Removed \"$i\" from build PATH because it contains sh"
          continue
       fi
 

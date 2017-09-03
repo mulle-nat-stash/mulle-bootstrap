@@ -162,10 +162,10 @@ dump_library()
 
    local filename
 
-   filename="`find_library ${libraryname}`"
+   filename="`find_library "${libraryname}"`"
    if [ -z "${filename}" ]
    then
-      filename="`find_library ${libraryname}.lib`"
+      filename="`find_library "${libraryname}.lib"`"
       if [ -z "${filename}" ]
       then
          echo "${libraryname} ($PWD) not found" >&2 && exit 1
@@ -176,13 +176,13 @@ dump_library()
    then
       if [ ! -z "${VERBOSE}" ]
       then
-         echo "Dumping `basename -- ${filename}` symbols with prefixes ${prefixes}" >&2
+         echo "Dumping `basename -- "${filename}"` symbols with prefixes ${prefixes}" >&2
       fi
       dump_exports "${filename}" | egrep "${prefixes}"
    else
       if [ ! -z "${VERBOSE}" ]
       then
-         echo "Dumping all `basename -- ${filename}` symbols" >&2
+         echo "Dumping all `basename -- "${filename}"` symbols" >&2
       fi
       dump_exports "${filename}"
    fi
@@ -318,7 +318,7 @@ ${SEARCH_PATH}"
    then
       trap "rm ${outfile}" INT TERM
 
-      dump_libraries "${libname}" "${prefixes}" "$@"  | unix2dos > "${outfile}"
+      dump_libraries "${libname}" "${prefixes}" "$@" | unix2dos > "${outfile}"
       if [ ! -z "${VERBOSE}" ]
       then
          echo "Dumped to ${outfile}" >&2

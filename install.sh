@@ -188,8 +188,9 @@ main()
 
          for i in mulle-mingw-*bat
          do
-
-            sed -e "s|SH_PATH|${SH_PATH}|g" -e "s|INSTALL_PATH|${INSTALL_PATH}|g" < "${i}" > "${bin}/$i" || exit 1
+            cat "${i}" \
+               | sed -e 's|C:\\Program\ Files\\Git\\usr\\bin\\shx\.exe|'"${SH_PATH}|g" \
+               | sed -e 's|mulle-mingw-dumpdef.sh|'"${INSTALL_PATH}/mulle-mingw-dumpdef.sh|g" > "${bin}/$i" || exit 1
             chmod "${mode}" "${bin}/${i}" || exit 1
             printf "install: ${C_MAGENTA}${C_BOLD}%s${C_RESET}\n" "$bin/$i" >&2
          done

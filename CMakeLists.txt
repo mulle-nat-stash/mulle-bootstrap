@@ -30,6 +30,27 @@ mulle-bootstrap
 mulle-bootstrap-dotdump
 )
 
+
+if(MINGW)
+   set( SCRIPTS
+${SCRIPTS}
+mulle-mingw-cmake.sh
+mulle-mingw-make.sh
+mulle-mingw-cpp.sh
+mulle-mingw-dumpdef.sh*
+)
+
+#
+# Todo need to preprocess this to replace SH_PATH with /usr/bin/sh.exe or some such
+#
+   set( BATS
+mulle-mingw-dumpdef.bat
+)
+
+endif()
+
+
+
 set( LIBRARY_SCRIPTS
 src/mulle-bootstrap-array.sh
 src/mulle-bootstrap-auto-update.sh
@@ -67,6 +88,13 @@ src/mulle-bootstrap-zombify.sh
 )
 
 INSTALL( FILES ${SCRIPTS}
+PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+            GROUP_EXECUTE GROUP_READ
+            WORLD_EXECUTE WORLD_READ
+DESTINATION "bin")
+
+
+INSTALL( FILES ${BATS}
 PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
             GROUP_EXECUTE GROUP_READ
             WORLD_EXECUTE WORLD_READ

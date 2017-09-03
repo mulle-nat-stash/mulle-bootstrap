@@ -1,5 +1,5 @@
- @ECHO OFF 
+@ECHO OFF 
 
-REM PATHs are replaced by install.sh 
+REM "C:\Program Files\Git\usr\bin\sh.exe" and "/usr/local/bin" are replaced by install.sh 
 
-"SH_PATH" "INSTALL_PATH\mulle-mingw-dumpdef.sh" %*
+"C:\Program Files\Git\usr\bin\sh.exe" "mulle-mingw-dumpdef.sh" %*
