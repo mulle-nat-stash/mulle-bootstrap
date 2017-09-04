@@ -81,7 +81,25 @@ _bootstrap_auto_copy()
    do
       IFS="${DEFAULT_IFS}"
 
+      #
+      # os specific overrides present, skip dis
+      #
+      if [ -f "${name}.${UNAME}" ]
+      then
+         continue
+      fi
+
       filepath="${tmpdir}/${name}"
+
+      #
+      # cut off os specific for general name
+      #
+      case "${name}" in
+         *".${UNAME}")
+            name="${name%.*}"
+         ;;
+      esac
+
       dstfilepath="${dst}/${name}"
 
       # only inherit, don't override
@@ -303,11 +321,29 @@ _bootstrap_auto_merge_root_settings()
 
       settingname="`basename -- "${i}"`"
       srcfile="${directory}/.bootstrap/${settingname}"
+
       if [ -d "${srcfile}" ]
       then
          # log_fluff "Directory \"${srcfile}\" not copied"
          continue
       fi
+
+      #
+      # os specific overrides present, skip dis
+      #
+      if [ -f "${srcfile}.${UNAME}" ]
+      then
+         continue
+      fi
+
+      #
+      # cut off os specific for general name
+      #
+      case "${settingname}" in
+         *".${UNAME}")
+            settingname="${settingname%.*}"
+         ;;
+      esac
 
       dstfile="${dst}/${settingname}"
 
@@ -315,6 +351,7 @@ _bootstrap_auto_merge_root_settings()
       # "repositories" files gets special treatment
       # "additional_repositories" is just a local patch thing
       # "embedded_repositories" is not merged though
+      #
       case "${settingname}" in
          "embedded_repositories"|"minions")
             continue  # done by caller
