@@ -93,6 +93,8 @@ mingw_mangle_compiler()
 #
 setup_mingw_buildenvironment()
 {
+   log_debug "setup_mingw_buildenvironment"
+   
    local linker
 
    if [ -z "${LIBPATH}" -o  -z "${INCLUDE}" ] && [ -z "${DONT_USE_VS}" ]

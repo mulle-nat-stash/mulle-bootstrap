@@ -654,7 +654,7 @@ paths_main()
    local OPTION_WITH_LIBRARIES="NO"
    local OPTION_WITH_LIBRARYPATHS="YES"
    local OPTION_WITH_MISSING_PATHS="NO"
-   local OPTION_PATH_SEPARATOR=":"
+   local OPTION_PATH_SEPARATOR="${PATH_SEPARATOR}"
    local OPTION_QUOTE=""
    local OPTION_SHELL_QUOTE="\""
    local OPTION_LINE_SEPERATOR=" "
@@ -663,7 +663,7 @@ paths_main()
 
    log_debug ":paths_main:"
 
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]       && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
 
    OPTION_WITH_HEADERPATHS="YES"
@@ -776,7 +776,6 @@ paths_main()
             OPTION_SDK="$1"
          ;;
 
-
          --shell-quote)
             shift
             [ $# -eq 0 ] && fail "quote missing"
@@ -800,14 +799,12 @@ paths_main()
    [ -z "${DEPENDENCIES_DIR}" ] && internal_fail "missing DEPENDENCIES_DIR"
    [ -z "${ADDICTIONS_DIR}" ]   && internal_fail "missing ADDICTIONS_DIR"
 
-
    local type
    local values
    local result
 
    result=""
    type="${1:-run}"
-
 
    #
    # if there is no "root", then pick the first configuration/sdk
