@@ -41,7 +41,7 @@ mulle-mingw-dumpdef.sh*
 )
 
 #
-# Todo need to preprocess this to replace SH_PATH with /usr/bin/sh.exe or some such
+# Todo need to preprocess this to replace paths
 #
    set( BATS
 mulle-mingw-dumpdef.bat

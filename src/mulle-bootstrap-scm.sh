@@ -702,14 +702,23 @@ git_main()
 
 _archive_test()
 {
+   log_debug "_archive_test" "$@"
+
    local archive="$1"
+   local scm="$2"
 
    log_fluff "Testing ${C_MAGENTA}${C_BOLD}${archive}${C_INFO} ..."
 
    case "${archive}" in
       *.zip)
          redirect_exekutor /dev/null unzip -t "${archive}" || return 1
-	 archive="${archive%.*}"
+	      archive="${archive%.*}"
+      ;;
+   esac
+
+   case "${scm}" in
+      zip*)
+         return
       ;;
    esac
 
@@ -753,7 +762,7 @@ _archive_unpack()
    case "${archive}" in
       *.zip)
          exekutor unzip "${archive}" || return 1
-	 archive="${archive%.*}"
+	      archive="${archive%.*}"
       ;;
    esac
 
@@ -789,13 +798,15 @@ _archive_unpack()
 
 _validate_download()
 {
+   log_debug "_validate_download" "$@"
+
    local filename="$1"
    local scm="$2"
 
    local checksum
    local expected
 
-   if ! _archive_test "${filename}"
+   if ! _archive_test "${filename}" "${scm}"
    then
       return 1
    fi
@@ -968,6 +979,8 @@ _tar_download()
 
 tar_unpack()
 {
+   log_debug "tar_unpack" "$@"
+
    [ $# -ge 7 ] || internal_fail "tar_unpack: parameters missing"
 
 #   local reposdir="$1"
@@ -1014,6 +1027,8 @@ tar_unpack()
 
 zip_unpack()
 {
+   log_debug "zip_unpack" "$@"
+
    [ $# -ge 7 ] || internal_fail "zip_unpack: parameters missing"
 
 #   local reposdir="$1"

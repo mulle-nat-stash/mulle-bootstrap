@@ -1,3 +1,9 @@
+### 3.11.1
+
+* fixes for mingw
+* fix a problem with zip archives tests
+
+
 ## 3.11.0
 
 Clean command reworked
