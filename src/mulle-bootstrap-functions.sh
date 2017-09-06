@@ -908,22 +908,33 @@ ${i}"
 
 simplified_path()
 {
-   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
-   then
-      set +x
-   fi
+   #
+   # quick check if there is something to simplify 
+   # because this isn't fast at all
+   #
+   case "${1}" in
+      ""|".")
+         echo "."
+      ;;
 
-   if [ ! -z "$1" ]
-   then
-      _simplified_path "$@"
-   else
-      echo "."
-   fi
+      */|*\.\.*|*\./*)
+         if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
+         then
+            set +x
+         fi
+   
+         _simplified_path "$@"
 
-   if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
-   then
-      set -x
-   fi
+         if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
+         then
+            set -x
+         fi
+      ;;
+      
+      *)
+         echo "$1"
+      ;;
+   esac
 }
 
 

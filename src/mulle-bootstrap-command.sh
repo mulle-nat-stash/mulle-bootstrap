@@ -102,10 +102,11 @@ platform_make()
 
    case "${UNAME}" in
       mingw)
-         case "${name}" in
-            ""|cl|cl.exe)
+         case "${name%.*}" in
+            ""|cl|clang-cl|mulle-clang-cl)
                echo "nmake"
             ;;
+
             *)
                echo "mingw32-make"
             ;;
@@ -128,8 +129,8 @@ platform_cmake_generator()
    name="`basename -- "${makepath}"`"
    case "${UNAME}" in
       mingw)
-         case "${name}" in
-            nmake|*nmake.exe)
+         case "${name%.*}" in
+            nmake)
                echo "NMake Makefiles"
             ;;
 

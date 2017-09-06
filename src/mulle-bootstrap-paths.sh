@@ -173,17 +173,19 @@ _flags_emit_path_value()
 
 _dependencies_subdir()
 {
-   local simplified
+   local dispense_style="$1"
+   local configurations="$2"
+   local sdks="$3"
 
-   simplified="`simplified_dispense_style "${OPTION_DISPENSE_STYLE}" \
-                                          "${OPTION_CONFIGURATION}" \
-                                          "${OPTION_SDK}"`"
+   simplified="`simplified_dispense_style "${dispense_style}" \
+                                          "${configurations}" \
+                                          "${sdks}"`"
    #
    # expand PATH for build, but it's kinda slow
    # so don't do it all the time
    #
 
-   _simplified_dispense_style_subdirectory "${simplified}"
+   _simplified_dispense_style_subdirectory "${simplified}" "${configurations}" "${sdks}"
 }
 
 
@@ -654,7 +656,7 @@ paths_main()
    local OPTION_WITH_LIBRARIES="NO"
    local OPTION_WITH_LIBRARYPATHS="YES"
    local OPTION_WITH_MISSING_PATHS="NO"
-   local OPTION_PATH_SEPARATOR=":"
+   local OPTION_PATH_SEPARATOR="${PATH_SEPARATOR}"
    local OPTION_QUOTE=""
    local OPTION_SHELL_QUOTE="\""
    local OPTION_LINE_SEPERATOR=" "
@@ -663,7 +665,7 @@ paths_main()
 
    log_debug ":paths_main:"
 
-   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
+   [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ]       && . mulle-bootstrap-functions.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
 
    OPTION_WITH_HEADERPATHS="YES"
@@ -776,7 +778,6 @@ paths_main()
             OPTION_SDK="$1"
          ;;
 
-
          --shell-quote)
             shift
             [ $# -eq 0 ] && fail "quote missing"
@@ -800,7 +801,6 @@ paths_main()
    [ -z "${DEPENDENCIES_DIR}" ] && internal_fail "missing DEPENDENCIES_DIR"
    [ -z "${ADDICTIONS_DIR}" ]   && internal_fail "missing ADDICTIONS_DIR"
 
-
    local type
    local values
    local result
@@ -808,18 +808,20 @@ paths_main()
    result=""
    type="${1:-run}"
 
-
    #
    # if there is no "root", then pick the first configuration/sdk
-   # for the dependencies paths
+   # for the dependencies paths (FUTURE)
    #
    local old
    local subdir
 
-   build_complete_environment   # need this now
+# if we really need this, uncomment and explain what is needed
+# this slows mingw down a lot
+   build_environment_options   # need this now for _dependencies_subdir
 
    old="${DEPENDENCIES_DIR}"
-   subdir="`_dependencies_subdir`"
+   subdir="`_dependencies_subdir "${OPTION_DISPENSE_STYLE}" "${OPTION_CONFIGURATIONS}" "${OPTION_SDKS}"`"
+
    DEPENDENCIES_DIR="${DEPENDENCIES_DIR}${subdir}"
 
    local memo
@@ -834,11 +836,23 @@ paths_main()
       case "${type}" in
          "addictions")
             values="`_flags_emit_path_value "${ADDICTIONS_DIR}"`"
+            # short circuit for mingw
+            if [ $# -eq 0 -a -z "${result}" ]
+            then
+               echo "${values}"
+               return 0
+            fi
             result="`add_line "${result}" "${values}"`"
          ;;
 
          "dependencies")
             values="`_flags_emit_path_value "${DEPENDENCIES_DIR}"`"
+            # short circuit for mingw
+            if [ $# -eq 0 -a -z "${result}" ]
+            then
+               echo "${values}"
+               return 0
+            fi
             result="`add_line "${result}" "${values}"`"
          ;;
 
@@ -857,6 +871,12 @@ paths_main()
 
          "path")
             result="`_flags_do_path "${result}"`"
+            # short circuit for mingw
+            if [ $# -eq 0 -a -z "${result}" ]
+            then
+               echo "${values}"
+               return 0
+            fi
          ;;
 
          "make")
