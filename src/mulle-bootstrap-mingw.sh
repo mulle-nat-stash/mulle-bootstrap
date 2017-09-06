@@ -34,17 +34,15 @@ MULLE_BOOTSTRAP_MINGW_SH="included"
 
 find_msvc_executable()
 {
-   local exe
-   local name
-
-   exe="${1:-cl.exe}"
-   name="${2:-compiler}"
+   local exe="${1:-cl.exe}"
+   local name="${2:-compiler}"
+   local searchpath="${3:-$PATH}"
 
    local path
    local compiler
 
    IFS=":"
-   for path in $PATH
+   for path in ${searchpath}
    do
       IFS="${DEFAULT_IFS}"
 
@@ -113,8 +111,10 @@ setup_mingw_buildenvironment()
    fi
 
    local preprocessor
-
-   preprocessor="`find_msvc_executable "mulle-mingw-cpp.sh" "preprocessor"`"
+   local searchpath
+ 
+   searchpath="`dirname -- "${MULLE_EXECUTABLE_PATH}"`:$PATH"
+   preprocessor="`find_msvc_executable "mulle-mingw-cpp.sh" "preprocessor" "${searchpath}"`"
    if [ ! -z "${preprocessor}" ]
    then
       CPP="${preprocessor}"
