@@ -99,6 +99,11 @@ warn_user_setting()
 
    path="$1"
 
+   if [ -z "${MULLE_BOOTSTRAP_WARN_USER_SETTINGS}" ] 
+   then
+      MULLE_BOOTSTRAP_WARN_USER_SETTINGS="`read_config_setting "warn_user_setting" "YES"`"
+   fi
+
    if [ "$MULLE_BOOTSTRAP_WARN_USER_SETTINGS" = "YES" ]
    then
       log_warning "Using `dirname -- "${path}"` for `basename -- "${path}"`"
@@ -194,6 +199,12 @@ warn_environment_setting()
    local key
 
    key="$1"
+
+   if [ -z "$MULLE_BOOTSTRAP_WARN_ENVIRONMENT_SETTINGS" ]
+   then
+      MULLE_BOOTSTRAP_WARN_ENVIRONMENT_SETTINGS="`read_config_setting "warn_environment_setting" "YES"`"
+   fi
+
    if [ "$MULLE_BOOTSTRAP_WARN_ENVIRONMENT_SETTINGS" = "YES" ]
    then
       # don't trace some boring ones
@@ -274,7 +285,7 @@ _read_setting()
       then
          local key
 
-         key="`basename -- "${apath}"`"
+         key="${apath##*/}" # same as" `basename -- "${apath}"`"
          log_setting "${C_MAGENTA}${key}${C_SETTING} found as \"${apath}\""
       fi
 
@@ -399,7 +410,7 @@ _read_environment_setting()
 
    [ -z "${key}" ] && internal_fail "empty key in _read_environment_setting"
 
-   envname="MULLE_BOOTSTRAP_`echo "${key}" | tr '[:lower:]' '[:upper:]'`"
+   envname="MULLE_BOOTSTRAP_`tr '[:lower:]' '[:upper:]' <<< "${key}"`"
 
    if [ "$MULLE_FLAG_LOG_SETTINGS" = "YES" ]
    then
@@ -1595,8 +1606,6 @@ settings_initialize()
    [ -z "${MULLE_BOOTSTRAP_FUNCTIONS_SH}" ] && . mulle-bootstrap-functions.sh
 
    # MULLE_BOOTSTRAP_NO_WARN_LOCAL_SETTINGS="`read_config_setting "no_warn_local_setting"`"
-   MULLE_BOOTSTRAP_WARN_USER_SETTINGS="`read_config_setting "warn_user_setting" "YES"`"
-   MULLE_BOOTSTRAP_WARN_ENVIRONMENT_SETTINGS="`read_config_setting "warn_environment_setting" "YES"`"
 }
 
 settings_initialize

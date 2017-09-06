@@ -2522,6 +2522,7 @@ build_main()
 
    OPTION_CHECK_USR_LOCAL_INCLUDE="`read_config_setting "check_usr_local_include" "NO"`"
    OPTION_USE_CC_CXX="`read_config_setting "use_cc_cxx" "YES"`"
+   OPTION_CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build" "NO"`
 
    #
    # it is useful, that fetch understands build options and
@@ -2568,7 +2569,7 @@ build_main()
          ;;
 
          -k|--no-clean)
-            OPTION_CLEAN_BEFORE_BUILD=
+            OPTION_CLEAN_BEFORE_BUILD="NO"
          ;;
 
          -K|--clean)

@@ -86,28 +86,27 @@ simplified_dispense_style()
 _simplified_dispense_style_subdirectory()
 {
    local dispense_style="$1"
+   local configurations="$2"
+   local sdks="$3"
 
    local configuration
    local sdk
 
-   [ -z "${OPTION_CONFIGURATIONS}" ] && internal_fail "OPTION_CONFIGURATIONS is empty"
-   [ -z "${OPTION_SDKS}" ]           && internal_fail "OPTION_SDKS is empty"
+   [ -z "${configurations}" ] && internal_fail "configurations is empty"
+   [ -z "${sdks}" ]           && internal_fail "sdks is empty"
 
    case "${dispense_style}" in
       none)
-         PATH="`prepend_to_search_path_if_missing "$PATH" \
-                                                  "${DEPENDENCIES_DIR}/bin" \
-                                                  "${ADDICTIONS_DIR}/bin"`"
       ;;
 
       configuration-strict)
-         configuration="$(head -1 <<< "${OPTION_CONFIGURATIONS}")"
+         configuration="$(head -1 <<< "${configurations}")"
          echo "/${configuration}"
       ;;
 
       configuration-sdk-strict)
-         configuration="$(head -1 <<< "${OPTION_CONFIGURATIONS}")"
-         sdk="$(head -1 <<< "${OPTION_SDKS}")"
+         configuration="$(head -1 <<< "${configurations}")"
+         sdk="$(head -1 <<< "${sdks}")"
          echo "/${configuration}-${sdk}"
       ;;
 
@@ -118,15 +117,9 @@ _simplified_dispense_style_subdirectory()
 }
 
 
-#
-# only needed for true builds
-#
-build_complete_environment()
+build_environment_options()
 {
-   log_debug ":build_complete_environment:"
-
-   [ -z "${__BUILD_COMPLETE_ENVIRONMENT}" ] || internal_fail "build_complete_environment run twice"
-   __BUILD_COMPLETE_ENVIRONMENT="YES"
+   log_debug ":build_environment_options:"
 
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ] && . mulle-bootstrap-settings.sh
 
@@ -142,15 +135,6 @@ build_complete_environment()
       OPTION_CONFIGURATIONS="`read_root_setting "configurations" "${OPTION_CONFIGURATIONS}"`"
    fi
 
-   OPTION_CLEAN_BEFORE_BUILD=`read_config_setting "clean_before_build"`
-
-   # experimentally, these could reside outside the project folder but never tested
-   CLONESBUILD_DIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
-   BUILDLOGS_DIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_DIR}/.logs"`"
-
-   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "variable CLONESBUILD_DIR is empty"
-   [ -z "${BUILDLOGS_DIR}" ]    && internal_fail "variable BUILDLOGS_DIR is empty"
-
    #
    # Determine dispense_style
    #
@@ -158,6 +142,31 @@ build_complete_environment()
    then
       OPTION_DISPENSE_STYLE="`read_config_setting "dispense_style" "none"`"
    fi
+}
+
+
+#
+# only needed for true builds
+#
+build_complete_environment()
+{
+   log_debug ":build_complete_environment:"
+
+   [ -z "${__BUILD_COMPLETE_ENVIRONMENT}" ] || internal_fail "build_complete_environment run twice"
+   __BUILD_COMPLETE_ENVIRONMENT="YES"
+
+   build_environment_options
+
+   ##
+   ## try to minimize this
+   ##
+   # experimentally, these could reside outside the project folder but never tested
+   CLONESBUILD_DIR="`read_sane_config_path_setting "build_dir" "build/.repos"`"
+   BUILDLOGS_DIR="`read_sane_config_path_setting "build_log_dir" "${CLONESBUILD_DIR}/.logs"`"
+
+   [ -z "${CLONESBUILD_DIR}" ]  && internal_fail "variable CLONESBUILD_DIR is empty"
+   [ -z "${BUILDLOGS_DIR}" ]    && internal_fail "variable BUILDLOGS_DIR is empty"
+
 
    #
    # expand PATH for build, but it's kinda slow
