@@ -31,6 +31,17 @@
 #
 VERSION=0.0
 
+#
+# leading backslash ? looks like we're getting called from
+# mingw via a .BAT or so
+
+case "$PATH" in
+   "\\*")
+      PATH="`tr '\\' '/' <<< "${PATH}"`"
+   ;;
+esac
+
+
 PATH="/usr/local/libexec/mulle-bootstrap:/usr/bin:$PATH"
 export PATH
 
