@@ -1,3 +1,7 @@
+### 3.11.2
+
+* improvements for mingw, also improved speed a bit
+
 ### 3.11.1
 
 * fixes for mingw
