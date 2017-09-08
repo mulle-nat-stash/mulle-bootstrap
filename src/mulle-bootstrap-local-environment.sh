@@ -433,11 +433,11 @@ add_path()
 
    [ -z "${PATH_SEPARATOR}" ] && fail "PATH_SEPARATOR is undefined"
 
-   case "${UNAME}" in
-      mingw)
-         path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
-      ;;
-   esac
+#   case "${UNAME}" in
+#      mingw)
+#         path="`echo "${path}" | tr '/' '\\' 2> /dev/null`"
+#      ;;
+#   esac
 
    if [ -z "${line}" ]
    then
