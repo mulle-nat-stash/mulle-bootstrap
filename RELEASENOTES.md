@@ -12,7 +12,7 @@
 
 Clean command reworked
 
-* `mulle-boostrap clean build` followed by `mulle-bootstrap build` actually rebuilds everything as one would expect. The old functionality is now called `mulle-bootstrap clean cruft`
+* `mulle-bootstrap clean build` followed by `mulle-bootstrap build` actually rebuilds everything as one would expect. The old functionality is now called `mulle-bootstrap clean cruft`
 * `clean build` does not throw away dependencies, use `clean full` for that
 
 ## 3.10.0

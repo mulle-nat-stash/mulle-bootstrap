@@ -293,6 +293,10 @@ ${SEARCH_PATH}"
             fi
          ;;
 
+         -t)
+            set -x
+         ;;
+         
          --version)
             echo "$VERSION"
             exit 0
