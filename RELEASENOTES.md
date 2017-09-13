@@ -1,3 +1,7 @@
+### 3.12.0
+
+* Varuious improvements for mingw. New version number for mulle-tests
+
 ### 3.11.2
 
 * improvements for mingw, also improved speed a bit
