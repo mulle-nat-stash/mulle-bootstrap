@@ -100,6 +100,16 @@ platform_make()
 
    name="`basename -- "${compilerpath}"`"
 
+   #
+   # Ninja is probably preferable if installed
+   # Should configure this though somewhere
+   #
+   if [ ! -z "`command -v ninja`" ]
+   then
+      echo "ninja"
+      return
+   fi
+
    case "${UNAME}" in
       mingw)
          case "${name%.*}" in
@@ -127,25 +137,29 @@ platform_cmake_generator()
    local name
 
    name="`basename -- "${makepath}"`"
-   case "${UNAME}" in
-      mingw)
-         case "${name%.*}" in
-            nmake)
-               echo "NMake Makefiles"
-            ;;
+   case "${name%.*}" in
+      nmake)
+         echo "NMake Makefiles"
+      ;;
 
-            mingw*|MINGW*)
-               echo "MinGW Makefiles"
-            ;;
+      mingw*|MINGW*)
+         echo "MinGW Makefiles"
+      ;;
 
-            *)
-               echo "MSYS Makefiles"
-            ;;
-         esac
+      ninja)
+         echo "Ninja"
       ;;
 
       *)
-         echo "Unix Makefiles"
+         case "${UNAME}" in
+            mingw*)
+               echo "MSYS Makefiles"
+            ;;
+
+            *)
+               echo "Unix Makefiles"
+            ;;
+         esac
       ;;
    esac
 }

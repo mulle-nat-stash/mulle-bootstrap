@@ -650,6 +650,9 @@ cd_physical()
 absolutepath()
 {
    case "${1}" in
+      "")
+      ;;
+
       '/'*|'~'*)
         simplified_path "${1}"
       ;;

@@ -30,9 +30,11 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 #
 
-PATH="/usr/local/libexec/mulle-bootstrap:$PATH"
+LIBEXEC_PATH="`mulle-bootstrap library-path`"
+
+PATH="${LIBEXEC_PATH}:$PATH"
 export PATH
 
-[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . mulle-bootstrap-mingw.sh && mingw_initialize
+[ -z "${MULLE_BOOTSTRAP_MINGW_SH}" ] && . "mulle-bootstrap-mingw.sh" 
 
 PATH="`mingw_buildpath "${PATH}"`" cmake.exe "$@"

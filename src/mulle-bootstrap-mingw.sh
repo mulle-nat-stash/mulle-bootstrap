@@ -67,6 +67,44 @@ find_msvc_executable()
 }
 
 
+# used by tests
+mingw_demangle_path()
+{
+   echo "$1" | sed 's|^/\(.\)|\1:|' | sed s'|/|\\|g'
+}
+
+
+
+mingw_eval_demangle_path()
+{
+   echo "$1" | sed 's|^/\(.\)|\1:|' | sed s'|/|\\\\|g'
+}
+
+
+#
+# mingw wille demangle first -I/c/users but not the next one
+# but when one -I looks demangled, it doesn't demangle the first
+# one. It's so complicated
+#
+mingw_eval_demangle_paths()
+{
+#   if [ $# -eq 0 ]
+#   then
+#      return
+#   fi
+#
+#   echo "$1"
+#   shift
+
+   while [ $# -ne 0 ]
+   do
+      mingw_eval_demangle_path "$1"
+      shift
+   done
+}
+
+
+# used by anyone ?
 mingw_mangle_compiler()
 {
    local compiler
@@ -84,6 +122,32 @@ mingw_mangle_compiler()
    esac
    echo "${compiler}"
 }
+
+
+
+# used by tests, probably old and wrong
+mingw_mangle_compiler_exe()
+{
+   local compiler
+
+   compiler="$1"
+   case "${compiler}" in
+      mulle-clang|clang)
+         compiler="${compiler}-cl"
+         echo "Using ${compiler} on mingw for $2" >&2
+      ;;
+
+      mulle-clang-*|clang-*)
+      ;;
+
+      *)
+         compiler="cl.exe"
+         echo "Using default compiler cl for $2" >&2
+      ;;
+   esac
+   echo "${compiler}"
+}
+
 
 
 #
@@ -126,13 +190,15 @@ setup_mingw_buildenvironment()
 }
 
 
+
 #
-# mingw32-make can't have sh.exe in its path
+# mingw32-make can't have sh.exe in its path, so remove it
 #
 mingw_buildpath()
 {
    local i
-   local fetchpath
+   local buildpath
+   local vspath
 
    IFS=":"
    for i in $PATH
@@ -145,17 +211,72 @@ mingw_buildpath()
          continue
       fi
 
-      if [ -z "${fetchpath}" ]
+      if [ -z "${buildpath}" ]
       then
-         fetchpath="${i}"
+         buildpath="${i}"
       else
-         fetchpath="${fetchpath}:${i}"
+         buildpath="${buildpath}:${i}"
       fi
    done
 
+   echo "${buildpath}"
+}
+
+
+#
+# mingw likes to put it's stuff in front, obscuring Visual Studio
+# executables this function resorts this (used in mulle-tests)
+#
+mingw_visualstudio_buildpath()
+{
+   local i
+   local buildpath
+   local vspath
+
+   IFS=":"
+   for i in $PATH
+   do
+      IFS="${DEFAULT_IFS}"
+
+      case "$i" in
+         *"/Microsoft Visual Studio"*)
+            if [ -z "${vspath}" ]
+            then
+               vspath="${i}"
+            else
+               vspath="${vspath}:${i}"
+            fi
+         ;;
+      
+         *)         
+            if [ -z "${buildpath}" ]
+            then
+               buildpath="${i}"
+            else
+               buildpath="${buildpath}:${i}"
+            fi
+         ;;
+      esac
+   done
    IFS="${DEFAULT_IFS}"
 
-   echo "${fetchpath}"
+   if [ ! -z "${vspath}" ]
+   then
+      if [ -z "${buildpath}" ]
+      then
+         buildpath="${vspath}"
+      else
+         buildpath="${vspath}:${buildpath}"
+      fi
+   fi
+
+   echo "${buildpath}"
+}
+
+
+mingw32_make_buildpath()
+{
+   mingw_buildpath
 }
 
 
