@@ -35,7 +35,7 @@
 MULLE_BOOTSTRAP_FUNCTIONS_SH="included"
 
 MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MAJOR="3"
-MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MINOR="9"
+MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MINOR="12"
 
 MULLE_BOOTSTRAP_FUNCTIONS_VERSION="${MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MAJOR}.${MULLE_BOOTSTRAP_FUNCTIONS_VERSION_MINOR}"
 
@@ -912,7 +912,7 @@ ${i}"
 simplified_path()
 {
    #
-   # quick check if there is something to simplify 
+   # quick check if there is something to simplify
    # because this isn't fast at all
    #
    case "${1}" in
@@ -925,7 +925,7 @@ simplified_path()
          then
             set +x
          fi
-   
+
          _simplified_path "$@"
 
          if [ "${MULLE_TRACE_PATHS_FLIP_X}" = "YES" ]
@@ -933,7 +933,7 @@ simplified_path()
             set -x
          fi
       ;;
-      
+
       *)
          echo "$1"
       ;;
