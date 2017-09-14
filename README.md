@@ -38,8 +38,8 @@ shell scripts. If your system can run the bash, it can run **mulle-bootstrap**.
 
 ## What it does technically
 
-* fetches [git](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories.
-In times of need, it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
+* downloads [zip](http://eab.abime.net/showthread.php?t=5025) and [tar](http://www.grumpynerd.com/?p=132) archives
+* fetches [git](//enux.pl/article/en/2014-01-21/why-git-sucks) repositories and it can also checkout [svn](//andreasjacobsen.com/2008/10/26/subversion-sucks-get-over-it/).
 * builds [cmake](//blog.cppcms.com/post/54),
 [xcodebuild](//devcodehack.com/xcode-sucks-and-heres-why/) and
 [configure](//quetzalcoatal.blogspot.de/2011/06/why-autoconf-sucks.html)
@@ -53,32 +53,31 @@ libraries into an "addictions" folder (on participating platforms)
 
 So you need a bunch of third party projects to build your own
 project ? No problem. Use **mulle-bootstrap init** to do the initial setup of
-a `.bootstrap` folder in your project directory. Then put the git repository
-URLs in a file called `./bootstrap/repositories`:
+a `.bootstrap` folder in your project directory. Then add the git repository
+URLs:
 
 ```
-mkdir .bootstrap
-echo "# a comment
-https://github.com/madler/zlib.git
-https://github.com/coapp-packages/expat.git" > .bootstrap/repositories
+mulle-bootstrap init
+mulle-bootstrap setting -g -r -a "repositories" "https://github.com/madler/zlib.git"
+mulle-bootstrap setting -g -r -a "repositories" "https://github.com/coapp-packages/expat.git"
 mulle-bootstrap
 ```
 
-**mulle-bootstrap** will check them out into a common directory `.repos`.
+**mulle-bootstrap** will check them out into a common directory `stashes`.
 
 After cloning **mulle-bootstrap** looks for a `.bootstrap` folder in the freshly
 checked out repositories. They might have dependencies too, if they do, those
 dependencies are added and also fetched.
 
 Everything should now be in place so **mulle-bootstrap** that can now build the
-dependencies with **cmake**. It will place the headers and the produced
+dependencies. It will place the headers and the produced
 libraries into the `dependencies/lib`  and `dependencies/include` folders.
 
 
 ## Tell me more
 
 * [How to install](dox/INSTALL.md)
-* [How to use](dox/COMMANDS.md)
+* [How to use it](dox/COMMANDS.md)
 * [What has changed ?](RELEASENOTES.md)
 * [Tweak guide](dox/SETTINGS.md)
 * [CMakeLists.txt.example](dox/CMakeLists.txt.example) shows how to access dependencies from **cmake**
