@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 #
-#   Copyright (c) 2017 Nat! - Mulle kybernetiK
+#   Copyright (c) 2017 Nat! - Codeon GmbH
 #   All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or without
@@ -47,12 +47,9 @@
 generate_brew_formula_build()
 {
    cat <<EOF
-  def install
-     system "./install.sh", "#{prefix}"
-  end
-
-  test do
-  end
+def install
+  system "./install.sh", "#{prefix}"
+end
 EOF
 }
 
@@ -82,12 +79,8 @@ generate_brew_formula()
 #######
 
 MULLE_BOOTSTRAP_FAIL_PREFIX="`basename -- $0`"
-MULLE_HOMEBREW_VERSION="5.0.0"
+MULLE_HOMEBREW_VERSION="5.2.0"
 
-#
-# prefer local mulle-homebrew if available
-# Do not embed it anymore!
-#
 if [ -z "`command -v mulle-homebrew-env`" ]
 then
    cat <<EOF >&2
@@ -121,32 +114,50 @@ main()
       git_main "${BRANCH}" "${ORIGIN}" "${TAG}" "${GITHUB}" || exit 1
    fi
 
-   if [ "${DO_GENERATE_FORMULA}" != "YES" ]
+   if [ "${DO_GENERATE_FORMULA}" = "YES" ]
    then
-       return
+      if [ -z "${PUBLISHER}" ]
+      then
+         fail "You need to specify a publisher with --publisher (hint: https://github.com/<publisher>)"
+      fi
+
+      if [ -z "${PUBLISHER_TAP}" ]
+      then
+         fail "You need to specify a publisher tap with --tap (hint: <mulle-kybernetik/software>)"
+      fi
+
+      # generate the formula and push it
+      if ! homebrew_main "${PROJECT}" \
+                         "${NAME}" \
+                         "${VERSION}" \
+                         "${DEPENDENCIES}" \
+                         "${BUILD_DEPENDENCIES}" \
+                         "${HOMEPAGE_URL}" \
+                         "${DESC}" \
+                         "${ARCHIVE_URL}" \
+                         "${HOMEBREW_TAP}" \
+                         "${RBFILE}"
+      then
+         return 1
+      fi
    fi
 
-   if [ -z "${PUBLISHER}" ]
+   #
+   # check if someone installed a post_release function
+   # if yes call it (maybe calls mulle-homebrew-debian)
+   #
+   if [ "`type -t post_release`" = "function" ]
    then
-      fail "You need to specify a publisher with --publisher (hint: https://github.com/<publisher>)"
+      post_release "${PROJECT}" \
+                   "${NAME}" \
+                   "${VERSION}" \
+                   "${DEPENDENCIES}" \
+                   "${BUILD_DEPENDENCIES}" \
+                   "${HOMEPAGE_URL}" \
+                   "${DESC}" \
+                   "${ARCHIVE_URL}" \
+                   "${DEBIAN_DEPENDENCIES}"
    fi
-
-   if [ -z "${PUBLISHER_TAP}" ]
-   then
-      fail "You need to specify a publisher tap with --tap (hint: <mulle-kybernetik/software>)"
-   fi
-
-   # generate the formula and push it
-   homebrew_main "${PROJECT}" \
-                 "${NAME}" \
-                 "${VERSION}" \
-                 "${DEPENDENCIES}" \
-                 "${BUILD_DEPENDENCIES}" \
-                 "${HOMEPAGE_URL}" \
-                 "${DESC}" \
-                 "${ARCHIVE_URL}" \
-                 "${HOMEBREW_TAP}" \
-                 "${RBFILE}"
 }
 
 main "$@"
