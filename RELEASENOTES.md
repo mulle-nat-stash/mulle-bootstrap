@@ -1,3 +1,7 @@
+### 3.12.1
+
+* deal with empty/bad repositories more gracefully
+
 ## 3.12.0
 
 * Various improvements for mingw. New version number for mulle-tests
