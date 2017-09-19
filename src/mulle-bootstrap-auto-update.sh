@@ -614,36 +614,36 @@ bootstrap_auto_final()
    local clones
 
    clones="`read_root_setting "repositories"`"
-   if [ -z "${clones}" ]
-   then
-      log_fluff "There is apparently nothing to build."
-      return
-   fi
-
    order=""
-   missing="`read_setting "${REPOS_DIR}/.missing"`"
 
-   IFS="
+   if [ ! -z "${clones}" ]
+   then
+      missing="`read_setting "${REPOS_DIR}/.missing"`"
+
+     IFS="
 "
-   for clone in ${clones}
-   do
+      for clone in ${clones}
+      do
+         IFS="${DEFAULT_IFS}"
+
+         parse_clone "${clone}"
+
+         #
+         # don't build optional missing stuff
+         #
+         if ! echo "${missing}" | fgrep -s -x -q "${name}"
+         then
+            order="`add_line "${order}" "${name}"`"
+         fi
+      done
+
+      # get rid of temporary file now
+      remove_file_if_present "${REPOS_DIR}/.missing"
+
       IFS="${DEFAULT_IFS}"
-
-      parse_clone "${clone}"
-
-      #
-      # don't build optional missing stuff
-      #
-      if ! echo "${missing}" | fgrep -s -x -q "${name}"
-      then
-         order="`add_line "${order}" "${name}"`"
-      fi
-   done
-
-   # get rid of temporary file now
-   remove_file_if_present "${REPOS_DIR}/.missing"
-
-   IFS="${DEFAULT_IFS}"
+   else
+      log_fluff "There is apparently nothing to build."
+   fi
 
    redirect_exekutor "${BOOTSTRAP_DIR}.auto/build_order" echo "${order}"
 

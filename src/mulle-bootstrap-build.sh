@@ -112,8 +112,32 @@ find_make()
    local defaultname="${2:-make}"
 
    local toolname
+   local filename
 
-   toolname=`read_build_setting "${name}" "make" "${defaultname}"`
+   toolname="`read_build_setting "${name}" "make"`"
+   if [ -z "${toolname}" -a "${OPTION_USE_CC_CXX}" = "YES" ]
+   then
+      filename="${srcdir}/.MAKE.${UNAME}"
+      toolname="`cat "${filename}" 2>/dev/null`"
+
+      if [ -z "${toolname}" ]
+      then
+         filename="${srcdir}/.MAKE"
+         toolname="`cat "${filename}" 2>/dev/null`"
+
+         if [ ! -z "${toolname}" ]
+         then
+            log_verbose "${C_RESET_BOLD}MAKE${C_VERBOSE} set to \
+${C_MAGENTA}${C_BOLD}${toolname}${C_VERBOSE} found in \"${filename}\""
+         fi
+      fi
+   fi
+
+   if [ -z "${toolname}" ]
+   then
+      toolname="${defaultname}"
+   fi
+
    verify_binary "${toolname}" "make" "${defaultname}"
 }
 
@@ -142,11 +166,19 @@ find_compiler()
    compiler="`read_build_setting "${name}" "${compiler_name}"`"
    if [ -z "${compiler}" -a "${OPTION_USE_CC_CXX}" = "YES" ]
    then
-      filename="${srcdir}/.${compiler_name}"
+      filename="${srcdir}/.${compiler_name}.${UNAME}"
       compiler="`cat "${filename}" 2>/dev/null`"
-      if [  ! -z "${compiler}" ]
+
+      if [ -z "${compiler}" ]
       then
-         log_verbose "Compiler ${C_RESET_BOLD}${compiler_name}${C_VERBOSE} set to ${C_MAGENTA}${C_BOLD}${compiler}${C_VERBOSE} found in \"${filename}\""
+         filename="${srcdir}/.${compiler_name}"
+         compiler="`cat "${filename}" 2>/dev/null`"
+
+         if [ ! -z "${compiler}" ]
+         then
+            log_verbose "Compiler ${C_RESET_BOLD}${compiler_name}${C_VERBOSE} \
+set to ${C_MAGENTA}${C_BOLD}${compiler}${C_VERBOSE} found in \"${filename}\""
+         fi
       fi
    fi
 
@@ -2660,7 +2692,6 @@ build_main()
    #
    if [ ! -f "${REPOS_DIR}/.build_done" ]
    then
-      remove_file_if_present "${REPOS_DIR}/.build_done.orig"
       _create_file_if_missing "${REPOS_DIR}/.build_done"
 
       log_fluff "Cleaning dependencies directory as \"${DEPENDENCIES_DIR}\""
@@ -2694,9 +2725,6 @@ build_main()
       write_protect_directory "${DEPENDENCIES_DIR}"
    else
       log_fluff "No dependencies have been generated"
-
-      remove_file_if_present "${REPOS_DIR}/.build_done.orig"
-      remove_file_if_present "${REPOS_DIR}/.build_done"
    fi
 
    log_debug "::: build end :::"
