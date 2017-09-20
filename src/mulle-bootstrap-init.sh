@@ -36,9 +36,16 @@ init_usage()
 {
     cat <<EOF >&2
 Usage:
-  ${MULLE_EXECUTABLE} init [options]
+   ${MULLE_EXECUTABLE} init [options] [directory]
 
-Options
+   Prepare current directory for mulle-bootstrap. (Analog to git init)
+   You can specify a directory, otherwise the current directory is used.
+
+   mulle-bootstap -s init -n
+
+   is the usual favorite.
+
+Options:
    -d : create default files
    -n : don't ask for editor
 
@@ -122,7 +129,7 @@ init_main()
             MULLE_FLAG_ANSWER="NO"
          ;;
 
-         -d)
+         --default-files|-d)
             OPTION_CREATE_DEFAULT_FILES="YES"
          ;;
 
@@ -139,6 +146,17 @@ init_main()
 
       shift
    done
+
+   if [ $# -eq 1 ]
+   then
+      local directory="$1"; shift
+
+      if [ ! -d "${directory}" ]
+      then
+         mkdir_if_missing "${directory}" || exit 1
+      fi
+      cd "${directory}" || fail "Failed to enter directory \"${directory}\""
+   fi
 
    if [ -d "${BOOTSTRAP_DIR}" ]
    then

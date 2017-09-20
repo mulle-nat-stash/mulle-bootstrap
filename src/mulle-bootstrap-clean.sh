@@ -180,6 +180,8 @@ print_stashdir_embedded_repositories()
 
 setup_clean_environment()
 {
+   log_debug "setup_clean_environment" "$@"
+
    build_complete_environment
 
    [ -z "${DEPENDENCIES_DIR}"  ]   && internal_fail "DEPENDENCIES_DIR is empty"
@@ -188,6 +190,30 @@ setup_clean_environment()
    [ -z "${STASHES_DEFAULT_DIR}" ] && internal_fail "STASHES_DEFAULT_DIR is empty"
 
    CLEAN_EMPTY_PARENTS="`read_config_setting "clean_empty_parent_folders" "YES"`"
+
+
+   if [ $# -ne 0 ]
+   then
+      case "${style}" in
+         cruft|build)
+         ;;
+
+         *)
+            fail "You can only give repository names to cruft and build clean styles"
+         ;;
+      esac
+
+      local i
+
+      CRUFT_CLEANABLE_SUBDIRS="${DEPENDENCIES_DIR}/tmp"
+      for i in "$@"
+      do
+         CRUFT_CLEANABLE_SUBDIRS="`add_line "${CRUFT_CLEANABLE_SUBDIRS}" "${CLONESBUILD_DIR}/${i}"`"
+         FORCE_REBUILDS="`concat "${FORCE_REBUILDS}" "${i}"`"
+      done
+
+      return 0
+   fi
 
 
    CRUFT_CLEANABLE_SUBDIRS="`read_sane_config_path_setting "clean_folders" "${CLONESBUILD_DIR}
@@ -240,6 +266,8 @@ ${BOOTSTRAP_DIR}.auto"`"
 
 clean_asserted_folder()
 {
+   log_debug "clean_asserted_folder" "$@"
+
    if [ -d "$1" ]
    then
       log_info "Deleting \"$1\""
@@ -253,6 +281,8 @@ clean_asserted_folder()
 
 clean_asserted_file()
 {
+   log_debug "clean_asserted_file" "$@"
+
    if [ -f "$1" ]
    then
       log_info "Deleting \"$1\""
@@ -266,14 +296,16 @@ clean_asserted_file()
 
 clean_parent_folders_if_empty()
 {
-   local dir="$1"
+   log_debug "clean_parent_folders_if_empty" "$@"
+
+   local directory="$1"
    local stop="$2"
 
    if [ "${CLEAN_EMPTY_PARENTS}" = "YES" ]
    then
       local parent
 
-      parent="${dir}"
+      parent="${directory}"
       while :
       do
          parent="`dirname -- "${parent}"`"
@@ -296,17 +328,19 @@ clean_parent_folders_if_empty()
 
 clean_files()
 {
+   log_debug "clean_files" "$@"
+
    local files="$1"
 
-   local file
+   local filename
 
    IFS="
 "
-   for file in ${files}
+   for filename in ${files}
    do
       IFS="${DEFAULT_IFS}"
 
-      clean_asserted_file "${file}"
+      clean_asserted_file "${filename}"
    done
 
    IFS="${DEFAULT_IFS}"
@@ -315,6 +349,8 @@ clean_files()
 
 clean_directories()
 {
+   log_debug "clean_directories" "$@"
+
    local directories="$1"
 
    local directory
@@ -342,9 +378,21 @@ clean_directories()
 #
 clean_execute()
 {
-   local style="$1"
+   log_debug "clean_execute" "$@"
 
-   setup_clean_environment
+   local style="$1"; shift
+
+   setup_clean_environment "$@"
+
+   if [ ! -z "${FORCE_REBUILDS}" ]
+   then
+      [ -z "${MULLE_BOOTSTRAP_SNIP_SH}" ] && . mulle-bootstrap-snip.sh
+
+      for i in ${FORCE_REBUILDS}
+      do
+         force_rebuild "$i"
+      done
+   fi
 
    # CRUFT
    case "${style}" in
@@ -404,6 +452,8 @@ clean_execute()
 #
 clean_minion()
 {
+   log_debug "clean_minion" "$@"
+
    local minion="$1"
 
    local directories
@@ -428,6 +478,7 @@ clean_main()
    local ROOT_DIR="`pwd -P`"
 
    local MINION_NAME
+   local NAME
 
    [ -z "${MULLE_BOOTSTRAP_SETTINGS_SH}" ]        && . mulle-bootstrap-settings.sh
    [ -z "${MULLE_BOOTSTRAP_COMMON_SETTINGS_SH}" ] && . mulle-bootstrap-common-settings.sh
@@ -441,7 +492,6 @@ clean_main()
          -h|-help|--help)
             clean_usage
          ;;
-
 
          -m|--minion)
             shift
@@ -466,12 +516,13 @@ clean_main()
    local style
 
    style=${1:-"full"}
+   [ $# -ne 0 ] && shift
 
    case "${style}" in
       "cruft"|"build"|"output"|"full"|"dist"|"install"|"output")
          if [ -z "${MINION_NAME}" ]
          then
-            clean_execute "${style}"
+            clean_execute "${style}" "$@"
          else
             clean_minion "${MINION_NAME}"
          fi
@@ -482,8 +533,7 @@ clean_main()
       ;;
 
       *)
-         log_error "Unknown clean style \"${style}\""
-         clean_usage
+         clean_execute "build" "${style}" "$@"
       ;;
    esac
 }

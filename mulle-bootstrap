@@ -30,8 +30,8 @@
 #   POSSIBILITY OF SUCH DAMAGE.
 #
 MULLE_EXECUTABLE_VERSION_MAJOR=3
-MULLE_EXECUTABLE_VERSION_MINOR=12
-MULLE_EXECUTABLE_VERSION_PATCH=4
+MULLE_EXECUTABLE_VERSION_MINOR=13
+MULLE_EXECUTABLE_VERSION_PATCH=0
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -70,6 +70,7 @@ HIDDEN_COMMANDS="\
    expansion     : read or edit fetch expansions
    git           : run git commands on fetched repositories
    library-path  : print path to mulle-bootstrap libexec
+   log           : show build logs
    project-path  : print path to folder containing .bootstrap
    run           : run command with proper dependencies PATHs
    setting       : read or edit build settings
@@ -585,6 +586,12 @@ bootstrap_main()
       library-path)
          echo "$PATH" | tr ':' '\012' | head -1
          return 0
+      ;;
+
+      log|logs)
+         [ -z "${MULLE_BOOTSTRAP_LOG_SH}" ] && . mulle-bootstrap-log.sh
+
+         log_main "$@" || exit 1
       ;;
 
       master-path)

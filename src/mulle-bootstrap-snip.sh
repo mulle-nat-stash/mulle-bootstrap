@@ -138,6 +138,49 @@ snip_from_to_file()
 }
 
 
+# keep until "to" but excluding it
+# cut stuff until "to"
+# keep "to" and keep rest
+
+force_rebuild()
+{
+   log_debug "force_rebuild" "$*"
+
+   local from="$1"
+   local to="$2"
+
+   remove_file_if_present "${REPOS_DIR}/.build_started"
+
+   # if nothing's build yet, fine with us
+   if [ ! -f "${REPOS_DIR}/.build_done" ]
+   then
+      log_fluff "Nothing has been built yet"
+      return
+   fi
+
+   if [ -z "${from}" -a -z "${to}" ]
+   then
+      remove_file_if_present "${REPOS_DIR}/.build_done"
+      return
+   fi
+
+   #
+   # keep entries above parameter
+   # os x doesn't have 'Q'
+   # also q and i doesn't work on OS X <sigh>
+   #
+   local tmpfile
+
+   tmpfile="`exekutor mktemp "mulle-bootstrap.XXXXXXXX"`" || exit 1
+
+   redirect_exekutor "${tmpfile}" snip_from_to_file "${from}" "${to}" "${REPOS_DIR}/.build_done"
+   exekutor mv "${tmpfile}" "${REPOS_DIR}/.build_done"
+
+   log_debug ".build_done=`cat "${REPOS_DIR}/.build_done"`"
+}
+
+
+
 snip_initialize()
 {
    log_debug ":snip_initialize:"

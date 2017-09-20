@@ -1,3 +1,8 @@
+## 3.13.0
+
+* add mulle-bootstrap log command, for looking at build logs of a specific dependency
+
+
 ### 3.12.4
 
 * MAKE_FLAGS is MAKEFLAGS for consistency

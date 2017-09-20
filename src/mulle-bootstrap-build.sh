@@ -765,6 +765,10 @@ build_fail()
 }
 
 
+#
+# build log will be of form
+# <name>--<configuration>-<sdk>.<tool>.log
+# It is ensured, that
 build_log_name()
 {
    local tool="$1"; shift
@@ -774,18 +778,38 @@ build_log_name()
    [ -z "${name}" ] && internal_fail "name missing"
 
    local logfile
+   local  s
+
+   case "${name}" in
+      *-)
+         fail "Dependency \"${name}\" ends with -, that won't work here"
+      ;;
+
+      *--*)
+         fail "Dependency \"${name}\" contains --, that won't work here"
+      ;;
+   esac
 
    logfile="${BUILDLOGS_DIR}/${name}"
 
+   if [ $# -ne 0 ]
+   then
+      logfile="${logfile}-"
+   fi
+
    while [ $# -gt 0 ]
    do
-      if [ ! -z "$1" ]
+      s="$1"
+      shift
+
+      if [ ! -z "$s" ]
       then
-         logfile="${logfile}-$1"
+         s="$(tr '-' '_' <<< "${s}")"
+         logfile="${logfile}-${s}"
       fi
-      [ $# -eq 0 ] || shift
    done
 
+   tool="$(tr '-' '_' <<< "${tool}")"
    absolutepath "${logfile}.${tool}.log"
 }
 
@@ -1145,7 +1169,18 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
 
       if [ "${MULLE_FLAG_VERBOSE_BUILD}" = "YES" ]
       then
-         local_make_flags="${local_make_flags} VERBOSE=1"
+         #
+         # ugliness ensues
+         #
+         case "${MAKE}" in
+            *[mM]ake*)
+               local_make_flags="${local_make_flags} VERBOSE=1"
+            ;;
+
+            *)
+               local_make_flags="${local_make_flags} -v"
+            ;;
+         esac
       fi
 
       local oldpath
@@ -2313,50 +2348,6 @@ build_wrapper()
 }
 
 
-# keep until "to" but excluding it
-# cut stuff until "to"
-# keep "to" and keep rest
-
-force_rebuild()
-{
-   log_debug "force_rebuild" "$*"
-
-   local from="$1"
-   local to="$2"
-
-   remove_file_if_present "${REPOS_DIR}/.build_started"
-
-   # if nothing's build yet, fine with us
-   if [ ! -f "${REPOS_DIR}/.build_done" ]
-   then
-      log_fluff "Nothing has been built yet"
-      return
-   fi
-
-   if [ -z "${from}" -a -z "${to}" ]
-   then
-      remove_file_if_present "${REPOS_DIR}/.build_done"
-      return
-   fi
-
-   #
-   # keep entries above parameter
-   # os x doesn't have 'Q'
-   # also q and i doesn't work on OS X <sigh>
-   #
-   local tmpfile
-
-   [ -z "${MULLE_BOOTSTRAP_SNIP_SH}" ] && . mulle-bootstrap-snip.sh
-
-   tmpfile="`exekutor mktemp "mulle-bootstrap.XXXXXXXX"`" || exit 1
-
-   redirect_exekutor "${tmpfile}" snip_from_to_file "${from}" "${to}" "${REPOS_DIR}/.build_done"
-   exekutor mv "${tmpfile}" "${REPOS_DIR}/.build_done"
-
-   log_debug ".build_done=`cat "${REPOS_DIR}/.build_done"`"
-}
-
-
 build_if_alive()
 {
    log_debug "build_if_alive" "$*"
@@ -2700,6 +2691,8 @@ build_main()
       if [ "${MULLE_FLAG_MAGNUM_FORCE}" != "NONE" ] || \
          [ ! -z "${OPTION_FROM}" -o ! -z "${OPTION_TO}" ]
       then
+         [ -z "${MULLE_BOOTSTRAP_SNIP_SH}" ] && . mulle-bootstrap-snip.sh
+
          force_rebuild "${OPTION_FROM}" "${OPTION_TO}"
       fi
    fi
