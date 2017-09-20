@@ -631,7 +631,12 @@ _run_git_on_stash()
       (
          cd "$i" ;
          exekutor git ${GITFLAGS} "$@" ${GITOPTIONS}  >&2
-      ) || fail "git failed"
+      )
+      if [ $? -ne 0 -a "${MULLE_FLAG_LENIENT}" = "NO" ]
+      then
+         fail "git failed, use \`${MULLE_EXECUTABLE} --lenient git\` to ignore"
+      fi
+
       log_info
    fi
 }
@@ -678,15 +683,11 @@ git_main()
    [ -z "${MULLE_BOOTSTRAP_LOCAL_ENVIRONMENT_SH}" ] && . mulle-bootstrap-local-environment.sh
    [ -z "${MULLE_BOOTSTRAP_SCRIPTS_SH}" ]           && . mulle-bootstrap-scripts.sh
 
-   while :
-   do
-      if [ "$1" = "-h" -o "$1" = "--help" ]
-      then
-         git_usage
-      fi
-
-      break
-   done
+   # hmm
+   if [ "$1" = "-h" -o "$1" = "--help" ]
+   then
+      git_usage
+   fi
 
    if dir_has_files "${REPOS_DIR}"
    then

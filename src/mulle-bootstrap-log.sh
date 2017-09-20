@@ -62,7 +62,7 @@ log_main()
             log_usage
          ;;
 
-         -l|--l)
+         -l|--list)
             OPTION_LIST="YES"
          ;;
 

@@ -1,3 +1,7 @@
+### 3.13.3
+
+* add --lenient flag to mulle-bootstrap, used in mulle-bootstrap git to not abort on failure
+
 ### 3.13.1
 
 * use CC, CXX and MAKE internally and heed possible external environment variable of same name
