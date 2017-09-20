@@ -1,3 +1,7 @@
+### 3.13.1
+
+* use CC, CXX and MAKE internally and heed possible external environment variable of same name
+
 ## 3.13.0
 
 * add mulle-bootstrap log command, for looking at build logs of a specific dependency

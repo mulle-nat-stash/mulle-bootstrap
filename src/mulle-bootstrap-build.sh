@@ -211,8 +211,15 @@ tools_environment_common()
    local srcdir="$2"
 
    # no problem if those are empty
-   C_COMPILER="`find_compiler "${name}" "${srcdir}" CC`"
-   CXX_COMPILER="`find_compiler "${name}" "${srcdir}" CXX`"
+   if [ -z "${CC}" ]
+   then
+      CC="`find_compiler "${name}" "${srcdir}" CC`"
+   fi
+
+   if [ -z "${CXX}" ]
+   then
+      CXX="`find_compiler "${name}" "${srcdir}" CXX`"
+   fi
    TR="`verify_binary "tr" "tr" "tr"`"
    SED="`verify_binary "sed" "sed" "sed"`"
 }
@@ -236,23 +243,24 @@ tools_environment_make()
 
    tools_environment_common "$@"
 
-   local defaultmake
+   if [ -z "${MAKE}" ]
+   then
+      defaultmake="`platform_make "${CC}"`"
 
-   defaultmake="`platform_make "${C_COMPILER}"`"
+      case "${UNAME}" in
+         mingw)
+            MAKE="`find_make "${name}" "${defaultmake}"`"
+         ;;
 
-   case "${UNAME}" in
-      mingw)
-         MAKE="`find_make "${name}" "${defaultmake}"`"
-      ;;
+         darwin)
+            MAKE="`find_make "${name}"`"
+         ;;
 
-      darwin)
-         MAKE="`find_make "${name}"`"
-      ;;
-
-      *)
-         MAKE="`find_make "${name}"`"
-      ;;
-   esac
+         *)
+            MAKE="`find_make "${name}"`"
+         ;;
+      esac
+   fi
 }
 
 
@@ -267,8 +275,15 @@ tools_environment_cmake()
 
    defaultgenerator="`platform_cmake_generator "${MAKE}"`"
 
-   CMAKE="`find_cmake "${name}"`"
-   CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "${defaultgenerator}"`"
+   if [ -z "${CMAKE}" ]
+   then
+      CMAKE="`find_cmake "${name}"`"
+   fi
+
+   if [ -z "${CMAKE_GENERATOR}" ]
+   then
+      CMAKE_GENERATOR="`read_build_setting "${name}" "cmake_generator" "${defaultgenerator}"`"
+   fi
 
    [ -z "${CMAKE_GENERATOR}" ]  && internal_fail "CMAKE_GENERATOR must not be empty"
 }
@@ -1043,13 +1058,13 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local c_compiler_line
    local cxx_compiler_line
 
-   if [ ! -z "${C_COMPILER}" ]
+   if [ ! -z "${CC}" ]
    then
-      c_compiler_line="-DCMAKE_C_COMPILER='${C_COMPILER}'"
+      c_compiler_line="-DCMAKE_C_COMPILER='${CC}'"
    fi
-   if [ ! -z "${CXX_COMPILER}" ]
+   if [ ! -z "${CXX}" ]
    then
-      cxx_compiler_line="-DCMAKE_CXX_COMPILER='${CXX_COMPILER}'"
+      cxx_compiler_line="-DCMAKE_CXX_COMPILER='${CXX}'"
    fi
 
    # linker="`read_build_setting "${name}" "LD"`"
@@ -1306,13 +1321,13 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
    local c_compiler_line
    local cxx_compiler_line
 
-   if [ ! -z "${C_COMPILER}" ]
+   if [ ! -z "${CC}" ]
    then
-      c_compiler_line="CC='${C_COMPILER}'"
+      c_compiler_line="CC='${CC}'"
    fi
-   if [ ! -z "${CXX_COMPILER}" ]
+   if [ ! -z "${CXX}" ]
    then
-      cxx_compiler_line="CXX='${CXX_COMPILER}'"
+      cxx_compiler_line="CXX='${CXX}'"
    fi
 
    mkdir_if_missing "${builddir}"
