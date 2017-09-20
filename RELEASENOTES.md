@@ -1,3 +1,7 @@
+### 3.12.4
+
+* MAKE_FLAGS is MAKEFLAGS for consistency
+
 ### 3.12.1
 
 * deal with empty/bad repositories more gracefully

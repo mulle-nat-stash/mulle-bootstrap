@@ -1222,7 +1222,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          build_fail "${logfile1}" "cmake"
       fi
 
-      logging_redirekt_exekutor "${logfile2}" "${MAKE}" ${MAKE_FLAGS} ${local_make_flags} install
+      logging_redirekt_exekutor "${logfile2}" "${MAKE}" ${MAKEFLAGS} ${local_make_flags} install
       rval=$?
 
       PATH="${oldpath}"
@@ -1418,7 +1418,7 @@ ${C_MAGENTA}${C_BOLD}${sdk}${C_INFO} in \"${builddir}\" ..."
          build_fail "${logfile1}" "configure"
       fi
 
-      logging_redirekt_exekutor "${logfile2}" "${MAKE}" ${MAKE_FLAGS} install
+      logging_redirekt_exekutor "${logfile2}" "${MAKE}" ${MAKEFLAGS} install
       rval=$?
 
       PATH="${oldpath}"
