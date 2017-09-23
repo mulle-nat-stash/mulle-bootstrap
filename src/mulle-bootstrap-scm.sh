@@ -625,12 +625,15 @@ _run_git_on_stash()
 {
    local i="$1" ; shift
 
+   local name
+
    if [ -d "${i}/.git" -o -d "${i}/refs" ]
    then
+      name="`basename -- "${i}"`"
       log_info "### $i:"
       (
-         cd "$i" ;
-         exekutor git ${GITFLAGS} "$@" ${GITOPTIONS}  >&2
+         cd "$i"  &&
+         REPOSITORY="${name}" eval_exekutor "git" "${GITFLAGS}" "$@" "${GITOPTIONS}"  >&2
       )
       if [ $? -ne 0 -a "${MULLE_FLAG_LENIENT}" = "NO" ]
       then

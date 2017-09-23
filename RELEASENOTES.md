@@ -1,3 +1,7 @@
+### 3.13.4
+
+* protect CC renames affecting subsequent builds
+
 ### 3.13.3
 
 * add --lenient flag to mulle-bootstrap, used in mulle-bootstrap git to not abort on failure

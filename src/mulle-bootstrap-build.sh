@@ -2288,7 +2288,11 @@ configure"`"
 
       for configuration in ${configurations}
       do
-         build_with_configuration_sdk_preferences "${name}" "${configuration}" "${sdk}" "${preferences}"
+         #
+         # let it run in subshell so environment variable changes (like CC)
+         # do not affect next build
+         #
+         ( build_with_configuration_sdk_preferences "${name}" "${configuration}" "${sdk}" "${preferences}" )
          if [ $? -ne 0 ]
          then
             fail "Don't know how to build ${name}"
