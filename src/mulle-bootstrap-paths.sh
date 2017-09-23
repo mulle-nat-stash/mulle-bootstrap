@@ -786,7 +786,7 @@ paths_main()
          ;;
 
          -*)
-            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option $1"
+            log_error "${MULLE_EXECUTABLE_FAIL_PREFIX}: Unknown option \"$1\""
             paths_usage
          ;;
 
