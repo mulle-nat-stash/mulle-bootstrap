@@ -1,3 +1,7 @@
+### 3.13.5
+
+* fix corruption of motd file
+
 ### 3.13.4
 
 * protect CC renames affecting subsequent builds

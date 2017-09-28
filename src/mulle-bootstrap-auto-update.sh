@@ -113,19 +113,20 @@ _bootstrap_auto_copy()
             # stays in local
          ;;
 
-         *.build|settings|overrides)
+         motd)
+            if [ -f "${filepath}" ]
+            then
+               exekutor cp -an ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
+            fi
+         ;;
+
+         bin|*.build|settings|overrides)
             if [ -d "${filepath}" ]
             then
                exekutor cp -Ran ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
             fi
          ;;
 
-         bin)
-            if [ -d "${filepath}" ]
-            then
-               exekutor cp -Ran ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
-            fi
-         ;;
 
          repositories)
             merge_repository_files "${filepath}" "${dstfilepath}" "NO"
