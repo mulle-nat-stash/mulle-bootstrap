@@ -40,7 +40,7 @@ suggest_binary_install()
       mulle-cl*)
          case "${UNAME}" in
             darwin)
-               echo "brew install mulle-xcode-developer"
+               echo "brew install mulle-objc-developer"
             ;;
 
             *)
