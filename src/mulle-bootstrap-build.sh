@@ -2110,6 +2110,8 @@ build_with_configuration_sdk_preferences()
       wasxcode="NO"
       case "${preference}" in
          script)
+            tools_environment_common "${name}" "${srcdir}"
+
             script="`find_build_setting_file "${name}" "bin/build.sh"`"
             if [ -x "${script}" ]
             then

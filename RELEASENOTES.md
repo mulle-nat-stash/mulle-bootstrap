@@ -1,3 +1,9 @@
+### 3.13.6
+
+* fix build_script
+* unified  mktemp handling across platforms
+* add libexec to build PATH, for the benefits of scripts (regression)
+
 ### 3.13.5
 
 * fix corruption of motd file
