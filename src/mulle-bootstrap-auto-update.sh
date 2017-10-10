@@ -70,7 +70,7 @@ _bootstrap_auto_copy()
    #
    # this first stage folds platform specific files
    #
-   tmpdir="`mktemp -d /tmp/mulle-bootstrap.XXXXXXXX`"
+   tmpdir="`make_tmp_directory "bootstrap"`"
    inherit_files "${tmpdir}" "${src}"
    inherit_scripts "${tmpdir}" "${src}"
 

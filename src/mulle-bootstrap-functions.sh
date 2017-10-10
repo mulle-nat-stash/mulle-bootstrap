@@ -1188,6 +1188,35 @@ remove_file_if_present()
    fi
 }
 
+
+_make_tmp()
+{
+   local name="${1:-mctmp}"
+   local type="${2}"
+
+   case "${UNAME}" in
+      darwin|freebsd)
+         exekutor mktemp ${type} "/tmp/${name}.XXXXXX"
+      ;;
+
+      *)
+         exekutor mktemp ${type} -t "${name}.XXXXXX"
+      ;;
+   esac
+}
+
+
+make_tmp_file()
+{
+   _make_tmp "$1"
+}
+
+
+make_tmp_directory()
+{
+   _make_tmp "$1" "-d"
+}
+
 # ####################################################################
 #                        Symbolic Links
 # ####################################################################

@@ -31,7 +31,7 @@
 #
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=13
-MULLE_EXECUTABLE_VERSION_PATCH=5
+MULLE_EXECUTABLE_VERSION_PATCH=6
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -229,24 +229,24 @@ resolve_symlinks()
 
 bootstrap_libexec_path()
 {
-   local path="$1"
+   local executablepath="$1"
 
    local exedir
    local exedirpath
    local prefix
    local libexecpath
 
-   case "${path}" in
+   case "${executablepath}" in
       \.*|/*|~*)
       ;;
 
       *)
-         path="`command -v "${path}"`"
+         executablepath="`command -v "${executablepath}"`"
       ;;
    esac
 
-   path="`resolve_symlinks "${path}"`"
-   exedirpath="`dirname "${path}"`"
+   executablepath="`resolve_symlinks "${executablepath}"`"
+   exedirpath="`dirname "${executablepath}"`"
    prefix="`dirname "${exedirpath}"`"
    libexecpath="${prefix}/libexec/mulle-bootstrap"
 
@@ -273,16 +273,14 @@ bootstrap_libexec_path()
 
 bootstrap_init()
 {
-   local libexecpath
-
-   libexecpath="`bootstrap_libexec_path "$0"`"
-   if [ -z "${libexecpath}" ]
+   MULLE_LIBEXEC_PATH="`bootstrap_libexec_path "$0"`"
+   if [ -z "${MULLE_LIBEXEC_PATH}" ]
    then
       echo "Fatal Error: Could not find libexec for ${MULLE_EXECUTABLE} ($PWD)" >&2
       exit 1
    fi
 
-   PATH="${libexecpath}:$PATH"
+   PATH="${MULLE_LIBEXEC_PATH}:$PATH"
    export PATH
 
    if [ ! -z "${MULLE_BOOTSTRAP_LIBEXEC_TRACE}" ]
@@ -296,7 +294,7 @@ bootstrap_init()
    #
    case "${1}" in
       library-path)
-         echo "${libexecpath}"
+         echo "${MULLE_LIBEXEC_PATH}"
          exit 0
       ;;
 
@@ -727,8 +725,6 @@ MULLE_EXECUTABLE_ENV_PATH="$PATH"
 MULLE_EXECUTABLE_FAIL_PREFIX="${MULLE_EXECUTABLE}"
 MULLE_EXECUTABLE_PID="$$"
 export MULLE_EXECUTABLE_PID
-
-
 
 
 bootstrap_init "$@" # needs params

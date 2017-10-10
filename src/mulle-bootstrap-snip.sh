@@ -171,7 +171,7 @@ force_rebuild()
    #
    local tmpfile
 
-   tmpfile="`exekutor mktemp "mulle-bootstrap.XXXXXXXX"`" || exit 1
+   tmpfile="`make_tmp_file "bootstrap"`" || exit 1
 
    redirect_exekutor "${tmpfile}" snip_from_to_file "${from}" "${to}" "${REPOS_DIR}/.build_done"
    exekutor mv "${tmpfile}" "${REPOS_DIR}/.build_done"

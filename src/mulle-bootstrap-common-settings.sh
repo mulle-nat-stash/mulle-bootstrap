@@ -175,6 +175,9 @@ build_complete_environment()
    BUILDPATH="`prepend_to_search_path_if_missing "${MULLE_EXECUTABLE_ENV_PATH}" \
                                                  "${ADDICTIONS_DIR}/bin"`"
 
+   # for scripts
+   BUILDPATH="${BUILDPATH}:${MULLE_LIBEXEC_PATH}"
+
    #
    # dont export stuff for scripts
    # if scripts want it, they should source this file
@@ -186,7 +189,7 @@ build_complete_environment()
          setup_mingw_buildenvironment
 
          BUILDPATH="`mingw_buildpath "${BUILDPATH}"`"
-         # if mulle-bootstrap is not properly installed pickup .bat path 
+         # if mulle-bootstrap is not properly installed pickup .bat path
          # this way
          local pretty
 
