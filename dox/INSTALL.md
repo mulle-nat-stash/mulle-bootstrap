@@ -30,7 +30,7 @@ Run with sudo:
 ```
 sudo -s
 
-curl -sS "https://www.mulle-kybernetik.com/dists/admin-pub.asc" | apt-key add -
+curl -sS "https://www.mulle-kybernetik.com/dists/debian-admin-pub.asc" | apt-key add -
 
 echo "deb [arch=all] http://www.mulle-kybernetik.com `lsb_release -c -s` main" \
 > "/etc/apt/sources.list.d/mulle-nat.mulle-kybernetik.com.list"
