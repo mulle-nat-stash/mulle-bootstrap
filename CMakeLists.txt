@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.0)
 
-project( mulle-bootstrap)
+# use C, because otherwise a CXX compiler is required
+project( mulle-bootstrap C)
 
 #
 # Primarily used for packaging on Linux

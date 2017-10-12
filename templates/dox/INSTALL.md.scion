@@ -29,10 +29,10 @@ Run with sudo:
 ```
 sudo -s
 
-curl -sS "{{PUBLISHER_DEBIAN_GPG_URL}}" | apt-key add -
+curl -sS "https://{{PUBLISHER_DEBIAN_GPG_PATH}}" | apt-key add -
 
-echo "deb [arch=all] http://{{PUBLISHER_DEBIAN_SOURCE}} `lsb_release -c -s` main" \
-> "/etc/apt/sources.list.d/{{PUBLISHER_DEBIAN_SOURCE}}.list"
+echo "deb [arch=all] http://{{PUBLISHER_DEBIAN_DISTS_PATH}} `lsb_release -c -s` main" \
+> "/etc/apt/sources.list.d/{{PUBLISHER}}.{{PUBLISHER_DOMAIN}}.list"
 
 apt-get update
 apt-get -y --allow-unauthenticated install mulle-bootstrap

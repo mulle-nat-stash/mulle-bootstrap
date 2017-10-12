@@ -347,7 +347,7 @@ The "trick" is to use parameterized branches and urls like so:
 $ cat .bootstrap/repositories
 ${MULLE_REPOSITORIES}/mulle-c11;;${MULLE_C11_BRANCH:-release}
 $ cat .bootstrap/MULLE_REPOSITORIES
-https://github.com/mulle-objc
+https://github.com/mulle-nat
 ```
 
 This works for the release part. Locally though in the non-committed

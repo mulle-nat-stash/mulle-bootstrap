@@ -20,7 +20,7 @@ Here is an example, that installs **mulle-bootstrap** into /tmp:
 If you have brew you can get the latest released version with
 
 ```console
-brew install mulle-objc/software/mulle-bootstrap
+brew install mulle-kybernetik/software/mulle-bootstrap
 ```
 
 ### Linux/: Install with apt-get
@@ -30,10 +30,10 @@ Run with sudo:
 ```
 sudo -s
 
-curl -sS "https://www.mulle-kybernetik.com/mulle-objc-dists/admin-pub.asc" | apt-key add -
+curl -sS "https://www.mulle-kybernetik.com/dists/admin-pub.asc" | apt-key add -
 
-echo "deb [arch=all] http://mulle-objc.mulle-kybernetik.com `lsb_release -c -s` main" \
-> "/etc/apt/sources.list.d/mulle-objc.mulle-kybernetik.com.list"
+echo "deb [arch=all] http://www.mulle-kybernetik.com `lsb_release -c -s` main" \
+> "/etc/apt/sources.list.d/mulle-nat.mulle-kybernetik.com.list"
 
 apt-get update
 apt-get -y --allow-unauthenticated install mulle-bootstrap

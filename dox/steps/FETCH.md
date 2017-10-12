@@ -16,11 +16,11 @@ know about this dependency, as you will see shortly:
 
 You initialize your repository with `mulle-bootstrap init`, which will
 create the `.bootstrap` folder for you. Then you place the dependency URL
-`https://github.com/mulle-objc/Foobie` into the file `.bootstrap/repositories`.
+`https://github.com/mulle-nat/Foobie` into the file `.bootstrap/repositories`.
 
 ```console
 mulle-bootstrap init -n
-echo "https://github.com/mulle-objc/Foobie" > .bootstrap/repositories
+echo "https://github.com/mulle-nat/Foobie" > .bootstrap/repositories
 ```
 
 You also notice that "Foobie" can be built with either **cmake** or
@@ -50,7 +50,7 @@ and your `.bootstrap` folder. The preference is for `.bootstrap.local`
 contents. But since there is no `.bootstap.local` here, `.bootstrap.auto` is a
 simple copy of `.bootstrap`.
 
-> Ref: [`bootstrap_auto_create`](https://github.com/mulle-objc/mulle-bootstrap/blob/release/src/mulle-bootstrap-auto-update.sh#L214)
+> Ref: [`bootstrap_auto_create`](https://github.com/mulle-nat/mulle-bootstrap/blob/release/src/mulle-bootstrap-auto-update.sh#L214)
 
 From now `.bootstrap` is no longer used.
 
@@ -74,7 +74,7 @@ its own dependencies.
 Also **mulle-bootstrap** created  (new in 3.0) a `.bootstrap.repos` folder. It
 memorizes the place, where repositories have been fetched too.
 
-> Ref: [`clone_repositories`](https://github.com/mulle-objc/mulle-bootstrap/blob/release/src/mulle-bootstrap-fetch.sh#L792)
+> Ref: [`clone_repositories`](https://github.com/mulle-nat/mulle-bootstrap/blob/release/src/mulle-bootstrap-fetch.sh#L792)
 
 
 ### 3. Refresh
@@ -88,7 +88,7 @@ The refresh pass now picks up the `repositories` information from the
 Since Foobie depends on Noobie, it has been properly sorted on top of it.
 
 
-> Ref: [`refresh_repositories`](https://github.com/mulle-objc/mulle-bootstrap/blob/release/src/mulle-bootstrap-refresh.sh#L447)
+> Ref: [`refresh_repositories`](https://github.com/mulle-nat/mulle-bootstrap/blob/release/src/mulle-bootstrap-refresh.sh#L447)
 
 
 ### 4. Fetch
