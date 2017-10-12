@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 #
-#   Copyright (c) 2017 Nat! - Codeon GmbH
+#   Copyright (c) 2017 Nat! - Mulle kybernetiK
 #   All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or without
@@ -37,41 +37,6 @@
 #   ./bin/release.sh -v -n --publisher mulle-nat --publisher-tap mulle-kybernetik/software/
 #
 
-#######
-# If you are using mulle-build, you don't hafta change anything
-#######
-
-#
-# Generate your `def install` `test do` lines here. echo them to stdout.
-#
-generate_brew_formula_build()
-{
-   cat <<EOF
-def install
-  system "./install.sh", "#{prefix}"
-end
-EOF
-}
-
-
-#
-# If you are unhappy with the formula in general, then change
-# this function. Print your formula to stdout.
-#
-generate_brew_formula()
-{
-#   local project="$1"
-#   local name="$2"
-#   local version="$3"
-#   local dependencies="$4"
-#   local builddependencies="$5"
-#   local homepage="$6"
-#   local desc="$7"
-#   local archiveurl="$8"
-
-   _generate_brew_formula "$@"
-}
-
 
 #######
 # Ideally changes to the following values are done with the command line
@@ -79,7 +44,7 @@ generate_brew_formula()
 #######
 
 MULLE_BOOTSTRAP_FAIL_PREFIX="`basename -- $0`"
-MULLE_HOMEBREW_VERSION="5.2.0"
+MULLE_HOMEBREW_VERSION="5.3.0"
 
 if [ -z "`command -v mulle-homebrew-env`" ]
 then
@@ -93,8 +58,10 @@ fi
 
 INSTALLED_MULLE_HOMEBREW_VERSION="`mulle-homebrew-env version`" || exit 1
 LIBEXEC_DIR="`mulle-homebrew-env libexec-path`" || exit 1
+RELEASE_DIR="`dirname -- "$0"`"
 
 . "${LIBEXEC_DIR}/mulle-files.sh"       || exit 1
+. "${LIBEXEC_DIR}/mulle-publisher.sh"   || exit 1
 . "${LIBEXEC_DIR}/mulle-homebrew.sh"    || exit 1
 . "${LIBEXEC_DIR}/mulle-git.sh"         || exit 1
 . "${LIBEXEC_DIR}/mulle-version.sh"     || exit 1
@@ -103,6 +70,8 @@ LIBEXEC_DIR="`mulle-homebrew-env libexec-path`" || exit 1
 
 main()
 {
+   log_verbose "mulle-homebrew-version ${MULLE_HOMEBREW_VERSION}"
+
    if [ "${DO_GIT_RELEASE}" != "YES" -a "${DO_GENERATE_FORMULA}" != "YES" ]
    then
       fail "Nothing to do! bin/version-info.sh and bin/formula-info.sh are missing"
