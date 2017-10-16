@@ -1,3 +1,9 @@
+## 3.15.0
+
+* use a different mechanism for walking repositories during update/upgrade, to catch problems with embedded_repositories of minions not being updated
+* properly forget repositories being removed
+
+
 ### 3.14.1
 
 * different apt-key in dox

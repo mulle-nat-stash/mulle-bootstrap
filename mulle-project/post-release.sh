@@ -4,6 +4,6 @@
 
 post_release()
 {
-   exekutor mulle-homebrew-debian
+   exekutor mulle-project-debian
 }
 
