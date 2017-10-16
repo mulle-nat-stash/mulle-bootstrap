@@ -36,7 +36,7 @@ echo "deb [arch=all] http://www.mulle-kybernetik.com `lsb_release -c -s` main" \
 > "/etc/apt/sources.list.d/mulle-nat.mulle-kybernetik.com.list"
 
 apt-get update
-apt-get -y --allow-unauthenticated install mulle-bootstrap
+apt-get -y install mulle-bootstrap
 ```
 
 ## Windows: How to install
