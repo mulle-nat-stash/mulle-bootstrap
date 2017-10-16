@@ -115,9 +115,10 @@ print_stashdir_repositories()
    local permissions
 
    permissions=""
-   walk_repos_repositories "${REPOS_DIR}" \
+   walk_repos_repositories "repositories" \
                            "_collect_stashdir" \
-                           "${permissions}"
+                           "${permissions}" \
+                           "${REPOS_DIR}" 
 }
 
 
@@ -126,9 +127,10 @@ print_embedded_stashdir_repositories()
    local permissions
 
    permissions=""
-   walk_repos_repositories "${EMBEDDED_REPOS_DIR}" \
+   walk_repos_repositories  "embedded_repositories" \
                             "_collect_stashdir" \
-                            "${permissions}"
+                            "${permissions}" \
+                            "${EMBEDDED_REPOS_DIR}" 
 }
 
 
@@ -137,8 +139,9 @@ print_stashdir_deep_embedded_repositories()
    local permissions
 
    permissions="minion"
-   walk_deep_embedded_repos_repositories "_collect_stashdir" \
-                                         "${permissions}"
+   walk_repos_deep_embedded_repositories "_collect_stashdir" \
+                                         "${permissions}" \
+                                         "${REPOS_DIR}"
 }
 
 
@@ -147,8 +150,9 @@ print_stashdir_deep_embedded_minion_repositories()
    local permissions
 
    permissions="minion"
-   walk_deep_embedded_minion_repositories "_collect_stashdir" \
-                                         "${permissions}"
+   walk_repos_deep_embedded_minion_repositories "_collect_stashdir" \
+                                                "${permissions}" \
+                                                "${REPOS_DIR}"
 }
 
 

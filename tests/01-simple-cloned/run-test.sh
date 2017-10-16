@@ -68,7 +68,13 @@ update_test_case()
 
 move_test_case()
 {
-   echo "b;b2" > a/.bootstrap/repositories
+   echo "b;stashes/b2" > a/.bootstrap/repositories
+}
+
+
+remove_test_case()
+{
+   echo "# empty now" > a/.bootstrap/repositories
 }
 
 
@@ -102,6 +108,33 @@ assert_a_2()
 
    result="`cat stashes/b/README.md`"
    [ "${result}" != "# VfL Bochum 1848" ] && fail "stashes not updated ($result)"
+   :
+}
+
+
+#
+# why do I even support this still ?
+#
+assert_a_3()
+{
+   result="`cat .bootstrap.auto/repositories`"
+   expected="b;stashes/b2;master;git"
+
+   [ "${expected}" = "${result}" ] || fail ".bootstrap.auto/repositories, result:${result} != expected:${expected}"
+
+   [ -f ".bootstrap.repos/b" ] || fail "fail 3.1"
+   [ -d "stashes/b2" ]  || fail "fail 3.2"
+   [ ! -d "stashes/b" ] || fail "fail 3.3"
+
+   :
+}
+
+assert_a_4()
+{
+   [ ! -d "stashes/b2" ]  || fail "fail 4.1"
+   [ ! -d "stashes/b" ] || fail "fail 4.2"
+   [ ! -f ".bootstrap.repos/b" ] || fail "fail 4.3"
+
    :
 }
 
@@ -147,6 +180,20 @@ _test_a_2()
 }
 
 
+_test_a_3()
+{
+   run_mulle_bootstrap "$@" fetch
+   assert_a_3
+}
+
+
+_test_a_4()
+{
+   run_mulle_bootstrap "$@" fetch
+   assert_a_4
+}
+
+
 test_a()
 {
    (
@@ -162,6 +209,23 @@ test_a()
    (
       cd a ;
       _test_a_2 "$@"
+   ) || fail "setup"
+
+   #
+   # Move 'b' into a different stash dir
+   #
+   move_test_case
+
+   (
+      cd a ;
+      _test_a_3 "$@"
+   ) || fail "setup"
+
+   remove_test_case
+
+   (
+      cd a ;
+      _test_a_4 "$@"
    ) || fail "setup"
 }
 

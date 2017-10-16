@@ -494,10 +494,15 @@ list_build_directories()
    local filename
    local name
 
-   log_info "$PWD"
+   if [ ! -d "${directory}" ]
+   then
+      return
+   fi
+
+   log_info "${directory}"
    IFS="
 "
-   for filename in `ls -1 "${directory}"`
+   for filename in `ls -1 "${directory}" 2> /dev/null`
    do
       path="${directory}/${filename}"
       if [ -d "${path}" ]
@@ -528,7 +533,7 @@ list_dir_settings()
 
    IFS="
 "
-   for filename in `ls -1 "${directory}" 2> /dev/null | sed -n "/${sedpattern}/p" `
+   for filename in `ls -1 "${directory}" 2> /dev/null  | sed -n "/${sedpattern}/p" `
    do
       IFS="${DEFAULT_IFS}"
 
@@ -1012,9 +1017,13 @@ _setting_list()
                         sed "s/^/mulle-bootstrap setting -r -g /" | \
                         _unescape_linefeeds
 
-      log_info "Available repository settings:"
-      list_build_directories "${BOOTSTRAP_DIR}.local" ""
-      list_build_directories "${BOOTSTRAP_DIR}" "-g"
+
+      if [ -d "${BOOTSTRAP_DIR}.local" -o -d "${BOOTSTRAP_DIR}" ]
+      then
+         log_info "Available repository settings:"
+         list_build_directories "${BOOTSTRAP_DIR}.local" ""
+         list_build_directories "${BOOTSTRAP_DIR}" "-g"
+      fi
 
       return
    fi

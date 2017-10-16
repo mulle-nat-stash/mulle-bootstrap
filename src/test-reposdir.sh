@@ -24,10 +24,9 @@ run_test_1()
    [ "${tag}"      = "tag" ]       || fail "wrong tag \"${tag}\""
    [ "${scm}"      = "scm" ]       || fail "wrong scm \"${scm}\""
 
-   remember_stash_of_repository "${clone}" \
-                                ".bootstrap.repos" \
-                                "${name}"  \
-                                "${stashdir}"
+   remember_repository "${clone}" \
+                       ".bootstrap.repos" \
+                       "${name}"  
 
    local foodir
 
@@ -64,10 +63,9 @@ run_test_2()
    [ "${tag}"      = "tag" ]       || fail "wrong tag \"${tag}\""
    [ "${scm}"      = "scm" ]       || fail "wrong scm \"${scm}\""
 
-   remember_stash_of_repository "${clone}" \
-                                ".bootstrap.repos/.embedded" \
-                                "${name}"  \
-                                "${stashdir}"
+   remember_repository "${clone}" \
+                       ".bootstrap.repos/.embedded" \
+                       "${name}"  
 
    local foodir
 

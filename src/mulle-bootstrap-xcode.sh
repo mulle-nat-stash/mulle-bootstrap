@@ -78,22 +78,20 @@ list_default_configuration()
 
 check_for_mulle_xcode_settings()
 {
-   local installed
-
    #
    # OK
    #
-   installed=`which mulle-xcode-settings`
-   if [ "$installed" = "" ]
+   if [ -z "`command -v mulle-xcode-settings`" ]
    then
       user_say_yes "Need to install mulle-xcode-settings (via brew)
-   Install mulle-xcode-settings now ?"
-      [ $? -eq 0 ] || exit 1
+Install mulle-xcode-settings now ?"
+      [ $? -eq 0 ] || return 1
 
       [ -z "${MULLE_BOOTSTRAP_BREW_SH}" ] && . mulle-bootstrap-brew.sh
 
       brew_install_brews install "mulle-kybernetik/software/mulle-xcode-settings"
    fi
+   return 0
 }
 
 
@@ -158,6 +156,11 @@ patch_library_configurations()
    default="$4"
    flag="$5"
 
+   if ! check_for_mulle_xcode_settings
+   then
+      exit 1
+   fi
+
    IFS="
 "
    for i in ${xcode_configurations}
@@ -205,7 +208,6 @@ patch_xcode_project()
 
    # mod_pbxproj can only do Debug/Release/All...
 
-   check_for_mulle_xcode_settings
 
    configurations=`read_root_setting "configurations" "Debug
 Release"`
@@ -298,67 +300,72 @@ Release"
 
    local query
 
-   if [ "$COMMAND" = "add" ]
+   if check_for_mulle_xcode_settings
    then
-      if [ $terse -ne 0 -a "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
+      if [ "$COMMAND" = "add" ]
       then
-         local mapped
-         local i
-
-         printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
-
-         #  make these echos easily grabable by stdout
-         #     012345678901234567890123456789012345678901234567890123456789
-         printf "${C_RESET_BOLD}Common.xcconfig:${C_RESET}\n"
-         printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
-         echo "ADDICTIONS_DIR=${addictions_dir}"
-         if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
+         if [ $terse -ne 0 -a "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
          then
-            echo "DEPENDENCIES_DIR=${dependencies_dir}"
-         fi
-         echo "HEADER_SEARCH_PATHS=${header_search_paths}"
-         echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
-         echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
-         printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
+            local mapped
+            local i
 
-         IFS="
-"
-         for i in ${xcode_configurations}
-         do
-            IFS="${DEFAULT_IFS}"
-            mapped=`map_configuration "${configurations}" "${i}"`
-
-            #     012345678901234567890123456789012345678901234567890123456789
-            printf "${C_RESET_BOLD}${i}.xcconfig:${C_RESET}\n"
-            printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
-            echo "#include \"Common.xcconfig\""
-            echo ""
-            echo "LIBRARY_CONFIGURATION=${mapped}"
             printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
-         done
 
-         IFS="${DEFAULT_IFS}"
+            #  make these echos easily grabable by stdout
+            #     012345678901234567890123456789012345678901234567890123456789
+            printf "${C_RESET_BOLD}Common.xcconfig:${C_RESET}\n"
+            printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
+            echo "ADDICTIONS_DIR=${addictions_dir}"
+            if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
+            then
+               echo "DEPENDENCIES_DIR=${dependencies_dir}"
+            fi
+            echo "HEADER_SEARCH_PATHS=${header_search_paths}"
+            echo "LIBRARY_SEARCH_PATHS=${library_search_paths}"
+            echo "FRAMEWORK_SEARCH_PATHS=${framework_search_paths}"
+            printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
+
+            IFS="
+   "
+            for i in ${xcode_configurations}
+            do
+               IFS="${DEFAULT_IFS}"
+               mapped=`map_configuration "${configurations}" "${i}"`
+
+               #     012345678901234567890123456789012345678901234567890123456789
+               printf "${C_RESET_BOLD}${i}.xcconfig:${C_RESET}\n"
+               printf "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
+               echo "#include \"Common.xcconfig\""
+               echo ""
+               echo "LIBRARY_CONFIGURATION=${mapped}"
+               printf  "${C_RESET_BOLD}-----------------------------------------------------------\n${C_RESET}" >&2
+            done
+
+            IFS="${DEFAULT_IFS}"
+         fi
+
+         query="Add ${C_CYAN}${ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      else
+         query="Remove ${C_CYAN}${ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
       fi
 
-      query="Add ${C_CYAN}${ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends to search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+
+      user_say_yes "$query"
+      [ $? -eq 0 ] || exit 1
+
+      if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
+      then
+         patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${default}" "${flag}"
+      fi
+
+      exekutor mulle-xcode-settings "${flag}" "ADDICTIONS_DIR" "${addictions_dir}" "${project}"  || exit 1
+      exekutor mulle-xcode-settings "${flag}" "DEPENDENCIES_DIR" "${dependencies_dir}" "${project}"  || exit 1
+      exekutor mulle-xcode-settings "${flag}" "HEADER_SEARCH_PATHS" "${header_search_paths}" "${project}"  || exit 1
+      exekutor mulle-xcode-settings "${flag}" "LIBRARY_SEARCH_PATHS" "${library_search_paths}" "${project}"  || exit 1
+      exekutor mulle-xcode-settings "${flag}" "FRAMEWORK_SEARCH_PATHS" "${framework_search_paths}" "${project}" || exit 1
    else
-      query="Remove ${C_CYAN}${ADDICTIONS_DIR}/${LIBRARY_DIR_NAME}${C_MAGENTA} and friends from search paths of ${C_MAGENTA}${projectname}${C_YELLOW} ?"
+      exit 1
    fi
-
-   user_say_yes "$query"
-   [ $? -eq 0 ] || exit 1
-
-   if [ "${MULLE_EXECUTABLE}" = "mulle-bootstrap" ]
-   then
-      patch_library_configurations "${xcode_configurations}" "${configurations}" "${project}" "${default}" "${flag}"
-   fi
-
-   exekutor mulle-xcode-settings "${flag}" "ADDICTIONS_DIR" "${addictions_dir}" "${project}"  || exit 1
-   exekutor mulle-xcode-settings "${flag}" "DEPENDENCIES_DIR" "${dependencies_dir}" "${project}"  || exit 1
-   exekutor mulle-xcode-settings "${flag}" "HEADER_SEARCH_PATHS" "${header_search_paths}" "${project}"  || exit 1
-   exekutor mulle-xcode-settings "${flag}" "LIBRARY_SEARCH_PATHS" "${library_search_paths}" "${project}"  || exit 1
-   exekutor mulle-xcode-settings "${flag}" "FRAMEWORK_SEARCH_PATHS" "${framework_search_paths}" "${project}" || exit 1
-
 
    if [ "$COMMAND" = "add" ]
    then

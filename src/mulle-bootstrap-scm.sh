@@ -223,7 +223,7 @@ _git_get_mirror_url()
    [ -z "${REPOS_DIR}" ] && internal_fail "REPOS_DIR undefined"
 
    filelistpath="${REPOS_DIR}/.uptodate-mirrors"
-   log_debug "Mirror URLS: `cat "${filelistpath}" 2>/dev/null`"
+   log_fluff "Mirror URLS: `cat "${filelistpath}" 2>/dev/null`"
 
    match="`fgrep -s -x "${mirrordir}" "${filelistpath}" 2>/dev/null`"
    if [ ! -z "${match}" ]
