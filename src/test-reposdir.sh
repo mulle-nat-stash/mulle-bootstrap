@@ -26,7 +26,7 @@ run_test_1()
 
    remember_repository "${clone}" \
                        ".bootstrap.repos" \
-                       "${name}"  
+                       "${name}"
 
    local foodir
 
@@ -65,7 +65,7 @@ run_test_2()
 
    remember_repository "${clone}" \
                        ".bootstrap.repos/.embedded" \
-                       "${name}"  
+                       "${name}"
 
    local foodir
 

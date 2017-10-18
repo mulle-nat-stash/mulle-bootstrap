@@ -1141,10 +1141,10 @@ work_clones()
 
    if [ -z "${clones}" ]
    then
-      log_debug "work_clones has nothing to do"        
+      log_debug "work_clones has nothing to do"
       return
    fi
-   
+
    log_debug "Working \"${clones}\""
 
    IFS="
@@ -1302,7 +1302,7 @@ work_clones()
                   fi
 
                   bury_stash "${reposdir}" "${name}" "${oldstashdir}"
-                  forget_repository "${reposdir}" "${name}" 
+                  forget_repository "${reposdir}" "${name}"
                ;;
 
                "set-remote")
@@ -1684,7 +1684,7 @@ _common_upgrade()
 
    # now we need to redo the auto update and
    # fetch new dependencies if needed
-   
+
    _common_fetch  # update what needs to be update
 }
 

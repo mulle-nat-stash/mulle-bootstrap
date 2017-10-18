@@ -145,7 +145,7 @@ log_trace2()
       linux)
          log_printf "${C_TRACE2}$(date "+%s.%N") %b${C_RESET}\n" "$*"
          ;;
-         
+
       *)
          log_printf "${C_TRACE2}$(date "+%s") %b${C_RESET}\n" "$*"
       ;;

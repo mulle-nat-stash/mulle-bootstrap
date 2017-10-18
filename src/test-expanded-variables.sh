@@ -7,7 +7,7 @@
 
 run_test()
 {
-  expect="$1" 
+  expect="$1"
   shift
 
   result="`expanded_variables "$2" "" ""`"

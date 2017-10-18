@@ -118,7 +118,7 @@ print_stashdir_repositories()
    walk_repos_repositories "repositories" \
                            "_collect_stashdir" \
                            "${permissions}" \
-                           "${REPOS_DIR}" 
+                           "${REPOS_DIR}"
 }
 
 
@@ -130,7 +130,7 @@ print_embedded_stashdir_repositories()
    walk_repos_repositories  "embedded_repositories" \
                             "_collect_stashdir" \
                             "${permissions}" \
-                            "${EMBEDDED_REPOS_DIR}" 
+                            "${EMBEDDED_REPOS_DIR}"
 }
 
 

@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-set -e 
+set -e
 set -x
 
 . mulle-bootstrap-dependency-resolve.sh

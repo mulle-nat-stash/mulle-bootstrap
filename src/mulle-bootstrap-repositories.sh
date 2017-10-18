@@ -996,7 +996,7 @@ read_repository_file()
       then
          continue
       fi
-      
+
       parse_raw_clone "${clone}"
       process_raw_clone
 
@@ -1178,7 +1178,7 @@ unique_repository_contents()
    for clone in ${another}
    do
       IFS="${DEFAULT_IFS}"
- 
+
       if [ ! -z "${clone}" ]
       then
          url="`_url_part_from_clone "${clone}"`" || internal_fail "_url_part_from_clone \"${clone}\""

@@ -99,7 +99,7 @@ warn_user_setting()
 
    path="$1"
 
-   if [ -z "${MULLE_BOOTSTRAP_WARN_USER_SETTINGS}" ] 
+   if [ -z "${MULLE_BOOTSTRAP_WARN_USER_SETTINGS}" ]
    then
       MULLE_BOOTSTRAP_WARN_USER_SETTINGS="`read_config_setting "warn_user_setting" "YES"`"
    fi

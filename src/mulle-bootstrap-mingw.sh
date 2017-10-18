@@ -156,7 +156,7 @@ mingw_mangle_compiler_exe()
 setup_mingw_buildenvironment()
 {
    log_debug "setup_mingw_buildenvironment"
-   
+
    local linker
 
    if [ -z "${LIBPATH}" -o  -z "${INCLUDE}" ] && [ -z "${DONT_USE_VS}" ]
@@ -176,7 +176,7 @@ setup_mingw_buildenvironment()
 
    local preprocessor
    local searchpath
- 
+
    searchpath="`dirname -- "${MULLE_EXECUTABLE_PATH}"`:$PATH"
    preprocessor="`find_msvc_executable "mulle-mingw-cpp.sh" "preprocessor" "${searchpath}"`"
    if [ ! -z "${preprocessor}" ]
@@ -247,8 +247,8 @@ mingw_visualstudio_buildpath()
                vspath="${vspath}:${i}"
             fi
          ;;
-      
-         *)         
+
+         *)
             if [ -z "${buildpath}" ]
             then
                buildpath="${i}"
