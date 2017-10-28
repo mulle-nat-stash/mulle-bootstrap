@@ -976,7 +976,7 @@ read_repository_file()
 
    srcbootstrap="`dirname -- "${srcfile}"`"
 
-   clones="`read_expanded_setting "$srcfile" "" "${srcbootstrap}"`"
+   clones="`read_expanded_setting "${srcfile}" "" "${srcbootstrap}"`" || exit 1
 
    local url        # url of clone
    local dstdir
@@ -984,7 +984,6 @@ read_repository_file()
    local scm
    local tag
    local name
-
 
    IFS="
 "
@@ -1140,7 +1139,7 @@ merge_repository_files()
    local additions
 
    contents="`cat "${dstfile}" 2> /dev/null || :`"
-   additions="`read_repository_file "${srcfile}" "${delete_dstdir}"`" || fail "Failed to read repository file \"${srcfile}\""
+   additions="`read_repository_file "${srcfile}" "${delete_dstdir}"`" || exit 1
    additions="`echo "${additions}"| sed 's/;*$//'`"
    additions="`merge_repository_contents "${contents}" "${additions}"`"
 
@@ -1313,7 +1312,7 @@ ${clone}"
 
       filename="${stashdir}/.bootstrap/repositories"
 
-      sub_repos="`read_repository_file "${filename}" "" "${stashdir}/.bootstrap"`"
+      sub_repos="`read_repository_file "${filename}" "" "${stashdir}/.bootstrap"`" || exit 1
 
       if [ ! -z "${sub_repos}" ]
       then

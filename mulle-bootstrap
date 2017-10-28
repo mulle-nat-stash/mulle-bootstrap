@@ -31,7 +31,7 @@
 #
 MULLE_EXECUTABLE_VERSION_MAJOR=3
 MULLE_EXECUTABLE_VERSION_MINOR=15
-MULLE_EXECUTABLE_VERSION_PATCH=0
+MULLE_EXECUTABLE_VERSION_PATCH=1
 
 MULLE_EXECUTABLE_VERSION="${MULLE_EXECUTABLE_VERSION_MAJOR}.${MULLE_EXECUTABLE_VERSION_MINOR}.${MULLE_EXECUTABLE_VERSION_PATCH}"
 
@@ -105,7 +105,7 @@ mulle_bootstrap_usage()
 
    cat <<EOF
 Usage:
-   ${MULLE_BOOTSTAP_EXECUTABLE} [flags] [command] [options]
+   ${MULLE_BOOTSTRAP_EXECUTABLE} [flags] [command] [options]
 
 Flags:
    -a -y     : default answer to questions (scripts wont be checked)
@@ -273,12 +273,33 @@ bootstrap_libexec_path()
 
 bootstrap_init()
 {
+   if [ "$1" = "version" ]
+   then
+      echo "${MULLE_EXECUTABLE_VERSION}"
+      exit 0
+   fi
+
    MULLE_LIBEXEC_PATH="`bootstrap_libexec_path "$0"`"
    if [ -z "${MULLE_LIBEXEC_PATH}" ]
    then
       echo "Fatal Error: Could not find libexec for ${MULLE_EXECUTABLE} ($PWD)" >&2
       exit 1
    fi
+
+   #
+   # shell export commands with minimal
+   # trap setup
+   #
+   case "$1" in
+      library-path)
+         echo "${MULLE_LIBEXEC_PATH}"
+         exit 0
+      ;;
+
+      shell)
+         fail "shell has moved to mulle-sde"
+      ;;
+   esac
 
    PATH="${MULLE_LIBEXEC_PATH}:$PATH"
    export PATH
@@ -287,26 +308,6 @@ bootstrap_init()
    then
       echo "PATH=$PATH" >&2
    fi
-
-   #
-   # shell export commands with minimal
-   # trap setup
-   #
-   case "${1}" in
-      library-path)
-         echo "${MULLE_LIBEXEC_PATH}"
-         exit 0
-      ;;
-
-      version)
-         echo "${MULLE_EXECUTABLE_VERSION}"
-         exit 0
-      ;;
-
-      shell)
-         fail "shell has moved to mulle-sde"
-      ;;
-   esac
 
    #  set -e # more pain then gain in the end
    #  set -u # doesn't work with my style
@@ -587,8 +588,8 @@ bootstrap_main()
       ;;
 
       library-path)
-         echo "$PATH" | tr ':' '\012' | head -1
-         return 0
+         echo "${MULLE_LIBEXEC_PATH}"
+         exit 0
       ;;
 
       log|logs)

@@ -49,7 +49,7 @@ build_usage()
 
    cat <<EOF >&2
 Usage:
-   ${MULLE_BOOTSTAP_EXECUTABLE} build [options] [repos]*
+   ${MULLE_BOOTSTRAP_EXECUTABLE} build [options] [repos]*
 EOF
 
    cat <<EOF >&2
@@ -826,6 +826,20 @@ build_log_name()
 
    tool="$(tr '-' '_' <<< "${tool}")"
    absolutepath "${logfile}.${tool}.log"
+}
+
+
+add_path_if_exists()
+{
+   local line="$1"
+   local path="$2"
+
+   if [ -e "${path}" ]
+   then
+      colon_concat "${line}" "${path}"
+   else
+      echo "${line}"
+   fi
 }
 
 

@@ -184,7 +184,7 @@ _bail()
 #         kill -INT $$  # actually useful
 #      fi
 #   fi
-
+   sleep 1
    exit 1
 }
 

@@ -1,3 +1,7 @@
+### 3.15.1
+
+* fix some missing exits on error conditions
+
 ## 3.15.0
 
 * use a different mechanism for walking repositories during update/upgrade, to catch problems with embedded_repositories of minions not being updated

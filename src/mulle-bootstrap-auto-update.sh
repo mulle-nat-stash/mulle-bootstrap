@@ -51,6 +51,8 @@ seen_check()
 #
 _bootstrap_auto_copy()
 {
+   log_debug "_bootstrap_auto_copy" "$@"
+
    local dst="$1"
    local src="$2"
    local is_local="$3"
@@ -146,7 +148,7 @@ _bootstrap_auto_copy()
                STASHES_DEFAULT_DIR=""
                STASHES_ROOT_DIR=""
                merge_repository_files "${filepath}" "${dstfilepath}" "NO"
-            )
+            ) || exit 1
             seen="`seen_check "${seen}" "${name}"`"
          ;;
 
@@ -171,7 +173,7 @@ _bootstrap_auto_copy()
             if [ -z "${match}" ] ## has lowercase (not environment)
             then
                log_fluff "Copy expanded value of \"${filepath}\""
-               value="`read_expanded_setting "${filepath}" "" "${tmpdir}"`"
+               value="`read_expanded_setting "${filepath}" "" "${tmpdir}"`" || exit 1
                redirect_exekutor "${dstfilepath}" echo "${value}"
             else
                exekutor cp -a ${COPYMOVEFLAGS} "${filepath}" "${dstfilepath}" >&2
@@ -186,6 +188,8 @@ _bootstrap_auto_copy()
 
 _bootstrap_create_required_if_needed()
 {
+   log_debug "_bootstrap_create_required_if_needed" "$@"
+
    dst="$1"
    prefix="$2"
 
@@ -220,6 +224,8 @@ _bootstrap_create_required_if_needed()
 #
 _bootstrap_auto_create()
 {
+   log_debug "_bootstrap_auto_create" "$@"
+
    local dst="$1"
    local src="$2"
 
@@ -258,11 +264,11 @@ _bootstrap_auto_create()
 
 bootstrap_auto_create()
 {
-   log_debug ":bootstrap_auto_create begin:"
+   log_debug "bootstrap_auto_create" "$@"
 
    _bootstrap_auto_create "${BOOTSTRAP_DIR}.auto" "${BOOTSTRAP_DIR}"
 
-   log_debug ":bootstrap_auto_create end:"
+   log_debug "bootstrap_auto_create end"
 }
 
 
@@ -279,7 +285,7 @@ _bootstrap_merge_expanded_settings_in_front()
 
    srcbootstrap="`dirname -- "${1}"`"
 
-   settings1="`read_expanded_setting "$1" "" "${srcbootstrap}"`"
+   settings1="`read_expanded_setting "$1" "" "${srcbootstrap}"`" || exit 1
    if [ ! -z "$2" ]
    then
       settings2="`read_setting "$2"`"
@@ -423,8 +429,7 @@ _bootstrap_auto_special_copy()
       STASHES_DEFAULT_DIR=""
       STASHES_ROOT_DIR="${directory}"
       merge_repository_files "${filepath}" "${dstfilepath}" "NO"
-
-   )
+   ) || exit 1
 }
 
 
@@ -433,7 +438,6 @@ _bootstrap_auto_embedded_copy()
    log_debug ":_bootstrap_auto_embedded_copy:"
 
    _bootstrap_auto_special_copy "embedded_repositories" "$@"
-
    _bootstrap_create_required_if_needed "${BOOTSTRAP_DIR}.auto/.deep/${name}.d" "embedded_"
 }
 

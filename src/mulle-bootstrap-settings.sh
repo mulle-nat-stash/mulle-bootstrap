@@ -777,7 +777,6 @@ read_expanded_setting()
    [ $# -eq 3 ]             || internal_fail "wrong parameters"
 
    local value
-   local rval
 
    value="`(
       MULLE_BOOTSTRAP_SETTINGS_NO_AUTO="YES"
@@ -790,11 +789,9 @@ read_expanded_setting()
       value="${default}"
    fi
 
-   rval=0
-
    IFS="
 "
-   echo "${value}" | while read line
+   for line in ${value}
    do
       IFS="${DEFAULT_IFS}"
 
@@ -804,7 +801,7 @@ read_expanded_setting()
          empty_expansion_is_error="`read_config_setting "empty_expansion_is_error" "YES"`"
          if [ "${empty_expansion_is_error}" = "YES" ]
          then
-           fail "Aborting, because empty expansion warning is an error condition.
+            fail "Abort \"${filepath}\" read, because empty expansion warning is an error condition.
 To disable this:
    ${C_RESET_BOLD}mulle-bootstrap config -n empty_expansion_is_error"
          fi
@@ -812,8 +809,6 @@ To disable this:
    done
 
    IFS="${DEFAULT_IFS}"
-
-   return $rval
 }
 
 
