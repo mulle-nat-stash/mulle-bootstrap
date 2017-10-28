@@ -1,3 +1,7 @@
+### 3.15.2
+
+* fix documentation wrapper
+
 ### 3.15.1
 
 * fix some missing exits on error conditions
