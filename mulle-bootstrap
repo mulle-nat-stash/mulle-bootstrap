@@ -736,7 +736,7 @@ main()
    if ! bootstrap_main "$@"
    then
       # just do it again, but cd has been set differently
-      main "$@"
+      bootstrap_main "$@"
       exit $?
    fi
 }
