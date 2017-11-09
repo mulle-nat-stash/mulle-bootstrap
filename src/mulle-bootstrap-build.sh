@@ -836,7 +836,7 @@ add_path_if_exists()
 
    if [ -e "${path}" ]
    then
-      colon_concat "${line}" "${path}"
+      comma_concat "${line}" "${path}"
    else
       echo "${line}"
    fi

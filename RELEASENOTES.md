@@ -1,3 +1,7 @@
+### 3.15.3
+
+* Various small improvements
+
 ### 3.15.2
 
 * fix documentation wrapper

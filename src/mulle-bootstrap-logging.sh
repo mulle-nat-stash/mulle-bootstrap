@@ -235,6 +235,30 @@ concat()
    echo "${s}"
 }
 
+comma_concat()
+{
+   local i
+   local s
+
+   for i in "$@"
+   do
+      if [ -z "${i}" ]
+      then
+         continue
+      fi
+
+      if [ -z "${s}" ]
+      then
+         s="${i}"
+      else
+         s="${s}:${i}"
+      fi
+   done
+
+   echo "${s}"
+}
+
+
 
 # Escape sequence and resets, should use tput here instead of ANSI
 logging_initialize()

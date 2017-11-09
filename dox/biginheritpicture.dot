@@ -1,0 +1,110 @@
+
+digraph install
+{
+   node [shape=folder];
+
+   subgraph cluster_bootstrap
+   {
+      ".bootstrap" -> "repositories"
+      "repositories"  [ shape="note" ]
+   }
+
+   subgraph cluster_bootstrap_auto
+   {
+      ".bootstrap.auto" -> "repositories auto"
+      "repositories auto"  [ shape="note" label="repositories" ]
+   }
+
+   subgraph cluster_powersrc
+   {
+      ".repos powerfoo" -> "powerfoo src"
+      ".repos powerfoo" [ label=".repos" ]
+
+      "powerfoo src"  [ label="powerfoo" ]
+      "powerfoo src" -> "src powerfoo"
+      "powerfoo src" -> "CMakeLists.txt powerfoo"
+      "powerfoo src" -> ".bootstrap powerfoo"
+      ".bootstrap powerfoo" [ label=".bootstrap"]
+      ".bootstrap powerfoo" -> "repositories powerfoo"
+      ".bootstrap powerfoo" -> "settings powerfoo"
+
+      "repositories powerfoo"  [ shape="note"  label="repositories"]
+      "settings powerfoo"  [ label="settings"]
+
+      "settings powerfoo" -> "dispense_headers_path powerfoo"
+      "dispense_headers_path powerfoo"  [ shape="note" label="dispense_headers_path"]
+
+      "src powerfoo"  [ label="src" ]
+      "CMakeLists.txt powerfoo"  [ shape="note"  label="CMakeLists.txt"]
+      "src powerfoo" -> "powerfoo.h powerfoo"
+      "src powerfoo" -> "powerfoo.c powerfoo"
+      "powerfoo.h powerfoo"   [ label="powerfoo.h" shape="note" ]
+      "powerfoo.c powerfoo"   [ label="powerfoo.c" shape="note" ]
+   }
+
+   subgraph cluster_src
+   {
+      ".repos" -> "foo src"
+      "foo src"  [ label="foo" ]
+      "foo src" -> "src"
+      "foo src" -> "CMakeLists.txt"
+      "CMakeLists.txt"  [ shape="note" ]
+      "src" -> "foo.h src"
+      "src" -> "foo.c src"
+      "foo.h src"   [ label="foo.h" shape="note" ]
+      "foo.c src"   [ label="foo.c" shape="note" ]
+   }
+
+   subgraph cluster_build
+   {
+      "build" -> ".repos build"
+      ".repos build"  [ label=".repos" ]
+      ".repos build" -> "Release"
+      "Release" -> "foo Release"
+      "Release" -> "powerfoo Release"
+      "foo Release" -> "libfoo.a Release"
+      "foo Release"     [ label="foo" ]
+      "powerfoo Release" -> "libpowerfoo.a Release"
+      "powerfoo Release"     [ label="powerfoo" ]
+      "libfoo.a Release"   [ label="libfoo.a" shape="note" ]
+      "libpowerfoo.a Release"   [ label="libpowerfoo.a" shape="note" ]
+   }
+
+   subgraph cluster_tmp
+   {
+      "dependencies tmp" [ label="dependencies" ]
+      "dependencies tmp" -> "tmp"
+      "tmp" -> "lib"
+      "tmp" -> "include"
+      "lib" ->  "libfoo.a install"
+      "lib" ->  "libpowerfoo.a install"
+      "include" ->  "foo.h install"
+      "include" ->  "powerfoo install"
+      "powerfoo install" ->  "powerfoo.h install"
+      "powerfoo install"   [ label="powerfoo" ]
+      "libpowerfoo.a install"   [ label="libpowerfoo.a" shape="note" ]
+      "libfoo.a install"   [ label="libfoo.a" shape="note" ]
+      "foo.h install"   [ label="foo.h" shape="note" ]
+      "powerfoo.h install"   [ label="powerfoo.h" shape="note" ]
+   }
+
+   subgraph cluster_dependencies
+   {
+      "dependencies" -> "lib dependencies"
+      "dependencies" -> "include dependencies"
+      "lib dependencies" ->  "libfoo.a dependencies"
+      "lib dependencies" ->  "libpowerfoo.a dependencies"
+      "lib dependencies"  [ label="lib" ]
+      "include dependencies"  [ label="include" ]
+      "include dependencies" ->  "foo dependencies"
+      "include dependencies" ->  "powerfoo dependencies"
+      "foo dependencies" ->  "foo.h dependencies"
+      "powerfoo dependencies" ->  "powerfoo.h dependencies"
+      "foo dependencies"       [ label="foo" ]
+      "powerfoo dependencies"  [ label="powerfoo" ]
+      "libfoo.a dependencies"  [ label="libfoo.a" shape="note" ]
+      "libpowerfoo.a dependencies"  [ label="libpowerfoo.a" shape="note" ]
+      "foo.h dependencies"     [ label="foo.h" shape="note" ]
+      "powerfoo.h dependencies" [ label="powerfoo.h" shape="note" ]
+   }
+}

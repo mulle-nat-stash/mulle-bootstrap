@@ -1,0 +1,88 @@
+digraph scripts {
+   rankdir=LR
+
+   node [ shape="box" ]
+
+   "fetch" [ color="mauve", fontcolor="mauve", penwidth=2 ]
+
+   "fetch" -> "clone"
+   "fetch" -> "checkout"
+   "fetch" -> "upgrade"
+   "fetch" -> "update"
+   "fetch" -> "set-url"
+
+   {
+      rank="same";
+
+      node [ label="", fixedsize=true, width=0, height=0, style="invis"]
+
+      "invis clone"
+      "invis checkout"
+      "invis upgrade"
+      "invis update"
+      "invis set-url"
+   }
+
+   {
+      rank="same";
+
+      node [ shape="box" ]
+      "builtin checkout"
+      "builtin clone"
+      "builtin set-url"
+      "builtin update"
+      "builtin upgrade"
+
+      node [ shape="note", color="blue", fontcolor="blue" ]
+
+      "bin/clone.sh"
+      "bin/checkout.sh"
+      "bin/update.sh"
+      "bin/upgrade.sh"
+
+      node [ shape="note", color="dodgerblue2", fontcolor="dodgerblue2", penwidth=2 ]
+
+      "bin/post-checkout.sh 1"          [ label="bin/post-checkout.sh" ]
+      "bin/post-checkout.sh 2"          [ label="bin/post-checkout.sh" ]
+      "bin/post-checkout.sh 3"          [ label="bin/post-checkout.sh" ]
+
+      node [ shape="note", color="aquamarine3", fontcolor="aquamarine3", penwidth=2 ]
+
+      "bin/post-embedded-checkout.sh 1" [ label="bin/post-embedded-checkout.sh" ]
+      "bin/post-embedded-checkout.sh 2" [ label="bin/post-embedded-checkout.sh" ]
+      "bin/post-embedded-checkout.sh 3" [ label="bin/post-embedded-checkout.sh" ]
+   }
+
+   edge [ fontcolor="dodgerblue2", color="dodgerblue2", penwidth=2]
+
+   "clone"    -> "bin/post-checkout.sh 1"
+   "checkout" -> "bin/post-checkout.sh 2"
+   "upgrade"  -> "bin/post-checkout.sh 3"
+
+   edge [ color="aquamarine3", fontcolor="aquamarine3" ]
+
+   "clone"    -> "bin/post-embedded-checkout.sh 1"
+   "checkout" -> "bin/post-embedded-checkout.sh 2"
+   "upgrade"  -> "bin/post-embedded-checkout.sh 3"
+
+   edge [ color="black", fontcolor="black", penwidth=1  ]
+
+   "clone" -> "invis clone" [ arrowhead="none"]
+   "invis clone" -> "bin/clone.sh" [ fontcolor="blue", color="blue" ]
+   "invis clone" -> "builtin clone"
+
+   "checkout" -> "invis checkout" [ arrowhead="none"]
+   "invis checkout" -> "bin/checkout.sh" [ fontcolor="blue", color="blue" ]
+   "invis checkout" -> "builtin checkout"
+
+   "upgrade" -> "invis upgrade" [ arrowhead="none"]
+   "invis upgrade" -> "bin/upgrade.sh" [ fontcolor="blue", color="blue" ]
+   "invis upgrade" -> "builtin upgrade"
+
+   "update" -> "invis update" [ arrowhead="none"]
+   "invis update" -> "bin/update.sh" [ fontcolor="blue", color="blue" ]
+   "invis update" -> "builtin update"
+
+   "set-url" -> "invis set-url" [ arrowhead="none"]
+   "invis set-url" -> "builtin set-url"
+}

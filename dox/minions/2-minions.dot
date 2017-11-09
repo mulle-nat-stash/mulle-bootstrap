@@ -1,0 +1,128 @@
+digraph pic  {
+  compound=true;
+   node [shape= record];
+
+   "1_Master"  [ label="Master", color="red" ]
+
+   node [shape= "folder" ]
+
+   "1_Master" -> "2_Minion"          [lhead=cluster_0];
+   "2_Minion" -> "Minion#.bootstrap" [lhead=cluster_1];
+
+
+   subgraph cluster_0 {
+      color="red"
+      node [shape= folder];
+
+      "2_Minion"  [ label="Minion", color="green" ]
+
+
+      "Master#.bootstrap.local" [ label=".bootstrap.local"]
+      "Master#.bootstrap.local" -> "Master#minions"
+      "Master#.bootstrap.local" -> "Master#is_master"
+
+
+      "Master#is_master" [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">is_master</TD></TR>
+</TABLE>>];
+
+      "Master#minions"        [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">minions</TD></TR>
+<TR><TD PORT="a1">Minion</TD></TR>
+</TABLE>>];
+
+      "Master#.bootstrap.auto" [ label=".bootstrap.auto" ]
+      "Master#.bootstrap.auto" -> "Master#.bootstrap.auto/.deep"
+      "Master#.bootstrap.auto" -> "Master#.bootstrap.auto/minions"
+      "Master#.bootstrap.auto" -> "Master#.bootstrap.auto/repositories"
+
+      "Master#.bootstrap.auto/minions"   [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">minions</TD></TR>
+<TR><TD PORT="a2">Minion</TD></TR>
+</TABLE>>];
+
+      "Master#.bootstrap.auto/repositories"   [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="a3">Foobie</TD></TR>
+</TABLE>>];
+
+      "Master#.bootstrap.auto/.deep"        [ label=".deep" ]
+      "Master#.bootstrap.auto/.deep/Minion" [ label="Minion" ]
+
+      "Master#.bootstrap.auto/.deep" -> "Master#.bootstrap.auto/.deep/Minion"
+      "Master#.bootstrap.auto/.deep/Minion" -> "Master#.bootstrap.auto/.deep/Minion/embedded_repositories"
+
+      "Master#.bootstrap.auto/.deep/Minion/embedded_repositories"    [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">embedded_repositories</TD></TR>
+<TR><TD PORT="f4">Boobie</TD></TR>
+</TABLE>>];
+
+      "Master#.bootstrap.repos"       [ label=".bootstrap.repos", penwidth="3" ]
+
+      "Master#.bootstrap.repos" -> "Master#.bootstrap.repos/.deep"  [ penwidth="3" ]
+      "Master#.bootstrap.repos" -> "Master#.bootstrap.repos/Foobie" [ penwidth="3" ]
+
+      "Master#.bootstrap.repos/Foobie"   [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">Foobie</TD></TR>
+<TR><TD PORT="f5">Foobie;Foobie;master;git</TD></TR>
+</TABLE>>];
+
+      "Master#.bootstrap.repos/.deep" [ label=".deep", penwidth="3"]
+
+      "Master#.bootstrap.repos/.deep" -> "Master#.bootstrap.repos/.deep/Minions.d" [ penwidth="3" ]
+
+      "Master#.bootstrap.repos/.deep/Minions.d" [ label="Minions.d", penwidth="3"]
+
+      "Master#.bootstrap.repos/.deep/Minions.d" -> "Master#.bootstrap.repos/.deep/Minions/Noobie" [ penwidth="3" ]
+
+      "Master#.bootstrap.repos/.deep/Minions/Noobie"   [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">Boobie</TD></TR>
+<TR><TD PORT="f6">Boobie;Boobie;master;git</TD></TR>
+</TABLE>>];
+
+      "Foobie"  [ label = "Foobie", penwidth="3" ]
+      "Foobie" -> "Foobie#i_am_foobie" [ penwidth="3" ]
+      "Foobie#i_am_foobie" [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">i_am_foobie.txt</TD></TR>
+<TR><TD PORT="f5">Foobie</TD></TR>
+</TABLE>>];
+   }
+
+
+   subgraph cluster_1 {
+      color="green"
+      node [shape= folder];
+
+      "Minion#.bootstrap"    -> "Minion#repositories"
+      "Minion#.bootstrap"    -> "Minion#embedded_repositories"
+
+      "Minion#.bootstrap"  [ label = ".bootstrap"]
+
+      "Minion#repositories"        [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">repositories</TD></TR>
+<TR><TD PORT="f3">Foobie</TD></TR>
+</TABLE>>];
+
+      "Minion#embedded_repositories"   [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">embedded_repositories</TD></TR>
+<TR><TD PORT="f4">Boobie</TD></TR>
+</TABLE>>];
+
+      "Minion#.bootstrap.local" -> "Minion#is_minion"
+      "Minion#.bootstrap.local"         [ label = ".bootstrap.local"]
+
+      "Minion#is_minion" [ shape="none", label=< <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">is_minion</TD></TR>
+</TABLE>>];
+
+
+      "Boobie"  [ label = "Boobie", penwidth="3" ]
+      "Boobie" -> "Boobie#i_am_boobie" [ penwidth="3" ]
+
+      "Boobie#i_am_boobie" [ shape="none", label=< <TABLE BORDER="3" CELLBORDER="0" CELLSPACING="0">
+<TR><TD bgcolor="#DDDDDD">i_am_boobie.txt</TD></TR>
+<TR><TD PORT="f6">Boobie</TD></TR>
+</TABLE>>];
+
+   }
+}

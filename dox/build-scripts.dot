@@ -1,0 +1,4 @@
+digraph scripts {
+
+   "bin/pre-build.sh"  -> "bin/build.sh" -> "bin/post-build.sh"
+}
